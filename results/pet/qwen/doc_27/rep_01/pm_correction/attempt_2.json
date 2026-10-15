@@ -1,0 +1,361 @@
+{
+  "name": "Fault Handling Process",
+  "resources": [
+    {
+      "name": "MPO",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Fault Detector",
+      "capacity": 1,
+      "resource_type": "system"
+    },
+    {
+      "name": "GO",
+      "capacity": 1,
+      "resource_type": "external_party"
+    },
+    {
+      "name": "MSP",
+      "capacity": 1,
+      "resource_type": "external_party"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_fd_report",
+      "name": "Fault Detector Reports Failure",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Failure Report"
+    },
+    {
+      "id": "evt_start_mpo_suspicion",
+      "name": "MPO Has Suspicion of Fault",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_reject",
+      "name": "Failure Rejected",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_msg_notify_go_confirmed",
+      "name": "Notify GO of Confirmed Failure",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Confirmation Notification"
+    },
+    {
+      "id": "evt_msg_notify_msp_confirmed",
+      "name": "Notify MSP of Confirmed Failure",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Confirmation Notification"
+    },
+    {
+      "id": "evt_msg_share_results_fd",
+      "name": "Share Repair Results with Fault Detector",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Repair Results"
+    },
+    {
+      "id": "evt_msg_notify_go_resolved",
+      "name": "Notify GO of Resolution",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Resolution Notification"
+    },
+    {
+      "id": "evt_msg_notify_msp_resolved",
+      "name": "Notify MSP of Resolution",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Resolution Notification"
+    },
+    {
+      "id": "evt_end_process",
+      "name": "Process Completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_examine_failure",
+      "name": "Examine the failure",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_fix_fault",
+      "name": "Fix the fault at the measuring device",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "MPO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_merge_trigger",
+      "name": "Merge Triggers",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "gw_decision_confirm",
+      "name": "Confirm or Reject Failure?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_to_reject",
+          "condition": "Rejects the failure"
+        },
+        {
+          "flow_id": "flow_to_confirm",
+          "condition": "Confirms the failure"
+        }
+      ]
+    },
+    {
+      "id": "gw_parallel_notify_confirmed",
+      "name": "Parallel Notify Confirmed",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "gw_join_notify_confirmed",
+      "name": "Join Notify Confirmed",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "gw_parallel_notify_resolved",
+      "name": "Parallel Notify Resolved",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "gw_join_notify_resolved",
+      "name": "Join Notify Resolved",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_mpo_to_merge",
+      "source_id": "evt_start_mpo_suspicion",
+      "target_id": "gw_merge_trigger",
+      "condition_name": null
+    },
+    {
+      "id": "flow_merge_to_examine",
+      "source_id": "gw_merge_trigger",
+      "target_id": "task_examine_failure",
+      "condition_name": null
+    },
+    {
+      "id": "flow_examine_to_decision",
+      "source_id": "task_examine_failure",
+      "target_id": "gw_decision_confirm",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_reject",
+      "source_id": "gw_decision_confirm",
+      "target_id": "evt_end_reject",
+      "condition_name": "Rejects the failure"
+    },
+    {
+      "id": "flow_to_confirm",
+      "source_id": "gw_decision_confirm",
+      "target_id": "gw_parallel_notify_confirmed",
+      "condition_name": "Confirms the failure"
+    },
+    {
+      "id": "flow_join_confirmed_to_fix",
+      "source_id": "gw_join_notify_confirmed",
+      "target_id": "task_fix_fault",
+      "condition_name": null
+    },
+    {
+      "id": "flow_share_results_to_parallel_resolved",
+      "source_id": "evt_msg_share_results_fd",
+      "target_id": "gw_parallel_notify_resolved",
+      "condition_name": null
+    },
+    {
+      "id": "flow_join_resolved_to_end",
+      "source_id": "gw_join_notify_resolved",
+      "target_id": "evt_end_process",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_mpo",
+      "name": "MPO",
+      "element_ids": [
+        "evt_start_mpo_suspicion",
+        "gw_merge_trigger",
+        "task_examine_failure",
+        "gw_decision_confirm",
+        "evt_end_reject",
+        "gw_parallel_notify_confirmed",
+        "gw_join_notify_confirmed",
+        "task_fix_fault",
+        "gw_parallel_notify_resolved",
+        "gw_join_notify_resolved",
+        "evt_end_process"
+      ]
+    },
+    {
+      "id": "pool_fault_detector",
+      "name": "Fault Detector",
+      "element_ids": [
+        "evt_start_fd_report",
+        "evt_msg_share_results_fd"
+      ]
+    },
+    {
+      "id": "pool_go",
+      "name": "GO",
+      "element_ids": [
+        "evt_msg_notify_go_confirmed",
+        "evt_msg_notify_go_resolved"
+      ]
+    },
+    {
+      "id": "pool_msp",
+      "name": "MSP",
+      "element_ids": [
+        "evt_msg_notify_msp_confirmed",
+        "evt_msg_notify_msp_resolved"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_failure_report",
+      "source_id": "evt_start_fd_report",
+      "target_id": "gw_merge_trigger",
+      "name": "Failure Report"
+    },
+    {
+      "id": "flow_start_fd_to_merge",
+      "source_id": "evt_start_fd_report",
+      "target_id": "gw_merge_trigger",
+      "name": null
+    },
+    {
+      "id": "flow_notify_go_confirmed",
+      "source_id": "gw_parallel_notify_confirmed",
+      "target_id": "evt_msg_notify_go_confirmed",
+      "name": null
+    },
+    {
+      "id": "flow_notify_msp_confirmed",
+      "source_id": "gw_parallel_notify_confirmed",
+      "target_id": "evt_msg_notify_msp_confirmed",
+      "name": null
+    },
+    {
+      "id": "flow_fix_to_share_results",
+      "source_id": "task_fix_fault",
+      "target_id": "evt_msg_share_results_fd",
+      "name": null
+    },
+    {
+      "id": "flow_notify_go_resolved",
+      "source_id": "gw_parallel_notify_resolved",
+      "target_id": "evt_msg_notify_go_resolved",
+      "name": null
+    },
+    {
+      "id": "flow_notify_msp_resolved",
+      "source_id": "gw_parallel_notify_resolved",
+      "target_id": "evt_msg_notify_msp_resolved",
+      "name": null
+    },
+    {
+      "id": "flow_from_notify_go_confirmed_to_join",
+      "source_id": "evt_msg_notify_go_confirmed",
+      "target_id": "gw_join_notify_confirmed",
+      "name": null
+    },
+    {
+      "id": "flow_from_notify_msp_confirmed_to_join",
+      "source_id": "evt_msg_notify_msp_confirmed",
+      "target_id": "gw_join_notify_confirmed",
+      "name": null
+    },
+    {
+      "id": "flow_from_notify_go_resolved_to_join",
+      "source_id": "evt_msg_notify_go_resolved",
+      "target_id": "gw_join_notify_resolved",
+      "name": null
+    },
+    {
+      "id": "flow_from_notify_msp_resolved_to_join",
+      "source_id": "evt_msg_notify_msp_resolved",
+      "target_id": "gw_join_notify_resolved",
+      "name": null
+    }
+  ],
+  "data_objects": [],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

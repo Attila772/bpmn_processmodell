@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_sales_part" name="Sales Department" processRef="pool_sales_proc" />
+    <bpmn:participant id="pool_storehouse_part" name="Storehouse" processRef="pool_storehouse_proc" />
+    <bpmn:participant id="pool_engineering_part" name="Engineering Department" processRef="pool_engineering_proc" />
+    <bpmn:messageFlow id="mf_storehouse_info" sourceRef="evt_send_storehouse_info" targetRef="evt_receive_storehouse_info" name="Order accepted - storehouse notification" />
+    <bpmn:messageFlow id="mf_engineering_info" sourceRef="evt_send_engineering_info" targetRef="evt_receive_engineering_info" name="Order accepted - engineering notification" />
+    <bpmn:messageFlow id="mf_storehouse_done" sourceRef="evt_send_storehouse_done" targetRef="evt_receive_storehouse_done" name="Part list processed" />
+    <bpmn:messageFlow id="mf_ready_for_ship" sourceRef="evt_send_ready_for_ship" targetRef="evt_receive_ready_for_ship" name="Bicycle assembled" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_sales_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_order" name="Order" dataObjectRef="do_order_do" />
+    <bpmn:dataObject id="do_order_do" />
+    <bpmn:dataObjectReference id="do_assembled_bicycle_p1" name="Assembled bicycle" dataObjectRef="do_assembled_bicycle_p1_do" />
+    <bpmn:dataObject id="do_assembled_bicycle_p1_do" />
+    <bpmn:startEvent id="start_order" name="Order received">
+      <bpmn:outgoing>flow_start_to_task</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_rejected" name="Order rejected">
+      <bpmn:incoming>flow_reject</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_send_storehouse_info" name="Inform storehouse">
+      <bpmn:incoming>flow_accept</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_storehouse_info_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_send_engineering_info" name="Inform engineering">
+      <bpmn:incoming>flow_accept_to_eng</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_engineering_info_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_receive_ready_for_ship" name="Bicycle ready received">
+      <bpmn:outgoing>flow_ready_msg</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_ready_for_ship_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end_process" name="Process finished">
+      <bpmn:incoming>flow_ship_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_reject_accept" name="Reject or accept order">
+      <bpmn:incoming>flow_start_to_task</bpmn:incoming>
+      <bpmn:outgoing>flow_task_to_gw</bpmn:outgoing>
+      <bpmn:property id="task_reject_accept_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_reject_accept_dia0">
+        <bpmn:sourceRef>do_order</bpmn:sourceRef>
+        <bpmn:targetRef>task_reject_accept_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_ship_bicycle" name="Ship bicycle to customer">
+      <bpmn:incoming>flow_ready_msg</bpmn:incoming>
+      <bpmn:outgoing>flow_ship_to_end</bpmn:outgoing>
+      <bpmn:property id="task_ship_bicycle_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_ship_bicycle_dia0">
+        <bpmn:sourceRef>do_assembled_bicycle_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_ship_bicycle_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="gw_accept_reject" name="Order accepted?" isMarkerVisible="true">
+      <bpmn:incoming>flow_task_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_reject</bpmn:outgoing>
+      <bpmn:outgoing>flow_accept</bpmn:outgoing>
+      <bpmn:outgoing>flow_accept_to_eng</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_to_task" sourceRef="start_order" targetRef="task_reject_accept" />
+    <bpmn:sequenceFlow id="flow_task_to_gw" sourceRef="task_reject_accept" targetRef="gw_accept_reject" />
+    <bpmn:sequenceFlow id="flow_reject" sourceRef="gw_accept_reject" targetRef="end_rejected" name="rejected" />
+    <bpmn:sequenceFlow id="flow_accept" sourceRef="gw_accept_reject" targetRef="evt_send_storehouse_info" name="accepted" />
+    <bpmn:sequenceFlow id="flow_accept_to_eng" sourceRef="gw_accept_reject" targetRef="evt_send_engineering_info" name="accepted" />
+    <bpmn:sequenceFlow id="flow_ready_msg" sourceRef="evt_receive_ready_for_ship" targetRef="task_ship_bicycle" />
+    <bpmn:sequenceFlow id="flow_ship_to_end" sourceRef="task_ship_bicycle" targetRef="end_process" />
+  </bpmn:process>
+  <bpmn:process id="pool_storehouse_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_part_list" name="Part list" dataObjectRef="do_part_list_do" />
+    <bpmn:dataObject id="do_part_list_do" />
+    <bpmn:dataStoreReference id="ds_erp" name="Storehouse inventory/reservation system" />
+    <bpmn:startEvent id="evt_receive_storehouse_info" name="Storehouse informed">
+      <bpmn:outgoing>flow_storehouse_msg</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_storehouse_info_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_send_storehouse_done" name="Part list processing done">
+      <bpmn:incoming>flow_no_more_parts</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_storehouse_done_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_process_part_list" name="Process part list">
+      <bpmn:incoming>flow_storehouse_msg</bpmn:incoming>
+      <bpmn:outgoing>flow_process_to_check</bpmn:outgoing>
+      <bpmn:property id="task_process_part_list_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_process_part_list_dia0">
+        <bpmn:sourceRef>do_part_list</bpmn:sourceRef>
+        <bpmn:targetRef>task_process_part_list_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:task id="task_check_quantity" name="Check required quantity of part">
+      <bpmn:incoming>flow_process_to_check</bpmn:incoming>
+      <bpmn:incoming>flow_more_parts</bpmn:incoming>
+      <bpmn:outgoing>flow_check_to_gw</bpmn:outgoing>
+      <bpmn:property id="task_check_quantity_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_quantity_dia0">
+        <bpmn:sourceRef>do_part_list</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_quantity_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:standardLoopCharacteristics />
+    </bpmn:task>
+    <bpmn:task id="task_reserve_part" name="Reserve part">
+      <bpmn:incoming>flow_avail_yes</bpmn:incoming>
+      <bpmn:outgoing>flow_reserve_to_loop</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_reserve_part_doa0">
+        <bpmn:targetRef>ds_erp</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_backorder_part" name="Back-order part">
+      <bpmn:incoming>flow_avail_no</bpmn:incoming>
+      <bpmn:outgoing>flow_backorder_to_loop</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_backorder_part_doa0">
+        <bpmn:targetRef>ds_erp</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_available" name="Part available in-house?" isMarkerVisible="true">
+      <bpmn:incoming>flow_check_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_avail_yes</bpmn:outgoing>
+      <bpmn:outgoing>flow_avail_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_loop_parts" name="More parts in list?" isMarkerVisible="true">
+      <bpmn:incoming>flow_reserve_to_loop</bpmn:incoming>
+      <bpmn:incoming>flow_backorder_to_loop</bpmn:incoming>
+      <bpmn:outgoing>flow_more_parts</bpmn:outgoing>
+      <bpmn:outgoing>flow_no_more_parts</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_storehouse_msg" sourceRef="evt_receive_storehouse_info" targetRef="task_process_part_list" />
+    <bpmn:sequenceFlow id="flow_process_to_check" sourceRef="task_process_part_list" targetRef="task_check_quantity" />
+    <bpmn:sequenceFlow id="flow_check_to_gw" sourceRef="task_check_quantity" targetRef="gw_available" />
+    <bpmn:sequenceFlow id="flow_avail_yes" sourceRef="gw_available" targetRef="task_reserve_part" name="available" />
+    <bpmn:sequenceFlow id="flow_avail_no" sourceRef="gw_available" targetRef="task_backorder_part" name="not available" />
+    <bpmn:sequenceFlow id="flow_reserve_to_loop" sourceRef="task_reserve_part" targetRef="gw_loop_parts" />
+    <bpmn:sequenceFlow id="flow_backorder_to_loop" sourceRef="task_backorder_part" targetRef="gw_loop_parts" />
+    <bpmn:sequenceFlow id="flow_more_parts" sourceRef="gw_loop_parts" targetRef="task_check_quantity" name="next part" />
+    <bpmn:sequenceFlow id="flow_no_more_parts" sourceRef="gw_loop_parts" targetRef="evt_send_storehouse_done" name="no more parts" />
+  </bpmn:process>
+  <bpmn:process id="pool_engineering_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_part_list_p1" name="Part list" dataObjectRef="do_part_list_p1_do" />
+    <bpmn:dataObject id="do_part_list_p1_do" />
+    <bpmn:dataObjectReference id="do_assembled_bicycle" name="Assembled bicycle" dataObjectRef="do_assembled_bicycle_do" />
+    <bpmn:dataObject id="do_assembled_bicycle_do" />
+    <bpmn:startEvent id="evt_receive_engineering_info" name="Engineering informed">
+      <bpmn:outgoing>flow_engineering_msg</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_engineering_info_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_receive_storehouse_done" name="Part list processing received">
+      <bpmn:outgoing>flow_storehouse_done_msg</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_storehouse_done_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="evt_send_ready_for_ship" name="Bicycle ready for shipping">
+      <bpmn:incoming>flow_assemble_to_send</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_ready_for_ship_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_prepare_assembly" name="Prepare for assembling">
+      <bpmn:incoming>flow_engineering_msg</bpmn:incoming>
+      <bpmn:outgoing>flow_prepare_to_sync</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:manualTask id="task_assemble_bicycle" name="Assemble bicycle">
+      <bpmn:incoming>flow_sync_to_assemble</bpmn:incoming>
+      <bpmn:outgoing>flow_assemble_to_send</bpmn:outgoing>
+      <bpmn:property id="task_assemble_bicycle_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_assemble_bicycle_dia0">
+        <bpmn:sourceRef>do_part_list_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_assemble_bicycle_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_assemble_bicycle_doa0">
+        <bpmn:targetRef>do_assembled_bicycle</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:parallelGateway id="gw_sync_ready" name="Storehouse done AND preparation done">
+      <bpmn:incoming>flow_storehouse_done_msg</bpmn:incoming>
+      <bpmn:incoming>flow_prepare_to_sync</bpmn:incoming>
+      <bpmn:outgoing>flow_sync_to_assemble</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="flow_engineering_msg" sourceRef="evt_receive_engineering_info" targetRef="task_prepare_assembly" />
+    <bpmn:sequenceFlow id="flow_storehouse_done_msg" sourceRef="evt_receive_storehouse_done" targetRef="gw_sync_ready" />
+    <bpmn:sequenceFlow id="flow_prepare_to_sync" sourceRef="task_prepare_assembly" targetRef="gw_sync_ready" />
+    <bpmn:sequenceFlow id="flow_sync_to_assemble" sourceRef="gw_sync_ready" targetRef="task_assemble_bicycle" />
+    <bpmn:sequenceFlow id="flow_assemble_to_send" sourceRef="task_assemble_bicycle" targetRef="evt_send_ready_for_ship" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_sales_part_di" bpmnElement="pool_sales_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="950" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_storehouse_part_di" bpmnElement="pool_storehouse_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="1520" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_engineering_part_di" bpmnElement="pool_engineering_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1085" width="1140" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_process_di" bpmnElement="end_process">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_rejected_di" bpmnElement="end_rejected">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_engineering_info_di" bpmnElement="evt_receive_engineering_info">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_ready_for_ship_di" bpmnElement="evt_receive_ready_for_ship">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_storehouse_done_di" bpmnElement="evt_receive_storehouse_done">
+        <dc:Bounds x="160" y="1270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_storehouse_info_di" bpmnElement="evt_receive_storehouse_info">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_engineering_info_di" bpmnElement="evt_send_engineering_info">
+        <dc:Bounds x="730" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_ready_for_ship_di" bpmnElement="evt_send_ready_for_ship">
+        <dc:Bounds x="920" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_storehouse_done_di" bpmnElement="evt_send_storehouse_done">
+        <dc:Bounds x="1300" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_storehouse_info_di" bpmnElement="evt_send_storehouse_info">
+        <dc:Bounds x="730" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_accept_reject_di" bpmnElement="gw_accept_reject">
+        <dc:Bounds x="540" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_available_di" bpmnElement="gw_available">
+        <dc:Bounds x="730" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_loop_parts_di" bpmnElement="gw_loop_parts">
+        <dc:Bounds x="1110" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_sync_ready_di" bpmnElement="gw_sync_ready">
+        <dc:Bounds x="540" y="1145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_order_di" bpmnElement="start_order">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assemble_bicycle_di" bpmnElement="task_assemble_bicycle">
+        <dc:Bounds x="730" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_backorder_part_di" bpmnElement="task_backorder_part">
+        <dc:Bounds x="920" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_quantity_di" bpmnElement="task_check_quantity">
+        <dc:Bounds x="1300" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_assembly_di" bpmnElement="task_prepare_assembly">
+        <dc:Bounds x="350" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_process_part_list_di" bpmnElement="task_process_part_list">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reject_accept_di" bpmnElement="task_reject_accept">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reserve_part_di" bpmnElement="task_reserve_part">
+        <dc:Bounds x="920" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ship_bicycle_di" bpmnElement="task_ship_bicycle">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_order_di" bpmnElement="do_order">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_assembled_bicycle_p1_di" bpmnElement="do_assembled_bicycle_p1">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_part_list_di" bpmnElement="do_part_list">
+        <dc:Bounds x="845" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_erp_di" bpmnElement="ds_erp">
+        <dc:Bounds x="940" y="950" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_part_list_p1_di" bpmnElement="do_part_list_p1">
+        <dc:Bounds x="750" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_assembled_bicycle_di" bpmnElement="do_assembled_bicycle">
+        <dc:Bounds x="750" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_task_di" bpmnElement="flow_start_to_task">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_task_to_gw_di" bpmnElement="flow_task_to_gw">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reject_di" bpmnElement="flow_reject">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_accept_di" bpmnElement="flow_accept">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="748" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_accept_to_eng_di" bpmnElement="flow_accept_to_eng">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="748" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_storehouse_msg_di" bpmnElement="flow_storehouse_msg">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_engineering_msg_di" bpmnElement="flow_engineering_msg">
+        <di:waypoint x="178" y="1163" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_process_to_check_di" bpmnElement="flow_process_to_check">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="1350" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_check_to_gw_di" bpmnElement="flow_check_to_gw">
+        <di:waypoint x="1350" y="850" />
+        <di:waypoint x="755" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_avail_yes_di" bpmnElement="flow_avail_yes">
+        <di:waypoint x="755" y="710" />
+        <di:waypoint x="970" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_avail_no_di" bpmnElement="flow_avail_no">
+        <di:waypoint x="755" y="710" />
+        <di:waypoint x="970" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reserve_to_loop_di" bpmnElement="flow_reserve_to_loop">
+        <di:waypoint x="970" y="850" />
+        <di:waypoint x="1135" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_backorder_to_loop_di" bpmnElement="flow_backorder_to_loop">
+        <di:waypoint x="970" y="725" />
+        <di:waypoint x="1135" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_more_parts_di" bpmnElement="flow_more_parts">
+        <di:waypoint x="1135" y="710" />
+        <di:waypoint x="1350" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_no_more_parts_di" bpmnElement="flow_no_more_parts">
+        <di:waypoint x="1135" y="710" />
+        <di:waypoint x="1318" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_storehouse_done_msg_di" bpmnElement="flow_storehouse_done_msg">
+        <di:waypoint x="178" y="1288" />
+        <di:waypoint x="565" y="1170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_prepare_to_sync_di" bpmnElement="flow_prepare_to_sync">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="565" y="1170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sync_to_assemble_di" bpmnElement="flow_sync_to_assemble">
+        <di:waypoint x="565" y="1170" />
+        <di:waypoint x="780" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_assemble_to_send_di" bpmnElement="flow_assemble_to_send">
+        <di:waypoint x="780" y="1185" />
+        <di:waypoint x="938" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ready_msg_di" bpmnElement="flow_ready_msg">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ship_to_end_di" bpmnElement="flow_ship_to_end">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_storehouse_info_di" bpmnElement="mf_storehouse_info">
+        <di:waypoint x="748" y="368" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_engineering_info_di" bpmnElement="mf_engineering_info">
+        <di:waypoint x="748" y="243" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_storehouse_done_di" bpmnElement="mf_storehouse_done">
+        <di:waypoint x="1318" y="703" />
+        <di:waypoint x="178" y="1288" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_ready_for_ship_di" bpmnElement="mf_ready_for_ship">
+        <di:waypoint x="938" y="1163" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reject_accept_dia0_di" bpmnElement="task_reject_accept_dia0">
+        <di:waypoint x="388" y="515" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_process_part_list_dia0_di" bpmnElement="task_process_part_list_dia0">
+        <di:waypoint x="863" y="975" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_quantity_dia0_di" bpmnElement="task_check_quantity_dia0">
+        <di:waypoint x="863" y="975" />
+        <di:waypoint x="1350" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reserve_part_doa0_di" bpmnElement="task_reserve_part_doa0">
+        <di:waypoint x="970" y="850" />
+        <di:waypoint x="965" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_backorder_part_doa0_di" bpmnElement="task_backorder_part_doa0">
+        <di:waypoint x="970" y="725" />
+        <di:waypoint x="965" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_assemble_bicycle_dia0_di" bpmnElement="task_assemble_bicycle_dia0">
+        <di:waypoint x="768" y="1435" />
+        <di:waypoint x="780" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_assemble_bicycle_doa0_di" bpmnElement="task_assemble_bicycle_doa0">
+        <di:waypoint x="780" y="1185" />
+        <di:waypoint x="768" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_ship_bicycle_dia0_di" bpmnElement="task_ship_bicycle_dia0">
+        <di:waypoint x="388" y="515" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_fault_detector_part" name="Fault Detector" processRef="pool_fault_detector_proc" />
+    <bpmn:participant id="pool_mpo_part" name="MPO" processRef="pool_mpo_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_msp_part" name="MSP" processRef="pool_msp_proc" />
+    <bpmn:messageFlow id="msg_flow_1" sourceRef="event_msg_send_report" targetRef="event_msg_receive_report" name="Failure Report" />
+    <bpmn:messageFlow id="msg_flow_2" sourceRef="event_msg_send_conf_go" targetRef="event_msg_receive_conf_go" name="Failure Confirmation" />
+    <bpmn:messageFlow id="msg_flow_3" sourceRef="event_msg_send_conf_msp" targetRef="event_msg_receive_conf_msp" name="Failure Confirmation" />
+    <bpmn:messageFlow id="msg_flow_4" sourceRef="event_msg_send_repair_fd" targetRef="event_msg_receive_repair_fd" name="Repair Results" />
+    <bpmn:messageFlow id="msg_flow_5" sourceRef="event_msg_send_res_go" targetRef="event_msg_receive_res_go" name="Interference Resolution Notice" />
+    <bpmn:messageFlow id="msg_flow_6" sourceRef="event_msg_send_res_msp" targetRef="event_msg_receive_res_msp" name="Interference Resolution Notice" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_fault_detector_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_failure_report" name="Failure Report" dataObjectRef="doc_failure_report_do" />
+    <bpmn:dataObject id="doc_failure_report_do" />
+    <bpmn:startEvent id="event_start_fd" name="Fault reported by Fault Detector">
+      <bpmn:outgoing>flow_fd_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_msg_send_report" name="Send fault report to MPO">
+      <bpmn:incoming>flow_fd_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_msg_send_report_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_msg_receive_repair_fd" name="Receive repair results from MPO">
+      <bpmn:messageEventDefinition id="event_msg_receive_repair_fd_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_report_failure" name="Report failure">
+      <bpmn:incoming>flow_fd_1</bpmn:incoming>
+      <bpmn:outgoing>flow_fd_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_report_failure_doa0">
+        <bpmn:targetRef>doc_failure_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="flow_fd_1" sourceRef="event_start_fd" targetRef="task_report_failure" />
+    <bpmn:sequenceFlow id="flow_fd_2" sourceRef="task_report_failure" targetRef="event_msg_send_report" />
+  </bpmn:process>
+  <bpmn:process id="pool_mpo_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_failure_report_p1" name="Failure Report" dataObjectRef="doc_failure_report_p1_do" />
+    <bpmn:dataObject id="doc_failure_report_p1_do" />
+    <bpmn:dataStoreReference id="store_measuring_device" name="Measuring Device" />
+    <bpmn:dataObjectReference id="doc_repair_results" name="Repair Results Document" dataObjectRef="doc_repair_results_do" />
+    <bpmn:dataObject id="doc_repair_results_do" />
+    <bpmn:startEvent id="event_start_mpo" name="MPO suspicion of own fault">
+      <bpmn:outgoing>flow_mpo_2</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:startEvent id="event_msg_receive_report" name="Receive failure report from Fault Detector">
+      <bpmn:outgoing>flow_mpo_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_msg_receive_report_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="event_msg_send_conf_go" name="Send confirmation to GO">
+      <bpmn:incoming>flow_p1</bpmn:incoming>
+      <bpmn:outgoing>flow_mpo_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_msg_send_conf_go_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="event_msg_send_conf_msp" name="Send confirmation to MSP">
+      <bpmn:incoming>flow_p2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_msg_send_conf_msp_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="event_msg_send_repair_fd" name="Share repair results with Fault Detector">
+      <bpmn:incoming>flow_mpo_6</bpmn:incoming>
+      <bpmn:outgoing>flow_mpo_7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_msg_send_repair_fd_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="event_msg_send_res_go" name="Inform GO of interference resolution">
+      <bpmn:incoming>flow_mpo_7</bpmn:incoming>
+      <bpmn:outgoing>flow_mpo_8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_msg_send_res_go_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="event_msg_send_res_msp" name="Inform MSP of interference resolution">
+      <bpmn:incoming>flow_mpo_8</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_msg_send_res_msp_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_mpo_rejected" name="Failure Rejected">
+      <bpmn:incoming>flow_rej</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_examine_failure" name="Examine the failure">
+      <bpmn:incoming>flow_mpo_3</bpmn:incoming>
+      <bpmn:outgoing>flow_mpo_4</bpmn:outgoing>
+      <bpmn:property id="task_examine_failure_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_examine_failure_dia0">
+        <bpmn:sourceRef>doc_failure_report_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_examine_failure_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_fix_fault" name="Fix fault at measuring device">
+      <bpmn:incoming>flow_mpo_5</bpmn:incoming>
+      <bpmn:outgoing>flow_mpo_6</bpmn:outgoing>
+      <bpmn:property id="task_fix_fault_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_fix_fault_dia0">
+        <bpmn:sourceRef>store_measuring_device</bpmn:sourceRef>
+        <bpmn:targetRef>task_fix_fault_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_fix_fault_doa0">
+        <bpmn:targetRef>store_measuring_device</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="task_fix_fault_doa1">
+        <bpmn:targetRef>doc_repair_results</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="gw_entry_mpo" name="Failure Trigger Gateway" isMarkerVisible="true">
+      <bpmn:incoming>flow_mpo_1</bpmn:incoming>
+      <bpmn:incoming>flow_mpo_2</bpmn:incoming>
+      <bpmn:outgoing>flow_mpo_3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_decision_mpo" name="Failure Confirmed?" isMarkerVisible="true">
+      <bpmn:incoming>flow_mpo_4</bpmn:incoming>
+      <bpmn:outgoing>flow_rej</bpmn:outgoing>
+      <bpmn:outgoing>flow_conf</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_parallel_inform" name="Inform GO and MSP Parallel Gateway">
+      <bpmn:incoming>flow_conf</bpmn:incoming>
+      <bpmn:outgoing>flow_p1</bpmn:outgoing>
+      <bpmn:outgoing>flow_p2</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="flow_mpo_1" sourceRef="event_msg_receive_report" targetRef="gw_entry_mpo" />
+    <bpmn:sequenceFlow id="flow_mpo_2" sourceRef="event_start_mpo" targetRef="gw_entry_mpo" />
+    <bpmn:sequenceFlow id="flow_mpo_3" sourceRef="gw_entry_mpo" targetRef="task_examine_failure" />
+    <bpmn:sequenceFlow id="flow_mpo_4" sourceRef="task_examine_failure" targetRef="gw_decision_mpo" />
+    <bpmn:sequenceFlow id="flow_rej" sourceRef="gw_decision_mpo" targetRef="event_end_mpo_rejected" name="Failure rejected" />
+    <bpmn:sequenceFlow id="flow_conf" sourceRef="gw_decision_mpo" targetRef="gw_parallel_inform" name="Failure confirmed" />
+    <bpmn:sequenceFlow id="flow_p1" sourceRef="gw_parallel_inform" targetRef="event_msg_send_conf_go" />
+    <bpmn:sequenceFlow id="flow_p2" sourceRef="gw_parallel_inform" targetRef="event_msg_send_conf_msp" />
+    <bpmn:sequenceFlow id="flow_mpo_5" sourceRef="event_msg_send_conf_go" targetRef="task_fix_fault" />
+    <bpmn:sequenceFlow id="flow_mpo_6" sourceRef="task_fix_fault" targetRef="event_msg_send_repair_fd" />
+    <bpmn:sequenceFlow id="flow_mpo_7" sourceRef="event_msg_send_repair_fd" targetRef="event_msg_send_res_go" />
+    <bpmn:sequenceFlow id="flow_mpo_8" sourceRef="event_msg_send_res_go" targetRef="event_msg_send_res_msp" />
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:startEvent id="event_msg_receive_conf_go" name="Receive confirmation from MPO">
+      <bpmn:outgoing>flow_go_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_msg_receive_conf_go_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_msg_receive_res_go" name="Receive resolution notice from MPO">
+      <bpmn:incoming>flow_go_2</bpmn:incoming>
+      <bpmn:outgoing>flow_go_2</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_msg_receive_res_go_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_go_conf" name="GO notified of confirmed failure">
+      <bpmn:incoming>flow_go_1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_go_1" sourceRef="event_msg_receive_conf_go" targetRef="event_end_go_conf" />
+    <bpmn:sequenceFlow id="flow_go_2" sourceRef="event_msg_receive_res_go" targetRef="event_msg_receive_res_go" />
+  </bpmn:process>
+  <bpmn:process id="pool_msp_proc" isExecutable="false">
+    <bpmn:startEvent id="event_msg_receive_conf_msp" name="Receive confirmation from MPO">
+      <bpmn:outgoing>flow_msp_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_msg_receive_conf_msp_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_msg_receive_res_msp" name="Receive resolution notice from MPO">
+      <bpmn:incoming>flow_msp_2</bpmn:incoming>
+      <bpmn:outgoing>flow_msp_2</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_msg_receive_res_msp_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_msp_conf" name="MSP notified of confirmed failure">
+      <bpmn:incoming>flow_msp_1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_msp_1" sourceRef="event_msg_receive_conf_msp" targetRef="event_end_msp_conf" />
+    <bpmn:sequenceFlow id="flow_msp_2" sourceRef="event_msg_receive_res_msp" targetRef="event_msg_receive_res_msp" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_fault_detector_part_di" bpmnElement="pool_fault_detector_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpo_part_di" bpmnElement="pool_mpo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="2090" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="960" width="700" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_msp_part_di" bpmnElement="pool_msp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1420" width="700" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_go_conf_di" bpmnElement="event_end_go_conf">
+        <dc:Bounds x="350" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_mpo_rejected_di" bpmnElement="event_end_mpo_rejected">
+        <dc:Bounds x="920" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_msp_conf_di" bpmnElement="event_end_msp_conf">
+        <dc:Bounds x="350" y="1480" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_receive_conf_go_di" bpmnElement="event_msg_receive_conf_go">
+        <dc:Bounds x="160" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_receive_conf_msp_di" bpmnElement="event_msg_receive_conf_msp">
+        <dc:Bounds x="160" y="1480" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_receive_repair_fd_di" bpmnElement="event_msg_receive_repair_fd">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_receive_report_di" bpmnElement="event_msg_receive_report">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_receive_res_go_di" bpmnElement="event_msg_receive_res_go">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_receive_res_msp_di" bpmnElement="event_msg_receive_res_msp">
+        <dc:Bounds x="160" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_send_conf_go_di" bpmnElement="event_msg_send_conf_go">
+        <dc:Bounds x="1110" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_send_conf_msp_di" bpmnElement="event_msg_send_conf_msp">
+        <dc:Bounds x="1110" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_send_repair_fd_di" bpmnElement="event_msg_send_repair_fd">
+        <dc:Bounds x="1490" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_send_report_di" bpmnElement="event_msg_send_report">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_send_res_go_di" bpmnElement="event_msg_send_res_go">
+        <dc:Bounds x="1680" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_msg_send_res_msp_di" bpmnElement="event_msg_send_res_msp">
+        <dc:Bounds x="1870" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_fd_di" bpmnElement="event_start_fd">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_mpo_di" bpmnElement="event_start_mpo">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_decision_mpo_di" bpmnElement="gw_decision_mpo">
+        <dc:Bounds x="730" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_entry_mpo_di" bpmnElement="gw_entry_mpo">
+        <dc:Bounds x="350" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_parallel_inform_di" bpmnElement="gw_parallel_inform">
+        <dc:Bounds x="920" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_failure_di" bpmnElement="task_examine_failure">
+        <dc:Bounds x="540" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_fix_fault_di" bpmnElement="task_fix_fault">
+        <dc:Bounds x="1300" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_report_failure_di" bpmnElement="task_report_failure">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_failure_report_di" bpmnElement="doc_failure_report">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_failure_report_p1_di" bpmnElement="doc_failure_report_p1">
+        <dc:Bounds x="560" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="store_measuring_device_di" bpmnElement="store_measuring_device">
+        <dc:Bounds x="1320" y="825" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_repair_results_di" bpmnElement="doc_repair_results">
+        <dc:Bounds x="1320" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_fd_1_di" bpmnElement="flow_fd_1">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_fd_2_di" bpmnElement="flow_fd_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpo_1_di" bpmnElement="flow_mpo_1">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="375" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpo_2_di" bpmnElement="flow_mpo_2">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="375" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpo_3_di" bpmnElement="flow_mpo_3">
+        <di:waypoint x="375" y="585" />
+        <di:waypoint x="590" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpo_4_di" bpmnElement="flow_mpo_4">
+        <di:waypoint x="590" y="600" />
+        <di:waypoint x="755" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_rej_di" bpmnElement="flow_rej">
+        <di:waypoint x="755" y="585" />
+        <di:waypoint x="938" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_conf_di" bpmnElement="flow_conf">
+        <di:waypoint x="755" y="585" />
+        <di:waypoint x="945" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_p1_di" bpmnElement="flow_p1">
+        <di:waypoint x="945" y="710" />
+        <di:waypoint x="1128" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_p2_di" bpmnElement="flow_p2">
+        <di:waypoint x="945" y="710" />
+        <di:waypoint x="1128" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpo_5_di" bpmnElement="flow_mpo_5">
+        <di:waypoint x="1128" y="578" />
+        <di:waypoint x="1350" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpo_6_di" bpmnElement="flow_mpo_6">
+        <di:waypoint x="1350" y="600" />
+        <di:waypoint x="1508" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpo_7_di" bpmnElement="flow_mpo_7">
+        <di:waypoint x="1508" y="578" />
+        <di:waypoint x="1698" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpo_8_di" bpmnElement="flow_mpo_8">
+        <di:waypoint x="1698" y="578" />
+        <di:waypoint x="1888" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_1_di" bpmnElement="flow_go_1">
+        <di:waypoint x="178" y="1038" />
+        <di:waypoint x="368" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_2_di" bpmnElement="flow_go_2">
+        <di:waypoint x="178" y="1163" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msp_1_di" bpmnElement="flow_msp_1">
+        <di:waypoint x="178" y="1498" />
+        <di:waypoint x="368" y="1498" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msp_2_di" bpmnElement="flow_msp_2">
+        <di:waypoint x="178" y="1623" />
+        <di:waypoint x="178" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_1_di" bpmnElement="msg_flow_1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_2_di" bpmnElement="msg_flow_2">
+        <di:waypoint x="1128" y="578" />
+        <di:waypoint x="178" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_3_di" bpmnElement="msg_flow_3">
+        <di:waypoint x="1128" y="703" />
+        <di:waypoint x="178" y="1498" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_4_di" bpmnElement="msg_flow_4">
+        <di:waypoint x="1508" y="578" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_5_di" bpmnElement="msg_flow_5">
+        <di:waypoint x="1698" y="578" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_6_di" bpmnElement="msg_flow_6">
+        <di:waypoint x="1888" y="578" />
+        <di:waypoint x="178" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_report_failure_doa0_di" bpmnElement="task_report_failure_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_failure_dia0_di" bpmnElement="task_examine_failure_dia0">
+        <di:waypoint x="578" y="850" />
+        <di:waypoint x="590" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_fix_fault_dia0_di" bpmnElement="task_fix_fault_dia0">
+        <di:waypoint x="1345" y="850" />
+        <di:waypoint x="1350" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_fix_fault_doa0_di" bpmnElement="task_fix_fault_doa0">
+        <di:waypoint x="1350" y="600" />
+        <di:waypoint x="1345" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_fix_fault_doa1_di" bpmnElement="task_fix_fault_doa1">
+        <di:waypoint x="1350" y="600" />
+        <di:waypoint x="1338" y="850" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

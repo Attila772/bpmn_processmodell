@@ -1,0 +1,324 @@
+{
+  "name": "Lead Processing Process",
+  "resources": [
+    {
+      "name": "Manager",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Sales Assistant",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_event",
+      "name": "Process Start",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_event_manager",
+      "name": "Lead Handover Complete",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Handover to Manager"
+    },
+    {
+      "id": "start_event_assistant",
+      "name": "Receive Lead List",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Lead List Request"
+    },
+    {
+      "id": "end_event_assistant",
+      "name": "Call Process Complete",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Interest Note"
+    },
+    {
+      "id": "end_process",
+      "name": "Process End",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_check_leads",
+      "name": "Check open leads",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_selected_leads"
+      ]
+    },
+    {
+      "id": "task_select_top_five",
+      "name": "Select top five leads",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_selected_leads"
+      ],
+      "output_data_ids": [
+        "data_lead_list_for_assistant"
+      ]
+    },
+    {
+      "id": "task_call_customer",
+      "name": "Call customer",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Sales Assistant",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_lead_list_for_assistant"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_send_note",
+      "name": "Send note to Manager",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Sales Assistant",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_interest_note"
+      ]
+    },
+    {
+      "id": "task_process_lead",
+      "name": "Process the lead",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_interest_note"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_interested",
+      "name": "Is customer interested?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_to_send_note",
+          "condition": "Interested"
+        },
+        {
+          "flow_id": "flow_to_next_customer",
+          "condition": "Not Interested"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_to_check",
+      "source_id": "start_event",
+      "target_id": "task_check_leads",
+      "condition_name": null
+    },
+    {
+      "id": "flow_check_to_select",
+      "source_id": "task_check_leads",
+      "target_id": "task_select_top_five",
+      "condition_name": null
+    },
+    {
+      "id": "flow_select_to_end_mgr",
+      "source_id": "task_select_top_five",
+      "target_id": "end_event_manager",
+      "condition_name": null
+    },
+    {
+      "id": "flow_start_asst_to_call",
+      "source_id": "start_event_assistant",
+      "target_id": "task_call_customer",
+      "condition_name": null
+    },
+    {
+      "id": "flow_call_to_gw",
+      "source_id": "task_call_customer",
+      "target_id": "gw_interested",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_send_note",
+      "source_id": "gw_interested",
+      "target_id": "task_send_note",
+      "condition_name": "Interested"
+    },
+    {
+      "id": "flow_to_next_customer",
+      "source_id": "gw_interested",
+      "target_id": "task_call_customer",
+      "condition_name": "Not Interested"
+    },
+    {
+      "id": "flow_note_to_end_asst",
+      "source_id": "task_send_note",
+      "target_id": "end_event_assistant",
+      "condition_name": null
+    },
+    {
+      "id": "flow_start_mgr_to_process",
+      "source_id": "start_event_manager",
+      "target_id": "task_process_lead",
+      "condition_name": null
+    },
+    {
+      "id": "flow_process_to_end",
+      "source_id": "task_process_lead",
+      "target_id": "end_process",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_manager",
+      "name": "Manager",
+      "element_ids": [
+        "start_event",
+        "task_check_leads",
+        "task_select_top_five",
+        "end_event_manager",
+        "start_event_manager",
+        "task_process_lead",
+        "end_process",
+        "flow_start_to_check",
+        "flow_check_to_select",
+        "flow_select_to_end_mgr",
+        "flow_start_mgr_to_process",
+        "flow_process_to_end"
+      ]
+    },
+    {
+      "id": "pool_sales_assistant",
+      "name": "Sales Assistant",
+      "element_ids": [
+        "start_event_assistant",
+        "task_call_customer",
+        "gw_interested",
+        "task_send_note",
+        "end_event_assistant",
+        "flow_start_asst_to_call",
+        "flow_call_to_gw",
+        "flow_to_send_note",
+        "flow_to_next_customer",
+        "flow_note_to_end_asst"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_lead_list",
+      "source_id": "end_event_manager",
+      "target_id": "start_event_assistant",
+      "name": "Lead List Request"
+    },
+    {
+      "id": "msg_interest_note",
+      "source_id": "end_event_assistant",
+      "target_id": "start_event_manager",
+      "name": "Interest Note"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_selected_leads",
+      "name": "Open Leads"
+    },
+    {
+      "id": "data_lead_list_for_assistant",
+      "name": "Top Five Leads List"
+    },
+    {
+      "id": "data_interest_note",
+      "name": "Interest Note"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

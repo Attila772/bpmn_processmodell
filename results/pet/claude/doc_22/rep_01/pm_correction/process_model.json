@@ -1,0 +1,336 @@
+{
+  "name": "Measuring Point Change Request Process",
+  "resources": [
+    {
+      "name": "MPO",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "SP / PU / GO",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_request",
+      "name": "SP/PU/GO requests change",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Change Request"
+    },
+    {
+      "id": "start_mpo_change",
+      "name": "MPO causes a change",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_notify_success",
+      "name": "SP/PU/GO receives implementation report",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Implementation Report"
+    },
+    {
+      "id": "end_notify_failure",
+      "name": "SP/PU/GO receives failure notification",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Failure Notification"
+    },
+    {
+      "id": "end_mpo",
+      "name": "MPO process end",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_review",
+      "name": "MPO reviews the change request",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_change_request"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_reject",
+      "name": "MPO rejects the change of the measuring point",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_rejection_notice"
+      ]
+    },
+    {
+      "id": "task_perform_change",
+      "name": "MPO performs the measuring point change",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_change_request"
+      ],
+      "output_data_ids": [
+        "data_measuring_point_record"
+      ]
+    },
+    {
+      "id": "task_report_success",
+      "name": "MPO reports the implementation to the SP/PU/GO",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_measuring_point_record"
+      ],
+      "output_data_ids": [
+        "data_implementation_report"
+      ]
+    },
+    {
+      "id": "task_report_failure",
+      "name": "MPO notifies the SP/PU/GO about the failure of the changes",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_measuring_point_record"
+      ],
+      "output_data_ids": [
+        "data_failure_notice"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_decision",
+      "name": "MPO reject or confirm request?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_reject",
+          "condition": "reject"
+        },
+        {
+          "flow_id": "flow_confirm",
+          "condition": "confirm"
+        }
+      ]
+    },
+    {
+      "id": "gw_outcome",
+      "name": "Change implementation outcome",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_success",
+          "condition": "success"
+        },
+        {
+          "flow_id": "flow_failure",
+          "condition": "failure"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "sf1",
+      "source_id": "start_mpo_change",
+      "target_id": "task_review",
+      "condition_name": null
+    },
+    {
+      "id": "sf2",
+      "source_id": "task_review",
+      "target_id": "gw_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_reject",
+      "source_id": "gw_decision",
+      "target_id": "task_reject",
+      "condition_name": "reject"
+    },
+    {
+      "id": "flow_confirm",
+      "source_id": "gw_decision",
+      "target_id": "task_perform_change",
+      "condition_name": "confirm"
+    },
+    {
+      "id": "sf3",
+      "source_id": "task_reject",
+      "target_id": "end_mpo",
+      "condition_name": null
+    },
+    {
+      "id": "sf4",
+      "source_id": "task_perform_change",
+      "target_id": "gw_outcome",
+      "condition_name": null
+    },
+    {
+      "id": "flow_success",
+      "source_id": "gw_outcome",
+      "target_id": "task_report_success",
+      "condition_name": "success"
+    },
+    {
+      "id": "flow_failure",
+      "source_id": "gw_outcome",
+      "target_id": "task_report_failure",
+      "condition_name": "failure"
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_spgo",
+      "name": "SP / PU / GO",
+      "element_ids": [
+        "start_request",
+        "end_notify_success",
+        "end_notify_failure"
+      ]
+    },
+    {
+      "id": "pool_mpo",
+      "name": "MPO",
+      "element_ids": [
+        "start_mpo_change",
+        "task_review",
+        "gw_decision",
+        "task_reject",
+        "task_perform_change",
+        "gw_outcome",
+        "task_report_success",
+        "task_report_failure",
+        "end_mpo"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "mf1",
+      "source_id": "start_request",
+      "target_id": "task_review",
+      "name": "Change Request"
+    },
+    {
+      "id": "mf2",
+      "source_id": "task_report_success",
+      "target_id": "end_notify_success",
+      "name": "Implementation Report"
+    },
+    {
+      "id": "mf3",
+      "source_id": "task_report_failure",
+      "target_id": "end_notify_failure",
+      "name": "Failure Notification"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_change_request",
+      "name": "Change Request"
+    },
+    {
+      "id": "data_rejection_notice",
+      "name": "Rejection Notice"
+    },
+    {
+      "id": "data_measuring_point_record",
+      "name": "Measuring Point Record"
+    },
+    {
+      "id": "data_implementation_report",
+      "name": "Implementation Report"
+    },
+    {
+      "id": "data_failure_notice",
+      "name": "Failure Notice"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

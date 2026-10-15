@@ -1,0 +1,218 @@
+{
+  "name": "parsed",
+  "resources": [],
+  "events": [
+    {
+      "id": "StartEvent_LoanRequested",
+      "name": "Loan Request Received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": null
+    },
+    {
+      "id": "EndEvent_ApprovedByAssessor",
+      "name": "Loan Approved by Assessor",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "EndEvent_DeniedByAssessor",
+      "name": "Loan Denied by Assessor",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "EndEvent_ProcessedByApprover",
+      "name": "Loan Processed by Approver",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "Task_RiskAssessment",
+      "name": "Assess Risk (Web Service)",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "Task_AssessorApproval",
+      "name": "Send Assessor Approval Feedback",
+      "bpmn_type": "bpmn:SendTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "Task_AssessorDenial",
+      "name": "Send Assessor Denial Feedback",
+      "bpmn_type": "bpmn:SendTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "Task_ApproverWebService",
+      "name": "Evaluate via Approver (Web Service)",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "Task_SendApproverFeedback",
+      "name": "Send Approver Feedback",
+      "bpmn_type": "bpmn:SendTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "Gateway_RiskEvaluation",
+      "name": "Evaluate Risk and Amount",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "SequenceFlow_To_RiskAssessment",
+      "source_id": "StartEvent_LoanRequested",
+      "target_id": "Task_RiskAssessment",
+      "condition_name": null
+    },
+    {
+      "id": "SequenceFlow_To_RiskGateway",
+      "source_id": "Task_RiskAssessment",
+      "target_id": "Gateway_RiskEvaluation",
+      "condition_name": null
+    },
+    {
+      "id": "SequenceFlow_Approved",
+      "source_id": "Gateway_RiskEvaluation",
+      "target_id": "Task_AssessorApproval",
+      "condition_name": "Low Risk & Amount < $10k"
+    },
+    {
+      "id": "SequenceFlow_Denied",
+      "source_id": "Gateway_RiskEvaluation",
+      "target_id": "Task_AssessorDenial",
+      "condition_name": "High Risk"
+    },
+    {
+      "id": "SequenceFlow_FurtherReview",
+      "source_id": "Gateway_RiskEvaluation",
+      "target_id": "Task_ApproverWebService",
+      "condition_name": "Further Review or Amount >= $10k"
+    },
+    {
+      "id": "SequenceFlow_To_SendApproverFeedback",
+      "source_id": "Task_ApproverWebService",
+      "target_id": "Task_SendApproverFeedback",
+      "condition_name": null
+    },
+    {
+      "id": "SequenceFlow_AssessorAppToEnd",
+      "source_id": "Task_AssessorApproval",
+      "target_id": "EndEvent_ApprovedByAssessor",
+      "condition_name": null
+    },
+    {
+      "id": "SequenceFlow_AssessorDenToEnd",
+      "source_id": "Task_AssessorDenial",
+      "target_id": "EndEvent_DeniedByAssessor",
+      "condition_name": null
+    },
+    {
+      "id": "SequenceFlow_ApproverToFinished",
+      "source_id": "Task_SendApproverFeedback",
+      "target_id": "EndEvent_ProcessedByApprover",
+      "condition_name": null
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": 24.0,
+  "simulation_duration_unit": "hours"
+}

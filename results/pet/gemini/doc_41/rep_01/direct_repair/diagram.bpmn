@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://www.bpmn.org/processes"
+             exporter="Camunda Modeler"
+             exporterVersion="5.0.0">
+
+  <!-- Data Object Declarations -->
+  <dataObject id="DO_ClaimDoc" name="Claim Documentation" />
+  <dataObject id="DO_PoliceReport" name="Police Report" />
+  <dataObject id="DO_ClaimFile" name="Claim File" />
+  <dataObject id="DO_InitialEstimate" name="Initial Claim Estimate" />
+  <dataObject id="DO_ActionPlan" name="Action Plan" />
+
+  <process id="CarAccidentClaimProcess" name="Car Accident Claim Processing" isExecutable="true">
+
+    <!-- Start Event -->
+    <startEvent id="StartEvent_1" name="Car Accident Claim Received">
+      <outgoing>Flow_Start_To_Search</outgoing>
+    </startEvent>
+
+    <!-- Data Inputs for the Process -->
+    <dataObjectReference id="Ref_ClaimDoc" name="Claim Documentation" dataObjectRef="DO_ClaimDoc" />
+
+    <!-- Task 1: Search Police Report -->
+    <serviceTask id="Task_SearchPoliceReport" name="Search Police Report in Database">
+      <incoming>Flow_Start_To_Search</incoming>
+      <outgoing>Flow_Search_To_PutInFile</outgoing>
+      <dataOutputAssociation id="DOA_1">
+        <targetRef>Ref_PoliceReport</targetRef>
+      </dataOutputAssociation>
+    </serviceTask>
+
+    <dataObjectReference id="Ref_PoliceReport" name="Police Report" dataObjectRef="DO_PoliceReport" />
+    <dataStoreReference id="DataStore_PoliceDB" name="Police Report Database" />
+
+    <!-- Data Association for DataStore Read -->
+    <association id="Assoc_DB_To_Search" sourceRef="DataStore_PoliceDB" targetRef="Task_SearchPoliceReport" />
+
+    <!-- Task 2: Put in File -->
+    <userTask id="Task_PutInFile" name="Put Police Report and Claim Documentation in File">
+      <incoming>Flow_Search_To_PutInFile</incoming>
+      <outgoing>Flow_PutInFile_To_Calculate</outgoing>
+      <dataInAssociation id="DIA_1">
+        <sourceRef>Ref_PoliceReport</sourceRef>
+        <targetRef>Task_PutInFile</targetRef>
+      </dataInAssociation>
+      <dataInAssociation id="DIA_2">
+        <sourceRef>Ref_ClaimDoc</sourceRef>
+        <targetRef>Task_PutInFile</targetRef>
+      </dataInAssociation>
+      <dataOutputAssociation id="DOA_2">
+        <targetRef>Ref_ClaimFile</targetRef>
+      </dataOutputAssociation>
+    </userTask>
+
+    <dataObjectReference id="Ref_ClaimFile" name="Claim File" dataObjectRef="DO_ClaimFile" />
+
+    <!-- Task 3: Calculate Initial Claim Estimate -->
+    <userTask id="Task_CalculateEstimate" name="Calculate Initial Claim Estimate">
+      <incoming>Flow_PutInFile_To_Calculate</incoming>
+      <outgoing>Flow_Calculate_To_CreateActionPlan</outgoing>
+      <dataInAssociation id="DIA_3">
+        <sourceRef>Ref_ClaimFile</sourceRef>
+        <targetRef>Task_CalculateEstimate</targetRef>
+      </dataInAssociation>
+      <dataOutputAssociation id="DOA_3">
+        <targetRef>Ref_InitialEstimate</targetRef>
+      </dataOutputAssociation>
+    </userTask>
+
+    <dataObjectReference id="Ref_InitialEstimate" name="Initial Claim Estimate" dataObjectRef="DO_InitialEstimate" />
+
+    <!-- Task 4: Create Action Plan -->
+    <userTask id="Task_CreateActionPlan" name="Create Action Plan based on Checklist">
+      <incoming>Flow_Calculate_To_CreateActionPlan</incoming>
+      <outgoing>Flow_CreateActionPlan_To_Negotiate</outgoing>
+      <dataOutputAssociation id="DOA_4">
+        <targetRef>Ref_ActionPlan</targetRef>
+      </dataOutputAssociation>
+    </userTask>
+
+    <dataStoreReference id="DataStore_DMS" name="Document Management System (Action Plan Checklist)" />
+    <dataObjectReference id="Ref_ActionPlan" name="Action Plan" dataObjectRef="DO_ActionPlan" />
+
+    <!-- Data Association for DMS Read -->
+    <association id="Assoc_DMS_To_CreatePlan" sourceRef="DataStore_DMS" targetRef="Task_CreateActionPlan" />
+
+    <!-- Task 5: Negotiate Settlement -->
+    <userTask id="Task_NegotiateSettlement" name="Negotiate Settlement on Claim Estimate">
+      <incoming>Flow_CreateActionPlan_To_Negotiate</incoming>
+      <outgoing>Flow_Negotiate_To_Inform</outgoing>
+      <dataInAssociation id="DIA_4">
+        <sourceRef>Ref_ActionPlan</sourceRef>
+        <targetRef>Task_NegotiateSettlement</targetRef>
+      </dataInAssociation>
+      <dataInAssociation id="DIA_5">
+        <sourceRef>Ref_InitialEstimate</sourceRef>
+        <targetRef>Task_NegotiateSettlement</targetRef>
+      </dataInAssociation>
+    </userTask>
+
+    <!-- Task 6: Inform Claimant -->
+    <sendTask id="Task_InformClaimant" name="Inform Claimant of Outcome">
+      <incoming>Flow_Negotiate_To_Inform</incoming>
+      <outgoing>Flow_Inform_To_End</outgoing>
+    </sendTask>
+
+    <!-- End Event -->
+    <endEvent id="EndEvent_1" name="Claim Processed">
+      <incoming>Flow_Inform_To_End</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_Start_To_Search" sourceRef="StartEvent_1" targetRef="Task_SearchPoliceReport" />
+    <sequenceFlow id="Flow_Search_To_PutInFile" sourceRef="Task_SearchPoliceReport" targetRef="Task_PutInFile" />
+    <sequenceFlow id="Flow_PutInFile_To_Calculate" sourceRef="Task_PutInFile" targetRef="Task_CalculateEstimate" />
+    <sequenceFlow id="Flow_Calculate_To_CreateActionPlan" sourceRef="Task_CalculateEstimate" targetRef="Task_CreateActionPlan" />
+    <sequenceFlow id="Flow_CreateActionPlan_To_Negotiate" sourceRef="Task_CreateActionPlan" targetRef="Task_NegotiateSettlement" />
+    <sequenceFlow id="Flow_Negotiate_To_Inform" sourceRef="Task_NegotiateSettlement" targetRef="Task_InformClaimant" />
+    <sequenceFlow id="Flow_Inform_To_End" sourceRef="Task_InformClaimant" targetRef="EndEvent_1" />
+
+  </process>
+
+  <!-- BPMN Diagram Layout -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="CarAccidentClaimProcess">
+
+      <!-- Nodes Layout -->
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="152" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="131" y="255" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Activity_SearchPoliceReport_di" bpmnElement="Task_SearchPoliceReport">
+        <omgdc:Bounds x="240" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="DataStore_PoliceDB_di" bpmnElement="DataStore_PoliceDB">
+        <omgdc:Bounds x="265" y="85" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="256" y="55" width="69" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Ref_PoliceReport_di" bpmnElement="Ref_PoliceReport">
+        <omgdc:Bounds x="272" y="315" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="257" y="372" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Ref_ClaimDoc_di" bpmnElement="Ref_ClaimDoc">
+        <omgdc:Bounds x="352" y="315" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="335" y="372" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Activity_PutInFile_di" bpmnElement="Task_PutInFile">
+        <omgdc:Bounds x="390" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Ref_ClaimFile_di" bpmnElement="Ref_ClaimFile">
+        <omgdc:Bounds x="422" y="315" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="415" y="372" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Activity_CalculateEstimate_di" bpmnElement="Task_CalculateEstimate">
+        <omgdc:Bounds x="540" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Ref_InitialEstimate_di" bpmnElement="Ref_InitialEstimate">
+        <omgdc:Bounds x="572" y="315" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="561" y="372" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Activity_CreateActionPlan_di" bpmnElement="Task_CreateActionPlan">
+        <omgdc:Bounds x="690" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="DataStore_DMS_di" bpmnElement="DataStore_DMS">
+        <omgdc:Bounds x="715" y="85" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="699" y="40" width="82" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Ref_ActionPlan_di" bpmnElement="Ref_ActionPlan">
+        <omgdc:Bounds x="722" y="315" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="713" y="372" width="55" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Activity_NegotiateSettlement_di" bpmnElement="Task_NegotiateSettlement">
+        <omgdc:Bounds x="840" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Activity_InformClaimant_di" bpmnElement="Task_InformClaimant">
+        <omgdc:Bounds x="990" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_End_di" bpmnElement="EndEvent_1">
+        <omgdc:Bounds x="1142" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1119" y="255" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_Start_To_Search_di" bpmnElement="Flow_Start_To_Search">
+        <omgdi:waypoint x="188" y="230" />
+        <omgdi:waypoint x="240" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Search_To_PutInFile_di" bpmnElement="Flow_Search_To_PutInFile">
+        <omgdi:waypoint x="340" y="230" />
+        <omgdi:waypoint x="390" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_PutInFile_To_Calculate_di" bpmnElement="Flow_PutInFile_To_Calculate">
+        <omgdi:waypoint x="490" y="230" />
+        <omgdi:waypoint x="540" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Calculate_To_CreateActionPlan_di" bpmnElement="Flow_Calculate_To_CreateActionPlan">
+        <omgdi:waypoint x="640" y="230" />
+        <omgdi:waypoint x="690" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_CreateActionPlan_To_Negotiate_di" bpmnElement="Flow_CreateActionPlan_To_Negotiate">
+        <omgdi:waypoint x="790" y="230" />
+        <omgdi:waypoint x="840" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Negotiate_To_Inform_di" bpmnElement="Flow_Negotiate_To_Inform">
+        <omgdi:waypoint x="940" y="230" />
+        <omgdi:waypoint x="990" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Inform_To_End_di" bpmnElement="Flow_Inform_To_End">
+        <omgdi:waypoint x="1090" y="230" />
+        <omgdi:waypoint x="1142" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Data Association Edges -->
+      <bpmndi:BPMNEdge id="Assoc_DB_To_Search_di" bpmnElement="Assoc_DB_To_Search">
+        <omgdi:waypoint x="290" y="135" />
+        <omgdi:waypoint x="290" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DOA_1_di" bpmnElement="DOA_1">
+        <omgdi:waypoint x="290" y="270" />
+        <omgdi:waypoint x="290" y="315" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DIA_1_di" bpmnElement="DIA_1">
+        <omgdi:waypoint x="308" y="325" />
+        <omgdi:waypoint x="390" y="255" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DIA_2_di" bpmnElement="DIA_2">
+        <omgdi:waypoint x="385" y="315" />
+        <omgdi:waypoint x="415" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DOA_2_di" bpmnElement="DOA_2">
+        <omgdi:waypoint x="440" y="270" />
+        <omgdi:waypoint x="440" y="315" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DIA_3_di" bpmnElement="DIA_3">
+        <omgdi:waypoint x="458" y="325" />
+        <omgdi:waypoint x="540" y="255" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DOA_3_di" bpmnElement="DOA_3">
+        <omgdi:waypoint x="590" y="270" />
+        <omgdi:waypoint x="590" y="315" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Assoc_DMS_To_CreatePlan_di" bpmnElement="Assoc_DMS_To_CreatePlan">
+        <omgdi:waypoint x="740" y="135" />
+        <omgdi:waypoint x="740" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DOA_4_di" bpmnElement="DOA_4">
+        <omgdi:waypoint x="740" y="270" />
+        <omgdi:waypoint x="740" y="315" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DIA_4_di" bpmnElement="DIA_4">
+        <omgdi:waypoint x="758" y="325" />
+        <omgdi:waypoint x="840" y="255" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DIA_5_di" bpmnElement="DIA_5">
+        <omgdi:waypoint x="608" y="335" />
+        <omgdi:waypoint x="840" y="245" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://www.example.org/bpmn"
+             id="Definitions_1">
+
+  <process id="DefaulterProcessingProcess" name="Daily Defaulter and CRM Returns Processing" isExecutable="true">
+    
+    <!-- Start Event -->
+    <startEvent id="StartEvent_1" name="Weekday Morning Trigger">
+      <outgoing">Flow_1</outgoing>
+    </startEvent>
+
+    <!-- Step 1: Backup Database -->
+    <serviceTask id="Task_BackupDB" name="Backup Database">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </serviceTask>
+
+    <!-- Subprocess 1: First Phase (Must complete by 2:30 PM) -->
+    <subProcess id="SubProcess_Phase1" name="Phase 1: Account Defaulter &amp; Initial CRM Check">
+      <incoming>Flow_2</incoming>
+      <outgoing">Flow_To_Phase2</outgoing>
+
+      <startEvent id="Sp1_Start">
+        <outgoing">Sp1_Flow_1</outgoing>
+      </startEvent>
+
+      <serviceTask id="Task_CheckDefaulterTable" name="Check Account Defaulter Table for New Records">
+        <incoming>Sp1_Flow_1</incoming>
+        <outgoing>Sp1_Flow_2</outgoing>
+      </serviceTask>
+
+      <exclusiveGateway id="Gateway_NewDefaultersFound" name="New records found?">
+        <incoming>Sp1_Flow_2</incoming>
+        <outgoing">Flow_NoDefaulters</outgoing>
+        <outgoing">Flow_HasDefaulters</outgoing>
+      </exclusiveGateway>
+
+      <serviceTask id="Task_CheckCRM1" name="Check CRM System for New Returns">
+        <incoming>Flow_NoDefaulters</incoming>
+        <outgoing>Sp1_Flow_3</outgoing>
+      </serviceTask>
+
+      <exclusiveGateway id="Gateway_NewReturns1" name="New returns exist?">
+        <incoming>Sp1_Flow_3</incoming>
+        <outgoing">Flow_ReturnsExist1</outgoing>
+        <outgoing">Flow_NoReturns1</outgoing>
+      </exclusiveGateway>
+
+      <serviceTask id="Task_RegisterDefaultingAccounts" name="Register All Defaulting Accounts and Customers">
+        <incoming>Flow_ReturnsExist1</incoming>
+        <incoming>Flow_HasDefaulters</incoming>
+        <outgoing>Sp1_Flow_4</outgoing>
+      </serviceTask>
+
+      <exclusiveGateway id="Gateway_ClientCodesAdvised" name="Client codes previously advised?">
+        <incoming>Sp1_Flow_4</incoming>
+        <outgoing">Flow_NotAdvised</outgoing>
+        <outgoing">Flow_AlreadyAdvised</outgoing>
+      </exclusiveGateway>
+
+      <serviceTask id="Task_ProduceDefaulterTable" name="Produce Table of Defaulting Accounts">
+        <incoming>Flow_NotAdvised</incoming>
+        <outgoing>Sp1_Flow_5</outgoing>
+      </serviceTask>
+
+      <sendTask id="Task_SendToAccountManagement" name="Send Table to Account Management">
+        <incoming>Sp1_Flow_5</incoming>
+        <outgoing>Sp1_Flow_6</outgoing>
+      </sendTask>
+
+      <exclusiveGateway id="Gateway_MergePhase1" name="Phase 1 Merge">
+        <incoming>Flow_NoReturns1</incoming>
+        <incoming>Flow_AlreadyAdvised</incoming>
+        <incoming>Sp1_Flow_6</incoming>
+        <outgoing>Sp1_Flow_7</outgoing>
+      </exclusiveGateway>
+
+      <endEvent id="Sp1_End" name="Phase 1 Complete">
+        <incoming>Sp1_Flow_7</incoming>
+      </endEvent>
+
+      <!-- Subprocess 1 Internal Flows -->
+      <sequenceFlow id="Sp1_Flow_1" sourceRef="Sp1_Start" targetRef="Task_CheckDefaulterTable"/>
+      <sequenceFlow id="Sp1_Flow_2" sourceRef="Task_CheckDefaulterTable" targetRef="Gateway_NewDefaultersFound"/>
+      <sequenceFlow id="Flow_NoDefaulters" name="No" sourceRef="Gateway_NewDefaultersFound" targetRef="Task_CheckCRM1"/>
+      <sequenceFlow id="Flow_HasDefaulters" name="Yes" sourceRef="Gateway_NewDefaultersFound" targetRef="Task_RegisterDefaultingAccounts"/>
+      <sequenceFlow id="Sp1_Flow_3" sourceRef="Task_CheckCRM1" targetRef="Gateway_NewReturns1"/>
+      <sequenceFlow id="Flow_ReturnsExist1" name="Yes" sourceRef="Gateway_NewReturns1" targetRef="Task_RegisterDefaultingAccounts"/>
+      <sequenceFlow id="Flow_NoReturns1" name="No" sourceRef="Gateway_NewReturns1" targetRef="Gateway_MergePhase1"/>
+      <sequenceFlow id="Sp1_Flow_4" sourceRef="Task_RegisterDefaultingAccounts" targetRef="Gateway_ClientCodesAdvised"/>
+      <sequenceFlow id="Flow_NotAdvised" name="No" sourceRef="Gateway_ClientCodesAdvised" targetRef="Task_ProduceDefaulterTable"/>
+      <sequenceFlow id="Flow_AlreadyAdvised" name="Yes" sourceRef="Gateway_ClientCodesAdvised" targetRef="Gateway_MergePhase1"/>
+      <sequenceFlow id="Sp1_Flow_5" sourceRef="Task_ProduceDefaulterTable" targetRef="Task_SendToAccountManagement"/>
+      <sequenceFlow id="Sp1_Flow_6" sourceRef="Task_SendToAccountManagement" targetRef="Gateway_MergePhase1"/>
+      <sequenceFlow id="Sp1_Flow_7" sourceRef="Gateway_MergePhase1" targetRef="Sp1_End"/>
+    </subProcess>
+
+    <!-- Timer Boundary Event for Phase 1 (2:30 PM) -->
+    <boundaryEvent id="Timer_230PM" name="2:30 PM Deadline" attachedToRef="SubProcess_Phase1" cancelActivity="false">
+      <outgoing">Flow_ToAlert230</outgoing>
+      <timerEventDefinition id="TimerDef_1">
+        <timeExpression xsi:type="tFormalExpression">14:30:00</timeExpression>
+      </timerEventDefinition>
+    </boundaryEvent>
+
+    <!-- Send Alert Task for Phase 1 Deadline -->
+    <sendTask id="Task_AlertSupervisor230" name="Send Alert to Supervisor (2:30 PM Deadline Missed)">
+      <incoming>Flow_ToAlert230</incoming>
+      <outgoing">Flow_EndAlert230</outgoing>
+    </sendTask>
+
+    <endEvent id="End_Alert230" name="Supervisor Alerted (2:30 PM)">
+      <incoming>Flow_EndAlert230</incoming>
+    </endEvent>
+
+    <!-- Subprocess 2: Second Phase (Must complete by 4:00 PM) -->
+    <subProcess id="SubProcess_Phase2" name="Phase 2: CRM Reconcile">
+      <incoming>Flow_To_Phase2</incoming>
+      <outgoing">Flow_To_ProcessEnd</outgoing>
+
+      <startEvent id="Sp2_Start">
+        <outgoing">Sp2_Flow_1</outgoing>
+      </startEvent>
+
+      <serviceTask id="Task_CheckCRM2" name="Check CRM System for New Returns">
+        <incoming>Sp2_Flow_1</incoming>
+        <outgoing">Sp2_Flow_2</outgoing>
+      </serviceTask>
+
+      <exclusiveGateway id="Gateway_NewReturns2" name="New returns filed?">
+        <incoming>Sp2_Flow_2</incoming>
+        <outgoing">Flow_ReturnsExist2</outgoing>
+        <outgoing">Flow_NoReturns2</outgoing>
+      </exclusiveGateway>
+
+      <serviceTask id="Task_ReconcileDefaulters" name="Reconcile with Existing Account Defaulters Table">
+        <incoming>Flow_ReturnsExist2</incoming>
+        <outgoing">Sp2_Flow_3</outgoing>
+      </serviceTask>
+
+      <exclusiveGateway id="Gateway_MergePhase2" name="Phase 2 Merge">
+        <incoming>Flow_NoReturns2</incoming>
+        <incoming>Sp2_Flow_3</incoming>
+        <outgoing">Sp2_Flow_4</outgoing>
+      </exclusiveGateway>
+
+      <endEvent id="Sp2_End" name="Phase 2 Complete">
+        <incoming>Sp2_Flow_4</incoming>
+      </endEvent>
+
+      <!-- Subprocess 2 Internal Flows -->
+      <sequenceFlow id="Sp2_Flow_1" sourceRef="Sp2_Start" targetRef="Task_CheckCRM2"/>
+      <sequenceFlow id="Sp2_Flow_2" sourceRef="Task_CheckCRM2" targetRef="Gateway_NewReturns2"/>
+      <sequenceFlow id="Flow_ReturnsExist2" name="Yes" sourceRef="Gateway_NewReturns2" targetRef="Task_ReconcileDefaulters"/>
+      <sequenceFlow id="Flow_NoReturns2" name="No" sourceRef="Gateway_NewReturns2" targetRef="Gateway_MergePhase2"/>
+      <sequenceFlow id="Sp2_Flow_3" sourceRef="Task_ReconcileDefaulters" targetRef="Gateway_MergePhase2"/>
+      <sequenceFlow id="Sp2_Flow_4" sourceRef="Gateway_MergePhase2" targetRef="Sp2_End"/>
+    </subProcess>
+
+    <!-- Timer Boundary Event for Phase 2 (4:00 PM) -->
+    <boundaryEvent id="Timer_400PM" name="4:00 PM Deadline" attachedToRef="SubProcess_Phase2" cancelActivity="false">
+      <outgoing">Flow_ToAlert400</outgoing>
+      <timerEventDefinition id="TimerDef_2">
+        <timeExpression xsi:type="tFormalExpression">16:00:00</timeExpression>
+      </timerEventDefinition>
+    </boundaryEvent>
+
+    <!-- Send Alert Task for Phase 2 Deadline -->
+    <sendTask id="Task_AlertSupervisor400" name="Send Message to Supervisor (4:00 PM Deadline Missed)">
+      <incoming>Flow_ToAlert400</incoming>
+      <outgoing">Flow_EndAlert400</outgoing>
+    </sendTask>
+
+    <endEvent id="End_Alert400" name="Supervisor Alerted (4:00 PM)">
+      <incoming>Flow_EndAlert400</incoming>
+    </endEvent>
+
+    <!-- Final End Event -->
+    <endEvent id="End_Process" name="Daily Processing Completed">
+      <incoming>Flow_To_ProcessEnd</incoming>
+    </endEvent>
+
+    <!-- Top Level Sequence Flows -->
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_BackupDB"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_BackupDB" targetRef="SubProcess_Phase1"/>
+    <sequenceFlow id="Flow_ToAlert230" sourceRef="Timer_230PM" targetRef="Task_AlertSupervisor230"/>
+    <sequenceFlow id="Flow_EndAlert230" sourceRef="Task_AlertSupervisor230" targetRef="End_Alert230"/>
+    <sequenceFlow id="Flow_To_Phase2" sourceRef="SubProcess_Phase1" targetRef="SubProcess_Phase2"/>
+    <sequenceFlow id="Flow_ToAlert400" sourceRef="Timer_400PM" targetRef="Task_AlertSupervisor400"/>
+    <sequenceFlow id="Flow_EndAlert400" sourceRef="Task_AlertSupervisor400" targetRef="End_Alert400"/>
+    <sequenceFlow id="Flow_To_ProcessEnd" sourceRef="SubProcess_Phase2" targetRef="End_Process"/>
+
+  </process>
+
+  <!-- BPMN Diagram Graphical Representation -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="DefaulterProcessingProcess">
+      
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="152" y="242" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="130" y="285" width="81" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Backup DB Task -->
+      <bpmndi:BPMNShape id="Task_BackupDB_di" bpmnElement="Task_BackupDB">
+        <omgdc:Bounds x="230" y="220" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- SubProcess Phase 1 -->
+      <bpmndi:BPMNShape id="SubProcess_Phase1_di" bpmnElement="SubProcess_Phase1" isExpanded="true">
+        <omgdc:Bounds x="370" y="80" width="880" height="360"/>
+      </bpmndi:BPMNShape>
+
+      <!-- SubProcess Phase 1 Internal Diagram Elements -->
+      <bpmndi:BPMNShape id="Sp1_Start_di" bpmnElement="Sp1_Start">
+        <omgdc:Bounds x="395" y="232" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckDefaulterTable_di" bpmnElement="Task_CheckDefaulterTable">
+        <omgdc:Bounds x="460" y="210" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_NewDefaultersFound_di" bpmnElement="Gateway_NewDefaultersFound" isMarkerVisible="true">
+        <omgdc:Bounds x="595" y="225" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="589" y="282" width="63" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckCRM1_di" bpmnElement="Task_CheckCRM1">
+        <omgdc:Bounds x="680" y="120" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_NewReturns1_di" bpmnElement="Gateway_NewReturns1" isMarkerVisible="true">
+        <omgdc:Bounds x="815" y="135" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="811" y="105" width="59" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RegisterDefaultingAccounts_di" bpmnElement="Task_RegisterDefaultingAccounts">
+        <omgdc:Bounds x="810" y="280" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ClientCodesAdvised_di" bpmnElement="Gateway_ClientCodesAdvised" isMarkerVisible="true">
+        <omgdc:Bounds x="945" y="295" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="930" y="352" width="81" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProduceDefaulterTable_di" bpmnElement="Task_ProduceDefaulterTable">
+        <omgdc:Bounds x="1030" y="280" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendToAccountManagement_di" bpmnElement="Task_SendToAccountManagement">
+        <omgdc:Bounds x="1030" y="150" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MergePhase1_di" bpmnElement="Gateway_MergePhase1" isMarkerVisible="true">
+        <omgdc:Bounds x="1155" y="225" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Sp1_End_di" bpmnElement="Sp1_End">
+        <omgdc:Bounds x="1162" y="112" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- SubProcess Phase 1 Connections -->
+      <bpmndi:BPMNEdge id="Sp1_Flow_1_di" bpmnElement="Sp1_Flow_1">
+        <omgdi:waypoint x="431" y="250"/>
+        <omgdi:waypoint x="460" y="250"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sp1_Flow_2_di" bpmnElement="Sp1_Flow_2">
+        <omgdi:waypoint x="560" y="250"/>
+        <omgdi:waypoint x="595" y="250"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NoDefaulters_di" bpmnElement="Flow_NoDefaulters">
+        <omgdi:waypoint x="620" y="225"/>
+        <omgdi:waypoint x="620" y="160"/>
+        <omgdi:waypoint x="680" y="160"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="628" y="190" width="15" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_HasDefaulters_di" bpmnElement="Flow_HasDefaulters">
+        <omgdi:waypoint x="620" y="275"/>
+        <omgdi:waypoint x="620" y="320"/>
+        <omgdi:waypoint x="810" y="320"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="626" y="295" width="18" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sp1_Flow_3_di" bpmnElement="Sp1_Flow_3">
+        <omgdi:waypoint x="780" y="160"/>
+        <omgdi:waypoint x="815" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReturnsExist1_di" bpmnElement="Flow_ReturnsExist1">
+        <omgdi:waypoint x="840" y="185"/>
+        <omgdi:waypoint x="840" y="280"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="846" y="222" width="18" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NoReturns1_di" bpmnElement="Flow_NoReturns1">
+        <omgdi:waypoint x="865" y="160"/>
+        <omgdi:waypoint x="1180" y="160"/>
+        <omgdi:waypoint x="1180" y="225"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="882" y="142" width="15" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sp1_Flow_4_di" bpmnElement="Sp1_Flow_4">
+        <omgdi:waypoint x="910" y="320"/>
+        <omgdi:waypoint x="945" y="320"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NotAdvised_di" bpmnElement="Flow_NotAdvised">
+        <omgdi:waypoint x="995" y="320"/>
+        <omgdi:waypoint x="1030" y="320"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1005" y="302" width="15" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AlreadyAdvised_di" bpmnElement="Flow_AlreadyAdvised">
+        <omgdi:waypoint x="970" y="295"/>
+        <omgdi:waypoint x="970" y="250"/>
+        <omgdi:waypoint x="1155" y="250"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="976" y="270" width="18" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sp1_Flow_5_di" bpmnElement="Sp1_Flow_5">
+        <omgdi:waypoint x="1080" y="280"/>
+        <omgdi:waypoint x="1080" y="230"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sp1_Flow_6_di" bpmnElement="Sp1_Flow_6">
+        <omgdi:waypoint x="1130" y="190"/>
+        <omgdi:waypoint x="1180" y="190"/>
+        <omgdi:waypoint x="1180" y="225"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sp1_Flow_7_di" bpmnElement="Sp1_Flow_7">
+        <omgdi:waypoint x="1180" y="225"/>
+        <omgdi:waypoint x="1180" y="148"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Boundary Event 2:30 PM -->
+      <bpmndi:BPMNShape id="Timer_230PM_di" bpmnElement="Timer_230PM">
+        <omgdc:Bounds x="1232" y="422" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1208" y="465" width="85" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Alert Supervisor 2:30 PM Task -->
+      <bpmndi:BPMNShape id="Task_AlertSupervisor230_di" bpmnElement="Task_AlertSupervisor230">
+        <omgdc:Bounds x="1310" y="480" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_Alert230_di" bpmnElement="End_Alert230">
+        <omgdc:Bounds x="1452" y="502" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1425" y="545" width="90" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- SubProcess Phase 2 -->
+      <bpmndi:BPMNShape id="SubProcess_Phase2_di" bpmnElement="SubProcess_Phase2" isExpanded="true">
+        <omgdc:Bounds x="1310" y="130" width="530" height="260"/>
+      </bpmndi:BPMNShape>
+
+      <!-- SubProcess Phase 2 Internal Elements -->
+      <bpmndi:BPMNShape id="Sp2_Start_di" bpmnElement="Sp2_Start">
+        <omgdc:Bounds x="1335" y="242" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckCRM2_di" bpmnElement="Task_CheckCRM2">
+        <omgdc:Bounds x="1400" y="220" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_NewReturns2_di" bpmnElement="Gateway_NewReturns2" isMarkerVisible="true">
+        <omgdc:Bounds x="1535" y="235" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1516" y="292" width="88" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReconcileDefaulters_di" bpmnElement="Task_ReconcileDefaulters">
+        <omgdc:Bounds x="1620" y="150" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MergePhase2_di" bpmnElement="Gateway_MergePhase2" isMarkerVisible="true">
+        <omgdc:Bounds x="1735" y="235" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Sp2_End_di" bpmnElement="Sp2_End">
+        <omgdc:Bounds x="1782" y="242" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- SubProcess Phase 2 Connections -->
+      <bpmndi:BPMNEdge id="Sp2_Flow_1_di" bpmnElement="Sp2_Flow_1">
+        <omgdi:waypoint x="1371" y="260"/>
+        <omgdi:waypoint x="1400" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sp2_Flow_2_di" bpmnElement="Sp2_Flow_2">
+        <omgdi:waypoint x="1500" y="260"/>
+        <omgdi:waypoint x="1535" y="260"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReturnsExist2_di" bpmnElement="Flow_ReturnsExist2">
+        <omgdi:waypoint x="1560" y="235"/>
+        <omgdi:waypoint x="1560" y="190"/>
+        <omgdi:waypoint x="1620" y="190"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1566" y="210" width="18" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NoReturns2_di" bpmnElement="Flow_NoReturns2">
+        <omgdi:waypoint x="1585" y="260"/>
+        <omgdi:waypoint x="1735" y="260"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1653" y="242" width="15" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sp2_Flow_3_di" bpmnElement="Sp2_Flow_3">
+        <omgdi:waypoint x="1720" y="190"/>
+        <omgdi:waypoint x="1760" y="190"/>
+        <omgdi:waypoint x="1760" y="235"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sp2_Flow_4_di" bpmnElement="Sp2_Flow_4">
+        <omgdi:waypoint x="1785" y="260"/>
+        <omgdi:waypoint x="1782" y="260"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Boundary Event 4:00 PM -->
+      <bpmndi:BPMNShape id="Timer_400PM_di" bpmnElement="Timer_400PM">
+        <omgdc:Bounds x="1822" y="372" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1798" y="415" width="85" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Alert Supervisor 4:00 PM Task -->
+      <bpmndi:BPMNShape id="Task_AlertSupervisor400_di" bpmnElement="Task_AlertSupervisor400">
+        <omgdc:Bounds x="1900" y="430" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_Alert400_di" bpmnElement="End_Alert400">
+        <omgdc:Bounds x="2042" y="452" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="2015" y="495" width="90" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Process End Event -->
+      <bpmndi:BPMNShape id="End_Process_di" bpmnElement="End_Process">
+        <omgdc:Bounds x="1912" y="242" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1891" y="285" width="79" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Top Level Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="188" y="260"/>
+        <omgdi:waypoint x="230" y="260"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="330" y="260"/>
+        <omgdi:waypoint x="370" y="260"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToAlert230_di" bpmnElement="Flow_ToAlert230">
+        <omgdi:waypoint x="1250" y="458"/>
+        <omgdi:waypoint x="1250" y="520"/>
+        <omgdi:waypoint x="1310" y="520"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_EndAlert230_di" bpmnElement="Flow_EndAlert230">
+        <omgdi:waypoint x="1410" y="520"/>
+        <omgdi:waypoint x="1452" y="520"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_To_Phase2_di" bpmnElement="Flow_To_Phase2">
+        <omgdi:waypoint x="1250" y="260"/>
+        <omgdi:waypoint x="1310" y="260"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToAlert400_di" bpmnElement="Flow_ToAlert400">
+        <omgdi:waypoint x="1840" y="408"/>
+        <omgdi:waypoint x="1840" y="470"/>
+        <omgdi:waypoint x="1900" y="470"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_EndAlert400_di" bpmnElement="Flow_EndAlert400">
+        <omgdi:waypoint x="2000" y="470"/>
+        <omgdi:waypoint x="2042" y="470"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_To_ProcessEnd_di" bpmnElement="Flow_To_ProcessEnd">
+        <omgdi:waypoint x="1840" y="260"/>
+        <omgdi:waypoint x="1912" y="260"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

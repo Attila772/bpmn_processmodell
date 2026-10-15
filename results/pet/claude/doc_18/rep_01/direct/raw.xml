@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             id="Definitions_1"
+             targetNamespace="http://example.com/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_MPOO" name="MPOO" processRef="Process_MPOO"/>
+    <participant id="Participant_MSPO" name="MSPO" processRef="Process_MSPO"/>
+    <participant id="Participant_GO" name="GO" processRef="Process_GO"/>
+    <participant id="Participant_MPON" name="MPON" processRef="Process_MPON"/>
+
+    <!-- Bill submissions -->
+    <messageFlow id="MF1_MPOO_to_GO_MeteringOps" sourceRef="Task_MPOO_SendBillMeteringOps" targetRef="StartEvent_GO_Bill1"/>
+    <messageFlow id="MF2_MSPO_to_GO_TempMeasurement" sourceRef="Task_MSPO_SendBillTempMeasurement" targetRef="StartEvent_GO_Bill2"/>
+    <messageFlow id="MF3_MSPO_to_GO_AdditionalReadings" sourceRef="Task_MSPO_SendBillAdditionalReadings" targetRef="StartEvent_GO_Bill3"/>
+    <messageFlow id="MF4_MPOO_to_GO_EquipAcq" sourceRef="Task_MPOO_SendToGO" targetRef="StartEvent_GO_Bill4"/>
+    <messageFlow id="MF5_MPOO_to_MPON_EquipAcq" sourceRef="Task_MPOO_SendToMPON" targetRef="StartEvent_MPON_Bill"/>
+
+    <!-- GO responses -->
+    <messageFlow id="MF6_GO_Confirm_to_MPOO1" sourceRef="Task_GO_Confirm" targetRef="Event_MPOO_ReceiveResponse1"/>
+    <messageFlow id="MF7_GO_Confirm_to_MPOO2" sourceRef="Task_GO_Confirm" targetRef="Event_MPOO_ReceiveResponse2"/>
+    <messageFlow id="MF8_GO_Confirm_to_MSPO1" sourceRef="Task_GO_Confirm" targetRef="Event_MSPO_ReceiveResponse1"/>
+    <messageFlow id="MF9_GO_Confirm_to_MSPO2" sourceRef="Task_GO_Confirm" targetRef="Event_MSPO_ReceiveResponse2"/>
+    <messageFlow id="MF10_GO_Reject_to_MPOO1" sourceRef="Task_GO_Reject" targetRef="Event_MPOO_ReceiveResponse1"/>
+    <messageFlow id="MF11_GO_Reject_to_MPOO2" sourceRef="Task_GO_Reject" targetRef="Event_MPOO_ReceiveResponse2"/>
+    <messageFlow id="MF12_GO_Reject_to_MSPO1" sourceRef="Task_GO_Reject" targetRef="Event_MSPO_ReceiveResponse1"/>
+    <messageFlow id="MF13_GO_Reject_to_MSPO2" sourceRef="Task_GO_Reject" targetRef="Event_MSPO_ReceiveResponse2"/>
+
+    <!-- MPON responses -->
+    <messageFlow id="MF14_MPON_Confirm_to_MPOO2" sourceRef="Task_MPON_Confirm" targetRef="Event_MPOO_ReceiveResponse2"/>
+    <messageFlow id="MF15_MPON_Reject_to_MPOO2" sourceRef="Task_MPON_Reject" targetRef="Event_MPOO_ReceiveResponse2"/>
+
+  </collaboration>
+
+  <!-- ============== MPOO PROCESS ============== -->
+  <process id="Process_MPOO" name="MPOO Process" isExecutable="false">
+    <startEvent id="StartEvent_MPOO" name="Start"/>
+    <parallelGateway id="Gateway_MPOO_Split"/>
+
+    <task id="Task_MPOO_SendBillMeteringOps" name="Send bill for temporary continuation of metering point operations"/>
+    <intermediateCatchEvent id="Event_MPOO_ReceiveResponse1" name="Receive confirmation or rejection">
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+    <endEvent id="EndEvent_MPOO_1" name="End"/>
+
+    <task id="Task_MPOO_SendBillEquipAcq" name="Send bill for equipment acquisition"/>
+    <exclusiveGateway id="Gateway_MPOO_DestSplit" name="Send to MPON or GO?"/>
+    <task id="Task_MPOO_SendToMPON" name="Send to MPON"/>
+    <task id="Task_MPOO_SendToGO" name="Send to GO"/>
+    <exclusiveGateway id="Gateway_MPOO_DestJoin"/>
+    <intermediateCatchEvent id="Event_MPOO_ReceiveResponse2" name="Receive confirmation or rejection">
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+    <endEvent id="EndEvent_MPOO_2" name="End"/>
+
+    <sequenceFlow id="Flow_MPOO_1" sourceRef="StartEvent_MPOO" targetRef="Gateway_MPOO_Split"/>
+    <sequenceFlow id="Flow_MPOO_2" sourceRef="Gateway_MPOO_Split" targetRef="Task_MPOO_SendBillMeteringOps"/>
+    <sequenceFlow id="Flow_MPOO_3" sourceRef="Gateway_MPOO_Split" targetRef="Task_MPOO_SendBillEquipAcq"/>
+    <sequenceFlow id="Flow_MPOO_4" sourceRef="Task_MPOO_SendBillMeteringOps" targetRef="Event_MPOO_ReceiveResponse1"/>
+    <sequenceFlow id="Flow_MPOO_5" sourceRef="Event_MPOO_ReceiveResponse1" targetRef="EndEvent_MPOO_1"/>
+    <sequenceFlow id="Flow_MPOO_6" sourceRef="Task_MPOO_SendBillEquipAcq" targetRef="Gateway_MPOO_DestSplit"/>
+    <sequenceFlow id="Flow_MPOO_7" sourceRef="Gateway_MPOO_DestSplit" targetRef="Task_MPOO_SendToMPON"/>
+    <sequenceFlow id="Flow_MPOO_8" sourceRef="Gateway_MPOO_DestSplit" targetRef="Task_MPOO_SendToGO"/>
+    <sequenceFlow id="Flow_MPOO_9" sourceRef="Task_MPOO_SendToMPON" targetRef="Gateway_MPOO_DestJoin"/>
+    <sequenceFlow id="Flow_MPOO_10" sourceRef="Task_MPOO_SendToGO" targetRef="Gateway_MPOO_DestJoin"/>
+    <sequenceFlow id="Flow_MPOO_11" sourceRef="Gateway_MPOO_DestJoin" targetRef="Event_MPOO_ReceiveResponse2"/>
+    <sequenceFlow id="Flow_MPOO_12" sourceRef="Event_MPOO_ReceiveResponse2" targetRef="EndEvent_MPOO_2"/>
+  </process>
+
+  <!-- ============== MSPO PROCESS ============== -->
+  <process id="Process_MSPO" name="MSPO Process" isExecutable="false">
+    <startEvent id="StartEvent_MSPO" name="Start"/>
+    <parallelGateway id="Gateway_MSPO_Split"/>
+
+    <task id="Task_MSPO_SendBillTempMeasurement" name="Send bill for temporary continuation of measurement"/>
+    <intermediateCatchEvent id="Event_MSPO_ReceiveResponse1" name="Receive confirmation or rejection">
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+    <endEvent id="EndEvent_MSPO_1" name="End"/>
+
+    <task id="Task_MSPO_SendBillAdditionalReadings" name="Send bill for additional readings"/>
+    <intermediateCatchEvent id="Event_MSPO_ReceiveResponse2" name="Receive confirmation or rejection">
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+    <endEvent id="EndEvent_MSPO_2" name="End"/>
+
+    <sequenceFlow id="Flow_MSPO_1" sourceRef="StartEvent_MSPO" targetRef="Gateway_MSPO_Split"/>
+    <sequenceFlow id="Flow_MSPO_2" sourceRef="Gateway_MSPO_Split" targetRef="Task_MSPO_SendBillTempMeasurement"/>
+    <sequenceFlow id="Flow_MSPO_3" sourceRef="Gateway_MSPO_Split" targetRef="Task_MSPO_SendBillAdditionalReadings"/>
+    <sequenceFlow id="Flow_MSPO_4" sourceRef="Task_MSPO_SendBillTempMeasurement" targetRef="Event_MSPO_ReceiveResponse1"/>
+    <sequenceFlow id="Flow_MSPO_5" sourceRef="Event_MSPO_ReceiveResponse1" targetRef="EndEvent_MSPO_1"/>
+    <sequenceFlow id="Flow_MSPO_6" sourceRef="Task_MSPO_SendBillAdditionalReadings" targetRef="Event_MSPO_ReceiveResponse2"/>
+    <sequenceFlow id="Flow_MSPO_7" sourceRef="Event_MSPO_ReceiveResponse2" targetRef="EndEvent_MSPO_2"/>
+  </process>
+
+  <!-- ============== GO PROCESS ============== -->
+  <process id="Process_GO" name="GO Process" isExecutable="false">
+    <startEvent id="StartEvent_GO_Bill1" name="Receive bill for temporary continuation of metering point operations">
+      <messageEventDefinition/>
+    </startEvent>
+    <startEvent id="StartEvent_GO_Bill2" name="Receive bill for temporary continuation of measurement">
+      <messageEventDefinition/>
+    </startEvent>
+    <startEvent id="StartEvent_GO_Bill3" name="Receive bill for additional readings">
+      <messageEventDefinition/>
+    </startEvent>
+    <startEvent id="StartEvent_GO_Bill4" name="Receive bill for equipment acquisition">
+      <messageEventDefinition/>
+    </startEvent>
+
+    <task id="Task_GO_Examine1" name="Examine bill"/>
+    <task id="Task_GO_Examine2" name="Examine bill"/>
+    <task id="Task_GO_Examine3" name="Examine bill"/>
+    <task id="Task_GO_Examine4" name="Examine bill"/>
+
+    <exclusiveGateway id="Gateway_GO_Merge"/>
+    <exclusiveGateway id="Gateway_GO_Decision" name="Confirm or reject?"/>
+    <task id="Task_GO_Confirm" name="Confirm invoice with payment advice"/>
+    <task id="Task_GO_Reject" name="Reject invoice"/>
+    <endEvent id="EndEvent_GO" name="End"/>
+
+    <sequenceFlow id="Flow_GO_1" sourceRef="StartEvent_GO_Bill1" targetRef="Task_GO_Examine1"/>
+    <sequenceFlow id="Flow_GO_2" sourceRef="StartEvent_GO_Bill2" targetRef="Task_GO_Examine2"/>
+    <sequenceFlow id="Flow_GO_3" sourceRef="StartEvent_GO_Bill3" targetRef="Task_GO_Examine3"/>
+    <sequenceFlow id="Flow_GO_4" sourceRef="StartEvent_GO_Bill4" targetRef="Task_GO_Examine4"/>
+
+    <sequenceFlow id="Flow_GO_5" sourceRef="Task_GO_Examine1" targetRef="Gateway_GO_Merge"/>
+    <sequenceFlow id="Flow_GO_6" sourceRef="Task_GO_Examine2" targetRef="Gateway_GO_Merge"/>
+    <sequenceFlow id="Flow_GO_7" sourceRef="Task_GO_Examine3" targetRef="Gateway_GO_Merge"/>
+    <sequenceFlow id="Flow_GO_8" sourceRef="Task_GO_Examine4" targetRef="Gateway_GO_Merge"/>
+
+    <sequenceFlow id="Flow_GO_9" sourceRef="Gateway_GO_Merge" targetRef="Gateway_GO_Decision"/>
+    <sequenceFlow id="Flow_GO_10" sourceRef="Gateway_GO_Decision" targetRef="Task_GO_Confirm" name="Confirm"/>
+    <sequenceFlow id="Flow_GO_11" sourceRef="Gateway_GO_Decision" targetRef="Task_GO_Reject" name="Reject"/>
+    <sequenceFlow id="Flow_GO_12" sourceRef="Task_GO_Confirm" targetRef="EndEvent_GO"/>
+    <sequenceFlow id="Flow_GO_13" sourceRef="Task_GO_Reject" targetRef="EndEvent_GO"/>
+  </process>
+
+  <!-- ============== MPON PROCESS ============== -->
+  <process id="Process_MPON" name="MPON Process" isExecutable="false">
+    <startEvent id="StartEvent_MPON_Bill" name="Receive bill for equipment acquisition">
+      <messageEventDefinition/>
+    </startEvent>
+    <task id="Task_MPON_Examine" name="Examine bill"/>
+    <exclusiveGateway id="Gateway_MPON_Decision" name="Confirm or reject?"/>
+    <task id="Task_MPON_Confirm" name="Confirm invoice with payment advice"/>
+    <task id="Task_MPON_Reject" name="Reject invoice"/>
+    <endEvent id="EndEvent_MPON" name="End"/>
+
+    <sequenceFlow id="Flow_MPON_1" sourceRef="StartEvent_MPON_Bill" targetRef="Task_MPON_Examine"/>
+    <sequenceFlow id="Flow_MPON_2" sourceRef="Task_MPON_Examine" targetRef="Gateway_MPON_Decision"/>
+    <sequenceFlow id="Flow_MPON_3" sourceRef="Gateway_MPON_Decision" targetRef="Task_MPON_Confirm" name="Confirm"/>
+    <sequenceFlow id="Flow_MPON_4" sourceRef="Gateway_MPON_Decision" targetRef="Task_MPON_Reject" name="Reject"/>
+    <sequenceFlow id="Flow_MPON_5" sourceRef="Task_MPON_Confirm" targetRef="EndEvent_MPON"/>
+    <sequenceFlow id="Flow_MPON_6" sourceRef="Task_MPON_Reject" targetRef="EndEvent_MPON"/>
+  </process>
+
+</definitions>

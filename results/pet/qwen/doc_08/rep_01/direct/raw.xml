@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="AccountDefaulterProcess" name="Account Defaulter Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Weekday Morning">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_BackupDB" name="Backup Database">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_CheckNewRecords" name="Check Account Defaulter Table for New Records">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoNewRecords</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NewRecordsExist</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_CheckCRMReturns" name="Check CRM for New Returns">
+      <bpmn:incoming>Flow_NoNewRecords</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_CheckCRMReturnsResult" name="New Returns Filed?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReturnsExist</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoReturns</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_RegisterDefaulters" name="Register Defaulting Accounts and Customers">
+      <bpmn:incoming>Flow_ReturnsExist</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_AdvisedCheck" name="Client Codes Previously Advised?">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotAdvised</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Advised</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ProduceTableAndSend" name="Produce Table of Defaulting Accounts and Send to Account Management">
+      <bpmn:incoming>Flow_NotAdvised</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Timer_230pm" name="Deadline 2:30 PM">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_TimeOK</bpmn:outgoing>
+      <bpmn:outgoing>Flow_TimeExceeded</bpmn:outgoing>
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_SendAlertSupervisor" name="Send Alert to Supervisor">
+      <bpmn:incoming>Flow_TimeExceeded</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndAlert</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Alert" name="Alert Sent">
+      <bpmn:incoming>Flow_EndAlert</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_CheckCRMAgain" name="Check CRM for New Returns (Post-Report)">
+      <bpmn:incoming>Flow_TimeOK</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_CheckCRMReturnsResult2" name="New Returns Filed?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReturnsExist2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoReturns2</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_Reconcile" name="Reconcile with Existing Account Defaulters Table">
+      <bpmn:incoming>Flow_ReturnsExist2</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Timer_400pm" name="Deadline 4:00 PM">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_TimeOK2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_TimeExceeded2</bpmn:outgoing>
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_SendMessageSupervisor" name="Send Message to Supervisor">
+      <bpmn:incoming>Flow_TimeExceeded2</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndMessage</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Message" name="Message Sent">
+      <bpmn:incoming>Flow_EndMessage</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Complete" name="Process Complete">
+      <bpmn:incoming>Flow_TimeOK2</bpmn:incoming>
+      <bpmn:incoming>Flow_NoReturns2</bpmn:incoming>
+      <bpmn:incoming>Flow_Advised</bpmn:incoming>
+      <bpmn:incoming>Flow_NoReturns</bpmn:incoming>
+      <bpmn:incoming>Flow_NewRecordsExist</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_BackupDB" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_BackupDB" targetRef="Gateway_CheckNewRecords" />
+    <bpmn:sequenceFlow id="Flow_NoNewRecords" name="No New Records" sourceRef="Gateway_CheckNewRecords" targetRef="Task_CheckCRMReturns" />
+    <bpmn:sequenceFlow id="Flow_NewRecordsExist" name="New Records Found" sourceRef="Gateway_CheckNewRecords" targetRef="EndEvent_Complete" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CheckCRMReturns" targetRef="Gateway_CheckCRMReturnsResult" />
+    <bpmn:sequenceFlow id="Flow_ReturnsExist" name="Yes" sourceRef="Gateway_CheckCRMReturnsResult" targetRef="Task_RegisterDefaulters" />
+    <bpmn:sequenceFlow id="Flow_NoReturns" name="No" sourceRef="Gateway_CheckCRMReturnsResult" targetRef="EndEvent_Complete" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_RegisterDefaulters" targetRef="Gateway_AdvisedCheck" />
+    <bpmn:sequenceFlow id="Flow_NotAdvised" name="Not Advised" sourceRef="Gateway_AdvisedCheck" targetRef="Task_ProduceTableAndSend" />
+    <bpmn:sequenceFlow id="Flow_Advised" name="Advised" sourceRef="Gateway_AdvisedCheck" targetRef="EndEvent_Complete" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_ProduceTableAndSend" targetRef="Timer_230pm" />
+    <bpmn:sequenceFlow id="Flow_TimeOK" name="Within Time" sourceRef="Timer_230pm" targetRef="Task_CheckCRMAgain" />
+    <bpmn:sequenceFlow id="Flow_TimeExceeded" name="Time Exceeded" sourceRef="Timer_230pm" targetRef="Task_SendAlertSupervisor" />
+    <bpmn:sequenceFlow id="Flow_EndAlert" sourceRef="Task_SendAlertSupervisor" targetRef="EndEvent_Alert" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_CheckCRMAgain" targetRef="Gateway_CheckCRMReturnsResult2" />
+    <bpmn:sequenceFlow id="Flow_ReturnsExist2" name="Yes" sourceRef="Gateway_CheckCRMReturnsResult2" targetRef="Task_Reconcile" />
+    <bpmn:sequenceFlow id="Flow_NoReturns2" name="No" sourceRef="Gateway_CheckCRMReturnsResult2" targetRef="EndEvent_Complete" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_Reconcile" targetRef="Timer_400pm" />
+    <bpmn:sequenceFlow id="Flow_TimeOK2" name="Within Time" sourceRef="Timer_400pm" targetRef="EndEvent_Complete" />
+    <bpmn:sequenceFlow id="Flow_TimeExceeded2" name="Time Exceeded" sourceRef="Timer_400pm" targetRef="Task_SendMessageSupervisor" />
+    <bpmn:sequenceFlow id="Flow_EndMessage" sourceRef="Task_SendMessageSupervisor" targetRef="EndEvent_Message" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="AccountDefaulterProcess">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="139" y="145" width="62" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_BackupDB_di" bpmnElement="Task_BackupDB">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CheckNewRecords_di" bpmnElement="Gateway_CheckNewRecords" isMarkerVisible="true">
+        <dc:Bounds x="385" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="360" y="155" width="100" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckCRMReturns_di" bpmnElement="Task_CheckCRMReturns">
+        <dc:Bounds x="480" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CheckCRMReturnsResult_di" bpmnElement="Gateway_CheckCRMReturnsResult" isMarkerVisible="true">
+        <dc:Bounds x="635" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RegisterDefaulters_di" bpmnElement="Task_RegisterDefaulters">
+        <dc:Bounds x="740" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_AdvisedCheck_di" bpmnElement="Gateway_AdvisedCheck" isMarkerVisible="true">
+        <dc:Bounds x="885" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ProduceTableAndSend_di" bpmnElement="Task_ProduceTableAndSend">
+        <dc:Bounds x="980" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Timer_230pm_di" bpmnElement="Timer_230pm">
+        <dc:Bounds x="1132" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendAlertSupervisor_di" bpmnElement="Task_SendAlertSupervisor">
+        <dc:Bounds x="1240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Alert_di" bpmnElement="EndEvent_Alert">
+        <dc:Bounds x="1382" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckCRMAgain_di" bpmnElement="Task_CheckCRMAgain">
+        <dc:Bounds x="1240" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CheckCRMReturnsResult2_di" bpmnElement="Gateway_CheckCRMReturnsResult2" isMarkerVisible="true">
+        <dc:Bounds x="1385" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Reconcile_di" bpmnElement="Task_Reconcile">
+        <dc:Bounds x="1490" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Timer_400pm_di" bpmnElement="Timer_400pm">
+        <dc:Bounds x="1642" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendMessageSupervisor_di" bpmnElement="Task_SendMessageSupervisor">
+        <dc:Bounds x="1750" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Message_di" bpmnElement="EndEvent_Message">
+        <dc:Bounds x="1892" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Complete_di" bpmnElement="EndEvent_Complete">
+        <dc:Bounds x="1032" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="385" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NoNewRecords_di" bpmnElement="Flow_NoNewRecords">
+        <di:waypoint x="435" y="120" />
+        <di:waypoint x="480" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="445" y="105" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NewRecordsExist_di" bpmnElement="Flow_NewRecordsExist">
+        <di:waypoint x="410" y="145" />
+        <di:waypoint x="410" y="240" />
+        <di:waypoint x="1050" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="415" y="150" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="580" y="120" />
+        <di:waypoint x="635" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReturnsExist_di" bpmnElement="Flow_ReturnsExist">
+        <di:waypoint x="685" y="120" />
+        <di:waypoint x="740" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="700" y="105" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NoReturns_di" bpmnElement="Flow_NoReturns">
+        <di:waypoint x="660" y="145" />
+        <di:waypoint x="660" y="240" />
+        <di:waypoint x="1050" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="665" y="150" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="840" y="120" />
+        <di:waypoint x="885" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NotAdvised_di" bpmnElement="Flow_NotAdvised">
+        <di:waypoint x="935" y="120" />
+        <di:waypoint x="980" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="940" y="105" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Advised_di" bpmnElement="Flow_Advised">
+        <di:waypoint x="910" y="145" />
+        <di:waypoint x="910" y="240" />
+        <di:waypoint x="1050" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="915" y="150" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="1080" y="120" />
+        <di:waypoint x="1132" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_TimeOK_di" bpmnElement="Flow_TimeOK">
+        <di:waypoint x="1150" y="138" />
+        <di:waypoint x="1150" y="240" />
+        <di:waypoint x="1240" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1155" y="180" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_TimeExceeded_di" bpmnElement="Flow_TimeExceeded">
+        <di:waypoint x="1168" y="120" />
+        <di:waypoint x="1240" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1175" y="105" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EndAlert_di" bpmnElement="Flow_EndAlert">
+        <di:waypoint x="1340" y="120" />
+        <di:waypoint x="1382" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1340" y="240" />
+        <di:waypoint x="1385" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReturnsExist2_di" bpmnElement="Flow_ReturnsExist2">
+        <di:waypoint x="1435" y="240" />
+        <di:waypoint x="1490" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1450" y="225" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NoReturns2_di" bpmnElement="Flow_NoReturns2">
+        <di:waypoint x="1410" y="265" />
+        <di:waypoint x="1410" y="300" />
+        <di:waypoint x="1050" y="300" />
+        <di:waypoint x="1050" y="258" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1415" y="270" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1590" y="240" />
+        <di:waypoint x="1642" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_TimeOK2_di" bpmnElement="Flow_TimeOK2">
+        <di:waypoint x="1658" y="258" />
+        <di:waypoint x="1658" y="300" />
+        <di:waypoint x="1050" y="300" />
+        <di:waypoint x="1050" y="258" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1663" y="280" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_TimeExceeded2_di" bpmnElement="Flow_TimeExceeded2">
+        <di:waypoint x="1678" y="240" />
+        <di:waypoint x="1750" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1685" y="225" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EndMessage_di" bpmnElement="Flow_EndMessage">
+        <di:waypoint x="1850" y="240" />
+        <di:waypoint x="1892" y="240" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

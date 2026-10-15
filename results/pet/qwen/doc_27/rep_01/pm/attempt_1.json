@@ -1,0 +1,414 @@
+{
+  "name": "Fault Handling Process",
+  "resources": [
+    {
+      "name": "MPO",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Fault Detector",
+      "capacity": 1,
+      "resource_type": "system"
+    },
+    {
+      "name": "GO",
+      "capacity": 1,
+      "resource_type": "external_party"
+    },
+    {
+      "name": "MSP",
+      "capacity": 1,
+      "resource_type": "external_party"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_fd_report",
+      "name": "Fault Detector Reports Failure",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Failure Report"
+    },
+    {
+      "id": "evt_start_mpo_suspicion",
+      "name": "MPO Has Suspicion of Fault",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_reject",
+      "name": "Failure Rejected",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_msg_send_go_confirm",
+      "name": "Inform GO of Confirmation",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Confirmation Notice"
+    },
+    {
+      "id": "evt_msg_recv_go_confirm",
+      "name": "Receive Confirmation from MPO",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Confirmation Notice"
+    },
+    {
+      "id": "evt_msg_send_msp_confirm",
+      "name": "Inform MSP of Confirmation",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Confirmation Notice"
+    },
+    {
+      "id": "evt_msg_recv_msp_confirm",
+      "name": "Receive Confirmation from MPO",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Confirmation Notice"
+    },
+    {
+      "id": "evt_msg_send_fd_results",
+      "name": "Share Repair Results with FD",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Repair Results"
+    },
+    {
+      "id": "evt_msg_recv_fd_results",
+      "name": "Receive Repair Results",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Repair Results"
+    },
+    {
+      "id": "evt_msg_send_go_resolve",
+      "name": "Inform GO of Resolution",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Resolution Notice"
+    },
+    {
+      "id": "evt_msg_recv_go_resolve",
+      "name": "Receive Resolution from MPO",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Resolution Notice"
+    },
+    {
+      "id": "evt_msg_send_msp_resolve",
+      "name": "Inform MSP of Resolution",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Resolution Notice"
+    },
+    {
+      "id": "evt_msg_recv_msp_resolve",
+      "name": "Receive Resolution from MPO",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Resolution Notice"
+    },
+    {
+      "id": "evt_end_process",
+      "name": "Process Completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_examine_failure",
+      "name": "Examine the failure",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_fix_fault",
+      "name": "Fix the fault at the measuring device",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "MPO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_repair_results"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_merge_start",
+      "name": "Merge Start Triggers",
+      "gateway_type": "inclusive",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "gw_decision_confirmed",
+      "name": "Is Failure Confirmed?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_to_parallel_confirm",
+          "condition": "Confirmed"
+        },
+        {
+          "flow_id": "flow_to_reject_end",
+          "condition": "Rejected"
+        }
+      ]
+    },
+    {
+      "id": "gw_parallel_confirm",
+      "name": "Parallel Informations (Confirm)",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "gw_join_confirm",
+      "name": "Join Confirmations",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "gw_parallel_resolve",
+      "name": "Parallel Informations (Resolve)",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "gw_join_resolve",
+      "name": "Join Resolutions",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_fd_to_merge",
+      "source_id": "evt_start_fd_report",
+      "target_id": "gw_merge_start",
+      "condition_name": null
+    },
+    {
+      "id": "flow_start_mpo_to_merge",
+      "source_id": "evt_start_mpo_suspicion",
+      "target_id": "gw_merge_start",
+      "condition_name": null
+    },
+    {
+      "id": "flow_merge_to_examine",
+      "source_id": "gw_merge_start",
+      "target_id": "task_examine_failure",
+      "condition_name": null
+    },
+    {
+      "id": "flow_examine_to_decision",
+      "source_id": "task_examine_failure",
+      "target_id": "gw_decision_confirmed",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_reject_end",
+      "source_id": "gw_decision_confirmed",
+      "target_id": "evt_end_reject",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_to_parallel_confirm",
+      "source_id": "gw_decision_confirmed",
+      "target_id": "gw_parallel_confirm",
+      "condition_name": "Confirmed"
+    },
+    {
+      "id": "flow_confirm_to_send_go",
+      "source_id": "gw_parallel_confirm",
+      "target_id": "evt_msg_send_go_confirm",
+      "condition_name": null
+    },
+    {
+      "id": "flow_confirm_to_send_msp",
+      "source_id": "gw_parallel_confirm",
+      "target_id": "evt_msg_send_msp_confirm",
+      "condition_name": null
+    },
+    {
+      "id": "flow_fix_to_send_fd",
+      "source_id": "task_fix_fault",
+      "target_id": "evt_msg_send_fd_results",
+      "condition_name": null
+    },
+    {
+      "id": "flow_fix_to_parallel_resolve",
+      "source_id": "task_fix_fault",
+      "target_id": "gw_parallel_resolve",
+      "condition_name": null
+    },
+    {
+      "id": "flow_resolve_to_send_go",
+      "source_id": "gw_parallel_resolve",
+      "target_id": "evt_msg_send_go_resolve",
+      "condition_name": null
+    },
+    {
+      "id": "flow_resolve_to_send_msp",
+      "source_id": "gw_parallel_resolve",
+      "target_id": "evt_msg_send_msp_resolve",
+      "condition_name": null
+    },
+    {
+      "id": "flow_join_confirm_to_fix",
+      "source_id": "gw_join_confirm",
+      "target_id": "task_fix_fault",
+      "condition_name": null
+    },
+    {
+      "id": "flow_join_resolve_to_end",
+      "source_id": "gw_join_resolve",
+      "target_id": "evt_end_process",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_mpo",
+      "name": "MPO",
+      "element_ids": [
+        "evt_start_mpo_suspicion",
+        "gw_merge_start",
+        "task_examine_failure",
+        "gw_decision_confirmed",
+        "evt_end_reject",
+        "gw_parallel_confirm",
+        "evt_msg_send_go_confirm",
+        "evt_msg_send_msp_confirm",
+        "gw_join_confirm",
+        "task_fix_fault",
+        "evt_msg_send_fd_results",
+        "gw_parallel_resolve",
+        "evt_msg_send_go_resolve",
+        "evt_msg_send_msp_resolve",
+        "gw_join_resolve",
+        "evt_end_process"
+      ]
+    },
+    {
+      "id": "pool_fd",
+      "name": "Fault Detector",
+      "element_ids": [
+        "evt_start_fd_report",
+        "evt_msg_recv_fd_results"
+      ]
+    },
+    {
+      "id": "pool_go",
+      "name": "GO",
+      "element_ids": [
+        "evt_msg_recv_go_confirm",
+        "evt_msg_recv_go_resolve"
+      ]
+    },
+    {
+      "id": "pool_msp",
+      "name": "MSP",
+      "element_ids": [
+        "evt_msg_recv_msp_confirm",
+        "evt_msg_recv_msp_resolve"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_fd_to_mpo",
+      "source_id": "evt_start_fd_report",
+      "target_id": "gw_merge_start",
+      "name": "Failure Report"
+    },
+    {
+      "id": "msg_flow_mpo_to_go_confirm",
+      "source_id": "evt_msg_send_go_confirm",
+      "target_id": "evt_msg_recv_go_confirm",
+      "name": "Confirmation Notice"
+    },
+    {
+      "id": "msg_flow_mpo_to_msp_confirm",
+      "source_id": "evt_msg_send_msp_confirm",
+      "target_id": "evt_msg_recv_msp_confirm",
+      "name": "Confirmation Notice"
+    },
+    {
+      "id": "msg_flow_mpo_to_fd_results",
+      "source_id": "evt_msg_send_fd_results",
+      "target_id": "evt_msg_recv_fd_results",
+      "name": "Repair Results"
+    },
+    {
+      "id": "msg_flow_mpo_to_go_resolve",
+      "source_id": "evt_msg_send_go_resolve",
+      "target_id": "evt_msg_recv_go_resolve",
+      "name": "Resolution Notice"
+    },
+    {
+      "id": "msg_flow_mpo_to_msp_resolve",
+      "source_id": "evt_msg_send_msp_resolve",
+      "target_id": "evt_msg_recv_msp_resolve",
+      "name": "Resolution Notice"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_repair_results",
+      "name": "Results of repairs carried out"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

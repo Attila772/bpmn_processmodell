@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://example.com/bpmn/accountdefaulter">
+
+  <bpmn:process id="Process_AccountDefaulter" name="Account Defaulter Management Process" isExecutable="true">
+
+    <bpmn:startEvent id="StartEvent_1" name="Weekday Morning Trigger">
+      <bpmn:outgoing>Flow_Start_SP1</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_Start">
+        <bpmn:timeCycle xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">0 0 7 ? * MON-FRI</bpmn:timeCycle>
+      </bpmn:timerEventDefinition>
+    </bpmn:startEvent>
+
+    <!-- ================= SUBPROCESS 1: MORNING PROCESSING ================= -->
+    <bpmn:subProcess id="SubProcess_1" name="Morning Defaulter Processing">
+      <bpmn:incoming>Flow_Start_SP1</bpmn:incoming>
+      <bpmn:outgoing>Flow_SP1_SP2</bpmn:outgoing>
+
+      <bpmn:startEvent id="StartEvent_SP1" name="Start Morning Processing">
+        <bpmn:outgoing>Flow_SP1_1</bpmn:outgoing>
+      </bpmn:startEvent>
+
+      <bpmn:task id="Task_Backup" name="Backup Database">
+        <bpmn:incoming>Flow_SP1_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_SP1_2</bpmn:outgoing>
+      </bpmn:task>
+
+      <bpmn:exclusiveGateway id="Gateway_1" name="New records in Account Defaulter table?">
+        <bpmn:incoming>Flow_SP1_2</bpmn:incoming>
+        <bpmn:outgoing>Flow_G1_Yes</bpmn:outgoing>
+        <bpmn:outgoing>Flow_G1_No</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:endEvent id="EndEvent_SP1_T1" name="New Records Already Exist - No Action">
+        <bpmn:incoming>Flow_G1_Yes</bpmn:incoming>
+        <bpmn:terminateEventDefinition id="Term_1"/>
+      </bpmn:endEvent>
+
+      <bpmn:task id="Task_CheckCRM1" name="Check CRM System for New Returns Filed">
+        <bpmn:incoming>Flow_G1_No</bpmn:incoming>
+        <bpmn:outgoing>Flow_SP1_3</bpmn:outgoing>
+      </bpmn:task>
+
+      <bpmn:exclusiveGateway id="Gateway_2" name="New returns filed?">
+        <bpmn:incoming>Flow_SP1_3</bpmn:incoming>
+        <bpmn:outgoing>Flow_G2_No</bpmn:outgoing>
+        <bpmn:outgoing>Flow_G2_Yes</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:endEvent id="EndEvent_SP1_T2" name="No New Returns - Process Ends">
+        <bpmn:incoming>Flow_G2_No</bpmn:incoming>
+        <bpmn:terminateEventDefinition id="Term_2"/>
+      </bpmn:endEvent>
+
+      <bpmn:task id="Task_Register" name="Register All Defaulting Accounts and Customers">
+        <bpmn:incoming>Flow_G2_Yes</bpmn:incoming>
+        <bpmn:outgoing>Flow_SP1_4</bpmn:outgoing>
+      </bpmn:task>
+
+      <bpmn:exclusiveGateway id="Gateway_3" name="Defaulting client codes previously advised?">
+        <bpmn:incoming>Flow_SP1_4</bpmn:incoming>
+        <bpmn:outgoing>Flow_G3_Yes</bpmn:outgoing>
+        <bpmn:outgoing>Flow_G3_No</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:endEvent id="EndEvent_SP1_T3" name="Already Advised - Process Ends">
+        <bpmn:incoming>Flow_G3_Yes</bpmn:incoming>
+        <bpmn:terminateEventDefinition id="Term_3"/>
+      </bpmn:endEvent>
+
+      <bpmn:task id="Task_ProduceTable" name="Produce Defaulters Table and Send to Account Management">
+        <bpmn:incoming>Flow_G3_No</bpmn:incoming>
+        <bpmn:outgoing>Flow_SP1_End</bpmn:outgoing>
+      </bpmn:task>
+
+      <bpmn:endEvent id="EndEvent_SP1_Normal" name="Defaulters Report Produced">
+        <bpmn:incoming>Flow_SP1_End</bpmn:incoming>
+      </bpmn:endEvent>
+
+      <bpmn:sequenceFlow id="Flow_SP1_1" sourceRef="StartEvent_SP1" targetRef="Task_Backup"/>
+      <bpmn:sequenceFlow id="Flow_SP1_2" sourceRef="Task_Backup" targetRef="Gateway_1"/>
+      <bpmn:sequenceFlow id="Flow_G1_Yes" name="Yes" sourceRef="Gateway_1" targetRef="EndEvent_SP1_T1"/>
+      <bpmn:sequenceFlow id="Flow_G1_No" name="No" sourceRef="Gateway_1" targetRef="Task_CheckCRM1"/>
+      <bpmn:sequenceFlow id="Flow_SP1_3" sourceRef="Task_CheckCRM1" targetRef="Gateway_2"/>
+      <bpmn:sequenceFlow id="Flow_G2_No" name="No" sourceRef="Gateway_2" targetRef="EndEvent_SP1_T2"/>
+      <bpmn:sequenceFlow id="Flow_G2_Yes" name="Yes" sourceRef="Gateway_2" targetRef="Task_Register"/>
+      <bpmn:sequenceFlow id="Flow_SP1_4" sourceRef="Task_Register" targetRef="Gateway_3"/>
+      <bpmn:sequenceFlow id="Flow_G3_Yes" name="Yes" sourceRef="Gateway_3" targetRef="EndEvent_SP1_T3"/>
+      <bpmn:sequenceFlow id="Flow_G3_No" name="No" sourceRef="Gateway_3" targetRef="Task_ProduceTable"/>
+      <bpmn:sequenceFlow id="Flow_SP1_End" sourceRef="Task_ProduceTable" targetRef="EndEvent_SP1_Normal"/>
+
+    </bpmn:subProcess>
+
+    <bpmn:boundaryEvent id="BoundaryTimer_1" name="2:30 PM Deadline" attachedToRef="SubProcess_1" cancelActivity="true">
+      <bpmn:outgoing>Flow_Boundary1_Alert</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_1">
+        <bpmn:timeDate xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">14:30:00</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:task id="Task_AlertSupervisor" name="Send Alert to Supervisor">
+      <bpmn:incoming>Flow_Boundary1_Alert</bpmn:incoming>
+      <bpmn:outgoing>Flow_Alert_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_AlertSent" name="Process Terminated - Morning Deadline Missed">
+      <bpmn:incoming>Flow_Alert_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ================= SUBPROCESS 2: AFTERNOON RECONCILIATION ================= -->
+    <bpmn:subProcess id="SubProcess_2" name="Afternoon Reconciliation Check">
+      <bpmn:incoming>Flow_SP1_SP2</bpmn:incoming>
+      <bpmn:outgoing>Flow_SP2_End</bpmn:outgoing>
+
+      <bpmn:startEvent id="StartEvent_SP2" name="Start Afternoon Check">
+        <bpmn:outgoing>Flow_SP2_1</bpmn:outgoing>
+      </bpmn:startEvent>
+
+      <bpmn:task id="Task_CheckCRM2" name="Check CRM System for New Returns Filed">
+        <bpmn:incoming>Flow_SP2_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_SP2_2</bpmn:outgoing>
+      </bpmn:task>
+
+      <bpmn:exclusiveGateway id="Gateway_4" name="New returns filed?">
+        <bpmn:incoming>Flow_SP2_2</bpmn:incoming>
+        <bpmn:outgoing>Flow_G4_No</bpmn:outgoing>
+        <bpmn:outgoing>Flow_G4_Yes</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:endEvent id="EndEvent_SP2_T1" name="No New Returns - Process Complete">
+        <bpmn:incoming>Flow_G4_No</bpmn:incoming>
+        <bpmn:terminateEventDefinition id="Term_4"/>
+      </bpmn:endEvent>
+
+      <bpmn:task id="Task_Reconcile" name="Reconcile with Existing Account Defaulters Table">
+        <bpmn:incoming>Flow_G4_Yes</bpmn:incoming>
+        <bpmn:outgoing>Flow_SP2_End_Internal</bpmn:outgoing>
+      </bpmn:task>
+
+      <bpmn:endEvent id="EndEvent_SP2_Normal" name="Reconciliation Complete">
+        <bpmn:incoming>Flow_SP2_End_Internal</bpmn:incoming>
+      </bpmn:endEvent>
+
+      <bpmn:sequenceFlow id="Flow_SP2_1" sourceRef="StartEvent_SP2" targetRef="Task_CheckCRM2"/>
+      <bpmn:sequenceFlow id="Flow_SP2_2" sourceRef="Task_CheckCRM2" targetRef="Gateway_4"/>
+      <bpmn:sequenceFlow id="Flow_G4_No" name="No" sourceRef="Gateway_4" targetRef="EndEvent_SP2_T1"/>
+      <bpmn:sequenceFlow id="Flow_G4_Yes" name="Yes" sourceRef="Gateway_4" targetRef="Task_Reconcile"/>
+      <bpmn:sequenceFlow id="Flow_SP2_End_Internal" sourceRef="Task_Reconcile" targetRef="EndEvent_SP2_Normal"/>
+
+    </bpmn:subProcess>
+
+    <bpmn:boundaryEvent id="BoundaryTimer_2" name="4:00 PM Deadline" attachedToRef="SubProcess_2" cancelActivity="true">
+      <bpmn:outgoing>Flow_Boundary2_Message</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_2">
+        <bpmn:timeDate xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">16:00:00</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:task id="Task_MessageSupervisor" name="Send Message to Supervisor">
+      <bpmn:incoming>Flow_Boundary2_Message</bpmn:incoming>
+      <bpmn:outgoing>Flow_Message_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_MessageSent" name="Process Terminated - Afternoon Deadline Missed">
+      <bpmn:incoming>Flow_Message_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_Final" name="Process Complete">
+      <bpmn:incoming>Flow_SP2_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="

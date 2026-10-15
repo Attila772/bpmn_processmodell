@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="MeetingScheduleProcess" name="Annual Meeting Schedule Process" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_November" name="November of each year">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_DraftSchedule" name="Draft schedule of meetings for next calendar year and add draft dates to all calendars">
+      <bpmn:extensionElements>
+        <bpmn:dataInputAssociation>
+          <bpmn:sourceRef>DataStore_Calendars</bpmn:sourceRef>
+          <bpmn:targetRef>DataObject_DraftDates</bpmn:targetRef>
+        </bpmn:dataInputAssociation>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CheckDates" name="Check dates and suggest modifications">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_RecheckConflicts" name="Recheck all dates and look for potential conflicts">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sendTask id="Task_SendEmail" name="Send final schedule of meeting dates to all independent Committee Members by email">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:receiveTask id="Task_AdviseConflicts" name="Check diaries and advise Coordination Unit of any conflicts">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:endEvent id="EndEvent_Complete" name="Process Complete">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_November" targetRef="Task_DraftSchedule" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_DraftSchedule" targetRef="Task_CheckDates" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CheckDates" targetRef="Task_RecheckConflicts" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_RecheckConflicts" targetRef="Task_SendEmail" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_SendEmail" targetRef="Task_AdviseConflicts" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_AdviseConflicts" targetRef="EndEvent_Complete" />
+    
+    <!-- Pools and Lanes -->
+    <bpmn:participant id="Pool_TownPlanningAuthority" name="Town Planning Authority" processRef="MeetingScheduleProcess">
+      <bpmn:laneSet id="LaneSet_1">
+        <bpmn:lane id="Lane_CoordinationUnit" name="Coordination Unit">
+          <bpmn:flowNodeRef>StartEvent_November</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>Task_DraftSchedule</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>Task_RecheckConflicts</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>Task_SendEmail</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>EndEvent_Complete</bpmn:flowNodeRef>
+        </bpmn:lane>
+        <bpmn:lane id="Lane_SupportOfficer" name="Support Officer">
+          <bpmn:flowNodeRef>Task_CheckDates</bpmn:flowNodeRef>
+        </bpmn:lane>
+      </bpmn:laneSet>
+    </bpmn:participant>
+    
+    <bpmn:participant id="Pool_CommitteeMembers" name="Independent Committee Members" processRef="CommitteeMemberProcess">
+    </bpmn:participant>
+    
+    <!-- Message Flow -->
+    <bpmn:messageFlow id="MessageFlow_Email" sourceRef="Task_SendEmail" targetRef="Task_AdviseConflicts" name="Email with Final Schedule" />
+  </bpmn:process>
+  
+  <bpmn:process id="CommitteeMemberProcess" name="Committee Member Response Process" isExecutable="false">
+    <bpmn:receiveTask id="Task_AdviseConflicts" name="Check diaries and advise Coordination Unit of any conflicts">
+      <bpmn:outgoing>Flow_CM_1</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:endEvent id="EndEvent_CM" name="Response Sent">
+      <bpmn:incoming>Flow_CM_1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_CM_1" sourceRef="Task_AdviseConflicts" targetRef="EndEvent_CM" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Definitions_1">
+      <bpmndi:BPMNShape id="Pool_TownPlanningAuthority_di" bpmnElement="Pool_TownPlanningAuthority" isHorizontal="true">
+        <dc:Bounds x="100" y="100" width="1100" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_CoordinationUnit_di" bpmnElement="Lane_CoordinationUnit" isHorizontal="true">
+        <dc:Bounds x="190" y="100" width="1010" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_SupportOfficer_di" bpmnElement="Lane_SupportOfficer" isHorizontal="true">
+        <dc:Bounds x="190" y="350" width="1010" height="150" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="StartEvent_November_di" bpmnElement="StartEvent_November">
+        <dc:Bounds x="220" y="170" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DraftSchedule_di" bpmnElement="Task_DraftSchedule">
+        <dc:Bounds x="300" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckDates_di" bpmnElement="Task_CheckDates">
+        <dc:Bounds x="450" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RecheckConflicts_di" bpmnElement="Task_RecheckConflicts">
+        <dc:Bounds x="600" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendEmail_di" bpmnElement="Task_SendEmail">
+        <dc:Bounds x="750" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Complete_di" bpmnElement="EndEvent_Complete">
+        <dc:Bounds x="900" y="170" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="256" y="188" />
+        <di:waypoint x="300" y="188" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="400" y="190" />
+        <di:waypoint x="500" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="550" y="420" />
+        <di:waypoint x="650" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="700" y="190" />
+        <di:waypoint x="750" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="850" y="190" />
+        <di:waypoint x="900" y="188" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNShape id="Pool_CommitteeMembers_di" bpmnElement="Pool_CommitteeMembers" isHorizontal="true">
+        <dc:Bounds x="100" y="550" width="1100" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdviseConflicts_di" bpmnElement="Task_AdviseConflicts">
+        <dc:Bounds x="750" y="580" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_CM_di" bpmnElement="EndEvent_CM">
+        <dc:Bounds x="900" y="598" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_CM_1_di" bpmnElement="Flow_CM_1">
+        <di:waypoint x="850" y="620" />
+        <di:waypoint x="900" y="616" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="MessageFlow_Email_di" bpmnElement="MessageFlow_Email">
+        <di:waypoint x="800" y="230" />
+        <di:waypoint x="800" y="580" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

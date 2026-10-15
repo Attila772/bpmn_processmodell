@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:sim="http://www.example.org/simulation"
+                   id="Definitions_1"
+                   targetNamespace="http://www.example.org/bpmn">
+
+  <bpmn:process id="Process_SyntheticProcess6" name="Synthetic Process 6" isExecutable="true">
+
+    <bpmn:extensionElements>
+      <sim:processSimulationInfo currency="USD">
+        <sim:arrivalRateDistribution type="exponential" mean="17.0" timeUnit="minutes"/>
+        <sim:simulationDuration value="8" timeUnit="hours"/>
+      </sim:processSimulationInfo>
+    </bpmn:extensionElements>
+
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Worker1" name="Worker 1">
+        <bpmn:flowNodeRef>Task_AssessForm3</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Worker2" name="Worker 2">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ProcessCase0</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Split</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AssessClaim1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RegisterCase2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ScheduleForm4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_1</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_1" name="New Case Arrival">
+      <bpmn:extensionElements>
+        <sim:interArrivalTime distribution="exponential" mean="17.0" timeUnit="minutes"/>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_Start_ProcessCase0</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_ProcessCase0" name="Process case 0">
+      <bpmn:extensionElements>
+        <sim:resource name="Worker 2"/>
+        <sim:durationDistribution type="uniform" min="8.0" max="14.0" timeUnit="minutes"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Start_ProcessCase0</bpmn:incoming>
+      <bpmn:outgoing>Flow_ProcessCase0_Split</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Split" name="Decision">
+      <bpmn:incoming>Flow_ProcessCase0_Split</bpmn:incoming>
+      <bpmn:outgoing>Flow_Split_AssessClaim1</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Split_RegisterCase2</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_AssessClaim1" name="Assess claim 1">
+      <bpmn:extensionElements>
+        <sim:resource name="Worker 2"/>
+        <sim:durationDistribution type="fixed" value="2.0" timeUnit="minutes"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Split_AssessClaim1</bpmn:incoming>
+      <bpmn:outgoing>Flow_AssessClaim1_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_RegisterCase2" name="Register case 2">
+      <bpmn:extensionElements>
+        <sim:resource name="Worker 2"/>
+        <sim:durationDistribution type="normal" mean="22.0" std="4.0" timeUnit="minutes"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Split_RegisterCase2</bpmn:incoming>
+      <bpmn:outgoing>Flow_RegisterCase2_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Join" name="Merge">
+      <bpmn:incoming>Flow_AssessClaim1_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_RegisterCase2_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_Join_AssessForm3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_AssessForm3" name="Assess form 3">
+      <bpmn:extensionElements>
+        <sim:resource name="Worker 1"/>
+        <sim:durationDistribution type="exponential" mean="18.0" timeUnit="minutes"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Join_AssessForm3</bpmn:incoming>
+      <bpmn:outgoing>Flow_AssessForm3_ScheduleForm4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_ScheduleForm4" name="Schedule form 4">
+      <bpmn:extensionElements>
+        <sim:resource name="Worker 2"/>
+        <sim:durationDistribution type="fixed" value="6.0" timeUnit="minutes"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_AssessForm3_ScheduleForm4</bpmn:incoming>
+      <bpmn:outgoing>Flow_ScheduleForm4_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_1" name="Process End">
+      <bpmn:incoming>Flow_ScheduleForm4_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_Start_ProcessCase0" sourceRef="StartEvent_1" targetRef="Task_ProcessCase0"/>
+    <bpmn:sequenceFlow id="Flow_ProcessCase0_Split" sourceRef="Task_ProcessCase0" targetRef="Gateway_Split"/>
+
+    <bpmn:sequenceFlow id="Flow_Split_AssessClaim1" name="76%" sourceRef="Gateway_Split" targetRef="Task_AssessClaim1">
+      <bpmn:extensionElements>
+        <sim:probability value="0.76"/>
+      </bpmn:extensionElements>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Split_RegisterCase2" name="24%" sourceRef="Gateway_Split" targetRef="Task_RegisterCase2">
+      <bpmn:extensionElements>
+        <sim:probability value="0.24"/>
+      </bpmn:extensionElements>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_AssessClaim1_Join" sourceRef="Task_AssessClaim1" targetRef="Gateway_Join"/>
+    <bpmn:sequenceFlow id="Flow_RegisterCase2_Join" sourceRef="Task_RegisterCase2" targetRef="Gateway_Join"/>
+    <bpmn:sequenceFlow id="Flow_Join_AssessForm3" sourceRef="Gateway_Join" targetRef="Task_AssessForm3"/>
+    <bpmn:sequenceFlow id="Flow_AssessForm3_ScheduleForm4" sourceRef="Task_AssessForm3" targetRef="Task_ScheduleForm4"/>
+    <bpmn:sequenceFlow id="Flow_ScheduleForm4_End" sourceRef="Task_ScheduleForm4" targetRef="EndEvent_1"/>
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_SyntheticProcess6">
+
+      <bpmndi:BPMNShape id="Shape_StartEvent_1" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="80" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ProcessCase0" bpmnElement="Task_ProcessCase0">
+        <omgdc:Bounds x="160" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_Split" bpmnElement="Gateway_Split" isMarkerVisible="true">
+        <omgdc:Bounds x="310" y="195" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_AssessClaim1" bpmnElement="Task_AssessClaim1">
+        <omgdc:Bounds x="410" y="100" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_RegisterCase2" bpmnElement="Task_RegisterCase2">
+        <omgdc:Bounds x="410" y="260" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_Join" bpmnElement="Gateway_Join" isMarkerVisible="true">
+        <omgdc:Bounds x="560" y="195" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_AssessForm3" bpmnElement="Task_AssessForm3">
+        <omgdc:Bounds x="660" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ScheduleForm4" bpmnElement="Task_ScheduleForm4">
+        <omgdc:Bounds x="810" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_1" bpmnElement="EndEvent_1">
+        <omgdc:Bounds x="960" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_Start_ProcessCase0" bpmnElement="Flow_Start_ProcessCase0">
+        <omgdi:waypoint x="116" y="218"/>
+        <omgdi:waypoint x="160" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ProcessCase0_Split" bpmnElement="Flow_ProcessCase0_Split">
+        <omgdi:waypoint x="260" y="218"/>
+        <omgdi:waypoint x="310" y="220"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Split_AssessClaim1" bpmnElement="Flow_Split_AssessClaim1">
+        <omgdi:waypoint x="335" y="195"/>
+        <omgdi:waypoint x="335" y="140"/>
+        <omgdi:waypoint x="410" y="140"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Split_RegisterCase2" bpmnElement="Flow_Split_RegisterCase2">
+        <omgdi:waypoint x="335" y="245"/>
+        <omgdi:waypoint x="335" y="300"/>
+        <omgdi:waypoint x="410" y="300"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_AssessClaim1_Join" bpmnElement="Flow_AssessClaim1_Join">
+        <omgdi:waypoint x="510" y="140"/>
+        <omgdi:waypoint x="585" y="140"/>
+        <omgdi:waypoint x="585" y="195"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_RegisterCase2_Join" bpmnElement="Flow_RegisterCase2_Join">
+        <omgdi:waypoint x="510" y="300"/>
+        <omgdi:waypoint x="585" y="300"/>
+        <omgdi:waypoint x="585" y="245"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Join_AssessForm3" bpmnElement="Flow_Join_AssessForm3">
+        <omgdi:waypoint x="610" y="220"/>
+        <omgdi:waypoint x="660" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_AssessForm3_ScheduleForm4" bpmnElement="Flow_AssessForm3_ScheduleForm4">
+        <omgdi:waypoint x="760" y="218"/>
+        <omgdi:waypoint x="810" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_ScheduleForm4_End" bpmnElement="Flow_ScheduleForm4_End">
+        <omgdi:waypoint x="910" y="218"/>
+        <omgdi:waypoint x="960" y="218"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

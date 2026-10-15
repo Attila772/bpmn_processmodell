@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="data_expense_report" name="Expense Report" dataObjectRef="data_expense_report_do" />
+    <bpmn:dataObject id="data_expense_report_do" />
+    <bpmn:dataObjectReference id="data_receipts" name="Receipts" dataObjectRef="data_receipts_do" />
+    <bpmn:dataObject id="data_receipts_do" />
+    <bpmn:startEvent id="event_start" name="Expense Report Submitted">
+      <bpmn:outgoing>flow_start_to_submit</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end" name="Reimbursement Process Ended">
+      <bpmn:incoming>flow_payment_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_submit_report" name="Submit Expense Report">
+      <bpmn:incoming>flow_start_to_submit</bpmn:incoming>
+      <bpmn:outgoing>flow_submit_to_review</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_submit_report_doa0">
+        <bpmn:targetRef>data_expense_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="task_submit_report_doa1">
+        <bpmn:targetRef>data_receipts</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_review_report" name="Review Expense Report">
+      <bpmn:incoming>flow_submit_to_review</bpmn:incoming>
+      <bpmn:incoming>flow_edit_to_review</bpmn:incoming>
+      <bpmn:outgoing>flow_review_to_gw_sup</bpmn:outgoing>
+      <bpmn:property id="task_review_report_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_review_report_dia0">
+        <bpmn:sourceRef>data_expense_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_report_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_edit_report" name="Edit Expense Report">
+      <bpmn:incoming>flow_sup_rejected</bpmn:incoming>
+      <bpmn:incoming>flow_tre_rejected</bpmn:incoming>
+      <bpmn:outgoing>flow_edit_to_review</bpmn:outgoing>
+      <bpmn:property id="task_edit_report_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_edit_report_dia0">
+        <bpmn:sourceRef>data_expense_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_edit_report_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_edit_report_doa0">
+        <bpmn:targetRef>data_expense_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_check_receipts" name="Check Receipts and Match Items">
+      <bpmn:incoming>flow_sup_approved</bpmn:incoming>
+      <bpmn:outgoing>flow_check_to_gw_tre</bpmn:outgoing>
+      <bpmn:property id="task_check_receipts_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_receipts_dia0">
+        <bpmn:sourceRef>data_expense_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_receipts_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_check_receipts_dia1">
+        <bpmn:sourceRef>data_receipts</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_receipts_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_process_payment" name="Process Payment automatically">
+      <bpmn:incoming>flow_tre_accepted</bpmn:incoming>
+      <bpmn:outgoing>flow_payment_to_end</bpmn:outgoing>
+      <bpmn:property id="task_process_payment_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_process_payment_dia0">
+        <bpmn:sourceRef>data_expense_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_process_payment_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_supervisor_approval" name="Supervisor Approval?" isMarkerVisible="true">
+      <bpmn:incoming>flow_review_to_gw_sup</bpmn:incoming>
+      <bpmn:outgoing>flow_sup_rejected</bpmn:outgoing>
+      <bpmn:outgoing>flow_sup_approved</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_treasurer_check" name="Receipts Valid?" isMarkerVisible="true">
+      <bpmn:incoming>flow_check_to_gw_tre</bpmn:incoming>
+      <bpmn:outgoing>flow_tre_rejected</bpmn:outgoing>
+      <bpmn:outgoing>flow_tre_accepted</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_to_submit" sourceRef="event_start" targetRef="task_submit_report" />
+    <bpmn:sequenceFlow id="flow_submit_to_review" sourceRef="task_submit_report" targetRef="task_review_report" />
+    <bpmn:sequenceFlow id="flow_review_to_gw_sup" sourceRef="task_review_report" targetRef="gw_supervisor_approval" />
+    <bpmn:sequenceFlow id="flow_sup_rejected" sourceRef="gw_supervisor_approval" targetRef="task_edit_report" name="Rejected" />
+    <bpmn:sequenceFlow id="flow_edit_to_review" sourceRef="task_edit_report" targetRef="task_review_report" />
+    <bpmn:sequenceFlow id="flow_sup_approved" sourceRef="gw_supervisor_approval" targetRef="task_check_receipts" name="Approved" />
+    <bpmn:sequenceFlow id="flow_check_to_gw_tre" sourceRef="task_check_receipts" targetRef="gw_treasurer_check" />
+    <bpmn:sequenceFlow id="flow_tre_rejected" sourceRef="gw_treasurer_check" targetRef="task_edit_report" name="Receipts missing or mismatch" />
+    <bpmn:sequenceFlow id="flow_tre_accepted" sourceRef="gw_treasurer_check" targetRef="task_process_payment" name="Receipts match and present" />
+    <bpmn:sequenceFlow id="flow_payment_to_end" sourceRef="task_process_payment" targetRef="event_end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="event_end_di" bpmnElement="event_end">
+        <dc:Bounds x="1490" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_di" bpmnElement="event_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_supervisor_approval_di" bpmnElement="gw_supervisor_approval">
+        <dc:Bounds x="730" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_treasurer_check_di" bpmnElement="gw_treasurer_check">
+        <dc:Bounds x="1110" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_receipts_di" bpmnElement="task_check_receipts">
+        <dc:Bounds x="920" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_edit_report_di" bpmnElement="task_edit_report">
+        <dc:Bounds x="1300" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_process_payment_di" bpmnElement="task_process_payment">
+        <dc:Bounds x="1300" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_report_di" bpmnElement="task_review_report">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_submit_report_di" bpmnElement="task_submit_report">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_expense_report_di" bpmnElement="data_expense_report">
+        <dc:Bounds x="1016" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_receipts_di" bpmnElement="data_receipts">
+        <dc:Bounds x="655" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_submit_di" bpmnElement="flow_start_to_submit">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_submit_to_review_di" bpmnElement="flow_submit_to_review">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_review_to_gw_sup_di" bpmnElement="flow_review_to_gw_sup">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sup_rejected_di" bpmnElement="flow_sup_rejected">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_edit_to_review_di" bpmnElement="flow_edit_to_review">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sup_approved_di" bpmnElement="flow_sup_approved">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_check_to_gw_tre_di" bpmnElement="flow_check_to_gw_tre">
+        <di:waypoint x="970" y="140" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_tre_rejected_di" bpmnElement="flow_tre_rejected">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_tre_accepted_di" bpmnElement="flow_tre_accepted">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_payment_to_end_di" bpmnElement="flow_payment_to_end">
+        <di:waypoint x="1350" y="265" />
+        <di:waypoint x="1508" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_report_doa0_di" bpmnElement="task_submit_report_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="1034" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_report_doa1_di" bpmnElement="task_submit_report_doa1">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="673" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_report_dia0_di" bpmnElement="task_review_report_dia0">
+        <di:waypoint x="1034" y="390" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_edit_report_dia0_di" bpmnElement="task_edit_report_dia0">
+        <di:waypoint x="1034" y="390" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_edit_report_doa0_di" bpmnElement="task_edit_report_doa0">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1034" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_receipts_dia0_di" bpmnElement="task_check_receipts_dia0">
+        <di:waypoint x="1034" y="390" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_receipts_dia1_di" bpmnElement="task_check_receipts_dia1">
+        <di:waypoint x="673" y="390" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_process_payment_dia0_di" bpmnElement="task_process_payment_dia0">
+        <di:waypoint x="1034" y="390" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

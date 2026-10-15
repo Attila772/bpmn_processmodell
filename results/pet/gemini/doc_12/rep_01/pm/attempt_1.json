@@ -1,0 +1,229 @@
+{
+  "name": "Order Processing",
+  "resources": [
+    {
+      "name": "Assembler AG",
+      "capacity": 1,
+      "resource_type": "external_party"
+    },
+    {
+      "name": "Supplier",
+      "capacity": 1,
+      "resource_type": "external_party"
+    }
+  ],
+  "events": [
+    {
+      "id": "event_start_month",
+      "name": "First of the month",
+      "event_position": "start",
+      "trigger_type": "timer",
+      "message_name": null
+    },
+    {
+      "id": "event_send_order",
+      "name": "Order sent",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Product Parts Order"
+    },
+    {
+      "id": "event_receive_order",
+      "name": "Order received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Product Parts Order"
+    },
+    {
+      "id": "event_send_invoice",
+      "name": "Invoice sent",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Invoice"
+    },
+    {
+      "id": "event_receive_invoice",
+      "name": "Invoice received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Invoice"
+    },
+    {
+      "id": "event_end_assembler",
+      "name": "Process finished",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_place_order",
+      "name": "Place order for product parts",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Assembler AG",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_order"
+      ]
+    },
+    {
+      "id": "task_process_order",
+      "name": "Process the order",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Supplier",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_order"
+      ],
+      "output_data_ids": [
+        "data_invoice"
+      ]
+    },
+    {
+      "id": "task_receive_invoice",
+      "name": "Receive the invoice",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Assembler AG",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_invoice"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "event_start_month",
+      "target_id": "task_place_order",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_place_order",
+      "target_id": "event_send_order",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "event_receive_order",
+      "target_id": "task_process_order",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_process_order",
+      "target_id": "event_send_invoice",
+      "condition_name": null
+    },
+    {
+      "id": "flow_5",
+      "source_id": "event_receive_invoice",
+      "target_id": "task_receive_invoice",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "task_receive_invoice",
+      "target_id": "event_end_assembler",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_assembler",
+      "name": "Assembler AG",
+      "element_ids": [
+        "event_start_month",
+        "task_place_order",
+        "event_send_order",
+        "event_receive_invoice",
+        "task_receive_invoice",
+        "event_end_assembler"
+      ]
+    },
+    {
+      "id": "pool_supplier",
+      "name": "Supplier",
+      "element_ids": [
+        "event_receive_order",
+        "task_process_order",
+        "event_send_invoice"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_order",
+      "source_id": "event_send_order",
+      "target_id": "event_receive_order",
+      "name": "Product Parts Order"
+    },
+    {
+      "id": "msg_flow_invoice",
+      "source_id": "event_send_invoice",
+      "target_id": "event_receive_invoice",
+      "name": "Invoice"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_order",
+      "name": "Order"
+    },
+    {
+      "id": "data_invoice",
+      "name": "Invoice"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

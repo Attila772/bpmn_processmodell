@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mpon_part" name="MPON" processRef="pool_mpon_proc" />
+    <bpmn:participant id="pool_mpoa_part" name="MPOO" processRef="pool_mpoa_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_msp_part" name="MSP" processRef="pool_msp_proc" />
+    <bpmn:messageFlow id="msg_1" sourceRef="evt_end_mpon_notify" targetRef="evt_start_mpoa_receive" name="Equipment Change Notification" />
+    <bpmn:messageFlow id="msg_2" sourceRef="evt_end_mpoa_decision" targetRef="evt_start_mpon_receive_decision" name="Self-Dismounting Decision" />
+    <bpmn:messageFlow id="msg_3" sourceRef="evt_end_mpon_dismount" targetRef="evt_start_mpon_mount" name="Dismount Completion &amp; Final Reading Data" />
+    <bpmn:messageFlow id="msg_4" sourceRef="evt_end_mpon_reading" targetRef="evt_start_go_receive_readings" name="Final Reading Values" />
+    <bpmn:messageFlow id="msg_5" sourceRef="evt_end_mpon_device_info" targetRef="evt_start_go_receive_info" name="Device Change &amp; Master Data" />
+    <bpmn:messageFlow id="msg_6" sourceRef="evt_end_go_notify_msp" targetRef="evt_start_msp_receive" name="Complete Change Record" />
+    <bpmn:messageFlow id="msg_5_self_dismount" sourceRef="gw_dismount_decision" targetRef="task_mpon_or_mpoa_final_reading" name="Self-dismounting announced" />
+    <bpmn:messageFlow id="msg_6_no_self_dismount" sourceRef="gw_dismount_decision" targetRef="task_mpon_or_mpoa_final_reading" name="No self-dismounting notified" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mpon_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_change_intention" name="Equipment Change Intention" dataObjectRef="data_change_intention_do" />
+    <bpmn:dataObject id="data_change_intention_do" />
+    <bpmn:dataObjectReference id="data_dismount_decision_p1" name="Self-Dismounting Decision" dataObjectRef="data_dismount_decision_p1_do" />
+    <bpmn:dataObject id="data_dismount_decision_p1_do" />
+    <bpmn:dataObjectReference id="data_final_reading" name="Final Reading Value" dataObjectRef="data_final_reading_do" />
+    <bpmn:dataObject id="data_final_reading_do" />
+    <bpmn:dataObjectReference id="data_installation_reading" name="Installation Meter Count" dataObjectRef="data_installation_reading_do" />
+    <bpmn:dataObject id="data_installation_reading_do" />
+    <bpmn:dataObjectReference id="data_reading_package" name="Final Reading Package" dataObjectRef="data_reading_package_do" />
+    <bpmn:dataObject id="data_reading_package_do" />
+    <bpmn:dataObjectReference id="data_device_master_info" name="Device Changes and Master Data" dataObjectRef="data_device_master_info_do" />
+    <bpmn:dataObject id="data_device_master_info_do" />
+    <bpmn:startEvent id="evt_start_mpon" name="Start: Equipment Change Intention">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mpon_notify" name="End: Notify MPOO">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_mpon_notify_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_mpon_receive_decision" name="Start: Receive Decision">
+      <bpmn:outgoing>flow_18</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_mpon_receive_decision_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mpon_dismount" name="End: Dismount Old Equipment">
+      <bpmn:incoming>flow_8</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_mpon_dismount_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_mpon_mount" name="Start: Mount New Device">
+      <bpmn:outgoing>flow_9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_mpon_mount_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mpon_reading" name="End: Send Readings to GO">
+      <bpmn:incoming>flow_12</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_mpon_reading_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_end_mpon_device_info" name="End: Send Device Info to GO">
+      <bpmn:incoming>flow_14</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_mpon_device_info_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_mpon_notify_intent" name="Notify MPOO about equipment change intentions">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_mpon_notify_intent_doa0">
+        <bpmn:targetRef>data_change_intention</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_mpon_or_mpoa_final_reading" name="Perform final reading">
+      <bpmn:incoming>flow_18</bpmn:incoming>
+      <bpmn:outgoing>flow_7</bpmn:outgoing>
+      <bpmn:property id="task_mpon_or_mpoa_final_reading_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mpon_or_mpoa_final_reading_dia0">
+        <bpmn:sourceRef>data_dismount_decision_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_mpon_or_mpoa_final_reading_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_mpon_or_mpoa_final_reading_doa0">
+        <bpmn:targetRef>data_final_reading</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_mpon_or_mpoa_dismount_old" name="Dismount old equipment">
+      <bpmn:incoming>flow_7</bpmn:incoming>
+      <bpmn:outgoing>flow_8</bpmn:outgoing>
+      <bpmn:property id="task_mpon_or_mpoa_dismount_old_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mpon_or_mpoa_dismount_old_dia0">
+        <bpmn:sourceRef>data_final_reading</bpmn:sourceRef>
+        <bpmn:targetRef>task_mpon_or_mpoa_dismount_old_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_mpon_mount_new" name="Mount new device">
+      <bpmn:incoming>flow_9</bpmn:incoming>
+      <bpmn:outgoing>flow_10</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_mpon_read_meter" name="Read meter count from installed meter">
+      <bpmn:incoming>flow_10</bpmn:incoming>
+      <bpmn:outgoing>flow_11</bpmn:outgoing>
+      <bpmn:outgoing>flow_13</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_mpon_read_meter_doa0">
+        <bpmn:targetRef>data_installation_reading</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_mpon_send_readings_go" name="Send final reading values to GO">
+      <bpmn:incoming>flow_11</bpmn:incoming>
+      <bpmn:outgoing>flow_12</bpmn:outgoing>
+      <bpmn:property id="task_mpon_send_readings_go_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mpon_send_readings_go_dia0">
+        <bpmn:sourceRef>data_final_reading</bpmn:sourceRef>
+        <bpmn:targetRef>task_mpon_send_readings_go_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_mpon_send_readings_go_dia1">
+        <bpmn:sourceRef>data_installation_reading</bpmn:sourceRef>
+        <bpmn:targetRef>task_mpon_send_readings_go_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_mpon_send_readings_go_doa0">
+        <bpmn:targetRef>data_reading_package</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_mpon_send_device_info_go" name="Tell GO about device changes, master data, and installation meter count">
+      <bpmn:incoming>flow_13</bpmn:incoming>
+      <bpmn:outgoing>flow_14</bpmn:outgoing>
+      <bpmn:property id="task_mpon_send_device_info_go_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mpon_send_device_info_go_dia0">
+        <bpmn:sourceRef>data_installation_reading</bpmn:sourceRef>
+        <bpmn:targetRef>task_mpon_send_device_info_go_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_mpon_send_device_info_go_doa0">
+        <bpmn:targetRef>data_device_master_info</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="evt_start_mpon" targetRef="task_mpon_notify_intent" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_mpon_notify_intent" targetRef="evt_end_mpon_notify" />
+    <bpmn:sequenceFlow id="flow_7" sourceRef="task_mpon_or_mpoa_final_reading" targetRef="task_mpon_or_mpoa_dismount_old" />
+    <bpmn:sequenceFlow id="flow_8" sourceRef="task_mpon_or_mpoa_dismount_old" targetRef="evt_end_mpon_dismount" />
+    <bpmn:sequenceFlow id="flow_9" sourceRef="evt_start_mpon_mount" targetRef="task_mpon_mount_new" />
+    <bpmn:sequenceFlow id="flow_10" sourceRef="task_mpon_mount_new" targetRef="task_mpon_read_meter" />
+    <bpmn:sequenceFlow id="flow_11" sourceRef="task_mpon_read_meter" targetRef="task_mpon_send_readings_go" />
+    <bpmn:sequenceFlow id="flow_12" sourceRef="task_mpon_send_readings_go" targetRef="evt_end_mpon_reading" />
+    <bpmn:sequenceFlow id="flow_13" sourceRef="task_mpon_read_meter" targetRef="task_mpon_send_device_info_go" />
+    <bpmn:sequenceFlow id="flow_14" sourceRef="task_mpon_send_device_info_go" targetRef="evt_end_mpon_device_info" />
+    <bpmn:sequenceFlow id="flow_18" sourceRef="evt_start_mpon_receive_decision" targetRef="task_mpon_or_mpoa_final_reading" />
+  </bpmn:process>
+  <bpmn:process id="pool_mpoa_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_change_intention_p1" name="Equipment Change Intention" dataObjectRef="data_change_intention_p1_do" />
+    <bpmn:dataObject id="data_change_intention_p1_do" />
+    <bpmn:dataObjectReference id="data_dismount_decision" name="Self-Dismounting Decision" dataObjectRef="data_dismount_decision_do" />
+    <bpmn:dataObject id="data_dismount_decision_do" />
+    <bpmn:startEvent id="evt_start_mpoa_receive" name="Start: Receive Change Notification">
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_mpoa_receive_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mpoa_decision" name="End: Decision on Self-Dismounting">
+      <bpmn:messageEventDefinition id="evt_end_mpoa_decision_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_mpoa_decide_dismount" name="Decide on self-dismounting">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+      <bpmn:property id="task_mpoa_decide_dismount_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mpoa_decide_dismount_dia0">
+        <bpmn:sourceRef>data_change_intention_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_mpoa_decide_dismount_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_mpoa_decide_dismount_doa0">
+        <bpmn:targetRef>data_dismount_decision</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_dismount_decision" name="Who performs dismount?" isMarkerVisible="true">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_3" sourceRef="evt_start_mpoa_receive" targetRef="task_mpoa_decide_dismount" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="task_mpoa_decide_dismount" targetRef="gw_dismount_decision" />
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_reading_package_p1" name="Final Reading Package" dataObjectRef="data_reading_package_p1_do" />
+    <bpmn:dataObject id="data_reading_package_p1_do" />
+    <bpmn:dataObjectReference id="data_device_master_info_p1" name="Device Changes and Master Data" dataObjectRef="data_device_master_info_p1_do" />
+    <bpmn:dataObject id="data_device_master_info_p1_do" />
+    <bpmn:dataObjectReference id="data_complete_record" name="Complete Change Record" dataObjectRef="data_complete_record_do" />
+    <bpmn:dataObject id="data_complete_record_do" />
+    <bpmn:startEvent id="evt_start_go_receive_readings" name="Start: Receive Readings">
+      <bpmn:outgoing>flow_19</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_go_receive_readings_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_go_receive_info" name="Start: Receive Device Info">
+      <bpmn:outgoing>flow_15</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_go_receive_info_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_go_notify_msp" name="End: Notify MSP">
+      <bpmn:incoming>flow_16</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_go_notify_msp_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_go_notify_msp" name="Notify MSP about device changes, master data, dismounting meter count, and installation meter count">
+      <bpmn:incoming>flow_15</bpmn:incoming>
+      <bpmn:incoming>flow_19</bpmn:incoming>
+      <bpmn:outgoing>flow_16</bpmn:outgoing>
+      <bpmn:property id="task_go_notify_msp_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_go_notify_msp_dia0">
+        <bpmn:sourceRef>data_reading_package_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_notify_msp_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_go_notify_msp_dia1">
+        <bpmn:sourceRef>data_device_master_info_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_notify_msp_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_go_notify_msp_doa0">
+        <bpmn:targetRef>data_complete_record</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="flow_15" sourceRef="evt_start_go_receive_info" targetRef="task_go_notify_msp" />
+    <bpmn:sequenceFlow id="flow_16" sourceRef="task_go_notify_msp" targetRef="evt_end_go_notify_msp" />
+    <bpmn:sequenceFlow id="flow_19" sourceRef="evt_start_go_receive_readings" targetRef="task_go_notify_msp" />
+  </bpmn:process>
+  <bpmn:process id="pool_msp_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_start_msp_receive" name="Start: Receive Change Record">
+      <bpmn:outgoing>flow_17</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_msp_receive_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_process" name="Process Complete">
+      <bpmn:incoming>flow_17</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_17" sourceRef="evt_start_msp_receive" targetRef="evt_end_process" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mpon_part_di" bpmnElement="pool_mpon_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1140" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpoa_part_di" bpmnElement="pool_mpoa_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1085" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_msp_part_di" bpmnElement="pool_msp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1545" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_go_notify_msp_di" bpmnElement="evt_end_go_notify_msp">
+        <dc:Bounds x="540" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpoa_decision_di" bpmnElement="evt_end_mpoa_decision">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpon_device_info_di" bpmnElement="evt_end_mpon_device_info">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpon_dismount_di" bpmnElement="evt_end_mpon_dismount">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpon_notify_di" bpmnElement="evt_end_mpon_notify">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpon_reading_di" bpmnElement="evt_end_mpon_reading">
+        <dc:Bounds x="920" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_process_di" bpmnElement="evt_end_process">
+        <dc:Bounds x="350" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_go_receive_info_di" bpmnElement="evt_start_go_receive_info">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_go_receive_readings_di" bpmnElement="evt_start_go_receive_readings">
+        <dc:Bounds x="160" y="1270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpoa_receive_di" bpmnElement="evt_start_mpoa_receive">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpon_di" bpmnElement="evt_start_mpon">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpon_mount_di" bpmnElement="evt_start_mpon_mount">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpon_receive_decision_di" bpmnElement="evt_start_mpon_receive_decision">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_msp_receive_di" bpmnElement="evt_start_msp_receive">
+        <dc:Bounds x="160" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_dismount_decision_di" bpmnElement="gw_dismount_decision">
+        <dc:Bounds x="540" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_notify_msp_di" bpmnElement="task_go_notify_msp">
+        <dc:Bounds x="350" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpoa_decide_dismount_di" bpmnElement="task_mpoa_decide_dismount">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_mount_new_di" bpmnElement="task_mpon_mount_new">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_notify_intent_di" bpmnElement="task_mpon_notify_intent">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_or_mpoa_dismount_old_di" bpmnElement="task_mpon_or_mpoa_dismount_old">
+        <dc:Bounds x="540" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_or_mpoa_final_reading_di" bpmnElement="task_mpon_or_mpoa_final_reading">
+        <dc:Bounds x="350" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_read_meter_di" bpmnElement="task_mpon_read_meter">
+        <dc:Bounds x="540" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_send_device_info_go_di" bpmnElement="task_mpon_send_device_info_go">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_send_readings_go_di" bpmnElement="task_mpon_send_readings_go">
+        <dc:Bounds x="730" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_change_intention_di" bpmnElement="data_change_intention">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_dismount_decision_p1_di" bpmnElement="data_dismount_decision_p1">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_final_reading_di" bpmnElement="data_final_reading">
+        <dc:Bounds x="560" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_installation_reading_di" bpmnElement="data_installation_reading">
+        <dc:Bounds x="686" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_reading_package_di" bpmnElement="data_reading_package">
+        <dc:Bounds x="750" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_device_master_info_di" bpmnElement="data_device_master_info">
+        <dc:Bounds x="750" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_change_intention_p1_di" bpmnElement="data_change_intention_p1">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_dismount_decision_di" bpmnElement="data_dismount_decision">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_reading_package_p1_di" bpmnElement="data_reading_package_p1">
+        <dc:Bounds x="370" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_device_master_info_p1_di" bpmnElement="data_device_master_info_p1">
+        <dc:Bounds x="370" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_complete_record_di" bpmnElement="data_complete_record">
+        <dc:Bounds x="370" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="565" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_7_di" bpmnElement="flow_7">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_8_di" bpmnElement="flow_8">
+        <di:waypoint x="590" y="265" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_9_di" bpmnElement="flow_9">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_10_di" bpmnElement="flow_10">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_11_di" bpmnElement="flow_11">
+        <di:waypoint x="590" y="390" />
+        <di:waypoint x="780" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_12_di" bpmnElement="flow_12">
+        <di:waypoint x="780" y="390" />
+        <di:waypoint x="938" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_13_di" bpmnElement="flow_13">
+        <di:waypoint x="590" y="390" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_14_di" bpmnElement="flow_14">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_15_di" bpmnElement="flow_15">
+        <di:waypoint x="178" y="1163" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_16_di" bpmnElement="flow_16">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="558" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_17_di" bpmnElement="flow_17">
+        <di:waypoint x="178" y="1623" />
+        <di:waypoint x="368" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_18_di" bpmnElement="flow_18">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_19_di" bpmnElement="flow_19">
+        <di:waypoint x="178" y="1288" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_1_di" bpmnElement="msg_1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_2_di" bpmnElement="msg_2">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="178" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_3_di" bpmnElement="msg_3">
+        <di:waypoint x="748" y="118" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_4_di" bpmnElement="msg_4">
+        <di:waypoint x="938" y="243" />
+        <di:waypoint x="178" y="1288" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_5_di" bpmnElement="msg_5">
+        <di:waypoint x="938" y="118" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_6_di" bpmnElement="msg_6">
+        <di:waypoint x="558" y="1163" />
+        <di:waypoint x="178" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_5_self_dismount_di" bpmnElement="msg_5_self_dismount">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_6_no_self_dismount_di" bpmnElement="msg_6_no_self_dismount">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_notify_intent_doa0_di" bpmnElement="task_mpon_notify_intent_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="388" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpoa_decide_dismount_dia0_di" bpmnElement="task_mpoa_decide_dismount_dia0">
+        <di:waypoint x="388" y="975" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpoa_decide_dismount_doa0_di" bpmnElement="task_mpoa_decide_dismount_doa0">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="388" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_or_mpoa_final_reading_dia0_di" bpmnElement="task_mpon_or_mpoa_final_reading_dia0">
+        <di:waypoint x="388" y="515" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_or_mpoa_final_reading_doa0_di" bpmnElement="task_mpon_or_mpoa_final_reading_doa0">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="578" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_or_mpoa_dismount_old_dia0_di" bpmnElement="task_mpon_or_mpoa_dismount_old_dia0">
+        <di:waypoint x="578" y="515" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_read_meter_doa0_di" bpmnElement="task_mpon_read_meter_doa0">
+        <di:waypoint x="590" y="390" />
+        <di:waypoint x="704" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_send_readings_go_dia0_di" bpmnElement="task_mpon_send_readings_go_dia0">
+        <di:waypoint x="578" y="515" />
+        <di:waypoint x="780" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_send_readings_go_dia1_di" bpmnElement="task_mpon_send_readings_go_dia1">
+        <di:waypoint x="704" y="515" />
+        <di:waypoint x="780" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_send_readings_go_doa0_di" bpmnElement="task_mpon_send_readings_go_doa0">
+        <di:waypoint x="780" y="390" />
+        <di:waypoint x="768" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_send_device_info_go_dia0_di" bpmnElement="task_mpon_send_device_info_go_dia0">
+        <di:waypoint x="704" y="515" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_send_device_info_go_doa0_di" bpmnElement="task_mpon_send_device_info_go_doa0">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="768" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_notify_msp_dia0_di" bpmnElement="task_go_notify_msp_dia0">
+        <di:waypoint x="388" y="1435" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_notify_msp_dia1_di" bpmnElement="task_go_notify_msp_dia1">
+        <di:waypoint x="388" y="1435" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_notify_msp_doa0_di" bpmnElement="task_go_notify_msp_doa0">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="388" y="1435" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

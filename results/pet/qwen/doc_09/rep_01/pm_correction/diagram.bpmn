@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_inq_part" name="INQ" processRef="pool_inq_proc" />
+    <bpmn:participant id="pool_ip_part" name="IP" processRef="pool_ip_proc" />
+    <bpmn:messageFlow id="msg_flow_request" sourceRef="evt_msg_send_req" targetRef="evt_msg_recv_req" name="Transaction Data Request" />
+    <bpmn:messageFlow id="msg_flow_response" sourceRef="evt_msg_send_resp" targetRef="evt_msg_recv_resp" name="Response (Data or Rejection)" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_inq_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_start_inq" name="Start INQ Request">
+      <bpmn:outgoing>flow_inq_start_to_transmit</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_msg_send_req" name="Send Request to IP">
+      <bpmn:incoming>flow_inq_transmit_to_send_msg</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_send_req_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_msg_recv_resp" name="Receive Response from IP">
+      <bpmn:outgoing>flow_inq_recv_resp_to_end</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_recv_resp_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_inq" name="End INQ Process">
+      <bpmn:incoming>flow_inq_recv_resp_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_inq_transmit" name="Transmit transaction data request">
+      <bpmn:incoming>flow_inq_start_to_transmit</bpmn:incoming>
+      <bpmn:outgoing>flow_inq_transmit_to_send_msg</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="flow_inq_start_to_transmit" sourceRef="evt_start_inq" targetRef="task_inq_transmit" />
+    <bpmn:sequenceFlow id="flow_inq_transmit_to_send_msg" sourceRef="task_inq_transmit" targetRef="evt_msg_send_req" />
+    <bpmn:sequenceFlow id="flow_inq_recv_resp_to_end" sourceRef="evt_msg_recv_resp" targetRef="evt_end_inq" />
+  </bpmn:process>
+  <bpmn:process id="pool_ip_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_msg_recv_req" name="Receive Request from INQ">
+      <bpmn:outgoing>flow_ip_recv_to_check</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_recv_req_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_msg_send_resp" name="Send Response to INQ">
+      <bpmn:incoming>flow_ip_to_send_resp</bpmn:incoming>
+      <bpmn:incoming>flow_ip_reject</bpmn:incoming>
+      <bpmn:outgoing>flow_ip_send_resp_to_end</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_send_resp_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_end_ip" name="End IP Process">
+      <bpmn:incoming>flow_ip_send_resp_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_ip_check" name="Check the request of the INQ">
+      <bpmn:incoming>flow_ip_recv_to_check</bpmn:incoming>
+      <bpmn:outgoing>flow_ip_check_to_gw</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_ip_answer" name="Answer the question of the INQ">
+      <bpmn:incoming>flow_ip_gw_to_answer</bpmn:incoming>
+      <bpmn:outgoing>flow_ip_to_send_resp</bpmn:outgoing>
+      <bpmn:outgoing>flow_ip_reject</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_ip_decision" name="Examination Outcome Decision" isMarkerVisible="true">
+      <bpmn:incoming>flow_ip_check_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_ip_gw_to_answer</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_ip_recv_to_check" sourceRef="evt_msg_recv_req" targetRef="task_ip_check" />
+    <bpmn:sequenceFlow id="flow_ip_check_to_gw" sourceRef="task_ip_check" targetRef="gw_ip_decision" />
+    <bpmn:sequenceFlow id="flow_ip_gw_to_answer" sourceRef="gw_ip_decision" targetRef="task_ip_answer" />
+    <bpmn:sequenceFlow id="flow_ip_to_send_resp" sourceRef="task_ip_answer" targetRef="evt_msg_send_resp" name="Transmission of data" />
+    <bpmn:sequenceFlow id="flow_ip_reject" sourceRef="task_ip_answer" targetRef="evt_msg_send_resp" name="Rejection" />
+    <bpmn:sequenceFlow id="flow_ip_send_resp_to_end" sourceRef="evt_msg_send_resp" targetRef="evt_end_ip" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_inq_part_di" bpmnElement="pool_inq_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_ip_part_di" bpmnElement="pool_ip_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="1330" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_inq_di" bpmnElement="evt_end_inq">
+        <dc:Bounds x="350" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_ip_di" bpmnElement="evt_end_ip">
+        <dc:Bounds x="1110" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_recv_req_di" bpmnElement="evt_msg_recv_req">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_recv_resp_di" bpmnElement="evt_msg_recv_resp">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_send_req_di" bpmnElement="evt_msg_send_req">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_send_resp_di" bpmnElement="evt_msg_send_resp">
+        <dc:Bounds x="920" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_inq_di" bpmnElement="evt_start_inq">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_ip_decision_di" bpmnElement="gw_ip_decision">
+        <dc:Bounds x="540" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inq_transmit_di" bpmnElement="task_inq_transmit">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ip_answer_di" bpmnElement="task_ip_answer">
+        <dc:Bounds x="730" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ip_check_di" bpmnElement="task_ip_check">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_inq_start_to_transmit_di" bpmnElement="flow_inq_start_to_transmit">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inq_transmit_to_send_msg_di" bpmnElement="flow_inq_transmit_to_send_msg">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_recv_to_check_di" bpmnElement="flow_ip_recv_to_check">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_check_to_gw_di" bpmnElement="flow_ip_check_to_gw">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="565" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_gw_to_answer_di" bpmnElement="flow_ip_gw_to_answer">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="780" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_to_send_resp_di" bpmnElement="flow_ip_to_send_resp">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="938" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_reject_di" bpmnElement="flow_ip_reject">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="938" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_send_resp_to_end_di" bpmnElement="flow_ip_send_resp_to_end">
+        <di:waypoint x="938" y="578" />
+        <di:waypoint x="1128" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inq_recv_resp_to_end_di" bpmnElement="flow_inq_recv_resp_to_end">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="368" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_request_di" bpmnElement="msg_flow_request">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_response_di" bpmnElement="msg_flow_response">
+        <di:waypoint x="938" y="578" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_IntakeProcess"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="Process_MentalHealthIntake" name="Mental Health Care Intake Process" isExecutable="false">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_FamilyDoctor" name="Family Doctor">
+        <flowNodeRef>StartEvent_1</flowNodeRef>
+      </lane>
+      <lane id="Lane_SecretarialOffice" name="Secretarial Office">
+        <flowNodeRef>Task_InquireNameResidence</flowNodeRef>
+        <flowNodeRef>Task_PutThrough</flowNodeRef>
+        <flowNodeRef>Task_StoreInfoSystem</flowNodeRef>
+        <flowNodeRef>Task_PrintInfo</flowNodeRef>
+        <flowNodeRef>Gateway_NewPatient</flowNodeRef>
+        <flowNodeRef>Task_CreateFile</flowNodeRef>
+        <flowNodeRef>Gateway_MergeNewExisting</flowNodeRef>
+        <flowNodeRef>Task_StoreFormInFile</flowNodeRef>
+        <flowNodeRef>Task_ProduceCards</flowNodeRef>
+        <flowNodeRef>Task_AddToNoticeList</flowNodeRef>
+        <flowNodeRef>Task_StoreAssignment</flowNodeRef>
+        <flowNodeRef>Task_PassCards</flowNodeRef>
+        <flowNodeRef>Gateway_MedicalFileNeeded</flowNodeRef>
+        <flowNodeRef>Task_SendLetter</flowNodeRef>
+        <flowNodeRef>Event_FileCopyReceived</flowNodeRef>
+        <flowNodeRef>Task_InformSecondIntaker</flowNodeRef>
+        <flowNodeRef>Task_AddCopyToFile</flowNodeRef>
+        <flowNodeRef>Gateway_MergeFileBranch</flowNodeRef>
+        <flowNodeRef>Gateway_SplitIntakers</flowNodeRef>
+        <flowNodeRef>Task_AddChecklistNotesToFile</flowNodeRef>
+        <flowNodeRef>Task_TypeOutTape</flowNodeRef>
+        <flowNodeRef>Task_AddTypedInfoToFile</flowNodeRef>
+        <flowNodeRef>Gateway_JoinIntakers</flowNodeRef>
+        <flowNodeRef>Task_AddToReachedStatusList</flowNodeRef>
+        <flowNodeRef>Task_ProvideListToTeamLeader</flowNodeRef>
+      </lane>
+      <lane id="Lane_NursingOfficer" name="Nursing Officer">
+        <flowNodeRef>Task_FullInquiry</flowNodeRef>
+        <flowNodeRef>Task_RecordOnForm</flowNodeRef>
+        <flowNodeRef>Task_HandInForm</flowNodeRef>
+      </lane>
+      <lane id="Lane_TeamLeader" name="Team Leader / Medical Team">
+        <flowNodeRef>Timer_WaitWednesday1</flowNodeRef>
+        <flowNodeRef>Task_AssignIntakers</flowNodeRef>
+        <flowNodeRef>Task_DetermineFileNeeded</flowNodeRef>
+        <flowNodeRef>Task_RecordAssignmentList</flowNodeRef>
+        <flowNodeRef>Task_HandAssignmentList</flowNodeRef>
+        <flowNodeRef>Timer_WaitWednesday2</flowNodeRef>
+        <flowNodeRef>Task_FormulateTreatmentPlan</flowNodeRef>
+        <flowNodeRef>EndEvent_1</flowNodeRef>
+      </lane>
+      <lane id="Lane_FirstIntaker" name="First Intaker (Social-Medical Worker)">
+        <flowNodeRef>Task_PlanFirstMeeting</flowNodeRef>
+        <flowNodeRef>Task_ExamineChecklist</flowNodeRef>
+        <flowNodeRef>Task_RegisterObservations</flowNodeRef>
+        <flowNodeRef>Task_HandNotesToSecretary</flowNodeRef>
+      </lane>
+      <lane id="Lane_SecondIntaker" name="Second Intaker (Physician)">
+        <flowNodeRef>Task_PlanSecondMeeting</flowNodeRef>
+        <flowNodeRef>Task_MeetPatientDictaphone</flowNodeRef>
+        <flowNodeRef>Task_HandTapeToSecretary</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Start -->
+    <startEvent id="StartEvent_1" name="Family doctor calls secretarial office">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <!-- Secretarial office initial intake -->
+    <task id="Task_InquireNameResidence" name="Inquire name and residence of patient">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+    <task id="Task_PutThrough" name="Put doctor through to responsible nursing officer">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <!-- Nursing officer -->
+    <task id="Task_FullInquiry" name="Make full inquiry into mental, health and social state">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </task>
+    <task id="Task_RecordOnForm" name="Record information on registration form">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_5</outgoing>
+    </task>
+    <task id="Task_HandInForm" name="Hand in registration form at secretarial office">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <!-- Secretarial office processing -->
+    <task id="Task_StoreInfoSystem" name="Store information in information system">
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+    <task id="Task_PrintInfo" name="Print information from system">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_NewPatient" name="New patient?">
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_9_New</outgoing>
+      <outgoing>Flow_9_Existing</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_CreateFile" name="Create patient file">
+      <incoming>Flow_9_New</incoming>
+      <outgoing>Flow_10</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_MergeNewExisting" name="Merge">
+      <incoming>Flow_10</incoming>
+      <incoming>Flow_9_Existing</incoming>
+      <outgoing>Flow_11</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_StoreFormInFile" name="Store registration form and print in patient file">
+      <incoming>Flow_11</incoming>
+      <outgoing>Flow_12</outgoing>
+    </task>
+    <task id="Task_ProduceCards" name="Produce two registration cards (1st and 2nd intaker)">
+      <incoming>Flow_12</incoming>
+      <outgoing>Flow_13</outgoing>
+    </task>
+    <task id="Task_AddToNoticeList" name="Add patient to list of new notices">
+      <incoming>Flow_13</incoming>
+      <outgoing>Flow_14</outgoing>
+    </task>
+
+    <intermediateCatchEvent id="Timer_WaitWednesday1" name="Wait until Wednesday staff meeting">
+      <incoming>Flow_14</incoming>
+      <outgoing>Flow_15</outgoing>
+      <timerEventDefinition/>
+    </intermediateCatchEvent>
+
+    <!-- Team leader staff meeting -->
+    <task id="Task_AssignIntakers" name="Assign new patients to first and second intaker">
+      <incoming>Flow_15</incoming>
+      <outgoing>Flow_16</outgoing>
+    </task>
+    <task id="Task_DetermineFileNeeded" name="Determine if medical file of patient is required">
+      <incoming>Flow_16</incoming>
+      <outgoing>Flow_17</outgoing>
+    </task>
+    <task id="Task_RecordAssignmentList" name="Record assignments on assignment list">
+      <incoming>Flow_17</incoming>
+      <outgoing>Flow_18</outgoing>
+    </task>
+    <task id="Task_HandAssignmentList" name="Hand assignment list to secretarial office">
+      <incoming>Flow_18</incoming>
+      <outgoing>Flow_19</outgoing>
+    </task>
+
+    <!-- Secretarial office assignment processing -->
+    <task id="Task_StoreAssignment" name="Store assignment of each patient in information system">
+      <incoming>Flow_19</incoming>
+      <outgoing>Flow_20</outgoing>
+    </task>
+    <task id="Task_PassCards" name="Pass registration cards to first and second intaker">
+      <incoming>Flow_20</incoming>
+      <outgoing>Flow_21</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_MedicalFileNeeded" name="Medical file required?">
+      <incoming>Flow_21</incoming>
+      <outgoing>Flow_22_Yes</outgoing>
+      <outgoing>Flow_22_No</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_SendLetter" name="Prepare and send letter to family doctor requesting medical file copy">
+      <incoming>Flow_22_Yes</incoming>
+      <outgoing>Flow_23</outgoing>
+    </task>
+
+    <intermediateCatchEvent id="Event_FileCopyReceived" name="Medical file copy received">
+      <incoming>Flow_23</incoming>
+      <outgoing>Flow_24</outgoing>
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+
+    <task id="Task_InformSecondIntaker" name="Inform second intaker">
+      <incoming>Flow_24</incoming>
+      <outgoing>Flow_25</outgoing>
+    </task>
+    <task id="Task_AddCopyToFile" name="Add medical file copy to patient file">
+      <incoming>Flow_25</incoming>
+      <outgoing>Flow_26</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_MergeFileBranch" name="Merge">
+      <incoming>Flow_26</incoming>
+      <incoming>Flow_22_No</incoming>
+      <outgoing>Flow_27</outgoing>
+    </exclusiveGateway>
+
+    <parallelGateway id="Gateway_SplitIntakers" name="Split: first / second intaker">
+      <incoming>Flow_27</incoming>
+      <outgoing>Flow_28_First</outgoing>
+      <outgoing>Flow_28_Second</outgoing>
+    </parallelGateway>
+
+    <!-- First intaker branch -->
+    <task id="Task_PlanFirstMeeting" name="Plan meeting with patient as soon as possible">
+      <incoming>Flow_28_First</incoming>
+      <outgoing>Flow_29</outgoing>
+    </task>
+    <task id="Task_ExamineChecklist" name="Examine patient using standard checklist">
+      <incoming>Flow_29</incoming>
+      <outgoing>Flow_30</outgoing>
+    </task>
+    <task id="Task_RegisterObservations" name="Register additional observations in personal notebook">
+      <incoming>Flow_30</incoming>
+      <outgoing>Flow_31</outgoing>
+    </task>
+    <task id="Task_HandNotesToSecretary" name="Hand copy of notes and checklist to secretarial office">
+      <incoming>Flow_31</incoming>
+      <outgoing>Flow_32</outgoing>
+    </task>
+    <task id="Task_AddChecklistNotesToFile" name="Add checklist and notes to patient file">
+      <incoming>Flow_32</incoming>
+      <outgoing>Flow_33</outgoing>
+    </task>
+
+    <!-- Second intaker branch -->
+    <task id="Task_PlanSecondMeeting" name="Plan first meeting (after medical info received if required)">
+      <incoming>Flow_28_Second</incoming>
+      <outgoing>Flow_34</outgoing>
+    </task>
+    <task id="Task_MeetPatientDictaphone" name="Meet patient and record observations using dictaphone">
+      <incoming>Flow_34</incoming>
+      <outgoing>Flow_35</outgoing>
+    </task>
+    <task id="Task_HandTapeToSecretary" name="Hand dictaphone tape to secretarial office">
+      <incoming>Flow_35</incoming>
+      <outgoing>Flow_36</outgoing>
+    </task>
+    <task id="Task_TypeOutTape" name="Type out tape">
+      <incoming>Flow_36</incoming>
+      <outgoing>Flow_37</outgoing>
+    </task>
+    <task id="Task_AddTypedInfoToFile" name="Add typed information to patient file">
+      <incoming>Flow_37</incoming>
+      <outgoing>Flow_38</outgoing>
+    </task>
+
+    <parallelGateway id="Gateway_JoinIntakers" name="Join: both meetings done">
+      <incoming>Flow_33</incoming>
+      <incoming>Flow_38</incoming>
+      <outgoing>Flow_39</outgoing>
+    </parallelGateway>
+
+    <task id="Task_AddToReachedStatusList" name="Add patient to list of patients that reached this status">
+      <incoming>Flow_39</incoming>
+      <outgoing>Flow_40</outgoing>
+    </task>
+    <task id="Task_ProvideListToTeamLeader" name="Provide team leader with list for Wednesday meeting">
+      <incoming>Flow_40</incoming>
+      <outgoing>Flow_41</outgoing>
+    </task>
+
+    <intermediateCatchEvent id="Timer_WaitWednesday2" name="Wait until Wednesday staff meeting">
+      <incoming>Flow_41</incoming>
+      <outgoing>Flow_42</outgoing>
+      <timerEventDefinition/>
+    </intermediateCatchEvent>
+
+    <task id="Task_FormulateTreatmentPlan" name="First and second intaker, team leader and psychiatrist formulate treatment plan">
+      <incoming>Flow_42</incoming>
+      <outgoing>Flow_43</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_1" name="Intake procedure ends">
+      <incoming>Flow_43</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_InquireNameResidence"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_InquireNameResidence" targetRef="Task_PutThrough"/>
+    <sequenceFlow id="Flow_3" sourceRef="Task_PutThrough" targetRef="Task_FullInquiry"/>
+    <sequenceFlow id="Flow_4" sourceRef="Task_FullInquiry" targetRef="Task_RecordOnForm"/>
+    <sequenceFlow id="Flow_5" sourceRef="Task_RecordOnForm" targetRef="Task_HandInForm"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_HandInForm" targetRef="Task_StoreInfoSystem"/>
+    <sequenceFlow id="Flow_7" sourceRef="Task_StoreInfoSystem" targetRef="Task_PrintInfo"/>
+    <sequenceFlow id="Flow_8" sourceRef="Task_PrintInfo" targetRef="Gateway_NewPatient"/>
+
+    <sequenceFlow id="Flow_9_New" name="New patient" sourceRef="Gateway_NewPatient" targetRef="Task_CreateFile">
+      <conditionExpression xsi:type="tFormalExpression">patientType == "new"</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_9_Existing" name="Existing patient" sourceRef="Gateway_NewPatient" targetRef="Gateway_MergeNewExisting">
+      <conditionExpression xsi:type="tFormalExpression">patientType == "existing"</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_10" sourceRef="Task_CreateFile" targetRef="Gateway_MergeNewExisting"/>
+    <sequenceFlow id="Flow_11" sourceRef="Gateway_MergeNewExisting" targetRef="Task_StoreFormInFile"/>
+    <sequenceFlow id="Flow_12" sourceRef="Task_StoreFormInFile" targetRef="Task_ProduceCards"/>
+    <sequenceFlow id="Flow_13" sourceRef="Task_ProduceCards" targetRef="Task_AddToNoticeList"/>
+    <sequenceFlow id="Flow_14" sourceRef="Task_AddToNoticeList" targetRef="Timer_WaitWednesday1"/>
+    <sequenceFlow id="Flow_15" sourceRef="Timer_WaitWednesday1" targetRef="Task_AssignIntakers"/>
+    <sequenceFlow id="Flow_16" sourceRef="Task_AssignIntakers" targetRef="Task_DetermineFileNeeded"/>
+    <sequenceFlow id="Flow_17" sourceRef="Task_DetermineFileNeeded" targetRef="Task_RecordAssignmentList"/>
+    <sequenceFlow id="Flow_18" sourceRef="Task_RecordAssignmentList" targetRef="Task_HandAssignmentList"/>
+    <sequenceFlow id="Flow_19" sourceRef="Task_HandAssignmentList" targetRef="Task_StoreAssignment"/>
+    <sequenceFlow id="Flow_20" sourceRef="Task_StoreAssignment" targetRef="Task_PassCards"/>
+    <sequenceFlow id="Flow_21" sourceRef="Task_PassCards" targetRef="Gateway_MedicalFileNeeded"/>
+
+    <sequenceFlow id="Flow_22_Yes" name="Yes" sourceRef="Gateway_MedicalFileNeeded" targetRef="Task_SendLetter">
+      <conditionExpression xsi:type="tFormalExpression">medicalFileRequired == true</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_22_No" name="No" sourceRef="Gateway_MedicalFileNeeded" targetRef="Gateway_MergeFileBranch">
+      <conditionExpression xsi:type="tFormalExpression">medicalFileRequired == false</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_23" sourceRef="Task_SendLetter" targetRef="Event_FileCopyReceived"/>
+    <sequenceFlow id="Flow_24" sourceRef="Event_FileCopyReceived" targetRef="Task_InformSecondIntaker"/>
+    <sequenceFlow id="Flow_25" sourceRef="Task_InformSecondIntaker" targetRef="Task_AddCopyToFile"/>
+    <sequenceFlow id="Flow_26" sourceRef="Task_AddCopyToFile" targetRef="Gateway_MergeFileBranch"/>
+    <sequenceFlow id="Flow_27" sourceRef="Gateway_MergeFileBranch" targetRef="Gateway_SplitIntakers"/>
+
+    <sequenceFlow id="Flow_28_First" sourceRef="Gateway_SplitIntakers" targetRef="Task_PlanFirstMeeting"/>
+    <sequenceFlow id="Flow_28_Second" sourceRef="Gateway_SplitIntakers" targetRef="Task_PlanSecondMeeting"/>
+
+    <sequenceFlow id="Flow_29" sourceRef="Task_PlanFirstMeeting" targetRef="Task_ExamineChecklist"/>
+    <sequenceFlow id="Flow_30" sourceRef="Task_ExamineChecklist" targetRef="Task_RegisterObservations"/>
+    <sequenceFlow id="Flow_31" sourceRef="Task_RegisterObservations" targetRef="Task_HandNotesToSecretary"/>
+    <sequenceFlow id="Flow_32" sourceRef="Task_HandNotesToSecretary" targetRef="Task_AddChecklistNotesToFile"/>
+    <sequenceFlow id="Flow_33" sourceRef="Task_AddChecklistNotesToFile" targetRef="Gateway_JoinIntakers"/>
+
+    <sequenceFlow id="Flow_34" sourceRef="Task_PlanSecondMeeting" targetRef="Task_MeetPatientDictaphone"/>
+    <sequenceFlow id="Flow_35" sourceRef="Task_MeetPatientDictaphone" targetRef="Task_HandTapeToSecretary"/>
+    <sequenceFlow id="Flow_36" sourceRef="Task_HandTapeToSecretary" targetRef="Task_TypeOutTape"/>
+    <sequenceFlow id="Flow_37" sourceRef="Task_TypeOutTape" targetRef="Task_AddTypedInfoToFile"/>
+    <sequenceFlow id="Flow_38" sourceRef="Task_AddTypedInfoToFile" targetRef="Gateway_JoinIntakers"/>
+
+    <sequenceFlow id="Flow_39" sourceRef="Gateway_JoinIntakers" targetRef="Task_AddToReachedStatusList"/>
+    <sequenceFlow id="Flow_40" sourceRef="Task_AddToReachedStatusList" targetRef="Task_ProvideListToTeamLeader"/>
+    <sequenceFlow id="Flow_41" sourceRef="Task_ProvideListToTeamLeader" targetRef="Timer_WaitWednesday2"/>
+    <sequenceFlow id="Flow_42" sourceRef="Timer_WaitWednesday2" targetRef="Task_FormulateTreatmentPlan"/>
+    <sequenceFlow id="Flow_43" sourceRef="Task_FormulateTreatmentPlan" targetRef="EndEvent_1"/>
+
+  </process>
+</definitions>

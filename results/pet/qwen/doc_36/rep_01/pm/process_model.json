@@ -1,0 +1,303 @@
+{
+  "name": "Court Hearing File Preparation Process",
+  "resources": [
+    {
+      "name": "Clerk/Administrator",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Associate",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Judge",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start",
+      "name": "Morning Start",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end",
+      "name": "Hearings Conducted",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_check_files",
+      "name": "Check files for order",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Clerk/Administrator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_files"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_search_missing",
+      "name": "Initiate search for missing files",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Clerk/Administrator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_files"
+      ]
+    },
+    {
+      "id": "task_track_files",
+      "name": "Physically track files to location",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Clerk/Administrator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_files"
+      ],
+      "output_data_ids": [
+        "data_files_ready"
+      ]
+    },
+    {
+      "id": "task_hand_to_associate",
+      "name": "Hand files to Associate",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Clerk/Administrator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_files_ready"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_distribute_lawlist",
+      "name": "Distribute Judge's Law List",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Clerk/Administrator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_lawlist"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_conduct_hearings",
+      "name": "Conduct directions hearings",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Judge",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_files_ready",
+        "data_lawlist"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_missing_check",
+      "name": "Are files missing?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_missing_yes",
+          "condition": "Files are missing"
+        },
+        {
+          "flow_id": "flow_missing_no",
+          "condition": "Files are present"
+        }
+      ]
+    },
+    {
+      "id": "gw_merge_files",
+      "name": "Merge file preparation paths",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "gw_sync_hearing",
+      "name": "Wait for all preparations",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_check",
+      "source_id": "evt_start",
+      "target_id": "task_check_files",
+      "condition_name": null
+    },
+    {
+      "id": "flow_check_gateway",
+      "source_id": "task_check_files",
+      "target_id": "gw_missing_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_missing_yes",
+      "source_id": "gw_missing_check",
+      "target_id": "task_search_missing",
+      "condition_name": "igen"
+    },
+    {
+      "id": "flow_missing_no",
+      "source_id": "gw_missing_check",
+      "target_id": "task_track_files",
+      "condition_name": "nem"
+    },
+    {
+      "id": "flow_search_merge",
+      "source_id": "task_search_missing",
+      "target_id": "gw_merge_files",
+      "condition_name": null
+    },
+    {
+      "id": "flow_track_merge",
+      "source_id": "task_track_files",
+      "target_id": "gw_merge_files",
+      "condition_name": null
+    },
+    {
+      "id": "flow_merge_handover",
+      "source_id": "gw_merge_files",
+      "target_id": "task_hand_to_associate",
+      "condition_name": null
+    },
+    {
+      "id": "flow_handover_parallel",
+      "source_id": "task_hand_to_associate",
+      "target_id": "gw_sync_hearing",
+      "condition_name": null
+    },
+    {
+      "id": "flow_lawlist_parallel",
+      "source_id": "task_distribute_lawlist",
+      "target_id": "gw_sync_hearing",
+      "condition_name": null
+    },
+    {
+      "id": "flow_sync_hearing",
+      "source_id": "gw_sync_hearing",
+      "target_id": "task_conduct_hearings",
+      "condition_name": null
+    },
+    {
+      "id": "flow_hearing_end",
+      "source_id": "task_conduct_hearings",
+      "target_id": "evt_end",
+      "condition_name": null
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [
+    {
+      "id": "data_files",
+      "name": "Case Files"
+    },
+    {
+      "id": "data_files_ready",
+      "name": "Ready Case Files"
+    },
+    {
+      "id": "data_lawlist",
+      "name": "Judge's Law List"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

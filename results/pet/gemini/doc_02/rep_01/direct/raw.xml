@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_ComputerRepair"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:collaboration id="Collaboration_ComputerRepair">
+    <bpmn:participant id="Participant_CRS" name="Computer Repair Service" processRef="Process_ComputerRepair" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_ComputerRepair" isExecutable="true">
+    
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_DefectiveComputerBrought" name="Defective computer brought in">
+      <bpmn:outgoing>Flow_StartToCRSCheck</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- CRS Checks Defect & Calculates Cost -->
+    <bpmn:userTask id="Task_CheckDefectAndCalculateCost" name="Check defect and hand out repair cost calculation">
+      <bpmn:incoming>Flow_StartToCRSCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_CRSCheckToAcceptanceGateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Decision: Costs Acceptable? -->
+    <bpmn:exclusiveGateway id="Gateway_CostsAcceptable" name="Costs acceptable?">
+      <bpmn:incoming>Flow_CRSCheckToAcceptanceGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_CostsAccepted</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CostsRejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- End Event: Unrepaired -->
+    <bpmn:endEvent id="EndEvent_ComputerTakenHomeUnrepaired" name="Computer taken home unrepaired">
+      <bpmn:incoming>Flow_CostsRejected</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Ad-Hoc Subprocess for Arbitrary Repairs -->
+    <bpmn:adHocSubProcess id="SubProcess_AdHocRepair" name="Perform Repair Activities (Arbitrary Order)">
+      <bpmn:incoming>Flow_CostsAccepted</bpmn:incoming>
+      <bpmn:outgoing>Flow_SubprocessToTest</bpmn:outgoing>
+
+      <bpmn:task id="Task_CheckAndRepairHardware" name="Check and repair hardware" />
+      <bpmn:task id="Task_CheckAndConfigureSoftware" name="Check and configure software" />
+    </bpmn:adHocSubProcess>
+
+    <!-- Loop Merge Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_LoopMerge">
+      <bpmn:incoming>Flow_SubprocessToTest</bpmn:incoming>
+      <bpmn:incoming>Flow_ErrorDetectedLoop</bpmn:incoming>
+      <bpmn:outgoing>Flow_LoopMergeToTestSystem</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Test System Functionality -->
+    <bpmn:userTask id="Task_TestSystemFunctionality" name="Test proper system functionality">
+      <bpmn:incoming>Flow_LoopMergeToTestSystem</bpmn:incoming>
+      <bpmn:outgoing>Flow_TestToResultGateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Gateway: Error Detected? -->
+    <bpmn:exclusiveGateway id="Gateway_ErrorDetected" name="Error detected?">
+      <bpmn:incoming>Flow_TestToResultGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoError</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ErrorDetectedLoop</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- End Event: Repaired -->
+    <bpmn:endEvent id="EndEvent_RepairFinished" name="Repair finished successfully">
+      <bpmn:incoming>Flow_NoError</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_StartToCRSCheck" sourceRef="StartEvent_DefectiveComputerBrought" targetRef="Task_CheckDefectAndCalculateCost" />
+    <bpmn:sequenceFlow id="Flow_CRSCheckToAcceptanceGateway" sourceRef="Task_CheckDefectAndCalculateCost" targetRef="Gateway_CostsAcceptable" />
+    <bpmn:sequenceFlow id="Flow_CostsAccepted" name="Yes" sourceRef="Gateway_CostsAcceptable" targetRef="SubProcess_AdHocRepair" />
+    <bpmn:sequenceFlow id="Flow_CostsRejected" name="No" sourceRef="Gateway_CostsAcceptable" targetRef="EndEvent_ComputerTakenHomeUnrepaired" />
+    <bpmn:sequenceFlow id="Flow_SubprocessToTest" sourceRef="SubProcess_AdHocRepair" targetRef="Gateway_LoopMerge" />
+    <bpmn:sequenceFlow id="Flow_LoopMergeToTestSystem" sourceRef="Gateway_LoopMerge" targetRef="Task_TestSystemFunctionality" />
+    <bpmn:sequenceFlow id="Flow_TestToResultGateway" sourceRef="Task_TestSystemFunctionality" targetRef="Gateway_ErrorDetected" />
+    <bpmn:sequenceFlow id="Flow_NoError" name="No" sourceRef="Gateway_ErrorDetected" targetRef="EndEvent_RepairFinished" />
+    <bpmn:sequenceFlow id="Flow_ErrorDetectedLoop" name="Yes (Execute repair task)" sourceRef="Gateway_ErrorDetected" targetRef="Gateway_LoopMerge" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_ComputerRepair">
+      <bpmndi:BPMNShape id="Participant_CRS_di" bpmnElement="Participant_CRS" isHorizontal="true">
+        <dc:Bounds x="150" y="80" width="1280" height="380" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_DefectiveComputerBrought_di" bpmnElement="StartEvent_DefectiveComputerBrought">
+        <dc:Bounds x="212" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="187" y="255" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckDefectAndCalculateCost_di" bpmnElement="Task_CheckDefectAndCalculateCost">
+        <dc:Bounds x="300" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_CostsAcceptable_di" bpmnElement="Gateway_CostsAcceptable" isMarkerVisible="true">
+        <dc:Bounds x="455" y="205" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="435" y="175" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_ComputerTakenHomeUnrepaired_di" bpmnElement="EndEvent_ComputerTakenHomeUnrepaired">
+        <dc:Bounds x="462" y="342" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="440" y="385" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="SubProcess_AdHocRepair_di" bpmnElement="SubProcess_AdHocRepair" isExpanded="true">
+        <dc:Bounds x="560" y="140" width="350" height="180" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckAndRepairHardware_di" bpmnElement="Task_CheckAndRepairHardware">
+        <dc:Bounds x="590" y="190" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckAndConfigureSoftware_di" bpmnElement="Task_CheckAndConfigureSoftware">
+        <dc:Bounds x="750" y="190" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_LoopMerge_di" bpmnElement="Gateway_LoopMerge" isMarkerVisible="true">
+        <dc:Bounds x="955" y="205" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TestSystemFunctionality_di" bpmnElement="Task_TestSystemFunctionality">
+        <dc:Bounds x="1050" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ErrorDetected_di" bpmnElement="Gateway_ErrorDetected" isMarkerVisible="true">
+        <dc:Bounds x="1205" y="205" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1192" y="181" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_RepairFinished_di" bpmnElement="EndEvent_RepairFinished">
+        <dc:Bounds x="1342" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1325" y="255" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_StartToCRSCheck_di" bpmnElement="Flow_StartToCRSCheck">
+        <di:waypoint x="248" y="230" />
+        <di:waypoint x="300" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_CRSCheckToAcceptanceGateway_di" bpmnElement="Flow_CRSCheckToAcceptanceGateway">
+        <di:waypoint x="400" y="230" />
+        <di:waypoint x="455" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_CostsAccepted_di" bpmnElement="Flow_CostsAccepted">
+        <di:waypoint x="505" y="230" />
+        <di:waypoint x="560" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="524" y="212" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_CostsRejected_di" bpmnElement="Flow_CostsRejected">
+        <di:waypoint x="480" y="255" />
+        <di:waypoint x="480" y="342" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="488" y="296" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_SubprocessToTest_di" bpmnElement="Flow_SubprocessToTest">
+        <di:waypoint x="910" y="230" />
+        <di:waypoint x="955" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_LoopMergeToTestSystem_di" bpmnElement="Flow_LoopMergeToTestSystem">
+        <di:waypoint x="1005" y="230" />
+        <di:waypoint x="1050" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_TestToResultGateway_di" bpmnElement="Flow_TestToResultGateway">
+        <di:waypoint x="1150" y="230" />
+        <di:waypoint x="1205" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NoError_di" bpmnElement="Flow_NoError">
+        <di:waypoint x="1255" y="230" />
+        <di:waypoint x="1342" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1291" y="212" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ErrorDetectedLoop_di" bpmnElement="Flow_ErrorDetectedLoop">
+        <di:waypoint x="1230" y="255" />
+        <di:waypoint x="1230" y="360" />
+        <di:waypoint x="980" y="360" />
+        <di:waypoint x="980" y="255" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1055" y="326" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

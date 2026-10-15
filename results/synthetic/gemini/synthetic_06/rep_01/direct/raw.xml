@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:bpsim="http://www.bpsim.org/schemas/1.0"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+  
+  <!-- Process Definition -->
+  <bpmn:process id="Process_1" isExecutable="true">
+    
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_1" name="Case Arrived">
+      <bpmn:outgoing>Flow_Start_To_Case0</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <!-- Step 1: Process case 0 -->
+    <bpmn:serviceTask id="Task_ProcessCase0" name="Process case 0">
+      <bpmn:incoming>Flow_Start_To_Case0</bpmn:incoming>
+      <bpmn:outgoing>Flow_Case0_To_XOR</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Exclusive Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_XOR1" name="Routing Decision">
+      <bpmn:incoming>Flow_Case0_To_XOR</bpmn:incoming>
+      <bpmn:outgoing>Flow_XOR_To_AssessClaim1</bpmn:outgoing>
+      <bpmn:outgoing>Flow_XOR_To_RegisterCase2</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Step 2: Assess claim 1 -->
+    <bpmn:serviceTask id="Task_AssessClaim1" name="Assess claim 1">
+      <bpmn:incoming>Flow_XOR_To_AssessClaim1</bpmn:incoming>
+      <bpmn:outgoing>Flow_AssessClaim1_To_AssessForm3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 3: Register case 2 -->
+    <bpmn:serviceTask id="Task_RegisterCase2" name="Register case 2">
+      <bpmn:incoming>Flow_XOR_To_RegisterCase2</bpmn:incoming>
+      <bpmn:outgoing>Flow_RegisterCase2_To_AssessForm3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Inclusive/Exclusive Join for Path Convergence -->
+    <bpmn:exclusiveGateway id="Gateway_XOR2" name="Merge Paths">
+      <bpmn:incoming>Flow_AssessClaim1_To_AssessForm3</bpmn:incoming>
+      <bpmn:incoming>Flow_RegisterCase2_To_AssessForm3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Merge_To_AssessForm3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Step 4: Assess form 3 -->
+    <bpmn:serviceTask id="Task_AssessForm3" name="Assess form 3">
+      <bpmn:incoming>Flow_Merge_To_AssessForm3</bpmn:incoming>
+      <bpmn:outgoing>Flow_AssessForm3_To_ScheduleForm4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 5: Schedule form 4 -->
+    <bpmn:serviceTask id="Task_ScheduleForm4" name="Schedule form 4">
+      <bpmn:incoming>Flow_AssessForm3_To_ScheduleForm4</bpmn:incoming>
+      <bpmn:outgoing>Flow_ScheduleForm4_To_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- End Event -->
+    <bpmn:endEvent id="EndEvent_1" name="Process End">
+      <bpmn:incoming>Flow_ScheduleForm4_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_Start_To_Case0" sourceRef="StartEvent_1" targetRef="Task_ProcessCase0" />
+    <bpmn:sequenceFlow id="Flow_Case0_To_XOR" sourceRef="Task_ProcessCase0" targetRef="Gateway_XOR1" />
+    <bpmn:sequenceFlow id="Flow_XOR_To_AssessClaim1" name="76%" sourceRef="Gateway_XOR1" targetRef="Task_AssessClaim1" />
+    <bpmn:sequenceFlow id="Flow_XOR_To_RegisterCase2" name="24%" sourceRef="Gateway_XOR1" targetRef="Task_RegisterCase2" />
+    <bpmn:sequenceFlow id="Flow_AssessClaim1_To_AssessForm3" sourceRef="Task_AssessClaim1" targetRef="Gateway_XOR2" />
+    <bpmn:sequenceFlow id="Flow_RegisterCase2_To_AssessForm3" sourceRef="Task_RegisterCase2" targetRef="Gateway_XOR2" />
+    <bpmn:sequenceFlow id="Flow_Merge_To_AssessForm3" sourceRef="Gateway_XOR2" targetRef="Task_AssessForm3" />
+    <bpmn:sequenceFlow id="Flow_AssessForm3_To_ScheduleForm4" sourceRef="Task_AssessForm3" targetRef="Task_ScheduleForm4" />
+    <bpmn:sequenceFlow id="Flow_ScheduleForm4_To_End" sourceRef="Task_ScheduleForm4" targetRef="EndEvent_1" />
+    
+  </bpmn:process>
+  
+  <!-- BPSim Simulation Configuration -->
+  <bpmn:relationship type="BPSimData">
+    <bpmn:extensionElements>
+      <bpsim:BPSimData>
+        <bpsim:Scenario id="Scenario_1" name="8-Hour Simulation Scenario">
+          <bpsim:ScenarioParameters duration="PT8H" timeUnit="min" />
+          
+          <!-- Resource Definitions -->
+          <bpsim:Resource id="Resource_Worker1" name="Worker 1" capacity="1" />
+          <bpsim:Resource id="Resource_Worker2" name="Worker 2" capacity="1" />
+          
+          <!-- Element Parameters -->
+          
+          <!-- Start Event: Exponential inter-arrival mean 17.0 min -->
+          <bpsim:ElementParameters targetRef="StartEvent_1">
+            <bpsim:TimeParameters>
+              <bpsim:WaitTime>
+                <bpsim:ExponentialDistribution mean="17.0" />
+              </bpsim:WaitTime>
+            </bpsim:TimeParameters>
+          </bpsim:ElementParameters>
+          
+          <!-- Task 0: Process case 0 (Worker 2, Uniform 8.0 - 14.0 min) -->
+          <bpsim:ElementParameters targetRef="Task_ProcessCase0">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime>
+                <bpsim:UniformDistribution min="8.0" max="14.0" />
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Selection>
+                <bpsim:ResourceRef>Resource_Worker2</bpsim:ResourceRef>
+              </bpsim:Selection>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+          
+          <!-- Routing Probabilities -->
+          <bpsim:ElementParameters targetRef="Flow_XOR_To_AssessClaim1">
+            <bpsim:ControlParameters>
+              <bpsim:Probability>0.76</bpsim:Probability>
+            </bpsim:ControlParameters>
+          </bpsim:ElementParameters>
+          
+          <bpsim:ElementParameters targetRef="Flow_XOR_To_RegisterCase2">
+            <bpsim:ControlParameters>
+              <bpsim:Probability>0.24</bpsim:Probability>
+            </bpsim:ControlParameters>
+          </bpsim:ElementParameters>
+          
+          <!-- Task 1: Assess claim 1 (Worker 2, Fixed 2.0 min) -->
+          <bpsim:ElementParameters targetRef="Task_AssessClaim1">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime>
+                <bpsim:ConstantDistribution value="2.0" />
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Selection>
+                <bpsim:ResourceRef>Resource_Worker2</bpsim:ResourceRef>
+              </bpsim:Selection>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+          
+          <!-- Task 2: Register case 2 (Worker 2, Normal mean 22.0 min, std 4.0 min) -->
+          <bpsim:ElementParameters targetRef="Task_RegisterCase2">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime>
+                <bpsim:NormalDistribution mean="22.0" standardDeviation="4.0" />
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Selection>
+                <bpsim:ResourceRef>Resource_Worker2</bpsim:ResourceRef>
+              </bpsim:Selection>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+          
+          <!-- Task 3: Assess form 3 (Worker 1, Exponential mean 18.0 min) -->
+          <bpsim:ElementParameters targetRef="Task_AssessForm3">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime>
+                <bpsim:ExponentialDistribution mean="18.0" />
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Selection>
+                <bpsim:ResourceRef>Resource_Worker1</bpsim:ResourceRef>
+              </bpsim:Selection>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+          
+          <!-- Task 4: Schedule form 4 (Worker 2, Fixed 6.0 min) -->
+          <bpsim:ElementParameters targetRef="Task_ScheduleForm4">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime>
+                <bpsim:ConstantDistribution value="6.0" />
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Selection>
+                <bpsim:ResourceRef>Resource_Worker2</bpsim:ResourceRef>
+              </bpsim:Selection>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+          
+        </bpsim:Scenario>
+      </bpsim:BPSimData>
+    </bpmn:extensionElements>
+  </bpmn:relationship>
+  
+  <!-- Visual Diagram Layout -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="138" y="225" width="65" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Process Case 0 -->
+      <bpmndi:BPMNShape id="Task_ProcessCase0_di" bpmnElement="Task_ProcessCase0">
+        <dc:Bounds x="240" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Split Gateway -->
+      <bpmndi:BPMNShape id="Gateway_XOR1_di" bpmnElement="Gateway_XOR1" isMarkerVisible="true">
+        <dc:Bounds x="395" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="378" y="145" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Assess Claim 1 -->
+      <bpmndi:BPMNShape id="Task_AssessClaim1_di" bpmnElement="Task_AssessClaim1">
+        <dc:Bounds x="500" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Register Case 2 -->
+      <bpmndi:BPMNShape id="Task_RegisterCase2_di" bpmnElement="Task_RegisterCase2">
+        <dc:Bounds x="500" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Merge Gateway -->
+      <bpmndi:BPMNShape id="Gateway_XOR2_di" bpmnElement="Gateway_XOR2" isMarkerVisible="true">
+        <dc:Bounds x="655" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="648" y="145" width="64" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Assess Form 3 -->
+      <bpmndi:BPMNShape id="Task_AssessForm3_di" bpmnElement="Task_AssessForm3">
+        <dc:Bounds x="750" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Schedule Form 4 -->
+      <bpmndi:BPMNShape id="Task_ScheduleForm4_di" bpmnElement="Task_ScheduleForm4">
+        <dc:Bounds x="900" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1052" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1039" y="225" width="63" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Diagram Connectors -->
+      <bpmndi:BPMNEdge id="Flow_Start_To_Case0_di" bpmnElement="Flow_Start_To_Case0">
+        <di:waypoint x="188" y="200" />
+        <di:waypoint x="240" y="200" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Case0_To_XOR_di" bpmnElement="Flow_Case0_To_XOR">
+        <di:waypoint x="340" y="200" />
+        <di:waypoint x="395" y="200" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_XOR_To_AssessClaim1_di" bpmnElement="Flow_XOR_To_AssessClaim1">
+        <di:waypoint x="420" y="175" />
+        <di:waypoint x="420" y="120" />
+        <di:waypoint x="500" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="429" y="103" width="23" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_XOR_To_RegisterCase2_di" bpmnElement="Flow_XOR_To_RegisterCase2">
+        <di:waypoint x="420" y="225" />
+        <di:waypoint x="420" y="300" />
+        <di:waypoint x="500" y="300" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="429" y="283" width="23" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_AssessClaim1_To_AssessForm3_di" bpmnElement="Flow_AssessClaim1_To_AssessForm3">
+        <di:waypoint x="600" y="120" />
+        <di:waypoint x="680" y="120" />
+        <di:waypoint x="680" y="175" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_RegisterCase2_To_AssessForm3_di" bpmnElement="Flow_RegisterCase2_To_AssessForm3">
+        <di:waypoint x="600" y="300" />
+        <di:waypoint x="680" y="300" />
+        <di:waypoint x="680" y="225" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Merge_To_AssessForm3_di" bpmnElement="Flow_Merge_To_AssessForm3">
+        <di:waypoint x="705" y="200" />
+        <di:waypoint x="750" y="200" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_AssessForm3_To_ScheduleForm4_di" bpmnElement="Flow_AssessForm3_To_ScheduleForm4">
+        <di:waypoint x="850" y="200" />
+        <di:waypoint x="900" y="200" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_ScheduleForm4_To_End_di" bpmnElement="Flow_ScheduleForm4_To_End">
+        <di:waypoint x="1000" y="200" />
+        <di:waypoint x="1052" y="200" />
+      </bpmndi:BPMNEdge>
+      
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  
+</bpmn:definitions>

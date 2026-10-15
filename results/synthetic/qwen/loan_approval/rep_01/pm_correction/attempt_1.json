@@ -1,0 +1,208 @@
+{
+  "name": "Loan Approval Process",
+  "resources": [
+    {
+      "name": "Credit Analyst",
+      "capacity": 2,
+      "resource_type": "human"
+    },
+    {
+      "name": "Loan Officer",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start",
+      "name": "New Loan Application Arrives",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_approved",
+      "name": "Application Closed (Approved)",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_rejected",
+      "name": "Application Closed (Rejected)",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_receive",
+      "name": "Receive Application",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 2.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": false,
+        "source": "input_text"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_credit_check",
+      "name": "Credit Check",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Credit Analyst",
+      "duration": {
+        "distribution": "normal",
+        "value": 15.0,
+        "mean": 15.0,
+        "std": 3.0,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": false,
+        "source": "input_text"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_prepare_offer",
+      "name": "Prepare Offer",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Loan Officer",
+      "duration": {
+        "distribution": "uniform",
+        "value": 15.0,
+        "mean": null,
+        "std": null,
+        "min": 10.0,
+        "max": 20.0,
+        "unit": "minutes",
+        "is_placeholder": false,
+        "source": "input_text"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_send_rejection",
+      "name": "Send Rejection",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 5.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": false,
+        "source": "input_text"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_review_decision",
+      "name": "Review Decision",
+      "gateway_type": "exclusive",
+      "branch_probabilities": [
+        {
+          "flow_id": "flow_approved",
+          "probability": 0.7
+        },
+        {
+          "flow_id": "flow_rejected",
+          "probability": 0.3
+        }
+      ],
+      "branch_conditions": [
+        {
+          "flow_id": "flow_approved",
+          "condition": "Approved"
+        },
+        {
+          "flow_id": "flow_rejected",
+          "condition": "Rejected"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start",
+      "target_id": "task_receive",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_receive",
+      "target_id": "task_credit_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "task_credit_check",
+      "target_id": "gw_review_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_approved",
+      "source_id": "gw_review_decision",
+      "target_id": "task_prepare_offer",
+      "condition_name": "Approved"
+    },
+    {
+      "id": "flow_rejected",
+      "source_id": "gw_review_decision",
+      "target_id": "task_send_rejection",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_prepare_offer",
+      "target_id": "evt_end_approved",
+      "condition_name": null
+    },
+    {
+      "id": "flow_5",
+      "source_id": "task_send_rejection",
+      "target_id": "evt_end_rejected",
+      "condition_name": null
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "exponential",
+    "value": 10.0,
+    "mean": 10.0,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": false,
+    "source": "input_text"
+  },
+  "simulation_duration": 8.0,
+  "simulation_duration_unit": "hours"
+}

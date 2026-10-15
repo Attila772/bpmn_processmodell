@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mpon_part" name="MPON" processRef="pool_mpon_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_mpo_part" name="MPOO" processRef="pool_mpo_proc" />
+    <bpmn:participant id="pool_ms_part" name="MSPO" processRef="pool_ms_proc" />
+    <bpmn:participant id="pool_sp_part" name="SP" processRef="pool_sp_proc" />
+    <bpmn:messageFlow id="msg_flow_1" sourceRef="evt_end_go_examined" targetRef="evt_start_mpon_receive_decision" name="Application Examination Result" />
+    <bpmn:messageFlow id="msg_flow_2" sourceRef="evt_end_mpon_acquisition_done" targetRef="evt_start_go_receive_status" name="Process Completion Status" />
+    <bpmn:messageFlow id="msg_flow_3" sourceRef="evt_end_go_assign_failure" targetRef="evt_start_mpon_receive_final" name="Assignment Failure Confirmation" />
+    <bpmn:messageFlow id="msg_flow_4" sourceRef="evt_end_go_assign_success" targetRef="evt_start_mpon_receive_success" name="Assignment Success Confirmation" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mpon_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_meter_report" name="Meter Operation Report" dataObjectRef="data_meter_report_do" />
+    <bpmn:dataObject id="data_meter_report_do" />
+    <bpmn:dataObjectReference id="data_equipment_status" name="Equipment Acquisition/Change Status" dataObjectRef="data_equipment_status_do" />
+    <bpmn:dataObject id="data_equipment_status_do" />
+    <bpmn:dataObjectReference id="data_process_status" name="Overall Process Status (Fail/Success)" dataObjectRef="data_process_status_do" />
+    <bpmn:dataObject id="data_process_status_do" />
+    <bpmn:startEvent id="evt_start_mpon_report" name="Start: MPON Reports Meter Operation">
+      <bpmn:outgoing>flow_start_to_report</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_mpon_receive_decision" name="Start: Receive Decision">
+      <bpmn:outgoing>flow_start_mpon_dec_to_acquire</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_mpon_receive_decision_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mpon_acquisition_done" name="End: Acquisition/Changes Done">
+      <bpmn:incoming>flow_fail_proc</bpmn:incoming>
+      <bpmn:incoming>flow_success_proc</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_mpon_acquisition_done_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_mpon_receive_final" name="Start: Receive Final Assignment">
+      <bpmn:outgoing>flow_start_mpon_final_to_inform_others</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_mpon_receive_final_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_mpon_receive_success" name="Start: Receive Success Assignment">
+      <bpmn:outgoing>flow_start_mpon_success_to_inform_others</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_mpon_receive_success_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:userTask id="task_mpon_report" name="Report meter operation">
+      <bpmn:incoming>flow_start_to_report</bpmn:incoming>
+      <bpmn:outgoing>flow_report_to_examine</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_mpon_report_doa0">
+        <bpmn:targetRef>data_meter_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_mpon_acquire_equip" name="Perform equipment acquisition and/or changes">
+      <bpmn:incoming>flow_start_mpon_dec_to_acquire</bpmn:incoming>
+      <bpmn:outgoing>flow_acquire_to_inform</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_mpon_acquire_equip_doa0">
+        <bpmn:targetRef>data_equipment_status</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_mpon_inform_status" name="Inform GO about process failure or success">
+      <bpmn:incoming>flow_acquire_to_inform</bpmn:incoming>
+      <bpmn:outgoing>flow_inform_to_gw_status</bpmn:outgoing>
+      <bpmn:property id="task_mpon_inform_status_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mpon_inform_status_dia0">
+        <bpmn:sourceRef>data_equipment_status</bpmn:sourceRef>
+        <bpmn:targetRef>task_mpon_inform_status_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_mpon_inform_status_doa0">
+        <bpmn:targetRef>data_process_status</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_mpon_status" name="Decision: Process Failure or Success" isMarkerVisible="true">
+      <bpmn:incoming>flow_inform_to_gw_status</bpmn:incoming>
+      <bpmn:outgoing>flow_fail_proc</bpmn:outgoing>
+      <bpmn:outgoing>flow_success_proc</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_to_report" sourceRef="evt_start_mpon_report" targetRef="task_mpon_report" />
+    <bpmn:sequenceFlow id="flow_start_mpon_dec_to_acquire" sourceRef="evt_start_mpon_receive_decision" targetRef="task_mpon_acquire_equip" />
+    <bpmn:sequenceFlow id="flow_acquire_to_inform" sourceRef="task_mpon_acquire_equip" targetRef="task_mpon_inform_status" />
+    <bpmn:sequenceFlow id="flow_inform_to_gw_status" sourceRef="task_mpon_inform_status" targetRef="gw_mpon_status" />
+    <bpmn:sequenceFlow id="flow_fail_proc" sourceRef="gw_mpon_status" targetRef="evt_end_mpon_acquisition_done" name="Failure" />
+    <bpmn:sequenceFlow id="flow_success_proc" sourceRef="gw_mpon_status" targetRef="evt_end_mpon_acquisition_done" name="Success" />
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_meter_report_p1" name="Meter Operation Report" dataObjectRef="data_meter_report_p1_do" />
+    <bpmn:dataObject id="data_meter_report_p1_do" />
+    <bpmn:dataObjectReference id="data_application_decision" name="Application Decision (Reject/Confirm)" dataObjectRef="data_application_decision_do" />
+    <bpmn:dataObject id="data_application_decision_do" />
+    <bpmn:dataObjectReference id="data_assignment_failure" name="Assignment Failure Record" dataObjectRef="data_assignment_failure_do" />
+    <bpmn:dataObject id="data_assignment_failure_do" />
+    <bpmn:dataObjectReference id="data_process_status_p1" name="Overall Process Status (Fail/Success)" dataObjectRef="data_process_status_p1_do" />
+    <bpmn:dataObject id="data_process_status_p1_do" />
+    <bpmn:dataObjectReference id="data_assignment_success" name="Assignment Success Record" dataObjectRef="data_assignment_success_do" />
+    <bpmn:dataObject id="data_assignment_success_do" />
+    <bpmn:dataObjectReference id="data_assignment_success_msg" name="Assignment Success Message" dataObjectRef="data_assignment_success_msg_do" />
+    <bpmn:dataObject id="data_assignment_success_msg_do" />
+    <bpmn:endEvent id="evt_end_go_examined" name="End: Application Examined">
+      <bpmn:incoming>flow_reject_app</bpmn:incoming>
+      <bpmn:incoming>flow_inform_to_end</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_go_examined_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_go_receive_status" name="Start: Receive Process Status">
+      <bpmn:outgoing>flow_start_go_status_to_gw_result</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_go_receive_status_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_timer_timeout" name="Timer: Max Time Limit Reached">
+      <bpmn:outgoing>flow_timer_to_handle_timeout</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="evt_timer_timeout_timerdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="evt_end_go_assign_failure" name="End: Confirm Failure to MPON">
+      <bpmn:incoming>flow_handle_timeout_to_end_fail</bpmn:incoming>
+      <bpmn:incoming>flow_confirm_fail_to_end</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_go_assign_failure_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_end_go_assign_success" name="End: Confirm Success to MPON">
+      <bpmn:incoming>flow_confirm_success_to_end</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_go_assign_success_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_end_process_complete" name="End: Process Complete">
+      <bpmn:incoming>flow_inform_others_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_go_examine" name="Examine application of MPON">
+      <bpmn:incoming>flow_report_to_examine</bpmn:incoming>
+      <bpmn:outgoing>flow_examine_to_gw</bpmn:outgoing>
+      <bpmn:property id="task_go_examine_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_go_examine_dia0">
+        <bpmn:sourceRef>data_meter_report_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_examine_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_go_examine_doa0">
+        <bpmn:targetRef>data_application_decision</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_go_inform_reg_conf" name="Inform MPOO and MSPO about registration confirmation">
+      <bpmn:incoming>flow_confirm_app</bpmn:incoming>
+      <bpmn:outgoing>flow_inform_to_end</bpmn:outgoing>
+      <bpmn:property id="task_go_inform_reg_conf_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_go_inform_reg_conf_dia0">
+        <bpmn:sourceRef>data_application_decision</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_inform_reg_conf_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_go_handle_timeout" name="Confirm failure by deadline">
+      <bpmn:incoming>flow_timer_to_handle_timeout</bpmn:incoming>
+      <bpmn:outgoing>flow_handle_timeout_to_end_fail</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_go_handle_timeout_doa0">
+        <bpmn:targetRef>data_assignment_failure</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_go_confirm_failure" name="Confirm failure of assignment to MPON">
+      <bpmn:incoming>flow_fail_assign</bpmn:incoming>
+      <bpmn:outgoing>flow_confirm_fail_to_end</bpmn:outgoing>
+      <bpmn:property id="task_go_confirm_failure_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_go_confirm_failure_dia0">
+        <bpmn:sourceRef>data_process_status_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_confirm_failure_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_go_confirm_failure_doa0">
+        <bpmn:targetRef>data_assignment_failure</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_go_assign_mpon" name="Assign the MPON">
+      <bpmn:incoming>flow_success_assign</bpmn:incoming>
+      <bpmn:outgoing>flow_assign_to_confirm_success</bpmn:outgoing>
+      <bpmn:property id="task_go_assign_mpon_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_go_assign_mpon_dia0">
+        <bpmn:sourceRef>data_process_status_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_assign_mpon_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_go_assign_mpon_doa0">
+        <bpmn:targetRef>data_assignment_success</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_go_confirm_success" name="Confirm assignment to MPON">
+      <bpmn:incoming>flow_assign_to_confirm_success</bpmn:incoming>
+      <bpmn:outgoing>flow_confirm_success_to_end</bpmn:outgoing>
+      <bpmn:property id="task_go_confirm_success_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_go_confirm_success_dia0">
+        <bpmn:sourceRef>data_assignment_success</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_confirm_success_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_go_confirm_success_doa0">
+        <bpmn:targetRef>data_assignment_success_msg</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_go_inform_others" name="Inform MPOO, MSPO, SP about assignment result">
+      <bpmn:incoming>flow_start_mpon_final_to_inform_others</bpmn:incoming>
+      <bpmn:incoming>flow_start_mpon_success_to_inform_others</bpmn:incoming>
+      <bpmn:outgoing>flow_inform_others_to_end</bpmn:outgoing>
+      <bpmn:property id="task_go_inform_others_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_go_inform_others_dia0">
+        <bpmn:sourceRef>data_assignment_success</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_inform_others_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_go_inform_others_dia1">
+        <bpmn:sourceRef>data_assignment_failure</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_inform_others_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_go_decision" name="Decision: Reject or Confirm Application" isMarkerVisible="true">
+      <bpmn:incoming>flow_examine_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_reject_app</bpmn:outgoing>
+      <bpmn:outgoing>flow_confirm_app</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_go_result" name="Decision: Assignment Failure or Success" isMarkerVisible="true">
+      <bpmn:incoming>flow_start_go_status_to_gw_result</bpmn:incoming>
+      <bpmn:outgoing>flow_fail_assign</bpmn:outgoing>
+      <bpmn:outgoing>flow_success_assign</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_examine_to_gw" sourceRef="task_go_examine" targetRef="gw_go_decision" />
+    <bpmn:sequenceFlow id="flow_reject_app" sourceRef="gw_go_decision" targetRef="evt_end_go_examined" name="Reject" />
+    <bpmn:sequenceFlow id="flow_confirm_app" sourceRef="gw_go_decision" targetRef="task_go_inform_reg_conf" name="Confirm" />
+    <bpmn:sequenceFlow id="flow_inform_to_end" sourceRef="task_go_inform_reg_conf" targetRef="evt_end_go_examined" />
+    <bpmn:sequenceFlow id="flow_start_go_status_to_gw_result" sourceRef="evt_start_go_receive_status" targetRef="gw_go_result" />
+    <bpmn:sequenceFlow id="flow_timer_to_handle_timeout" sourceRef="evt_timer_timeout" targetRef="task_go_handle_timeout" />
+    <bpmn:sequenceFlow id="flow_handle_timeout_to_end_fail" sourceRef="task_go_handle_timeout" targetRef="evt_end_go_assign_failure" />
+    <bpmn:sequenceFlow id="flow_fail_assign" sourceRef="gw_go_result" targetRef="task_go_confirm_failure" name="Failure" />
+    <bpmn:sequenceFlow id="flow_success_assign" sourceRef="gw_go_result" targetRef="task_go_assign_mpon" name="Success" />
+    <bpmn:sequenceFlow id="flow_confirm_fail_to_end" sourceRef="task_go_confirm_failure" targetRef="evt_end_go_assign_failure" />
+    <bpmn:sequenceFlow id="flow_assign_to_confirm_success" sourceRef="task_go_assign_mpon" targetRef="task_go_confirm_success" />
+    <bpmn:sequenceFlow id="flow_confirm_success_to_end" sourceRef="task_go_confirm_success" targetRef="evt_end_go_assign_success" />
+    <bpmn:sequenceFlow id="flow_inform_others_to_end" sourceRef="task_go_inform_others" targetRef="evt_end_process_complete" />
+  </bpmn:process>
+  <bpmn:process id="pool_mpo_proc" isExecutable="false">
+  </bpmn:process>
+  <bpmn:process id="pool_ms_proc" isExecutable="false">
+  </bpmn:process>
+  <bpmn:process id="pool_sp_proc" isExecutable="false">
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mpon_part_di" bpmnElement="pool_mpon_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1140" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="750" width="1140" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpo_part_di" bpmnElement="pool_mpo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1460" width="700" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_ms_part_di" bpmnElement="pool_ms_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1720" width="700" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_sp_part_di" bpmnElement="pool_sp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1980" width="700" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_go_assign_failure_di" bpmnElement="evt_end_go_assign_failure">
+        <dc:Bounds x="730" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_go_assign_success_di" bpmnElement="evt_end_go_assign_success">
+        <dc:Bounds x="920" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_go_examined_di" bpmnElement="evt_end_go_examined">
+        <dc:Bounds x="730" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpon_acquisition_done_di" bpmnElement="evt_end_mpon_acquisition_done">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_process_complete_di" bpmnElement="evt_end_process_complete">
+        <dc:Bounds x="350" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_go_receive_status_di" bpmnElement="evt_start_go_receive_status">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpon_receive_decision_di" bpmnElement="evt_start_mpon_receive_decision">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpon_receive_final_di" bpmnElement="evt_start_mpon_receive_final">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpon_receive_success_di" bpmnElement="evt_start_mpon_receive_success">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpon_report_di" bpmnElement="evt_start_mpon_report">
+        <dc:Bounds x="160" y="475" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_timer_timeout_di" bpmnElement="evt_timer_timeout">
+        <dc:Bounds x="160" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_decision_di" bpmnElement="gw_go_decision">
+        <dc:Bounds x="350" y="935" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_result_di" bpmnElement="gw_go_result">
+        <dc:Bounds x="350" y="1060" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_mpon_status_di" bpmnElement="gw_mpon_status">
+        <dc:Bounds x="730" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_assign_mpon_di" bpmnElement="task_go_assign_mpon">
+        <dc:Bounds x="540" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_confirm_failure_di" bpmnElement="task_go_confirm_failure">
+        <dc:Bounds x="540" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_confirm_success_di" bpmnElement="task_go_confirm_success">
+        <dc:Bounds x="730" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_examine_di" bpmnElement="task_go_examine">
+        <dc:Bounds x="160" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_handle_timeout_di" bpmnElement="task_go_handle_timeout">
+        <dc:Bounds x="350" y="1185" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_inform_others_di" bpmnElement="task_go_inform_others">
+        <dc:Bounds x="160" y="1185" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_inform_reg_conf_di" bpmnElement="task_go_inform_reg_conf">
+        <dc:Bounds x="540" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_acquire_equip_di" bpmnElement="task_mpon_acquire_equip">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_inform_status_di" bpmnElement="task_mpon_inform_status">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_report_di" bpmnElement="task_mpon_report">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_meter_report_di" bpmnElement="data_meter_report">
+        <dc:Bounds x="370" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_equipment_status_di" bpmnElement="data_equipment_status">
+        <dc:Bounds x="465" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_process_status_di" bpmnElement="data_process_status">
+        <dc:Bounds x="560" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_meter_report_p1_di" bpmnElement="data_meter_report_p1">
+        <dc:Bounds x="180" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_application_decision_di" bpmnElement="data_application_decision">
+        <dc:Bounds x="370" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_assignment_failure_di" bpmnElement="data_assignment_failure">
+        <dc:Bounds x="370" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_process_status_p1_di" bpmnElement="data_process_status_p1">
+        <dc:Bounds x="560" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_assignment_success_di" bpmnElement="data_assignment_success">
+        <dc:Bounds x="496" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_assignment_success_msg_di" bpmnElement="data_assignment_success_msg">
+        <dc:Bounds x="750" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_report_di" bpmnElement="flow_start_to_report">
+        <di:waypoint x="178" y="493" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_report_to_examine_di" bpmnElement="flow_report_to_examine">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="210" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_examine_to_gw_di" bpmnElement="flow_examine_to_gw">
+        <di:waypoint x="210" y="1100" />
+        <di:waypoint x="375" y="960" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reject_app_di" bpmnElement="flow_reject_app">
+        <di:waypoint x="375" y="960" />
+        <di:waypoint x="748" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confirm_app_di" bpmnElement="flow_confirm_app">
+        <di:waypoint x="375" y="960" />
+        <di:waypoint x="590" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_to_end_di" bpmnElement="flow_inform_to_end">
+        <di:waypoint x="590" y="1100" />
+        <di:waypoint x="748" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_mpon_dec_to_acquire_di" bpmnElement="flow_start_mpon_dec_to_acquire">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_acquire_to_inform_di" bpmnElement="flow_acquire_to_inform">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_to_gw_status_di" bpmnElement="flow_inform_to_gw_status">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_fail_proc_di" bpmnElement="flow_fail_proc">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_success_proc_di" bpmnElement="flow_success_proc">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_go_status_to_gw_result_di" bpmnElement="flow_start_go_status_to_gw_result">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="375" y="1085" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_timer_to_handle_timeout_di" bpmnElement="flow_timer_to_handle_timeout">
+        <di:waypoint x="178" y="953" />
+        <di:waypoint x="400" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_handle_timeout_to_end_fail_di" bpmnElement="flow_handle_timeout_to_end_fail">
+        <di:waypoint x="400" y="1225" />
+        <di:waypoint x="748" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_fail_assign_di" bpmnElement="flow_fail_assign">
+        <di:waypoint x="375" y="1085" />
+        <di:waypoint x="590" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_success_assign_di" bpmnElement="flow_success_assign">
+        <di:waypoint x="375" y="1085" />
+        <di:waypoint x="590" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confirm_fail_to_end_di" bpmnElement="flow_confirm_fail_to_end">
+        <di:waypoint x="590" y="975" />
+        <di:waypoint x="748" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_assign_to_confirm_success_di" bpmnElement="flow_assign_to_confirm_success">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="780" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confirm_success_to_end_di" bpmnElement="flow_confirm_success_to_end">
+        <di:waypoint x="780" y="1100" />
+        <di:waypoint x="938" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_mpon_final_to_inform_others_di" bpmnElement="flow_start_mpon_final_to_inform_others">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="210" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_mpon_success_to_inform_others_di" bpmnElement="flow_start_mpon_success_to_inform_others">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="210" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_others_to_end_di" bpmnElement="flow_inform_others_to_end">
+        <di:waypoint x="210" y="1225" />
+        <di:waypoint x="368" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_1_di" bpmnElement="msg_flow_1">
+        <di:waypoint x="748" y="953" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_2_di" bpmnElement="msg_flow_2">
+        <di:waypoint x="938" y="118" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_3_di" bpmnElement="msg_flow_3">
+        <di:waypoint x="748" y="828" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_4_di" bpmnElement="msg_flow_4">
+        <di:waypoint x="938" y="828" />
+        <di:waypoint x="178" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_report_doa0_di" bpmnElement="task_mpon_report_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="388" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_examine_dia0_di" bpmnElement="task_go_examine_dia0">
+        <di:waypoint x="198" y="1350" />
+        <di:waypoint x="210" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_examine_doa0_di" bpmnElement="task_go_examine_doa0">
+        <di:waypoint x="210" y="1100" />
+        <di:waypoint x="388" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_inform_reg_conf_dia0_di" bpmnElement="task_go_inform_reg_conf_dia0">
+        <di:waypoint x="388" y="1350" />
+        <di:waypoint x="590" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_acquire_equip_doa0_di" bpmnElement="task_mpon_acquire_equip_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="483" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_inform_status_dia0_di" bpmnElement="task_mpon_inform_status_dia0">
+        <di:waypoint x="483" y="640" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_inform_status_doa0_di" bpmnElement="task_mpon_inform_status_doa0">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="578" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_handle_timeout_doa0_di" bpmnElement="task_go_handle_timeout_doa0">
+        <di:waypoint x="400" y="1225" />
+        <di:waypoint x="388" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_confirm_failure_dia0_di" bpmnElement="task_go_confirm_failure_dia0">
+        <di:waypoint x="578" y="1350" />
+        <di:waypoint x="590" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_confirm_failure_doa0_di" bpmnElement="task_go_confirm_failure_doa0">
+        <di:waypoint x="590" y="975" />
+        <di:waypoint x="388" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_assign_mpon_dia0_di" bpmnElement="task_go_assign_mpon_dia0">
+        <di:waypoint x="578" y="1350" />
+        <di:waypoint x="590" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_assign_mpon_doa0_di" bpmnElement="task_go_assign_mpon_doa0">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="514" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_confirm_success_dia0_di" bpmnElement="task_go_confirm_success_dia0">
+        <di:waypoint x="514" y="1350" />
+        <di:waypoint x="780" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_confirm_success_doa0_di" bpmnElement="task_go_confirm_success_doa0">
+        <di:waypoint x="780" y="1100" />
+        <di:waypoint x="768" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_inform_others_dia0_di" bpmnElement="task_go_inform_others_dia0">
+        <di:waypoint x="514" y="1350" />
+        <di:waypoint x="210" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_inform_others_dia1_di" bpmnElement="task_go_inform_others_dia1">
+        <di:waypoint x="388" y="1350" />
+        <di:waypoint x="210" y="1225" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

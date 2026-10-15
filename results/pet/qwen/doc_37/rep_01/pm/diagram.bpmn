@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mail_processing_unit_part" name="Mail Processing Unit" processRef="pool_mail_processing_unit_proc" />
+    <bpmn:participant id="pool_registry_part" name="Registry" processRef="pool_registry_proc" />
+    <bpmn:messageFlow id="msg_mail_to_registry" sourceRef="evt_end_mail_distributed" targetRef="evt_start_registry_receipt" name="Sorted Mail" />
+    <bpmn:messageFlow id="msg_rejection_to_party" sourceRef="evt_end_rejection_sent" targetRef="evt_start_mail_collection" name="Rejection List" />
+    <bpmn:messageFlow id="msg_receipt_to_party" sourceRef="evt_end_receipt_posted" targetRef="evt_start_mail_collection" name="Receipt and Copies" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mail_processing_unit_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_start_mail_collection" name="Mail Collected from Party">
+      <bpmn:outgoing>flow_collect_to_sort</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="evt_start_mail_collection_timerdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mail_distributed" name="Mail Distributed to Registry">
+      <bpmn:incoming>flow_sort_to_dist_end</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_mail_distributed_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_sort_mail" name="Sort unopened mail into business areas">
+      <bpmn:incoming>flow_collect_to_sort</bpmn:incoming>
+      <bpmn:outgoing>flow_sort_to_dist_end</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="flow_collect_to_sort" sourceRef="evt_start_mail_collection" targetRef="task_sort_mail" />
+    <bpmn:sequenceFlow id="flow_sort_to_dist_end" sourceRef="task_sort_mail" targetRef="evt_end_mail_distributed" />
+  </bpmn:process>
+  <bpmn:process id="pool_registry_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_incoming_mail_register" name="Manual Incoming Mail Register" dataObjectRef="data_incoming_mail_register_do" />
+    <bpmn:dataObject id="data_incoming_mail_register_do" />
+    <bpmn:dataObjectReference id="data_rejection_list" name="List of Requisition (Rejection)" dataObjectRef="data_rejection_list_do" />
+    <bpmn:dataObject id="data_rejection_list_do" />
+    <bpmn:dataObjectReference id="data_matter_details" name="Matter Details (Types of Action)" dataObjectRef="data_matter_details_do" />
+    <bpmn:dataObject id="data_matter_details_do" />
+    <bpmn:dataObjectReference id="data_receipt" name="Receipt" dataObjectRef="data_receipt_do" />
+    <bpmn:dataObject id="data_receipt_do" />
+    <bpmn:dataObjectReference id="data_envelope_contents" name="Envelope with Receipt and Copied Documents" dataObjectRef="data_envelope_contents_do" />
+    <bpmn:dataObject id="data_envelope_contents_do" />
+    <bpmn:dataObjectReference id="data_party_details" name="Party Details" dataObjectRef="data_party_details_do" />
+    <bpmn:dataObject id="data_party_details_do" />
+    <bpmn:dataObjectReference id="data_physical_court_file" name="Physical Court File" dataObjectRef="data_physical_court_file_do" />
+    <bpmn:dataObject id="data_physical_court_file_do" />
+    <bpmn:startEvent id="evt_start_registry_receipt" name="Mail Received by Registry">
+      <bpmn:outgoing>flow_recv_to_open</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_registry_receipt_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_rejection_sent" name="Rejection List Sent to Party">
+      <bpmn:incoming>flow_rej_to_end</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_rejection_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_end_receipt_posted" name="Receipt Posted to Party">
+      <bpmn:incoming>flow_env_to_post_end</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_receipt_posted_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_open_and_register" name="Open, sort, and register mail in Manual Incoming Mail Register">
+      <bpmn:incoming>flow_recv_to_open</bpmn:incoming>
+      <bpmn:outgoing>flow_open_to_qc</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_open_and_register_doa0">
+        <bpmn:targetRef>data_incoming_mail_register</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_quality_check" name="Perform quality check on mail">
+      <bpmn:incoming>flow_open_to_qc</bpmn:incoming>
+      <bpmn:outgoing>flow_qc_to_gw</bpmn:outgoing>
+      <bpmn:property id="task_quality_check_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_quality_check_dia0">
+        <bpmn:sourceRef>data_incoming_mail_register</bpmn:sourceRef>
+        <bpmn:targetRef>task_quality_check_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_compile_rejection" name="Compile list of requisition explaining rejection">
+      <bpmn:incoming>flow_to_rejection</bpmn:incoming>
+      <bpmn:outgoing>flow_rej_to_end</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_compile_rejection_doa0">
+        <bpmn:targetRef>data_rejection_list</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_capture_details" name="Capture matter details (types of action)">
+      <bpmn:incoming>flow_to_capture</bpmn:incoming>
+      <bpmn:outgoing>flow_capture_to_fees</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_capture_details_doa0">
+        <bpmn:targetRef>data_matter_details</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_take_fees" name="Take applicable fees attached to the mail">
+      <bpmn:incoming>flow_capture_to_fees</bpmn:incoming>
+      <bpmn:outgoing>flow_fees_to_env</bpmn:outgoing>
+      <bpmn:outgoing>flow_fees_to_print</bpmn:outgoing>
+      <bpmn:property id="task_take_fees_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_take_fees_dia0">
+        <bpmn:sourceRef>data_matter_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_take_fees_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_take_fees_doa0">
+        <bpmn:targetRef>data_receipt</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_prepare_envelope" name="Put receipt and copied documents into envelope">
+      <bpmn:incoming>flow_fees_to_env</bpmn:incoming>
+      <bpmn:outgoing>flow_env_to_post_end</bpmn:outgoing>
+      <bpmn:property id="task_prepare_envelope_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_prepare_envelope_dia0">
+        <bpmn:sourceRef>data_receipt</bpmn:sourceRef>
+        <bpmn:targetRef>task_prepare_envelope_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_prepare_envelope_doa0">
+        <bpmn:targetRef>data_envelope_contents</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:serviceTask id="task_print_court_file" name="Print Physical Court File">
+      <bpmn:incoming>flow_fees_to_print</bpmn:incoming>
+      <bpmn:property id="task_print_court_file_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_print_court_file_dia0">
+        <bpmn:sourceRef>data_party_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_print_court_file_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_print_court_file_doa0">
+        <bpmn:targetRef>data_physical_court_file</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_compliance_check" name="Is mail compliant?" isMarkerVisible="true">
+      <bpmn:incoming>flow_qc_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_to_rejection</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_capture</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_recv_to_open" sourceRef="evt_start_registry_receipt" targetRef="task_open_and_register" />
+    <bpmn:sequenceFlow id="flow_open_to_qc" sourceRef="task_open_and_register" targetRef="task_quality_check" />
+    <bpmn:sequenceFlow id="flow_qc_to_gw" sourceRef="task_quality_check" targetRef="gw_compliance_check" />
+    <bpmn:sequenceFlow id="flow_to_rejection" sourceRef="gw_compliance_check" targetRef="task_compile_rejection" name="Not Compliant" />
+    <bpmn:sequenceFlow id="flow_rej_to_end" sourceRef="task_compile_rejection" targetRef="evt_end_rejection_sent" />
+    <bpmn:sequenceFlow id="flow_to_capture" sourceRef="gw_compliance_check" targetRef="task_capture_details" name="Compliant" />
+    <bpmn:sequenceFlow id="flow_capture_to_fees" sourceRef="task_capture_details" targetRef="task_take_fees" />
+    <bpmn:sequenceFlow id="flow_fees_to_env" sourceRef="task_take_fees" targetRef="task_prepare_envelope" />
+    <bpmn:sequenceFlow id="flow_env_to_post_end" sourceRef="task_prepare_envelope" targetRef="evt_end_receipt_posted" />
+    <bpmn:sequenceFlow id="flow_fees_to_print" sourceRef="task_take_fees" targetRef="task_print_court_file" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mail_processing_unit_part_di" bpmnElement="pool_mail_processing_unit_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_registry_part_di" bpmnElement="pool_registry_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="1710" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mail_distributed_di" bpmnElement="evt_end_mail_distributed">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_receipt_posted_di" bpmnElement="evt_end_receipt_posted">
+        <dc:Bounds x="1490" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_rejection_sent_di" bpmnElement="evt_end_rejection_sent">
+        <dc:Bounds x="1110" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mail_collection_di" bpmnElement="evt_start_mail_collection">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_registry_receipt_di" bpmnElement="evt_start_registry_receipt">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_compliance_check_di" bpmnElement="gw_compliance_check">
+        <dc:Bounds x="730" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_capture_details_di" bpmnElement="task_capture_details">
+        <dc:Bounds x="920" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_compile_rejection_di" bpmnElement="task_compile_rejection">
+        <dc:Bounds x="920" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_open_and_register_di" bpmnElement="task_open_and_register">
+        <dc:Bounds x="350" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_envelope_di" bpmnElement="task_prepare_envelope">
+        <dc:Bounds x="1300" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_print_court_file_di" bpmnElement="task_print_court_file">
+        <dc:Bounds x="1300" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_quality_check_di" bpmnElement="task_quality_check">
+        <dc:Bounds x="540" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_sort_mail_di" bpmnElement="task_sort_mail">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_take_fees_di" bpmnElement="task_take_fees">
+        <dc:Bounds x="1110" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_incoming_mail_register_di" bpmnElement="data_incoming_mail_register">
+        <dc:Bounds x="465" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_rejection_list_di" bpmnElement="data_rejection_list">
+        <dc:Bounds x="940" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_matter_details_di" bpmnElement="data_matter_details">
+        <dc:Bounds x="1035" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_receipt_di" bpmnElement="data_receipt">
+        <dc:Bounds x="1225" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_envelope_contents_di" bpmnElement="data_envelope_contents">
+        <dc:Bounds x="1320" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_party_details_di" bpmnElement="data_party_details">
+        <dc:Bounds x="1320" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_physical_court_file_di" bpmnElement="data_physical_court_file">
+        <dc:Bounds x="1320" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_collect_to_sort_di" bpmnElement="flow_collect_to_sort">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sort_to_dist_end_di" bpmnElement="flow_sort_to_dist_end">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_recv_to_open_di" bpmnElement="flow_recv_to_open">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_open_to_qc_di" bpmnElement="flow_open_to_qc">
+        <di:waypoint x="400" y="475" />
+        <di:waypoint x="590" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_qc_to_gw_di" bpmnElement="flow_qc_to_gw">
+        <di:waypoint x="590" y="475" />
+        <di:waypoint x="755" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_rejection_di" bpmnElement="flow_to_rejection">
+        <di:waypoint x="755" y="460" />
+        <di:waypoint x="970" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_rej_to_end_di" bpmnElement="flow_rej_to_end">
+        <di:waypoint x="970" y="600" />
+        <di:waypoint x="1128" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_capture_di" bpmnElement="flow_to_capture">
+        <di:waypoint x="755" y="460" />
+        <di:waypoint x="970" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_capture_to_fees_di" bpmnElement="flow_capture_to_fees">
+        <di:waypoint x="970" y="475" />
+        <di:waypoint x="1160" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_fees_to_env_di" bpmnElement="flow_fees_to_env">
+        <di:waypoint x="1160" y="600" />
+        <di:waypoint x="1350" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_env_to_post_end_di" bpmnElement="flow_env_to_post_end">
+        <di:waypoint x="1350" y="475" />
+        <di:waypoint x="1508" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_fees_to_print_di" bpmnElement="flow_fees_to_print">
+        <di:waypoint x="1160" y="600" />
+        <di:waypoint x="1350" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_mail_to_registry_di" bpmnElement="msg_mail_to_registry">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_rejection_to_party_di" bpmnElement="msg_rejection_to_party">
+        <di:waypoint x="1128" y="453" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_receipt_to_party_di" bpmnElement="msg_receipt_to_party">
+        <di:waypoint x="1508" y="453" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_open_and_register_doa0_di" bpmnElement="task_open_and_register_doa0">
+        <di:waypoint x="400" y="475" />
+        <di:waypoint x="483" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_quality_check_dia0_di" bpmnElement="task_quality_check_dia0">
+        <di:waypoint x="483" y="725" />
+        <di:waypoint x="590" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_compile_rejection_doa0_di" bpmnElement="task_compile_rejection_doa0">
+        <di:waypoint x="970" y="600" />
+        <di:waypoint x="958" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_capture_details_doa0_di" bpmnElement="task_capture_details_doa0">
+        <di:waypoint x="970" y="475" />
+        <di:waypoint x="1053" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_take_fees_dia0_di" bpmnElement="task_take_fees_dia0">
+        <di:waypoint x="1053" y="725" />
+        <di:waypoint x="1160" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_take_fees_doa0_di" bpmnElement="task_take_fees_doa0">
+        <di:waypoint x="1160" y="600" />
+        <di:waypoint x="1243" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_envelope_dia0_di" bpmnElement="task_prepare_envelope_dia0">
+        <di:waypoint x="1243" y="725" />
+        <di:waypoint x="1350" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_envelope_doa0_di" bpmnElement="task_prepare_envelope_doa0">
+        <di:waypoint x="1350" y="475" />
+        <di:waypoint x="1338" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_print_court_file_dia0_di" bpmnElement="task_print_court_file_dia0">
+        <di:waypoint x="1338" y="725" />
+        <di:waypoint x="1350" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_print_court_file_doa0_di" bpmnElement="task_print_court_file_doa0">
+        <di:waypoint x="1350" y="600" />
+        <di:waypoint x="1338" y="725" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

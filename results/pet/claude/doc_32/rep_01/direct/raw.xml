@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             id="Definitions_ACME_Invoice"
+             targetNamespace="http://acme.ag/bpmn/invoice-process">
+
+  <process id="ACME_InvoiceProcess" name="ACME AG Invoice Processing" isExecutable="false">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Secretariat" name="Secretariat">
+        <flowNodeRef>StartEvent_1</flowNodeRef>
+        <flowNodeRef>Task_VisualInspection</flowNodeRef>
+      </lane>
+      <lane id="Lane_Accounting" name="Accounting Employee">
+        <flowNodeRef>Task_IdentifySupplier</flowNodeRef>
+        <flowNodeRef>Task_CheckItemsDocket</flowNodeRef>
+        <flowNodeRef>Gateway_MergeToCCM</flowNodeRef>
+        <flowNodeRef>Task_SendToFirstCCM</flowNodeRef>
+        <flowNodeRef>Task_ReceiveRejected</flowNodeRef>
+        <flowNodeRef>Task_ClarifyVendor</flowNodeRef>
+        <flowNodeRef>Task_ConsultCCM</flowNodeRef>
+        <flowNodeRef>Task_ForwardToCommercialManager</flowNodeRef>
+        <flowNodeRef>Task_ResolveComplaint</flowNodeRef>
+        <flowNodeRef>Task_PaymentInstructionClose</flowNodeRef>
+      </lane>
+      <lane id="Lane_CCM" name="Cost Center Manager">
+        <flowNodeRef>Task_ReviewItem</flowNodeRef>
+        <flowNodeRef>Gateway_ItemCorrect</flowNodeRef>
+        <flowNodeRef>Task_MarkAP</flowNodeRef>
+        <flowNodeRef>Gateway_AllItemsAP</flowNodeRef>
+        <flowNodeRef>Task_ForwardNextManager</flowNodeRef>
+        <flowNodeRef>Task_ReturnToAccounting</flowNodeRef>
+        <flowNodeRef>Task_RejectWithNote</flowNodeRef>
+      </lane>
+      <lane id="Lane_CommercialManager" name="Commercial Manager">
+        <flowNodeRef>Task_CommercialAudit</flowNodeRef>
+        <flowNodeRef>Gateway_Complaint</flowNodeRef>
+        <flowNodeRef>Task_ApprovePayment</flowNodeRef>
+      </lane>
+      <lane id="Lane_Board" name="Board">
+        <flowNodeRef>Gateway_AmountCheck</flowNodeRef>
+        <flowNodeRef>Task_BoardReview</flowNodeRef>
+        <flowNodeRef>Task_ReturnSignatureFile</flowNodeRef>
+        <flowNodeRef>Gateway_MergeAfterBoard</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Events -->
+    <startEvent id="StartEvent_1" name="Invoice received (paper/fax)">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <endEvent id="EndEvent_1" name="Invoice process closed">
+      <incoming>Flow_Final</incoming>
+    </endEvent>
+
+    <!-- Secretariat -->
+    <task id="Task_VisualInspection" name="Visual inspection and forward to accounting">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <!-- Accounting -->
+    <task id="Task_IdentifySupplier" name="Identify supplier and create invoice instance in ACME Financial Accounting">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <task id="Task_CheckItemsDocket" name="Check invoice items, note cost center and manager on docket">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_MergeToCCM" name="Merge before sending to CCM">
+      <incoming>Flow_4</incoming>
+      <incoming>Flow_FromConsult</incoming>
+      <outgoing>Flow_5</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_SendToFirstCCM" name="Send docket and invoice copy to (next) cost center manager via internal mail">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <task id="Task_ReceiveRejected" name="Receive rejected invoice copy with docket note">
+      <incoming>Flow_FromReject</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+
+    <task id="Task_ClarifyVendor" name="Clarify inconsistency with vendor">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <task id="Task_ConsultCCM" name="Consult cost center manager by phone/e-mail if necessary">
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_FromConsult</outgoing>
+    </task>
+
+    <task id="Task_ForwardToCommercialManager" name="Forward invoice copy to commercial manager">
+      <incoming>Flow_FromAllAP</incoming>
+      <outgoing>Flow_9</outgoing>
+    </task>
+
+    <task id="Task_ResolveComplaint" name="Resolve complaint with supplier">
+      <incoming>Flow_Complaint</incoming>
+      <outgoing>Flow_BackToAudit</outgoing>
+    </task>
+
+    <task id="Task_PaymentInstructionClose" name="Give payment instruction and close instance in ACME Financial Accounting">
+      <incoming>Flow_ToClose</incoming>
+      <outgoing>Flow_Final</outgoing>
+    </task>
+
+    <!-- Cost Center Manager -->
+    <task id="Task_ReviewItem" name="Review invoice item for accuracy">
+      <incoming>Flow_6</incoming>
+      <incoming>Flow_NextItem</incoming>
+      <outgoing>Flow_10</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_ItemCorrect" name="Item correct?">
+      <incoming>Flow_10</incoming>
+      <outgoing>Flow_Correct</outgoing>
+      <outgoing>Flow_Incorrect</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_MarkAP" name="Note code 'Accurate Position (AP)' on docket">
+      <incoming>Flow_Correct</incoming>
+      <outgoing>Flow_11</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_AllItemsAP" name="All items AP?">
+      <incoming>Flow_11</incoming>
+      <outgoing>Flow_MoreItems</outgoing>
+      <outgoing>Flow_AllDone</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_ForwardNextManager" name="Forward invoice copy to next cost center manager (per docket)">
+      <incoming>Flow_MoreItems</incoming>
+      <outgoing>Flow_NextItem</outgoing>
+    </task>
+
+    <task id="Task_ReturnToAccounting" name="Return invoice copy to accounting via internal mail">
+      <incoming>Flow_AllDone</incoming>
+      <outgoing>Flow_FromAllAP</outgoing>
+    </task>
+
+    <task id="Task_RejectWithNote" name="Reject AP, add note and explanatory statement on docket">
+      <incoming>Flow_Incorrect</incoming>
+      <outgoing>Flow_FromReject</outgoing>
+    </task>
+
+    <!-- Commercial Manager -->
+    <task id="Task_CommercialAudit" name="Perform commercial audit">
+      <incoming>Flow_9</incoming>
+      <incoming>Flow_BackToAudit</incoming>
+      <outgoing>Flow_12</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Complaint" name="Complaint during commercial audit?">
+      <incoming>Flow_12</incoming>
+      <outgoing>Flow_Complaint</outgoing>
+      <outgoing>Flow_NoComplaint</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_ApprovePayment" name="Issue approval for payment">
+      <incoming>Flow_NoComplaint</incoming>
+      <outgoing>Flow_13</outgoing>
+    </task>
+
+    <!-- Board -->
+    <exclusiveGateway id="Gateway_AmountCheck" name="Invoice amount &gt; 20,000 EUR?">
+      <incoming>Flow_13</incoming>
+      <outgoing>Flow_ToBoard</outgoing>
+      <outgoing>Flow_SkipBoard</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_BoardReview" name="Board reviews invoice (4-eyes principle)">
+      <incoming>Flow_ToBoard</incoming>
+      <outgoing>Flow_14</outgoing>
+    </task>
+
+    <task id="Task_ReturnSignatureFile" name="Return invoice copy and docket to accounting in signature file">
+      <incoming>Flow_14</incoming>
+      <outgoing>Flow_FromBoard</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_MergeAfterBoard" name="Merge after board / skip board">
+      <incoming>Flow_FromBoard</incoming>
+      <incoming>Flow_SkipBoard</incoming>
+      <outgoing>Flow_ToClose</outgoing>
+    </exclusiveGateway>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_VisualInspection" />
+    <sequenceFlow id="Flow_2" sourceRef="Task_VisualInspection" targetRef="Task_IdentifySupplier" />
+    <sequenceFlow id="Flow_3" sourceRef="Task_IdentifySupplier" targetRef="Task_CheckItemsDocket" />
+    <sequenceFlow id="Flow_4" sourceRef="Task_CheckItemsDocket" targetRef="Gateway_MergeToCCM" />
+    <sequenceFlow id="Flow_5" sourceRef="Gateway_MergeToCCM" targetRef="Task_SendToFirstCCM" />
+    <sequenceFlow id="Flow_6" sourceRef="Task_SendToFirstCCM" targetRef="Task_ReviewItem" />
+
+    <sequenceFlow id="Flow_10" sourceRef="Task_ReviewItem" targetRef="Gateway_ItemCorrect" />
+    <sequenceFlow id="Flow_Correct" name="Yes" sourceRef="Gateway_ItemCorrect" targetRef="Task_MarkAP" />
+    <sequenceFlow id="Flow_Incorrect" name="No" sourceRef="Gateway_ItemCorrect" targetRef="Task_RejectWithNote" />
+
+    <sequenceFlow id="Flow_11" sourceRef="Task_MarkAP" targetRef="Gateway_AllItemsAP" />
+    <sequenceFlow id="Flow_MoreItems" name="No, more items" sourceRef="Gateway_AllItemsAP" targetRef="Task_ForwardNextManager" />
+    <sequenceFlow id="Flow_AllDone" name="Yes, all AP" sourceRef="Gateway_AllItemsAP" targetRef="Task_ReturnToAccounting" />
+    <sequenceFlow id="Flow_NextItem" sourceRef="Task_ForwardNextManager" targetRef="Task_ReviewItem" />
+
+    <sequenceFlow id="Flow_FromAllAP" sourceRef="Task_ReturnToAccounting" targetRef="Task_ForwardToCommercialManager" />
+
+    <sequenceFlow id="Flow_FromReject" sourceRef="Task_RejectWithNote" targetRef="Task_ReceiveRejected" />
+    <sequenceFlow id="Flow_7" sourceRef="Task_ReceiveRejected" targetRef="Task_ClarifyVendor" />
+    <sequenceFlow id="Flow_8" sourceRef="Task_ClarifyVendor" targetRef="Task_ConsultCCM" />
+    <sequenceFlow id="Flow_FromConsult" sourceRef="Task_ConsultCCM" targetRef="Gateway_MergeToCCM" />
+
+    <sequenceFlow id="Flow_9" sourceRef="Task_ForwardToCommercialManager" targetRef="Task_CommercialAudit" />
+    <sequenceFlow id="Flow_12" sourceRef="Task_CommercialAudit" targetRef="Gateway_Complaint" />
+    <sequenceFlow id="Flow_Complaint" name="Yes" sourceRef="Gateway_Complaint" targetRef="Task_ResolveComplaint" />
+    <sequenceFlow id="Flow_NoComplaint" name="No" sourceRef="Gateway_Complaint" targetRef="Task_ApprovePayment" />
+    <sequenceFlow id="Flow_BackToAudit" sourceRef="Task_ResolveComplaint" targetRef="Task_CommercialAudit" />
+
+    <sequenceFlow id="Flow_13" sourceRef="Task_ApprovePayment" targetRef="Gateway_AmountCheck" />
+    <sequenceFlow id="Flow_ToBoard" name="&gt; 20,000 EUR" sourceRef="Gateway_AmountCheck" targetRef="Task_BoardReview" />
+    <sequenceFlow id="Flow_SkipBoard" name="&lt;= 20,000 EUR" sourceRef="Gateway_AmountCheck" targetRef="Gateway_MergeAfterBoard" />
+    <sequenceFlow id="Flow_14" sourceRef="Task_BoardReview" targetRef="Task_ReturnSignatureFile" />
+    <sequenceFlow id="Flow_FromBoard" sourceRef="Task_ReturnSignatureFile" targetRef="Gateway_MergeAfterBoard" />
+
+    <sequenceFlow id="Flow_ToClose" sourceRef="Gateway_MergeAfterBoard" targetRef="Task_PaymentInstructionClose" />
+    <sequenceFlow id="Flow_Final" sourceRef="Task_PaymentInstructionClose" targetRef="EndEvent_1" />
+
+  </process>
+</definitions>

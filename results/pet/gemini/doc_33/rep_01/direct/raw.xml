@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Customer Acquisition Process" processRef="Process_1" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_1" isExecutable="false">
+
+    <!-- Lanes -->
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Marketing" name="Marketing">
+        <bpmn:flowNodeRef>Start_Acquisition</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DetermineContact</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_DetermineContact</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_BuyDetails</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ParticipateExhibitions</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PersonalNetwork</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_MergeContact</bpmn:flowNodeRef>
+      </bpmn:lane>
+      
+      <bpmn:lane id="Lane_CallCenter" name="Call Center">
+        <bpmn:flowNodeRef>Task_CallCustomer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Interested</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_HeadOfDev" name="Head of Development">
+        <bpmn:flowNodeRef>Gateway_BudgetHuge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PersonalAcquisition</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_NotInterested</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_Sales" name="Sales / Pre-Sales">
+        <bpmn:flowNodeRef>Gateway_AcquiredMerge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_PresentationType</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SalesPresentation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PreSalesPresentation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_PresentationMerge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_WaitTwoWeeks</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_CustomerContacted</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FollowUpCall</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_FollowUpMerge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateQuotation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_QuotationCreated</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Phase 1: Determine Contact Details -->
+    <bpmn:startEvent id="Start_Acquisition" name="Acquisition Needed">
+      <bpmn:outgoing>Flow_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_DetermineContact" name="Determine Contact Details">
+      <bpmn:incoming>Flow_01</bpmn:incoming>
+      <bpmn:outgoing>Flow_02</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:inclusiveGateway id="Gateway_DetermineContact" name="How are details obtained?">
+      <bpmn:incoming>Flow_02</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToBuy</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToExhibitions</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToNetwork</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+
+    <bpmn:task id="Task_BuyDetails" name="Buy details for cold calls">
+      <bpmn:incoming>Flow_ToBuy</bpmn:incoming>
+      <bpmn:outgoing>Flow_FromBuy</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_ParticipateExhibitions" name="Participate in exhibitions">
+      <bpmn:incoming>Flow_ToExhibitions</bpmn:incoming>
+      <bpmn:outgoing>Flow_FromExhibitions</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_PersonalNetwork" name="Identify interested personal contacts">
+      <bpmn:incoming>Flow_ToNetwork</bpmn:incoming>
+      <bpmn:outgoing>Flow_FromNetwork</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:inclusiveGateway id="Gateway_MergeContact">
+      <bpmn:incoming>Flow_FromBuy</bpmn:incoming>
+      <bpmn:incoming>Flow_FromExhibitions</bpmn:incoming>
+      <bpmn:incoming>Flow_FromNetwork</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCallCenter</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+
+    <!-- Phase 2: Call Center Qualification -->
+    <bpmn:task id="Task_CallCustomer" name="Call customer (Determine contact person, budget, and interest)">
+      <bpmn:incoming>Flow_ToCallCenter</bpmn:incoming>
+      <bpmn:outgoing>Flow_03</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_Interested" name="Is customer interested?">
+      <bpmn:incoming>Flow_03</bpmn:incoming>
+      <bpmn:outgoing>Flow_InterestedYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_InterestedNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:exclusiveGateway id="Gateway_BudgetHuge" name="Is potential budget huge?">
+      <bpmn:incoming>Flow_InterestedNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_BudgetHugeYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_BudgetHugeNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_PersonalAcquisition" name="Head of Development tries personal acquisition">
+      <bpmn:incoming>Flow_BudgetHugeYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_04</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_NotInterested" name="Customer Dropped">
+      <bpmn:incoming>Flow_BudgetHugeNo</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_AcquiredMerge">
+      <bpmn:incoming>Flow_InterestedYes</bpmn:incoming>
+      <bpmn:incoming>Flow_04</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPresentationGateway</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Phase 3: Online Presentation -->
+    <bpmn:exclusiveGateway id="Gateway_PresentationType" name="Technical presentation required?">
+      <bpmn:incoming>Flow_ToPresentationGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_PresStandard</bpmn:outgoing>
+      <bpmn:outgoing>Flow_PresTechnical</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_SalesPresentation" name="Give detailed online presentation (Sales Rep)">
+      <bpmn:incoming>Flow_PresStandard</bpmn:incoming>
+      <bpmn:outgoing>Flow_FromSalesPres</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_PreSalesPresentation" name="Give technical online presentation (Pre-Sales)">
+      <bpmn:incoming>Flow_PresTechnical</bpmn:incoming>
+      <bpmn:outgoing>Flow_FromPreSalesPres</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_PresentationMerge">
+      <bpmn:incoming>Flow_FromSalesPres</bpmn:incoming>
+      <bpmn:incoming>Flow_FromPreSalesPres</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToWait</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Phase 4: Follow-up & Quotation -->
+    <bpmn:intermediateCatchEvent id="Event_WaitTwoWeeks" name="Wait 2 weeks">
+      <bpmn:incoming>Flow_ToWait</bpmn:incoming>
+      <bpmn:outgoing>Flow_AfterWait</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_1" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_CustomerContacted" name="Has customer contacted back?">
+      <bpmn:incoming>Flow_AfterWait</bpmn:incoming>
+      <bpmn:outgoing>Flow_ContactedYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ContactedNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_FollowUpCall" name="Call customer (Sales Rep follow-up)">
+      <bpmn:incoming>Flow_ContactedNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_FromFollowUp</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_FollowUpMerge">
+      <bpmn:incoming>Flow_ContactedYes</bpmn:incoming>
+      <bpmn:incoming>Flow_FromFollowUp</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToQuotation</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CreateQuotation" name="Create Quotation">
+      <bpmn:incoming>Flow_ToQuotation</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToFinish</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_QuotationCreated" name="Quotation Created">
+      <bpmn:incoming>Flow_ToFinish</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="Start_Acquisition" targetRef="Task_DetermineContact" />
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_DetermineContact" targetRef="Gateway_DetermineContact" />
+    
+    <bpmn:sequenceFlow id="Flow_ToBuy" name="Buy cold call details" sourceRef="Gateway_DetermineContact" targetRef="Task_BuyDetails" />
+    <bpmn:sequenceFlow id="Flow_ToExhibitions" name="Exhibition leads" sourceRef="Gateway_DetermineContact" targetRef="Task_ParticipateExhibitions" />
+    <bpmn:sequenceFlow id="Flow_ToNetwork" name="Personal network" sourceRef="Gateway_DetermineContact" targetRef="Task_PersonalNetwork" />
+    
+    <bpmn:sequenceFlow id="Flow_FromBuy" sourceRef="Task_BuyDetails" targetRef="Gateway_MergeContact" />
+    <bpmn:sequenceFlow id="Flow_FromExhibitions" sourceRef="Task_ParticipateExhibitions" targetRef="Gateway_MergeContact" />
+    <bpmn:sequenceFlow id="Flow_FromNetwork" sourceRef="Task_PersonalNetwork" targetRef="Gateway_MergeContact" />
+    
+    <bpmn:sequenceFlow id="Flow_ToCallCenter" sourceRef="Gateway_MergeContact" targetRef="Task_CallCustomer" />
+    <bpmn:sequenceFlow id="Flow_03" sourceRef="Task_CallCustomer" targetRef="Gateway_Interested" />
+    
+    <bpmn:sequenceFlow id="Flow_InterestedYes" name="Yes" sourceRef="Gateway_Interested" targetRef="Gateway_AcquiredMerge" />
+    <bpmn:sequenceFlow id="Flow_InterestedNo" name="No" sourceRef="Gateway_Interested" targetRef="Gateway_BudgetHuge" />
+    
+    <bpmn:sequenceFlow id="Flow_BudgetHugeYes" name="Yes" sourceRef="Gateway_BudgetHuge" targetRef="Task_PersonalAcquisition" />
+    <bpmn:sequenceFlow id="Flow_BudgetHugeNo" name="No" sourceRef="Gateway_BudgetHuge" targetRef="End_NotInterested" />
+    
+    <bpmn:sequenceFlow id="Flow_04" sourceRef="Task_PersonalAcquisition" targetRef="Gateway_AcquiredMerge" />
+    
+    <bpmn:sequenceFlow id="Flow_ToPresentationGateway" sourceRef="Gateway_AcquiredMerge" targetRef="Gateway_PresentationType" />
+    
+    <bpmn:sequenceFlow id="Flow_PresStandard" name="No (Standard)" sourceRef="Gateway_PresentationType" targetRef="Task_SalesPresentation" />
+    <bpmn:sequenceFlow id="Flow_PresTechnical" name="Yes (More technical)" sourceRef="Gateway_PresentationType" targetRef="Task_PreSalesPresentation" />
+    
+    <bpmn:sequenceFlow id="Flow_FromSalesPres" sourceRef="Task_SalesPresentation" targetRef="Gateway_PresentationMerge" />
+    <bpmn:sequenceFlow id="Flow_FromPreSalesPres" sourceRef="Task_PreSalesPresentation" targetRef="Gateway_PresentationMerge" />
+    
+    <bpmn:sequenceFlow id="Flow_ToWait" sourceRef="Gateway_PresentationMerge" targetRef="Event_WaitTwoWeeks" />
+    <bpmn:sequenceFlow id="Flow_AfterWait" sourceRef="Event_WaitTwoWeeks" targetRef="Gateway_CustomerContacted" />
+    
+    <bpmn:sequenceFlow id="Flow_ContactedYes" name="Yes" sourceRef="Gateway_CustomerContacted" targetRef="Gateway_FollowUpMerge" />
+    <bpmn:sequenceFlow id="Flow_ContactedNo" name="No" sourceRef="Gateway_CustomerContacted" targetRef="Task_FollowUpCall" />
+    
+    <bpmn:sequenceFlow id="Flow_FromFollowUp" sourceRef="Task_FollowUpCall" targetRef="Gateway_FollowUpMerge" />
+    <bpmn:sequenceFlow id="Flow_ToQuotation" sourceRef="Gateway_FollowUpMerge" targetRef="Task_CreateQuotation" />
+    <bpmn:sequenceFlow id="Flow_ToFinish" sourceRef="Task_CreateQuotation" targetRef="End_QuotationCreated" />
+
+  </bpmn:process>
+
+  <!-- BPMN Diagram Layout -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="160" y="80" x="1560" y="820" />
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="Lane_Marketing_di" bpmnElement="Lane_Marketing" isHorizontal="true">
+        <dc:Bounds x="190" y="80" x="1530" y="240" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_CallCenter_di" bpmnElement="Lane_CallCenter" isHorizontal="true">
+        <dc:Bounds x="190" y="320" x="1530" y="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_HeadOfDev_di" bpmnElement="Lane_HeadOfDev" isHorizontal="true">
+        <dc:Bounds x="190" y="480" x="1530" y="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Sales_di" bpmnElement="Lane_Sales" isHorizontal="true">
+        <dc:Bounds x="190" y="640" x="1530" y="260" />
+      </bpmndi:BPMNShape>
+
+      <!-- Marketing Lane Elements -->
+      <bpmndi:BPMNShape id="Start_Acquisition_di" bpmnElement="Start_Acquisition">
+        <dc:Bounds x="232" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="223" y="195" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_DetermineContact_di" bpmnElement="Task_DetermineContact">
+        <dc:Bounds x="300" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_DetermineContact_di" bpmnElement="Gateway_DetermineContact" isMarkerVisible="true">
+        <dc:Bounds x="435" y="145" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="421" y="108" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_BuyDetails_di" bpmnElement="Task_BuyDetails">
+        <dc:Bounds x="520" y="90" width="100" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ParticipateExhibitions_di" bpmnElement="Task_ParticipateExhibitions">
+        <dc:Bounds x="520" y="160" width="100" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PersonalNetwork_di" bpmnElement="Task_PersonalNetwork">
+        <dc:Bounds x="520" y="230" width="100" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MergeContact_di" bpmnElement="Gateway_MergeContact" isMarkerVisible="true">
+        <dc:Bounds x="655" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Call Center Lane Elements -->
+      <bpmndi:BPMNShape id="Task_CallCustomer_di" bpmnElement="Task_CallCustomer">
+        <dc:Bounds x="630" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Interested_di" bpmnElement="Gateway_Interested" isMarkerVisible="true">
+        <dc:Bounds x="765" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="760" y="345" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Head of Dev Lane Elements -->
+      <bpmndi:BPMNShape id="Gateway_BudgetHuge_di" bpmnElement="Gateway_BudgetHuge" isMarkerVisible="true">
+        <dc:Bounds x="765" y="535" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="686" y="546" width="69" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PersonalAcquisition_di" bpmnElement="Task_PersonalAcquisition">
+        <dc:Bounds x="860" y="520" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_NotInterested_di" bpmnElement="End_NotInterested">
+        <dc:Bounds x="772" y="612" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="767" y="655" width="47" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sales Lane Elements -->
+      <bpmndi:BPMNShape id="Gateway_AcquiredMerge_di" bpmnElement="Gateway_AcquiredMerge" isMarkerVisible="true">
+        <dc:Bounds x="885" y="735" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_PresentationType_di" bpmnElement="Gateway_PresentationType" isMarkerVisible="true">
+        <dc:Bounds x="975" y="735" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="968" y="705" width="64" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SalesPresentation_di" bpmnElement="Task_SalesPresentation">
+        <dc:Bounds x="1060" y="670" width="100" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PreSalesPresentation_di" bpmnElement="Task_PreSalesPresentation">
+        <dc:Bounds x="1060" y="780" width="100" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_PresentationMerge_di" bpmnElement="Gateway_PresentationMerge" isMarkerVisible="true">
+        <dc:Bounds x="1185" y="735" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_WaitTwoWeeks_di" bpmnElement="Event_WaitTwoWeeks">
+        <dc:Bounds x="1262" y="742" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1248" y="785" width="65" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_CustomerContacted_di" bpmnElement="Gateway_CustomerContacted" isMarkerVisible="true">
+        <dc:Bounds x="1335" y="735" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1320" y="698" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_FollowUpCall_di" bpmnElement="Task_FollowUpCall">
+        <dc:Bounds x="1310" y="810" width="100" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_FollowUpMerge_di" bpmnElement="Gateway_FollowUpMerge" isMarkerVisible="true">
+        <dc:Bounds x="1435" y="735" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CreateQuotation_di" bpmnElement="Task_CreateQuotation">
+        <dc:Bounds x="1500" y="720" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_QuotationCreated_di" bpmnElement="End_QuotationCreated">
+        <dc:Bounds x="1632" y="742" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1627" y="785" width="47" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_01_di" bpmnElement="Flow_01">
+        <di:waypoint x="268" y="170" />
+        <di:waypoint x="300" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_02_di" bpmnElement="Flow_02">
+        <di:waypoint x="400" y="170" />
+        <di:waypoint x="435" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToBuy_di" bpmnElement="Flow_ToBuy">
+        <di:waypoint x="460" y="145" />
+        <di:waypoint x="460" y="120" />
+        <di:waypoint x="520" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToExhibitions_di" bpmnElement="Flow_ToExhibitions">
+        <di:waypoint x="485" y="170" />
+        <di:waypoint x="520" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToNetwork_di" bpmnElement="Flow_ToNetwork">
+        <di:waypoint x="460" y="195" />
+        <di:waypoint x="460" y="260" />
+        <di:waypoint x="520" y="260" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FromBuy_di" bpmnElement="Flow_FromBuy">
+        <di:waypoint x="620" y="120" />
+        <di:waypoint x="680" y="120" />
+        <di:waypoint x="680" y="145" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FromExhibitions_di" bpmnElement="Flow_FromExhibitions">
+        <di:waypoint x="620" y="170" />
+        <di:waypoint x="655" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FromNetwork_di" bpmnElement="Flow_FromNetwork">
+        <di:waypoint x="620" y="260" />
+        <di:waypoint x="680" y="260" />
+        <di:waypoint x="680" y="195" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToCallCenter_di" bpmnElement="Flow_ToCallCenter">
+        <di:waypoint x="680" y="195" />
+        <di:waypoint x="680" y="360" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_03_di" bpmnElement="Flow_03">
+        <di:waypoint x="730" y="400" />
+        <di:waypoint x="765" y="400" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_InterestedYes_di" bpmnElement="Flow_InterestedYes">
+        <di:waypoint x="815" y="400" />
+        <di:waypoint x="910" y="400" />
+        <di:waypoint x="910" y="735" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="854" y="382" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_InterestedNo_di" bpmnElement="Flow_InterestedNo">
+        <di:waypoint x="790" y="425" />
+        <di:waypoint x="790" y="535" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="798" y="463" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_BudgetHugeYes_di" bpmnElement="Flow_BudgetHugeYes">
+        <di:waypoint x="815" y="560" />
+        <di:waypoint x="860" y="560" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="829" y="542" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_BudgetHugeNo_di" bpmnElement="Flow_BudgetHugeNo">
+        <di:waypoint x="790" y="585" />
+        <di:waypoint x="790" y="612" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="798" y="588" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_04_di" bpmnElement="Flow_04">
+        <di:waypoint x="910" y="600" />
+        <di:waypoint x="910" y="735" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToPresentationGateway_di" bpmnElement="Flow_ToPresentationGateway">
+        <di:waypoint x="935" y="760" />
+        <di:waypoint x="975" y="760" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_PresStandard_di" bpmnElement="Flow_PresStandard">
+        <di:waypoint x="1000" y="735" />
+        <di:waypoint x="1000" y="700" />
+        <di:waypoint x="1060" y="700" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="985" y="673" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_PresTechnical_di" bpmnElement="Flow_PresTechnical">
+        <di:waypoint x="1000" y="785" />
+        <di:waypoint x="1000" y="810" />
+        <di:waypoint x="1060" y="810" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="988" y="816" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FromSalesPres_di" bpmnElement="Flow_FromSalesPres">
+        <di:waypoint x="1160" y="700" />
+        <di:waypoint x="1210" y="700" />
+        <di:waypoint x="1210" y="735" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FromPreSalesPres_di" bpmnElement="Flow_FromPreSalesPres">
+        <di:waypoint x="1160" y="810" />
+        <di:waypoint x="1210" y="810" />
+        <di:waypoint x="1210" y="785" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToWait_di" bpmnElement="Flow_ToWait">
+        <di:waypoint x="1235" y="760" />
+        <di:waypoint x="1262" y="760" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_AfterWait_di" bpmnElement="Flow_AfterWait">
+        <di:waypoint x="1298" y="760" />
+        <di:waypoint x="1335" y="760" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ContactedYes_di" bpmnElement="Flow_ContactedYes">
+        <di:waypoint x="1385" y="760" />
+        <di:waypoint x="1435" y="760" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1401" y="742" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ContactedNo_di" bpmnElement="Flow_ContactedNo">
+        <di:waypoint x="1360" y="785" />
+        <di:waypoint x="1360" y="810" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1368" y="788" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FromFollowUp_di" bpmnElement="Flow_FromFollowUp">
+        <di:waypoint x="1410" y="840" />
+        <di:waypoint x="1460" y="840" />
+        <di:waypoint x="1460" y="785" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToQuotation_di" bpmnElement="Flow_ToQuotation">
+        <di:waypoint x="1485" y="760" />
+        <di:waypoint x="1500" y="760" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToFinish_di" bpmnElement="Flow_ToFinish">
+        <di:waypoint x="1600" y="760" />
+        <di:waypoint x="1632" y="760" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

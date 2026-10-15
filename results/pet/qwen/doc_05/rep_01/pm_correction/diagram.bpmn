@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_notification_part" name="Notification Department" processRef="pool_notification_proc" />
+    <bpmn:participant id="pool_handling_part" name="Handling Department" processRef="pool_handling_proc" />
+    <bpmn:messageFlow id="msg_handover" sourceRef="evt_end_notification" targetRef="evt_start_handling" name="Registered Claim Handover" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_notification_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_claim_docs" name="Relevant Documentation" dataObjectRef="data_claim_docs_do" />
+    <bpmn:dataObject id="data_claim_docs_do" />
+    <bpmn:dataObjectReference id="data_registered_claim" name="Registered Claim Record" dataObjectRef="data_registered_claim_do" />
+    <bpmn:dataObject id="data_registered_claim_do" />
+    <bpmn:startEvent id="evt_start_claim" name="Customer submits claim with documentation">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_claim_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_notification" name="Claim registered and passed to handling">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_notification_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_check_docs" name="Check documents upon completeness">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:property id="task_check_docs_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_docs_dia0">
+        <bpmn:sourceRef>data_claim_docs</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_docs_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_register_claim" name="Register the claim">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_register_claim_doa0">
+        <bpmn:targetRef>data_registered_claim</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="evt_start_claim" targetRef="task_check_docs" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_check_docs" targetRef="task_register_claim" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="task_register_claim" targetRef="evt_end_notification" />
+  </bpmn:process>
+  <bpmn:process id="pool_handling_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_registered_claim_p1" name="Registered Claim Record" dataObjectRef="data_registered_claim_p1_do" />
+    <bpmn:dataObject id="data_registered_claim_p1_do" />
+    <bpmn:dataObjectReference id="data_assessment_result" name="Assessment Result" dataObjectRef="data_assessment_result_do" />
+    <bpmn:dataObject id="data_assessment_result_do" />
+    <bpmn:dataObjectReference id="data_customer_letter" name="Customer Notification Letter" dataObjectRef="data_customer_letter_do" />
+    <bpmn:dataObject id="data_customer_letter_do" />
+    <bpmn:startEvent id="evt_start_handling" name="Receive registered claim">
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_handling_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_process" name="Process complete (Letter sent)">
+      <bpmn:incoming>flow_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_check_insurance" name="Check the insurance">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+      <bpmn:outgoing>flow_5</bpmn:outgoing>
+      <bpmn:property id="task_check_insurance_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_insurance_dia0">
+        <bpmn:sourceRef>data_registered_claim_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_insurance_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_assess" name="Perform assessment">
+      <bpmn:incoming>flow_5</bpmn:incoming>
+      <bpmn:outgoing>flow_6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_assess_doa0">
+        <bpmn:targetRef>data_assessment_result</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_phone_garage" name="Phone garage to authorise repairs">
+      <bpmn:incoming>flow_positive</bpmn:incoming>
+      <bpmn:outgoing>flow_pos_step1</bpmn:outgoing>
+      <bpmn:property id="task_phone_garage_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_phone_garage_dia0">
+        <bpmn:sourceRef>data_assessment_result</bpmn:sourceRef>
+        <bpmn:targetRef>task_phone_garage_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_schedule_payment" name="Schedule payment">
+      <bpmn:incoming>flow_pos_step1</bpmn:incoming>
+      <bpmn:outgoing>flow_pos_step2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_send_letter" name="Send letter to customer">
+      <bpmn:incoming>flow_to_letter</bpmn:incoming>
+      <bpmn:outgoing>flow_to_end</bpmn:outgoing>
+      <bpmn:property id="task_send_letter_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_send_letter_dia0">
+        <bpmn:sourceRef>data_assessment_result</bpmn:sourceRef>
+        <bpmn:targetRef>task_send_letter_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_send_letter_doa0">
+        <bpmn:targetRef>data_customer_letter</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="gw_assessment_decision" name="Assessment Outcome Decision" isMarkerVisible="true">
+      <bpmn:incoming>flow_6</bpmn:incoming>
+      <bpmn:outgoing>flow_positive</bpmn:outgoing>
+      <bpmn:outgoing>flow_neg_to_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_merge_outcome" name="Merge Outcomes">
+      <bpmn:incoming>flow_neg_to_reject</bpmn:incoming>
+      <bpmn:incoming>flow_pos_step2</bpmn:incoming>
+      <bpmn:outgoing>flow_to_letter</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="flow_4" sourceRef="evt_start_handling" targetRef="task_check_insurance" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="task_check_insurance" targetRef="task_assess" />
+    <bpmn:sequenceFlow id="flow_6" sourceRef="task_assess" targetRef="gw_assessment_decision" />
+    <bpmn:sequenceFlow id="flow_positive" sourceRef="gw_assessment_decision" targetRef="task_phone_garage" name="Assessment is positive" />
+    <bpmn:sequenceFlow id="flow_neg_to_reject" sourceRef="gw_assessment_decision" targetRef="gw_merge_outcome" name="Assessment is negative" />
+    <bpmn:sequenceFlow id="flow_pos_step1" sourceRef="task_phone_garage" targetRef="task_schedule_payment" />
+    <bpmn:sequenceFlow id="flow_pos_step2" sourceRef="task_schedule_payment" targetRef="gw_merge_outcome" />
+    <bpmn:sequenceFlow id="flow_to_letter" sourceRef="gw_merge_outcome" targetRef="task_send_letter" />
+    <bpmn:sequenceFlow id="flow_to_end" sourceRef="task_send_letter" targetRef="evt_end_process" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_notification_part_di" bpmnElement="pool_notification_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="950" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_handling_part_di" bpmnElement="pool_handling_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="1520" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_notification_di" bpmnElement="evt_end_notification">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_process_di" bpmnElement="evt_end_process">
+        <dc:Bounds x="1300" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_claim_di" bpmnElement="evt_start_claim">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_handling_di" bpmnElement="evt_start_handling">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_assessment_decision_di" bpmnElement="gw_assessment_decision">
+        <dc:Bounds x="730" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_merge_outcome_di" bpmnElement="gw_merge_outcome">
+        <dc:Bounds x="1300" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assess_di" bpmnElement="task_assess">
+        <dc:Bounds x="540" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_docs_di" bpmnElement="task_check_docs">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_insurance_di" bpmnElement="task_check_insurance">
+        <dc:Bounds x="350" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_phone_garage_di" bpmnElement="task_phone_garage">
+        <dc:Bounds x="920" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_register_claim_di" bpmnElement="task_register_claim">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_schedule_payment_di" bpmnElement="task_schedule_payment">
+        <dc:Bounds x="1110" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_letter_di" bpmnElement="task_send_letter">
+        <dc:Bounds x="1110" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_claim_docs_di" bpmnElement="data_claim_docs">
+        <dc:Bounds x="370" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_registered_claim_di" bpmnElement="data_registered_claim">
+        <dc:Bounds x="560" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_registered_claim_p1_di" bpmnElement="data_registered_claim_p1">
+        <dc:Bounds x="370" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_assessment_result_di" bpmnElement="data_assessment_result">
+        <dc:Bounds x="876" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_customer_letter_di" bpmnElement="data_customer_letter">
+        <dc:Bounds x="1130" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="400" y="475" />
+        <di:waypoint x="590" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="590" y="475" />
+        <di:waypoint x="755" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_positive_di" bpmnElement="flow_positive">
+        <di:waypoint x="755" y="460" />
+        <di:waypoint x="970" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_neg_to_reject_di" bpmnElement="flow_neg_to_reject">
+        <di:waypoint x="755" y="460" />
+        <di:waypoint x="1325" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_pos_step1_di" bpmnElement="flow_pos_step1">
+        <di:waypoint x="970" y="475" />
+        <di:waypoint x="1160" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_pos_step2_di" bpmnElement="flow_pos_step2">
+        <di:waypoint x="1160" y="475" />
+        <di:waypoint x="1325" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_letter_di" bpmnElement="flow_to_letter">
+        <di:waypoint x="1325" y="585" />
+        <di:waypoint x="1160" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_end_di" bpmnElement="flow_to_end">
+        <di:waypoint x="1160" y="600" />
+        <di:waypoint x="1318" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_handover_di" bpmnElement="msg_handover">
+        <di:waypoint x="748" y="118" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_docs_dia0_di" bpmnElement="task_check_docs_dia0">
+        <di:waypoint x="388" y="265" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_claim_doa0_di" bpmnElement="task_register_claim_doa0">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="578" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_insurance_dia0_di" bpmnElement="task_check_insurance_dia0">
+        <di:waypoint x="388" y="725" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_assess_doa0_di" bpmnElement="task_assess_doa0">
+        <di:waypoint x="590" y="475" />
+        <di:waypoint x="894" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_phone_garage_dia0_di" bpmnElement="task_phone_garage_dia0">
+        <di:waypoint x="894" y="725" />
+        <di:waypoint x="970" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_letter_dia0_di" bpmnElement="task_send_letter_dia0">
+        <di:waypoint x="894" y="725" />
+        <di:waypoint x="1160" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_letter_doa0_di" bpmnElement="task_send_letter_doa0">
+        <di:waypoint x="1160" y="600" />
+        <di:waypoint x="1148" y="725" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://www.example.org/bpmn"
+             id="definitions_dismissal_process">
+
+  <!-- Collaboration specifying participants and message exchanges -->
+  <collaboration id="collaboration_dismissal">
+    <participant id="participant_mpon" name="MPON" processRef="process_mpon" />
+    <participant id="participant_mpoo" name="MPOO" processRef="process_mpoo" />
+    <messageFlow id="msgFlow_dismissal" name="Dismissal Notice" sourceRef="task_send_dismissal" targetRef="start_mpoo" />
+  </collaboration>
+
+  <!-- Process for MPON -->
+  <process id="process_mpon" isExecutable="true">
+    <startEvent id="start_mpon" name="Dismissal Process Initiated">
+      <outgoing>flow_mpon_1</outgoing>
+    </startEvent>
+    <sendTask id="task_send_dismissal" name="Send Dismissal to MPOO">
+      <incoming>flow_mpon_1</incoming>
+      <outgoing>flow_mpon_2</outgoing>
+    </sendTask>
+    <endEvent id="end_mpon" name="Dismissal Sent">
+      <incoming>flow_mpon_2</incoming>
+    </endEvent>
+    <sequenceFlow id="flow_mpon_1" sourceRef="start_mpon" targetRef="task_send_dismissal" />
+    <sequenceFlow id="flow_mpon_2" sourceRef="task_send_dismissal" targetRef="end_mpon" />
+  </process>
+
+  <!-- Process for MPOO -->
+  <process id="process_mpoo" isExecutable="true">
+    <startEvent id="start_mpoo" name="Dismissal Received">
+      <outgoing>flow_mpoo_1</outgoing>
+      <messageEventDefinition id="msgEventDef_dismissal" />
+    </startEvent>
+
+    <userTask id="task_review_dismissal" name="Review Dismissal">
+      <incoming>flow_mpoo_1</incoming>
+      <outgoing>flow_mpoo_2</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gateway_decision" name="Decision on Dismissal?">
+      <incoming>flow_mpoo_2</incoming>
+      <outgoing>flow_oppose</outgoing>
+      <outgoing>flow_confirm</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="task_oppose_dismissal" name="Oppose Dismissal of MPON">
+      <incoming>flow_oppose</incoming>
+      <outgoing>flow_mpoo_3</outgoing>
+    </userTask>
+
+    <userTask id="task_confirm_dismissal" name="Confirm Dismissal of MPON">
+      <incoming>flow_confirm</incoming>
+      <outgoing>flow_mpoo_4</outgoing>
+    </userTask>
+
+    <endEvent id="end_mpoo_opposed" name="Dismissal Opposed">
+      <incoming>flow_mpoo_3</incoming>
+    </endEvent>
+
+    <endEvent id="end_mpoo_confirmed" name="Dismissal Confirmed">
+      <incoming>flow_mpoo_4</incoming>
+    </endEvent>
+
+    <sequenceFlow id="flow_mpoo_1" sourceRef="start_mpoo" targetRef="task_review_dismissal" />
+    <sequenceFlow id="flow_mpoo_2" sourceRef="task_review_dismissal" targetRef="gateway_decision" />
+    <sequenceFlow id="flow_oppose" name="Oppose" sourceRef="gateway_decision" targetRef="task_oppose_dismissal" />
+    <sequenceFlow id="flow_confirm" name="Confirm" sourceRef="gateway_decision" targetRef="task_confirm_dismissal" />
+    <sequenceFlow id="flow_mpoo_3" sourceRef="task_oppose_dismissal" targetRef="end_mpoo_opposed" />
+    <sequenceFlow id="flow_mpoo_4" sourceRef="task_confirm_dismissal" targetRef="end_mpoo_confirmed" />
+  </process>
+
+  <!-- BPMN Diagram Layout Information -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_dismissal">
+    <bpmndi:BPMNPlane id="BPMNPlane_dismissal" bpmnElement="collaboration_dismissal">
+      
+      <!-- Pool for MPON -->
+      <bpmndi:BPMNShape id="shape_participant_mpon" bpmnElement="participant_mpon" isHorizontal="true">
+        <omgdc:Bounds x="160" y="80" width="480" height="160" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="shape_start_mpon" bpmnElement="start_mpon">
+        <omgdc:Bounds x="212" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="187" y="185" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="shape_task_send_dismissal" bpmnElement="task_send_dismissal">
+        <omgdc:Bounds x="310" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="shape_end_mpon" bpmnElement="end_mpon">
+        <omgdc:Bounds x="472" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="454" y="185" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="edge_flow_mpon_1" bpmnElement="flow_mpon_1">
+        <omgdi:waypoint x="248" y="160" />
+        <omgdi:waypoint x="310" y="160" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="edge_flow_mpon_2" bpmnElement="flow_mpon_2">
+        <omgdi:waypoint x="410" y="160" />
+        <omgdi:waypoint x="472" y="160" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Pool for MPOO -->
+      <bpmndi:BPMNShape id="shape_participant_mpoo" bpmnElement="participant_mpoo" isHorizontal="true">
+        <omgdc:Bounds x="160" y="290" width="780" height="260" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_start_mpoo" bpmnElement="start_mpoo">
+        <omgdc:Bounds x="222" y="392" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="217" y="435" width="47" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_task_review_dismissal" bpmnElement="task_review_dismissal">
+        <omgdc:Bounds x="310" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_gateway_decision" bpmnElement="gateway_decision" isMarkerVisible="true">
+        <omgdc:Bounds x="465" y="385" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="460" y="348" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_task_oppose_dismissal" bpmnElement="task_oppose_dismissal">
+        <omgdc:Bounds x="570" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_task_confirm_dismissal" bpmnElement="task_confirm_dismissal">
+        <omgdc:Bounds x="570" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_end_mpoo_opposed" bpmnElement="end_mpoo_opposed">
+        <omgdc:Bounds x="732" y="342" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="727" y="385" width="47" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_end_mpoo_confirmed" bpmnElement="end_mpoo_confirmed">
+        <omgdc:Bounds x="732" y="462" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="725" y="505" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="edge_flow_mpoo_1" bpmnElement="flow_mpoo_1">
+        <omgdi:waypoint x="258" y="410" />
+        <omgdi:waypoint x="310" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_flow_mpoo_2" bpmnElement="flow_mpoo_2">
+        <omgdi:waypoint x="410" y="410" />
+        <omgdi:waypoint x="465" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_flow_oppose" bpmnElement="flow_oppose">
+        <omgdi:waypoint x="490" y="385" />
+        <omgdi:waypoint x="490" y="360" />
+        <omgdi:waypoint x="570" y="360" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="500" y="343" width="39" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_flow_confirm" bpmnElement="flow_confirm">
+        <omgdi:waypoint x="490" y="435" />
+        <omgdi:waypoint x="490" y="480" />
+        <omgdi:waypoint x="570" y="480" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="500" y="488" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_flow_mpoo_3" bpmnElement="flow_mpoo_3">
+        <omgdi:waypoint x="670" y="360" />
+        <omgdi:waypoint x="732" y="360" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_flow_mpoo_4" bpmnElement="flow_mpoo_4">
+        <omgdi:waypoint x="670" y="480" />
+        <omgdi:waypoint x="732" y="480" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Message Flow -->
+      <bpmndi:BPMNEdge id="edge_msgFlow_dismissal" bpmnElement="msgFlow_dismissal">
+        <omgdi:waypoint x="360" y="200" />
+        <omgdi:waypoint x="360" y="296" />
+        <omgdi:waypoint x="240" y="296" />
+        <omgdi:waypoint x="240" y="392" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="261" y="278" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_employee_part" name="Employee / Petitioner" processRef="pool_employee_proc" />
+    <bpmn:participant id="pool_supervisor_part" name="Immediate Supervisor" processRef="pool_supervisor_proc" />
+    <bpmn:participant id="pool_purchase_part" name="Purchase Department" processRef="pool_purchase_proc" />
+    <bpmn:participant id="pool_system_part" name="System" processRef="pool_system_proc" />
+    <bpmn:messageFlow id="mf_emp_to_sup" sourceRef="e_msg_sent_to_sup" targetRef="e_msg_rec_sup" name="Office supply request submitted" />
+    <bpmn:messageFlow id="mf_sup_to_emp_change" sourceRef="e_msg_change_to_emp" targetRef="e_msg_rec_change" name="Change requested" />
+    <bpmn:messageFlow id="mf_sup_to_purch" sourceRef="e_msg_app_to_purch" targetRef="e_msg_rec_purch" name="Approved request" />
+    <bpmn:messageFlow id="mf_sup_to_sys_rej" sourceRef="e_msg_rej_to_sys" targetRef="e_msg_rec_sys_events" name="Rejection notification trigger" />
+    <bpmn:messageFlow id="mf_purch_to_sys" sourceRef="e_msg_po_to_sys" targetRef="e_msg_rec_sys_events" name="Vendor selection confirmation" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_employee_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_req" name="Office Supply Request Form" dataObjectRef="do_req_do" />
+    <bpmn:dataObject id="do_req_do" />
+    <bpmn:dataObjectReference id="do_comments" name="Supervisor Change Comments" dataObjectRef="do_comments_do" />
+    <bpmn:dataObject id="do_comments_do" />
+    <bpmn:startEvent id="e_start_emp" name="Office supply request needed">
+      <bpmn:outgoing>sf_emp_start</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="e_msg_sent_to_sup" name="Request submitted to supervisor">
+      <bpmn:incoming>sf_emp_submit_to_end</bpmn:incoming>
+      <bpmn:messageEventDefinition id="e_msg_sent_to_sup_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="e_msg_rec_change" name="Change request received">
+      <bpmn:outgoing>sf_emp_rec_change</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="e_msg_rec_change_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="e_end_emp_reviewed" name="Comments reviewed">
+      <bpmn:incoming>sf_emp_rev_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="t_submit_req" name="Submit office supply request">
+      <bpmn:incoming>sf_emp_start</bpmn:incoming>
+      <bpmn:outgoing>sf_emp_submit_to_end</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="t_submit_req_doa0">
+        <bpmn:targetRef>do_req</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="t_review_comments" name="Review comments for change request">
+      <bpmn:incoming>sf_emp_rec_change</bpmn:incoming>
+      <bpmn:outgoing>sf_emp_rev_end</bpmn:outgoing>
+      <bpmn:property id="t_review_comments_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="t_review_comments_dia0">
+        <bpmn:sourceRef>do_comments</bpmn:sourceRef>
+        <bpmn:targetRef>t_review_comments_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="sf_emp_start" sourceRef="e_start_emp" targetRef="t_submit_req" />
+    <bpmn:sequenceFlow id="sf_emp_submit_to_end" sourceRef="t_submit_req" targetRef="e_msg_sent_to_sup" />
+    <bpmn:sequenceFlow id="sf_emp_rec_change" sourceRef="e_msg_rec_change" targetRef="t_review_comments" />
+    <bpmn:sequenceFlow id="sf_emp_rev_end" sourceRef="t_review_comments" targetRef="e_end_emp_reviewed" />
+  </bpmn:process>
+  <bpmn:process id="pool_supervisor_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_req_p1" name="Office Supply Request Form" dataObjectRef="do_req_p1_do" />
+    <bpmn:dataObject id="do_req_p1_do" />
+    <bpmn:dataObjectReference id="do_comments_p1" name="Supervisor Change Comments" dataObjectRef="do_comments_p1_do" />
+    <bpmn:dataObject id="do_comments_p1_do" />
+    <bpmn:startEvent id="e_msg_rec_sup" name="Request received by supervisor">
+      <bpmn:outgoing>sf_sup_rec</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="e_msg_rec_sup_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="e_msg_change_to_emp" name="Change requested sent">
+      <bpmn:incoming>sf_sup_to_change</bpmn:incoming>
+      <bpmn:messageEventDefinition id="e_msg_change_to_emp_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="e_msg_app_to_purch" name="Approved request sent to purchase dept">
+      <bpmn:incoming>sf_sup_to_app</bpmn:incoming>
+      <bpmn:messageEventDefinition id="e_msg_app_to_purch_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="e_msg_rej_to_sys" name="Rejection sent to system">
+      <bpmn:incoming>sf_sup_to_rej</bpmn:incoming>
+      <bpmn:messageEventDefinition id="e_msg_rej_to_sys_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="t_eval_req" name="Evaluate office supply request">
+      <bpmn:incoming>sf_sup_rec</bpmn:incoming>
+      <bpmn:outgoing>sf_sup_eval_to_g</bpmn:outgoing>
+      <bpmn:property id="t_eval_req_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="t_eval_req_dia0">
+        <bpmn:sourceRef>do_req_p1</bpmn:sourceRef>
+        <bpmn:targetRef>t_eval_req_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="t_eval_req_doa0">
+        <bpmn:targetRef>do_comments_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_sup_decision" name="Supervisor Decision?" isMarkerVisible="true">
+      <bpmn:incoming>sf_sup_eval_to_g</bpmn:incoming>
+      <bpmn:outgoing>sf_sup_to_app</bpmn:outgoing>
+      <bpmn:outgoing>sf_sup_to_change</bpmn:outgoing>
+      <bpmn:outgoing>sf_sup_to_rej</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_sup_rec" sourceRef="e_msg_rec_sup" targetRef="t_eval_req" />
+    <bpmn:sequenceFlow id="sf_sup_eval_to_g" sourceRef="t_eval_req" targetRef="g_sup_decision" />
+    <bpmn:sequenceFlow id="sf_sup_to_app" sourceRef="g_sup_decision" targetRef="e_msg_app_to_purch" name="Approved" />
+    <bpmn:sequenceFlow id="sf_sup_to_change" sourceRef="g_sup_decision" targetRef="e_msg_change_to_emp" name="Ask for change" />
+    <bpmn:sequenceFlow id="sf_sup_to_rej" sourceRef="g_sup_decision" targetRef="e_msg_rej_to_sys" name="Rejected" />
+  </bpmn:process>
+  <bpmn:process id="pool_purchase_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_req_p2" name="Office Supply Request Form" dataObjectRef="do_req_p2_do" />
+    <bpmn:dataObject id="do_req_p2_do" />
+    <bpmn:dataObjectReference id="do_quotation" name="Vendor Quotations" dataObjectRef="do_quotation_do" />
+    <bpmn:dataObject id="do_quotation_do" />
+    <bpmn:dataObjectReference id="do_vendor" name="Selected Vendor Record" dataObjectRef="do_vendor_do" />
+    <bpmn:dataObject id="do_vendor_do" />
+    <bpmn:startEvent id="e_msg_rec_purch" name="Approved request received">
+      <bpmn:outgoing>sf_purch_rec</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="e_msg_rec_purch_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="e_msg_po_to_sys" name="Vendor selected sent to system">
+      <bpmn:incoming>sf_vendor_ok</bpmn:incoming>
+      <bpmn:messageEventDefinition id="e_msg_po_to_sys_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="t_make_quotations" name="Make quotations">
+      <bpmn:incoming>sf_purch_rec</bpmn:incoming>
+      <bpmn:outgoing>sf_purch_quote_to_select</bpmn:outgoing>
+      <bpmn:property id="t_make_quotations_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="t_make_quotations_dia0">
+        <bpmn:sourceRef>do_req_p2</bpmn:sourceRef>
+        <bpmn:targetRef>t_make_quotations_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="t_make_quotations_doa0">
+        <bpmn:targetRef>do_quotation</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:userTask id="t_select_vendor" name="Select a vendor">
+      <bpmn:incoming>sf_purch_quote_to_select</bpmn:incoming>
+      <bpmn:incoming>sf_vendor_not_ok</bpmn:incoming>
+      <bpmn:outgoing>sf_purch_select_to_check</bpmn:outgoing>
+      <bpmn:property id="t_select_vendor_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="t_select_vendor_dia0">
+        <bpmn:sourceRef>do_quotation</bpmn:sourceRef>
+        <bpmn:targetRef>t_select_vendor_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="t_select_vendor_doa0">
+        <bpmn:targetRef>do_vendor</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:standardLoopCharacteristics />
+    </bpmn:userTask>
+    <bpmn:serviceTask id="t_check_vendor_validity" name="Check vendor validity in system">
+      <bpmn:incoming>sf_purch_select_to_check</bpmn:incoming>
+      <bpmn:outgoing>sf_purch_check_to_g</bpmn:outgoing>
+      <bpmn:property id="t_check_vendor_validity_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="t_check_vendor_validity_dia0">
+        <bpmn:sourceRef>do_vendor</bpmn:sourceRef>
+        <bpmn:targetRef>t_check_vendor_validity_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="g_vendor_valid" name="Is vendor valid?" isMarkerVisible="true">
+      <bpmn:incoming>sf_purch_check_to_g</bpmn:incoming>
+      <bpmn:outgoing>sf_vendor_ok</bpmn:outgoing>
+      <bpmn:outgoing>sf_vendor_not_ok</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_purch_rec" sourceRef="e_msg_rec_purch" targetRef="t_make_quotations" />
+    <bpmn:sequenceFlow id="sf_purch_quote_to_select" sourceRef="t_make_quotations" targetRef="t_select_vendor" />
+    <bpmn:sequenceFlow id="sf_purch_select_to_check" sourceRef="t_select_vendor" targetRef="t_check_vendor_validity" />
+    <bpmn:sequenceFlow id="sf_purch_check_to_g" sourceRef="t_check_vendor_validity" targetRef="g_vendor_valid" />
+    <bpmn:sequenceFlow id="sf_vendor_ok" sourceRef="g_vendor_valid" targetRef="e_msg_po_to_sys" name="Yes" />
+    <bpmn:sequenceFlow id="sf_vendor_not_ok" sourceRef="g_vendor_valid" targetRef="t_select_vendor" name="No" />
+  </bpmn:process>
+  <bpmn:process id="pool_system_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_vendor_p1" name="Selected Vendor Record" dataObjectRef="do_vendor_p1_do" />
+    <bpmn:dataObject id="do_vendor_p1_do" />
+    <bpmn:dataObjectReference id="do_po" name="Purchase Order" dataObjectRef="do_po_do" />
+    <bpmn:dataObject id="do_po_do" />
+    <bpmn:dataObjectReference id="do_invoice" name="Product Invoice" dataObjectRef="do_invoice_do" />
+    <bpmn:dataObject id="do_invoice_do" />
+    <bpmn:dataObjectReference id="do_notification" name="Result Notification Message" dataObjectRef="do_notification_do" />
+    <bpmn:dataObject id="do_notification_do" />
+    <bpmn:startEvent id="e_msg_rec_sys_events" name="System event trigger received">
+      <bpmn:outgoing>sf_sys_rec</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="e_msg_rec_sys_events_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="e_end_sys_proc" name="System notification process completed">
+      <bpmn:incoming>sf_sys_notify_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="t_gen_send_po" name="Generate and send purchase order">
+      <bpmn:incoming>sf_sys_rec</bpmn:incoming>
+      <bpmn:outgoing>sf_sys_po_to_wait</bpmn:outgoing>
+      <bpmn:property id="t_gen_send_po_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="t_gen_send_po_dia0">
+        <bpmn:sourceRef>do_vendor_p1</bpmn:sourceRef>
+        <bpmn:targetRef>t_gen_send_po_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="t_gen_send_po_doa0">
+        <bpmn:targetRef>do_po</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:task id="t_wait_delivery_invoice" name="Wait for product delivery and invoice">
+      <bpmn:incoming>sf_sys_po_to_wait</bpmn:incoming>
+      <bpmn:outgoing>sf_sys_wait_to_notify</bpmn:outgoing>
+      <bpmn:property id="t_wait_delivery_invoice_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="t_wait_delivery_invoice_dia0">
+        <bpmn:sourceRef>do_po</bpmn:sourceRef>
+        <bpmn:targetRef>t_wait_delivery_invoice_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="t_wait_delivery_invoice_doa0">
+        <bpmn:targetRef>do_invoice</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:serviceTask id="t_send_notification" name="Send notification to user with result">
+      <bpmn:incoming>sf_sys_wait_to_notify</bpmn:incoming>
+      <bpmn:outgoing>sf_sys_notify_end</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="t_send_notification_doa0">
+        <bpmn:targetRef>do_notification</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf_sys_rec" sourceRef="e_msg_rec_sys_events" targetRef="t_gen_send_po" />
+    <bpmn:sequenceFlow id="sf_sys_po_to_wait" sourceRef="t_gen_send_po" targetRef="t_wait_delivery_invoice" />
+    <bpmn:sequenceFlow id="sf_sys_wait_to_notify" sourceRef="t_wait_delivery_invoice" targetRef="t_send_notification" />
+    <bpmn:sequenceFlow id="sf_sys_notify_end" sourceRef="t_send_notification" targetRef="e_end_sys_proc" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_employee_part_di" bpmnElement="pool_employee_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_supervisor_part_di" bpmnElement="pool_supervisor_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="950" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_purchase_part_di" bpmnElement="pool_purchase_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1085" width="1330" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_system_part_di" bpmnElement="pool_system_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1545" width="1140" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_end_emp_reviewed_di" bpmnElement="e_end_emp_reviewed">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_end_sys_proc_di" bpmnElement="e_end_sys_proc">
+        <dc:Bounds x="920" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_msg_app_to_purch_di" bpmnElement="e_msg_app_to_purch">
+        <dc:Bounds x="730" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_msg_change_to_emp_di" bpmnElement="e_msg_change_to_emp">
+        <dc:Bounds x="730" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_msg_po_to_sys_di" bpmnElement="e_msg_po_to_sys">
+        <dc:Bounds x="1110" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_msg_rec_change_di" bpmnElement="e_msg_rec_change">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_msg_rec_purch_di" bpmnElement="e_msg_rec_purch">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_msg_rec_sup_di" bpmnElement="e_msg_rec_sup">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_msg_rec_sys_events_di" bpmnElement="e_msg_rec_sys_events">
+        <dc:Bounds x="160" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_msg_rej_to_sys_di" bpmnElement="e_msg_rej_to_sys">
+        <dc:Bounds x="730" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_msg_sent_to_sup_di" bpmnElement="e_msg_sent_to_sup">
+        <dc:Bounds x="540" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_start_emp_di" bpmnElement="e_start_emp">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_sup_decision_di" bpmnElement="g_sup_decision">
+        <dc:Bounds x="540" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_vendor_valid_di" bpmnElement="g_vendor_valid">
+        <dc:Bounds x="920" y="1145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_check_vendor_validity_di" bpmnElement="t_check_vendor_validity">
+        <dc:Bounds x="730" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_eval_req_di" bpmnElement="t_eval_req">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_gen_send_po_di" bpmnElement="t_gen_send_po">
+        <dc:Bounds x="350" y="1605" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_make_quotations_di" bpmnElement="t_make_quotations">
+        <dc:Bounds x="350" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_review_comments_di" bpmnElement="t_review_comments">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_select_vendor_di" bpmnElement="t_select_vendor">
+        <dc:Bounds x="1110" y="1270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_send_notification_di" bpmnElement="t_send_notification">
+        <dc:Bounds x="730" y="1605" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_submit_req_di" bpmnElement="t_submit_req">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_wait_delivery_invoice_di" bpmnElement="t_wait_delivery_invoice">
+        <dc:Bounds x="540" y="1605" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_req_di" bpmnElement="do_req">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_comments_di" bpmnElement="do_comments">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_req_p1_di" bpmnElement="do_req_p1">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_comments_p1_di" bpmnElement="do_comments_p1">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_req_p2_di" bpmnElement="do_req_p2">
+        <dc:Bounds x="370" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_quotation_di" bpmnElement="do_quotation">
+        <dc:Bounds x="750" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_vendor_di" bpmnElement="do_vendor">
+        <dc:Bounds x="940" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_vendor_p1_di" bpmnElement="do_vendor_p1">
+        <dc:Bounds x="370" y="1745" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_po_di" bpmnElement="do_po">
+        <dc:Bounds x="465" y="1745" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_invoice_di" bpmnElement="do_invoice">
+        <dc:Bounds x="560" y="1745" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_notification_di" bpmnElement="do_notification">
+        <dc:Bounds x="750" y="1745" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_emp_start_di" bpmnElement="sf_emp_start">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_emp_submit_to_end_di" bpmnElement="sf_emp_submit_to_end">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_emp_rec_change_di" bpmnElement="sf_emp_rec_change">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_emp_rev_end_di" bpmnElement="sf_emp_rev_end">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sup_rec_di" bpmnElement="sf_sup_rec">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sup_eval_to_g_di" bpmnElement="sf_sup_eval_to_g">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="565" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sup_to_app_di" bpmnElement="sf_sup_to_app">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="748" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sup_to_change_di" bpmnElement="sf_sup_to_change">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="748" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sup_to_rej_di" bpmnElement="sf_sup_to_rej">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="748" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_purch_rec_di" bpmnElement="sf_purch_rec">
+        <di:waypoint x="178" y="1163" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_purch_quote_to_select_di" bpmnElement="sf_purch_quote_to_select">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="1160" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_purch_select_to_check_di" bpmnElement="sf_purch_select_to_check">
+        <di:waypoint x="1160" y="1310" />
+        <di:waypoint x="780" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_purch_check_to_g_di" bpmnElement="sf_purch_check_to_g">
+        <di:waypoint x="780" y="1185" />
+        <di:waypoint x="945" y="1170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_vendor_ok_di" bpmnElement="sf_vendor_ok">
+        <di:waypoint x="945" y="1170" />
+        <di:waypoint x="1128" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_vendor_not_ok_di" bpmnElement="sf_vendor_not_ok">
+        <di:waypoint x="945" y="1170" />
+        <di:waypoint x="1160" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sys_rec_di" bpmnElement="sf_sys_rec">
+        <di:waypoint x="178" y="1623" />
+        <di:waypoint x="400" y="1645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sys_po_to_wait_di" bpmnElement="sf_sys_po_to_wait">
+        <di:waypoint x="400" y="1645" />
+        <di:waypoint x="590" y="1645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sys_wait_to_notify_di" bpmnElement="sf_sys_wait_to_notify">
+        <di:waypoint x="590" y="1645" />
+        <di:waypoint x="780" y="1645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sys_notify_end_di" bpmnElement="sf_sys_notify_end">
+        <di:waypoint x="780" y="1645" />
+        <di:waypoint x="938" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_emp_to_sup_di" bpmnElement="mf_emp_to_sup">
+        <di:waypoint x="558" y="243" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_sup_to_emp_change_di" bpmnElement="mf_sup_to_emp_change">
+        <di:waypoint x="748" y="703" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_sup_to_purch_di" bpmnElement="mf_sup_to_purch">
+        <di:waypoint x="748" y="578" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_sup_to_sys_rej_di" bpmnElement="mf_sup_to_sys_rej">
+        <di:waypoint x="748" y="828" />
+        <di:waypoint x="178" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_purch_to_sys_di" bpmnElement="mf_purch_to_sys">
+        <di:waypoint x="1128" y="1163" />
+        <di:waypoint x="178" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_submit_req_doa0_di" bpmnElement="t_submit_req_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="388" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_review_comments_dia0_di" bpmnElement="t_review_comments_dia0">
+        <di:waypoint x="388" y="390" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_eval_req_dia0_di" bpmnElement="t_eval_req_dia0">
+        <di:waypoint x="388" y="975" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_eval_req_doa0_di" bpmnElement="t_eval_req_doa0">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="388" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_make_quotations_dia0_di" bpmnElement="t_make_quotations_dia0">
+        <di:waypoint x="388" y="1435" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_make_quotations_doa0_di" bpmnElement="t_make_quotations_doa0">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="768" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_select_vendor_dia0_di" bpmnElement="t_select_vendor_dia0">
+        <di:waypoint x="768" y="1435" />
+        <di:waypoint x="1160" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_select_vendor_doa0_di" bpmnElement="t_select_vendor_doa0">
+        <di:waypoint x="1160" y="1310" />
+        <di:waypoint x="958" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_check_vendor_validity_dia0_di" bpmnElement="t_check_vendor_validity_dia0">
+        <di:waypoint x="958" y="1435" />
+        <di:waypoint x="780" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_gen_send_po_dia0_di" bpmnElement="t_gen_send_po_dia0">
+        <di:waypoint x="388" y="1770" />
+        <di:waypoint x="400" y="1645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_gen_send_po_doa0_di" bpmnElement="t_gen_send_po_doa0">
+        <di:waypoint x="400" y="1645" />
+        <di:waypoint x="483" y="1770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_wait_delivery_invoice_dia0_di" bpmnElement="t_wait_delivery_invoice_dia0">
+        <di:waypoint x="483" y="1770" />
+        <di:waypoint x="590" y="1645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_wait_delivery_invoice_doa0_di" bpmnElement="t_wait_delivery_invoice_doa0">
+        <di:waypoint x="590" y="1645" />
+        <di:waypoint x="578" y="1770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="t_send_notification_doa0_di" bpmnElement="t_send_notification_doa0">
+        <di:waypoint x="780" y="1645" />
+        <di:waypoint x="768" y="1770" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_SP_PU_GO" name="SP / PU / GO" processRef="Process_SP_PU_GO"/>
+    <participant id="Participant_MPO" name="MPO" processRef="Process_MPO"/>
+
+    <messageFlow id="MessageFlow_Request" name="Request change" sourceRef="StartEvent_RequestChange" targetRef="Task_ReviewRequest"/>
+    <messageFlow id="MessageFlow_Reject" name="Rejection" sourceRef="Task_RejectChange" targetRef="EndEvent_Rejected"/>
+    <messageFlow id="MessageFlow_Report" name="Implementation report" sourceRef="Task_ReportImplementation" targetRef="EndEvent_Implemented"/>
+    <messageFlow id="MessageFlow_Failure" name="Failure notification" sourceRef="Task_NotifyFailure" targetRef="EndEvent_Failed"/>
+  </collaboration>
+
+  <process id="Process_SP_PU_GO" name="SP / PU / GO" isExecutable="false">
+    <startEvent id="StartEvent_RequestChange" name="Request change to the MPO">
+      <outgoing>Flow_SP_1</outgoing>
+    </startEvent>
+
+    <endEvent id="EndEvent_Rejected" name="Change rejected">
+      <incoming>Flow_SP_Reject</incoming>
+    </endEvent>
+
+    <endEvent id="EndEvent_Implemented" name="Implementation reported">
+      <incoming>Flow_SP_Report</incoming>
+    </endEvent>
+
+    <endEvent id="EndEvent_Failed" name="Failure notified">
+      <incoming>Flow_SP_Failure</incoming>
+    </endEvent>
+
+  </process>
+
+  <process id="Process_MPO" name="MPO" isExecutable="false">
+    <startEvent id="StartEvent_MPOChange" name="MPO causes a change">
+      <outgoing>Flow_MPO_1</outgoing>
+    </startEvent>
+
+    <task id="Task_ReviewRequest" name="Review the change request">
+      <incoming>Flow_MPO_1</incoming>
+      <outgoing>Flow_MPO_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Decision" name="Decision">
+      <incoming>Flow_MPO_2</incoming>
+      <outgoing>Flow_MPO_Reject</outgoing>
+      <outgoing>Flow_MPO_Confirm</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_RejectChange" name="Reject the change of the measuring point">
+      <incoming>Flow_MPO_Reject</incoming>
+      <outgoing>Flow_MPO_RejectEnd</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_RejectDone" name="Rejection sent">
+      <incoming>Flow_MPO_RejectEnd</incoming>
+    </endEvent>
+
+    <task id="Task_ConfirmRequest" name="Confirm the request of the SP / PU / GO">
+      <incoming>Flow_MPO_Confirm</incoming>
+      <outgoing>Flow_MPO_3</outgoing>
+    </task>
+
+    <task id="Task_PerformChange" name="Perform the measuring point change">
+      <incoming>Flow_MPO_3</incoming>
+      <outgoing>Flow_MPO_4</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Result" name="Result">
+      <incoming>Flow_MPO_4</incoming>
+      <outgoing>Flow_MPO_Success</outgoing>
+      <outgoing>Flow_MPO_Failure</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_ReportImplementation" name="Report the implementation to the SP / PU / GO">
+      <incoming>Flow_MPO_Success</incoming>
+      <outgoing>Flow_MPO_ReportEnd</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_ReportDone" name="Report sent">
+      <incoming>Flow_MPO_ReportEnd</incoming>
+    </endEvent>
+
+    <task id="Task_NotifyFailure" name="Notify the SP / PU / GO about the failure of the changes">
+      <incoming>Flow_MPO_Failure</incoming>
+      <outgoing>Flow_MPO_FailureEnd</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_NotifyDone" name="Notification sent">
+      <incoming>Flow_MPO_FailureEnd</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_MPO_1" sourceRef="StartEvent_MPOChange" targetRef="Task_ReviewRequest"/>
+    <sequenceFlow id="Flow_MPO_2" sourceRef="Task_ReviewRequest" targetRef="Gateway_Decision"/>
+    <sequenceFlow id="Flow_MPO_Reject" name="Reject" sourceRef="Gateway_Decision" targetRef="Task_RejectChange"/>
+    <sequenceFlow id="Flow_MPO_Confirm" name="Confirm" sourceRef="Gateway_Decision" targetRef="Task_ConfirmRequest"/>
+    <sequenceFlow id="Flow_MPO_RejectEnd" sourceRef="Task_RejectChange" targetRef="EndEvent_RejectDone"/>
+    <sequenceFlow id="Flow_MPO_3" sourceRef="Task_ConfirmRequest" targetRef="Task_PerformChange"/>
+    <sequenceFlow id="Flow_MPO_4" sourceRef="Task_PerformChange" targetRef="Gateway_Result"/>
+    <sequenceFlow id="Flow_MPO_Success" name="Success" sourceRef="Gateway_Result" targetRef="Task_ReportImplementation"/>
+    <sequenceFlow id="Flow_MPO_Failure" name="Failure" sourceRef="Gateway_Result" targetRef="Task_NotifyFailure"/>
+    <sequenceFlow id="Flow_MPO_ReportEnd" sourceRef="Task_ReportImplementation" targetRef="EndEvent_ReportDone"/>
+    <sequenceFlow id="Flow_MPO_FailureEnd" sourceRef="Task_NotifyFailure" targetRef="EndEvent_NotifyDone"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Participant_SP_PU_GO_di" bpmnElement="Participant_SP_PU_GO" isHorizontal="true">
+        <omgdc:Bounds x="100" y="60" width="900" height="200"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_RequestChange_di" bpmnElement="StartEvent_RequestChange">
+        <omgdc:Bounds x="150" y="140" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <omgdc:Bounds x="400" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Implemented_di" bpmnElement="EndEvent_Implemented">
+        <omgdc:Bounds x="700" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Failed_di" bpmnElement="EndEvent_Failed">
+        <omgdc:Bounds x="800" y="180" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_MPO_di" bpmnElement="Participant_MPO" isHorizontal="true">
+        <omgdc:Bounds x="100" y="300" width="1000" height="350"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_MPOChange_di" bpmnElement="StartEvent_MPOChange">
+        <omgdc:Bounds x="150" y="400" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReviewRequest_di" bpmnElement="Task_ReviewRequest">
+        <omgdc:Bounds x="230" y="378" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <omgdc:Bounds x="395" y="393" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RejectChange_di" bpmnElement="Task_RejectChange">
+        <omgdc:Bounds x="500" y="320" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_RejectDone_di" bpmnElement="EndEvent_RejectDone">
+        <omgdc:Bounds x="680" y="345" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ConfirmRequest_di" bpmnElement="Task_ConfirmRequest">
+        <omgdc:Bounds x="500" y="430" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PerformChange_di" bpmnElement="Task_PerformChange">
+        <omgdc:Bounds x="670" y="430" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Result_di" bpmnElement="Gateway_Result" isMarkerVisible="true">
+        <omgdc:Bounds x="845" y="445" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReportImplementation_di" bpmnElement="Task_ReportImplementation">
+        <omgdc:Bounds x="930" y="370" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_ReportDone_di" bpmnElement="EndEvent_ReportDone">
+        <omgdc:Bounds x="1110" y="395" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_NotifyFailure_di" bpmnElement="Task_NotifyFailure">
+        <omgdc:Bounds x="930" y="490" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_NotifyDone_di" bpmnElement="EndEvent_NotifyDone">
+        <omgdc:Bounds x="1110" y="515" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_1_di" bpmnElement="Flow_MPO_1">
+        <omgdi:waypoint x="186" y="418"/>
+        <omgdi:waypoint x="230" y="418"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_2_di" bpmnElement="Flow_MPO_2">
+        <omgdi:waypoint x="350" y="418"/>
+        <omgdi:waypoint x="395" y="418"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_Reject_di" bpmnElement="Flow_MPO_Reject">
+        <omgdi:waypoint x="420" y="393"/>
+        <omgdi:waypoint x="420" y="360"/>
+        <omgdi:waypoint x="500" y="360"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_Confirm_di" bpmnElement="Flow_MPO_Confirm">
+        <omgdi:waypoint x="420" y="443"/>
+        <omgdi:waypoint x="420" y="470"/>
+        <omgdi:waypoint x="500" y="470"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_RejectEnd_di" bpmnElement="Flow_MPO_RejectEnd">
+        <omgdi:waypoint x="630" y="360"/>
+        <omgdi:waypoint x="680" y="363"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_3_di" bpmnElement="Flow_MPO_3">
+        <omgdi:waypoint x="630" y="470"/>
+        <omgdi:waypoint x="670" y="470"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_4_di" bpmnElement="Flow_MPO_4">
+        <omgdi:waypoint x="810" y="470"/>
+        <omgdi:waypoint x="845" y="470"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_Success_di" bpmnElement="Flow_MPO_Success">
+        <omgdi:waypoint x="870" y="445"/>
+        <omgdi:waypoint x="870" y="410"/>
+        <omgdi:waypoint x="930" y="410"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_Failure_di" bpmnElement="Flow_MPO_Failure">
+        <omgdi:waypoint x="870" y="495"/>
+        <omgdi:waypoint x="870" y="530"/>
+        <omgdi:waypoint x="930" y="530"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_ReportEnd_di" bpmnElement="Flow_MPO_ReportEnd">
+        <omgdi:waypoint x="1080" y="410"/>
+        <omgdi:waypoint x="1110" y="413"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MPO_FailureEnd_di" bpmnElement="Flow_MPO_FailureEnd">
+        <omgdi:waypoint x="1080" y="530"/>
+        <omgdi:waypoint x="1110" y="533"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Request_di" bpmnElement="MessageFlow_Request">
+        <omgdi:waypoint x="168" y="176"/>
+        <omgdi:waypoint x="168" y="300"/>
+        <omgdi:waypoint x="290" y="378"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Reject_di" bpmnElement="MessageFlow_Reject">
+        <omgdi:waypoint x="565" y="320"/>
+        <omgdi:waypoint x="565" y="200"/>
+        <omgdi:waypoint x="418" y="136"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Report_di" bpmnElement="MessageFlow_Report">
+        <omgdi:waypoint x="1005" y="370"/>
+        <omgdi:waypoint x="1005" y="200"/>
+        <omgdi:waypoint x="718" y="136"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Failure_di" bpmnElement="MessageFlow_Failure">
+        <omgdi:waypoint x="1005" y="490"/>
+        <omgdi:waypoint x="1005" y="260"/>
+        <omgdi:waypoint x="818" y="180"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

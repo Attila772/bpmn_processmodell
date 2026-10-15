@@ -1,0 +1,518 @@
+{
+  "name": "Warrant Possession Request Process",
+  "resources": [
+    {
+      "name": "Party",
+      "capacity": 1,
+      "resource_type": "external_party"
+    },
+    {
+      "name": "Client Service Back Office",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "Queensland Police",
+      "capacity": 1,
+      "resource_type": "external_party"
+    },
+    {
+      "name": "MC Internal Staff",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_party",
+      "name": "Warrant possession request needed",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_party",
+      "name": "Request sent to Back Office",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "warrant possession request"
+    },
+    {
+      "id": "evt_start_bo",
+      "name": "Warrant possession request received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "warrant possession request"
+    },
+    {
+      "id": "evt_end_bo_forward",
+      "name": "SCT Warrant Possession forwarded",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "SCT Warrant Possession"
+    },
+    {
+      "id": "evt_start_police",
+      "name": "SCT Warrant Possession received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "SCT Warrant Possession"
+    },
+    {
+      "id": "evt_end_police",
+      "name": "Police report sent",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Police Report"
+    },
+    {
+      "id": "evt_start_bo_report",
+      "name": "Police report received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Police Report"
+    },
+    {
+      "id": "evt_end_bo_file",
+      "name": "Expanded SCT physical file sent to MC Internal Staff",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Expanded SCT Physical File"
+    },
+    {
+      "id": "evt_start_mc",
+      "name": "Expanded SCT physical file received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Expanded SCT Physical File"
+    },
+    {
+      "id": "evt_end_mc",
+      "name": "Process finished (Out of scope)",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_send_request",
+      "name": "Send warrant possession request",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Party",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "doc_warrant_request"
+      ]
+    },
+    {
+      "id": "task_receive_req_retrieve_file",
+      "name": "Receive request and retrieve SCT file",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_warrant_request",
+        "store_file_archive"
+      ],
+      "output_data_ids": [
+        "doc_sct_file"
+      ]
+    },
+    {
+      "id": "task_forward_warrant",
+      "name": "Forward SCT Warrant Possession to Queensland Police",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_sct_file"
+      ],
+      "output_data_ids": [
+        "doc_warrant_possession"
+      ]
+    },
+    {
+      "id": "task_store_file_awaiting",
+      "name": "Store SCT physical file awaiting report",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_sct_file"
+      ],
+      "output_data_ids": [
+        "store_file_archive"
+      ]
+    },
+    {
+      "id": "task_process_and_send_report",
+      "name": "Process request and send Police report",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Queensland Police",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_warrant_possession"
+      ],
+      "output_data_ids": [
+        "doc_police_report"
+      ]
+    },
+    {
+      "id": "task_retrieve_sct_file",
+      "name": "Retrieve respective SCT file",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "store_file_archive",
+        "doc_police_report"
+      ],
+      "output_data_ids": [
+        "doc_sct_file"
+      ]
+    },
+    {
+      "id": "task_attach_doc",
+      "name": "Attach new SCT document",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_sct_file",
+        "doc_police_report"
+      ],
+      "output_data_ids": [
+        "doc_new_sct_doc"
+      ]
+    },
+    {
+      "id": "task_store_expanded_file",
+      "name": "Store expanded SCT physical file",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_new_sct_doc"
+      ],
+      "output_data_ids": [
+        "doc_expanded_sct_file",
+        "store_file_archive"
+      ]
+    },
+    {
+      "id": "task_receive_file_internal",
+      "name": "Receive physical SCT file (out of scope)",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "MC Internal Staff",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_expanded_sct_file"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [],
+  "sequence_flows": [
+    {
+      "id": "sf_party_1",
+      "source_id": "evt_start_party",
+      "target_id": "task_send_request",
+      "condition_name": null
+    },
+    {
+      "id": "sf_party_2",
+      "source_id": "task_send_request",
+      "target_id": "evt_end_party",
+      "condition_name": null
+    },
+    {
+      "id": "sf_bo_1",
+      "source_id": "evt_start_bo",
+      "target_id": "task_receive_req_retrieve_file",
+      "condition_name": null
+    },
+    {
+      "id": "sf_bo_2",
+      "source_id": "task_receive_req_retrieve_file",
+      "target_id": "task_forward_warrant",
+      "condition_name": null
+    },
+    {
+      "id": "sf_bo_3",
+      "source_id": "task_forward_warrant",
+      "target_id": "task_store_file_awaiting",
+      "condition_name": null
+    },
+    {
+      "id": "sf_bo_4",
+      "source_id": "task_store_file_awaiting",
+      "target_id": "evt_end_bo_forward",
+      "condition_name": null
+    },
+    {
+      "id": "sf_police_1",
+      "source_id": "evt_start_police",
+      "target_id": "task_process_and_send_report",
+      "condition_name": null
+    },
+    {
+      "id": "sf_police_2",
+      "source_id": "task_process_and_send_report",
+      "target_id": "evt_end_police",
+      "condition_name": null
+    },
+    {
+      "id": "sf_bo_5",
+      "source_id": "evt_start_bo_report",
+      "target_id": "task_retrieve_sct_file",
+      "condition_name": null
+    },
+    {
+      "id": "sf_bo_6",
+      "source_id": "task_retrieve_sct_file",
+      "target_id": "task_attach_doc",
+      "condition_name": null
+    },
+    {
+      "id": "sf_bo_7",
+      "source_id": "task_attach_doc",
+      "target_id": "task_store_expanded_file",
+      "condition_name": null
+    },
+    {
+      "id": "sf_bo_8",
+      "source_id": "task_store_expanded_file",
+      "target_id": "evt_end_bo_file",
+      "condition_name": null
+    },
+    {
+      "id": "sf_mc_1",
+      "source_id": "evt_start_mc",
+      "target_id": "task_receive_file_internal",
+      "condition_name": null
+    },
+    {
+      "id": "sf_mc_2",
+      "source_id": "task_receive_file_internal",
+      "target_id": "evt_end_mc",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_party",
+      "name": "Party",
+      "element_ids": [
+        "evt_start_party",
+        "task_send_request",
+        "evt_end_party"
+      ]
+    },
+    {
+      "id": "pool_back_office",
+      "name": "Client Service Back Office (Small Claims Registry Operations)",
+      "element_ids": [
+        "evt_start_bo",
+        "task_receive_req_retrieve_file",
+        "task_forward_warrant",
+        "task_store_file_awaiting",
+        "evt_end_bo_forward",
+        "evt_start_bo_report",
+        "task_retrieve_sct_file",
+        "task_attach_doc",
+        "task_store_expanded_file",
+        "evt_end_bo_file"
+      ]
+    },
+    {
+      "id": "pool_police",
+      "name": "Queensland Police",
+      "element_ids": [
+        "evt_start_police",
+        "task_process_and_send_report",
+        "evt_end_police"
+      ]
+    },
+    {
+      "id": "pool_mc_internal",
+      "name": "MC Internal Staff",
+      "element_ids": [
+        "evt_start_mc",
+        "task_receive_file_internal",
+        "evt_end_mc"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "mf_party_to_bo",
+      "source_id": "evt_end_party",
+      "target_id": "evt_start_bo",
+      "name": "Warrant possession request"
+    },
+    {
+      "id": "mf_bo_to_police",
+      "source_id": "evt_end_bo_forward",
+      "target_id": "evt_start_police",
+      "name": "SCT Warrant Possession"
+    },
+    {
+      "id": "mf_police_to_bo",
+      "source_id": "evt_end_police",
+      "target_id": "evt_start_bo_report",
+      "name": "Police report"
+    },
+    {
+      "id": "mf_bo_to_mc",
+      "source_id": "evt_end_bo_file",
+      "target_id": "evt_start_mc",
+      "name": "Expanded SCT physical file"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "doc_warrant_request",
+      "name": "Warrant Possession Request"
+    },
+    {
+      "id": "doc_sct_file",
+      "name": "SCT File"
+    },
+    {
+      "id": "doc_warrant_possession",
+      "name": "SCT Warrant Possession"
+    },
+    {
+      "id": "doc_police_report",
+      "name": "Police Report"
+    },
+    {
+      "id": "doc_new_sct_doc",
+      "name": "New SCT Document"
+    },
+    {
+      "id": "doc_expanded_sct_file",
+      "name": "Expanded SCT Physical File"
+    }
+  ],
+  "data_stores": [
+    {
+      "id": "store_file_archive",
+      "name": "SCT Physical File Storage Archive"
+    }
+  ],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

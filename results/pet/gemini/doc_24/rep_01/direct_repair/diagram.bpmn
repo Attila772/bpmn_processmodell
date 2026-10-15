@@ -1,0 +1,717 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             id="Definitions_SwitchOver"
+             targetNamespace="http://bpmn.org/schema/bpmn"
+             exporter="Camunda Modeler"
+             exporterVersion="5.0.0">
+
+  <!-- COLLABORATION -->
+  <collaboration id="Collaboration_SwitchOver">
+    <participant id="Participant_Customer" name="Customer" processRef="Process_Customer" />
+    <participant id="Participant_NewSupplier" name="New Supplier (Customer Service)" processRef="Process_NewSupplier" />
+    <participant id="Participant_GridOperator" name="Grid Operator" processRef="Process_GridOperator" />
+    <participant id="Participant_OldSupplier" name="Old Supplier" processRef="Process_OldSupplier" />
+
+    <!-- Message Flows -->
+    <messageFlow id="MF_1" name="Switch-over Request" sourceRef="Task_Cust_RequestSwitch" targetRef="Start_SwitchRequestReceived" />
+    <messageFlow id="MF_2" name="Confirmation Document" sourceRef="Task_SendConfirmationDoc" targetRef="Task_Cust_CheckContract" />
+    <messageFlow id="MF_3" name="Grid Request" sourceRef="Task_SendGridRequest" targetRef="Start_GridRequestReceived" />
+    <messageFlow id="MF_4" name="Conflict Notification" sourceRef="Task_InformConflict" targetRef="Task_ResolveConflict" />
+    <messageFlow id="MF_5" name="Grid Response" sourceRef="Task_SendGridResponse" targetRef="Catch_GridResponse" />
+    <messageFlow id="MF_6" name="Termination Notice" sourceRef="Task_TerminateOldAgreement" targetRef="Task_Old_ProcessTermination" />
+    <messageFlow id="MF_7" name="Withdrawal / Confirmation" sourceRef="Task_Cust_CheckContract" targetRef="Catch_CustomerDecision" />
+    <messageFlow id="MF_8" name="Services Consumption Report" sourceRef="Task_SendMeterData" targetRef="Catch_MeterDataReceived" />
+    <messageFlow id="MF_9" name="Services Consumption Report" sourceRef="Task_SendMeterData" targetRef="Task_Old_ReceiveMeterData" />
+    <messageFlow id="MF_10" name="Final Billing (Grid)" sourceRef="Task_ComputeSendFinalBillingGrid" targetRef="Task_Old_ReceiveGridBilling" />
+    <messageFlow id="MF_11" name="Final Billing (Customer)" sourceRef="Task_Old_SendFinalBilling" targetRef="Task_Cust_ReceiveFinalBilling" />
+  </collaboration>
+
+  <!-- PROCESS 1: Customer -->
+  <process id="Process_Customer" isExecutable="false">
+    <startEvent id="Start_Customer" name="Desire to Switch Supplier">
+      <outgoing>Flow_C1</outgoing>
+    </startEvent>
+    <task id="Task_Cust_RequestSwitch" name="Submit Switch-over Request">
+      <incoming>Flow_C1</incoming>
+      <outgoing>Flow_C2</outgoing>
+    </task>
+    <task id="Task_Cust_CheckContract" name="Check Contract Details &amp; Decide">
+      <incoming>Flow_C2</incoming>
+      <outgoing>Flow_C3</outgoing>
+    </task>
+    <task id="Task_Cust_ReceiveFinalBilling" name="Receive Final Billing from Old Supplier">
+      <incoming>Flow_C3</incoming>
+      <outgoing>Flow_C4</outgoing>
+    </task>
+    <endEvent id="End_Customer" name="Customer Process Ended">
+      <incoming>Flow_C4</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_C1" sourceRef="Start_Customer" targetRef="Task_Cust_RequestSwitch" />
+    <sequenceFlow id="Flow_C2" sourceRef="Task_Cust_RequestSwitch" targetRef="Task_Cust_CheckContract" />
+    <sequenceFlow id="Flow_C3" sourceRef="Task_Cust_CheckContract" targetRef="Task_Cust_ReceiveFinalBilling" />
+    <sequenceFlow id="Flow_C4" sourceRef="Task_Cust_ReceiveFinalBilling" targetRef="End_Customer" />
+  </process>
+
+  <!-- PROCESS 2: New Supplier (Customer Service) -->
+  <process id="Process_NewSupplier" isExecutable="true">
+    <startEvent id="Start_SwitchRequestReceived" name="Switch-over Request Received">
+      <outgoing>Flow_NS1</outgoing>
+      <messageEventDefinition id="MED_1" />
+    </startEvent>
+
+    <task id="Task_EnterCRM" name="Enter Customer Data into CRM">
+      <incoming>Flow_NS1</incoming>
+      <outgoing>Flow_NS2</outgoing>
+    </task>
+
+    <task id="Task_CompareData" name="Compare with Internal Customer DB">
+      <incoming>Flow_NS2</incoming>
+      <outgoing>Flow_NS3</outgoing>
+    </task>
+
+    <exclusiveGateway id="GW_DataErrors" name="Data Errors Found?">
+      <incoming>Flow_NS3</incoming>
+      <outgoing>Flow_ErrorYes</outgoing>
+      <outgoing>Flow_ErrorNo</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_CorrectErrors" name="Correct Errors via Error List">
+      <incoming>Flow_ErrorYes</incoming>
+      <outgoing>Flow_NS4</outgoing>
+    </task>
+
+    <exclusiveGateway id="GW_MergeErrors" name="Merge">
+      <incoming>Flow_ErrorNo</incoming>
+      <incoming>Flow_NS4</incoming>
+      <outgoing>Flow_NS5</outgoing>
+    </exclusiveGateway>
+
+    <exclusiveGateway id="GW_CustomerExists" name="Customer Exists in DB?">
+      <incoming>Flow_NS5</incoming>
+      <outgoing>Flow_CustExistsYes</outgoing>
+      <outgoing>Flow_CustExistsNo</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_CreateCustomerObject" name="Create New Customer Object">
+      <incoming>Flow_CustExistsNo</incoming>
+      <outgoing>Flow_NS6</outgoing>
+    </task>
+
+    <exclusiveGateway id="GW_MergeCustomerObj" name="Merge Customer Object">
+      <incoming>Flow_CustExistsYes</incoming>
+      <incoming>Flow_NS6</incoming>
+      <outgoing>Flow_NS7</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_PrepareContractDocs" name="Prepare Contract Documents">
+      <incoming>Flow_NS7</incoming>
+      <incoming>Flow_LoopDocs</incoming>
+      <outgoing>Flow_NS8</outgoing>
+    </task>
+
+    <task id="Task_AutomatedCheckCIS" name="Automated Check in CIS">
+      <incoming>Flow_NS8</incoming>
+      <outgoing>Flow_NS9</outgoing>
+    </task>
+
+    <exclusiveGateway id="GW_CheckDocsSuccess" name="Contract Generation Successful?">
+      <incoming>Flow_NS9</incoming>
+      <outgoing>Flow_DocsSuccessYes</outgoing>
+      <outgoing>Flow_DocsSuccessNo</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_AnalyzeResolveIssues" name="Analyze and Resolve Contract Generation Issues">
+      <incoming>Flow_DocsSuccessNo</incoming>
+      <outgoing>Flow_LoopDocs</outgoing>
+    </task>
+
+    <task id="Task_SendConfirmationDoc" name="Send Confirmation Document to Customer">
+      <incoming>Flow_DocsSuccessYes</incoming>
+      <outgoing>Flow_NS10</outgoing>
+    </task>
+
+    <task id="Task_SendGridRequest" name="Send Switch Request to Grid Operator (via CIS)">
+      <incoming>Flow_NS10</incoming>
+      <outgoing>Flow_NS11</outgoing>
+    </task>
+
+    <intermediateCatchEvent id="Catch_GridResponse" name="Receive Response Comment from Grid">
+      <incoming>Flow_NS11</incoming>
+      <outgoing>Flow_NS12</outgoing>
+      <messageEventDefinition id="MED_2" />
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="GW_GridObjections" name="Grid Objections / Supplier Concurrence?">
+      <incoming>Flow_NS12</incoming>
+      <outgoing>Flow_ConcurrenceNo</outgoing>
+      <outgoing>Flow_ConcurrenceYes</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_ResolveConflict" name="Resolve Supplier Concurrence Conflict">
+      <incoming>Flow_ConcurrenceYes</incoming>
+      <outgoing>Flow_NS13</outgoing>
+    </task>
+
+    <task id="Task_CreateCISContract" name="Create CIS Contract">
+      <incoming>Flow_ConcurrenceNo</incoming>
+      <incoming>Flow_NS13</incoming>
+      <outgoing>Flow_NS14</outgoing>
+    </task>
+
+    <eventBasedGateway id="GW_CustomerDecision" name="Await Customer Decision">
+      <incoming>Flow_NS14</incoming>
+      <outgoing>Flow_ToCatchDecision</outgoing>
+      <outgoing>Flow_To7DaysTimer</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="Catch_CustomerDecision" name="Customer Message Received">
+      <incoming>Flow_ToCatchDecision</incoming>
+      <outgoing>Flow_NS15</outgoing>
+      <messageEventDefinition id="MED_3" />
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="Timer_7Days" name="7 Days Passed">
+      <incoming>Flow_To7DaysTimer</incoming>
+      <outgoing>Flow_NS16</outgoing>
+      <timerEventDefinition id="TED_1">
+        <timeDuration xsi:type="tFormalExpression">P7D</timeDuration>
+      </timerEventDefinition>
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="GW_DecisionOutcome" name="Customer Decision Outcome">
+      <incoming>Flow_NS15</incoming>
+      <outgoing>Flow_Withdrawal</outgoing>
+      <outgoing>Flow_Confirmed</outgoing>
+    </exclusiveGateway>
+
+    <exclusiveGateway id="GW_MergeAcceptance" name="Contract Accepted">
+      <incoming>Flow_Confirmed</incoming>
+      <incoming>Flow_NS16</incoming>
+      <outgoing>Flow_NS17</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="End_Withdrawal" name="Process Ended (Withdrawal)">
+      <incoming>Flow_Withdrawal</incoming>
+    </endEvent>
+
+    <intermediateCatchEvent id="Catch_MeterDataReceived" name="Receive Meter Data from Grid Operator">
+      <incoming>Flow_NS17</incoming>
+      <outgoing>Flow_NS18</outgoing>
+      <messageEventDefinition id="MED_4" />
+    </intermediateCatchEvent>
+
+    <task id="Task_ImportMeterData" name="Import Meter Data to Internal Systems">
+      <incoming>Flow_NS18</incoming>
+      <outgoing>Flow_NS19</outgoing>
+    </task>
+
+    <endEvent id="End_NewCustomerWon" name="New Customer Process Completed">
+      <incoming>Flow_NS19</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows Process 2 -->
+    <sequenceFlow id="Flow_NS1" sourceRef="Start_SwitchRequestReceived" targetRef="Task_EnterCRM" />
+    <sequenceFlow id="Flow_NS2" sourceRef="Task_EnterCRM" targetRef="Task_CompareData" />
+    <sequenceFlow id="Flow_NS3" sourceRef="Task_CompareData" targetRef="GW_DataErrors" />
+    <sequenceFlow id="Flow_ErrorYes" name="Yes" sourceRef="GW_DataErrors" targetRef="Task_CorrectErrors" />
+    <sequenceFlow id="Flow_ErrorNo" name="No" sourceRef="GW_DataErrors" targetRef="GW_MergeErrors" />
+    <sequenceFlow id="Flow_NS4" sourceRef="Task_CorrectErrors" targetRef="GW_MergeErrors" />
+    <sequenceFlow id="Flow_NS5" sourceRef="GW_MergeErrors" targetRef="GW_CustomerExists" />
+    <sequenceFlow id="Flow_CustExistsYes" name="Yes" sourceRef="GW_CustomerExists" targetRef="GW_MergeCustomerObj" />
+    <sequenceFlow id="Flow_CustExistsNo" name="No" sourceRef="GW_CustomerExists" targetRef="Task_CreateCustomerObject" />
+    <sequenceFlow id="Flow_NS6" sourceRef="Task_CreateCustomerObject" targetRef="GW_MergeCustomerObj" />
+    <sequenceFlow id="Flow_NS7" sourceRef="GW_MergeCustomerObj" targetRef="Task_PrepareContractDocs" />
+    <sequenceFlow id="Flow_NS8" sourceRef="Task_PrepareContractDocs" targetRef="Task_AutomatedCheckCIS" />
+    <sequenceFlow id="Flow_NS9" sourceRef="Task_AutomatedCheckCIS" targetRef="GW_CheckDocsSuccess" />
+    <sequenceFlow id="Flow_DocsSuccessNo" name="Negative Response" sourceRef="GW_CheckDocsSuccess" targetRef="Task_AnalyzeResolveIssues" />
+    <sequenceFlow id="Flow_LoopDocs" sourceRef="Task_AnalyzeResolveIssues" targetRef="Task_PrepareContractDocs" />
+    <sequenceFlow id="Flow_DocsSuccessYes" name="Positive Response" sourceRef="GW_CheckDocsSuccess" targetRef="Task_SendConfirmationDoc" />
+    <sequenceFlow id="Flow_NS10" sourceRef="Task_SendConfirmationDoc" targetRef="Task_SendGridRequest" />
+    <sequenceFlow id="Flow_NS11" sourceRef="Task_SendGridRequest" targetRef="Catch_GridResponse" />
+    <sequenceFlow id="Flow_NS12" sourceRef="Catch_GridResponse" targetRef="GW_GridObjections" />
+    <sequenceFlow id="Flow_ConcurrenceYes" name="Supplier Concurrence" sourceRef="GW_GridObjections" targetRef="Task_ResolveConflict" />
+    <sequenceFlow id="Flow_ConcurrenceNo" name="No Objections" sourceRef="GW_GridObjections" targetRef="Task_CreateCISContract" />
+    <sequenceFlow id="Flow_NS13" sourceRef="Task_ResolveConflict" targetRef="Task_CreateCISContract" />
+    <sequenceFlow id="Flow_NS14" sourceRef="Task_CreateCISContract" targetRef="GW_CustomerDecision" />
+    <sequenceFlow id="Flow_ToCatchDecision" sourceRef="GW_CustomerDecision" targetRef="Catch_CustomerDecision" />
+    <sequenceFlow id="Flow_To7DaysTimer" sourceRef="GW_CustomerDecision" targetRef="Timer_7Days" />
+    <sequenceFlow id="Flow_NS15" sourceRef="Catch_CustomerDecision" targetRef="GW_DecisionOutcome" />
+    <sequenceFlow id="Flow_Withdrawal" name="Withdrawal" sourceRef="GW_DecisionOutcome" targetRef="End_Withdrawal" />
+    <sequenceFlow id="Flow_Confirmed" name="Confirmation" sourceRef="GW_DecisionOutcome" targetRef="GW_MergeAcceptance" />
+    <sequenceFlow id="Flow_NS16" sourceRef="Timer_7Days" targetRef="GW_MergeAcceptance" />
+    <sequenceFlow id="Flow_NS17" sourceRef="GW_MergeAcceptance" targetRef="Catch_MeterDataReceived" />
+    <sequenceFlow id="Flow_NS18" sourceRef="Catch_MeterDataReceived" targetRef="Task_ImportMeterData" />
+    <sequenceFlow id="Flow_NS19" sourceRef="Task_ImportMeterData" targetRef="End_NewCustomerWon" />
+  </process>
+
+  <!-- PROCESS 3: Grid Operator -->
+  <process id="Process_GridOperator" isExecutable="false">
+    <startEvent id="Start_GridRequestReceived" name="Grid Request Received">
+      <outgoing>Flow_GO1</outgoing>
+      <messageEventDefinition id="MED_5" />
+    </startEvent>
+
+    <task id="Task_CheckConcurrence" name="Check Switch Request for Supplier Concurrence">
+      <incoming>Flow_GO1</incoming>
+      <outgoing>Flow_GO2</outgoing>
+    </task>
+
+    <exclusiveGateway id="GW_GridConcurrence" name="Supplier Concurrence Detected?">
+      <incoming>Flow_GO2</incoming>
+      <outgoing>Flow_GridConcYes</outgoing>
+      <outgoing>Flow_GridConcNo</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_InformConflict" name="Inform Involved Suppliers &amp; Demand Resolution">
+      <incoming>Flow_GridConcYes</incoming>
+      <outgoing>Flow_GO3</outgoing>
+    </task>
+
+    <exclusiveGateway id="GW_MergeGridResponse" name="Merge Response">
+      <incoming>Flow_GridConcNo</incoming>
+      <incoming>Flow_GO3</incoming>
+      <outgoing>Flow_GO4</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_SendGridResponse" name="Transmit Response Comment">
+      <incoming>Flow_GO4</incoming>
+      <outgoing>Flow_GO5</outgoing>
+    </task>
+
+    <task id="Task_TerminateOldAgreement" name="Communicate with Old Supplier &amp; Terminate Agreement">
+      <incoming>Flow_GO5</incoming>
+      <outgoing>Flow_GO6</outgoing>
+    </task>
+
+    <intermediateCatchEvent id="Timer_SwitchDate" name="On Switch-Date (Max 10 Days post Supply Start)">
+      <incoming>Flow_GO6</incoming>
+      <outgoing>Flow_GO7</outgoing>
+      <timerEventDefinition id="TED_2" />
+    </intermediateCatchEvent>
+
+    <parallelGateway id="GW_ForkGridData" name="Fork Billing &amp; Meter Data">
+      <incoming>Flow_GO7</incoming>
+      <outgoing>Flow_GO8</outgoing>
+      <outgoing>Flow_GO9</outgoing>
+    </parallelGateway>
+
+    <task id="Task_SendMeterData" name="Transmit Power Meter Data (Consumption Report)">
+      <incoming>Flow_GO8</incoming>
+      <outgoing>Flow_GO10</outgoing>
+    </task>
+
+    <task id="Task_ComputeSendFinalBillingGrid" name="Compute &amp; Send Final Billing to Old Supplier">
+      <incoming>Flow_GO9</incoming>
+      <outgoing>Flow_GO11</outgoing>
+    </task>
+
+    <parallelGateway id="GW_JoinGridData" name="Join Grid Tasks">
+      <incoming>Flow_GO10</incoming>
+      <incoming>Flow_GO11</incoming>
+      <outgoing>Flow_GO12</outgoing>
+    </parallelGateway>
+
+    <endEvent id="End_GridOperator" name="Grid Operator Process Ended">
+      <incoming>Flow_GO12</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows Process 3 -->
+    <sequenceFlow id="Flow_GO1" sourceRef="Start_GridRequestReceived" targetRef="Task_CheckConcurrence" />
+    <sequenceFlow id="Flow_GO2" sourceRef="Task_CheckConcurrence" targetRef="GW_GridConcurrence" />
+    <sequenceFlow id="Flow_GridConcYes" name="Yes" sourceRef="GW_GridConcurrence" targetRef="Task_InformConflict" />
+    <sequenceFlow id="Flow_GridConcNo" name="No" sourceRef="GW_GridConcurrence" targetRef="GW_MergeGridResponse" />
+    <sequenceFlow id="Flow_GO3" sourceRef="Task_InformConflict" targetRef="GW_MergeGridResponse" />
+    <sequenceFlow id="Flow_GO4" sourceRef="GW_MergeGridResponse" targetRef="Task_SendGridResponse" />
+    <sequenceFlow id="Flow_GO5" sourceRef="Task_SendGridResponse" targetRef="Task_TerminateOldAgreement" />
+    <sequenceFlow id="Flow_GO6" sourceRef="Task_TerminateOldAgreement" targetRef="Timer_SwitchDate" />
+    <sequenceFlow id="Flow_GO7" sourceRef="Timer_SwitchDate" targetRef="GW_ForkGridData" />
+    <sequenceFlow id="Flow_GO8" sourceRef="GW_ForkGridData" targetRef="Task_SendMeterData" />
+    <sequenceFlow id="Flow_GO9" sourceRef="GW_ForkGridData" targetRef="Task_ComputeSendFinalBillingGrid" />
+    <sequenceFlow id="Flow_GO10" sourceRef="Task_SendMeterData" targetRef="GW_JoinGridData" />
+    <sequenceFlow id="Flow_GO11" sourceRef="Task_ComputeSendFinalBillingGrid" targetRef="GW_JoinGridData" />
+    <sequenceFlow id="Flow_GO12" sourceRef="GW_JoinGridData" targetRef="End_GridOperator" />
+  </process>
+
+  <!-- PROCESS 4: Old Supplier -->
+  <process id="Process_OldSupplier" isExecutable="false">
+    <startEvent id="Start_OldSupplier" name="Termination Request Received">
+      <outgoing>Flow_OS1</outgoing>
+    </startEvent>
+
+    <task id="Task_Old_ProcessTermination" name="Process Termination of Sales Agreement">
+      <incoming>Flow_OS1</incoming>
+      <outgoing>Flow_OS2</outgoing>
+    </task>
+
+    <parallelGateway id="GW_Old_WaitFork" name="Await Meter Data &amp; Billing">
+      <incoming>Flow_OS2</incoming>
+      <outgoing>Flow_OS3</outgoing>
+      <outgoing>Flow_OS4</outgoing>
+    </parallelGateway>
+
+    <task id="Task_Old_ReceiveMeterData" name="Receive Meter Data">
+      <incoming>Flow_OS3</incoming>
+      <outgoing>Flow_OS5</outgoing>
+    </task>
+
+    <task id="Task_Old_ReceiveGridBilling" name="Receive Final Billing from Grid Operator">
+      <incoming>Flow_OS4</incoming>
+      <outgoing>Flow_OS6</outgoing>
+    </task>
+
+    <parallelGateway id="GW_Old_WaitJoin" name="Join Inputs">
+      <incoming>Flow_OS5</incoming>
+      <incoming>Flow_OS6</incoming>
+      <outgoing>Flow_OS7</outgoing>
+    </parallelGateway>
+
+    <task id="Task_Old_SendFinalBilling" name="Create and Send Final Billing to Customer">
+      <incoming>Flow_OS7</incoming>
+      <outgoing>Flow_OS8</outgoing>
+    </task>
+
+    <endEvent id="End_OldSupplier" name="Old Supplier Process Ended">
+      <incoming>Flow_OS8</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows Process 4 -->
+    <sequenceFlow id="Flow_OS1" sourceRef="Start_OldSupplier" targetRef="Task_Old_ProcessTermination" />
+    <sequenceFlow id="Flow_OS2" sourceRef="Task_Old_ProcessTermination" targetRef="GW_Old_WaitFork" />
+    <sequenceFlow id="Flow_OS3" sourceRef="GW_Old_WaitFork" targetRef="Task_Old_ReceiveMeterData" />
+    <sequenceFlow id="Flow_OS4" sourceRef="GW_Old_WaitFork" targetRef="Task_Old_ReceiveGridBilling" />
+    <sequenceFlow id="Flow_OS5" sourceRef="Task_Old_ReceiveMeterData" targetRef="GW_Old_WaitJoin" />
+    <sequenceFlow id="Flow_OS6" sourceRef="Task_Old_ReceiveGridBilling" targetRef="GW_Old_WaitJoin" />
+    <sequenceFlow id="Flow_OS7" sourceRef="GW_Old_WaitJoin" targetRef="Task_Old_SendFinalBilling" />
+    <sequenceFlow id="Flow_OS8" sourceRef="Task_Old_SendFinalBilling" targetRef="End_OldSupplier" />
+  </process>
+
+  <!-- BPMN DIAGRAM -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_SwitchOver">
+    <bpmndi:BPMNPlane id="BPMNPlane_SwitchOver" bpmnElement="Collaboration_SwitchOver">
+
+      <!-- Customer Pool -->
+      <bpmndi:BPMNShape id="Participant_Customer_di" bpmnElement="Participant_Customer" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2200" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_Customer_di" bpmnElement="Start_Customer">
+        <dc:Bounds x="212" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="191" y="185" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Cust_RequestSwitch_di" bpmnElement="Task_Cust_RequestSwitch">
+        <dc:Bounds x="300" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Cust_CheckContract_di" bpmnElement="Task_Cust_CheckContract">
+        <dc:Bounds x="1520" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Cust_ReceiveFinalBilling_di" bpmnElement="Task_Cust_ReceiveFinalBilling">
+        <dc:Bounds x="2100" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Customer_di" bpmnElement="End_Customer">
+        <dc:Bounds x="2282" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2256" y="185" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- New Supplier Pool -->
+      <bpmndi:BPMNShape id="Participant_NewSupplier_di" bpmnElement="Participant_NewSupplier" isHorizontal="true">
+        <dc:Bounds x="160" y="280" width="2200" height="360" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_SwitchRequestReceived_di" bpmnElement="Start_SwitchRequestReceived">
+        <dc:Bounds x="212" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="187" y="425" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EnterCRM_di" bpmnElement="Task_EnterCRM">
+        <dc:Bounds x="300" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CompareData_di" bpmnElement="Task_CompareData">
+        <dc:Bounds x="430" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_DataErrors_di" bpmnElement="GW_DataErrors" isMarkerVisible="true">
+        <dc:Bounds x="565" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="557" y="345" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CorrectErrors_di" bpmnElement="Task_CorrectErrors">
+        <dc:Bounds x="650" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_MergeErrors_di" bpmnElement="GW_MergeErrors" isMarkerVisible="true">
+        <dc:Bounds x="785" y="375" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_CustomerExists_di" bpmnElement="GW_CustomerExists" isMarkerVisible="true">
+        <dc:Bounds x="865" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="850" y="345" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CreateCustomerObject_di" bpmnElement="Task_CreateCustomerObject">
+        <dc:Bounds x="950" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_MergeCustomerObj_di" bpmnElement="GW_MergeCustomerObj" isMarkerVisible="true">
+        <dc:Bounds x="1085" y="375" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PrepareContractDocs_di" bpmnElement="Task_PrepareContractDocs">
+        <dc:Bounds x="1160" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AutomatedCheckCIS_di" bpmnElement="Task_AutomatedCheckCIS">
+        <dc:Bounds x="1290" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_CheckDocsSuccess_di" bpmnElement="GW_CheckDocsSuccess" isMarkerVisible="true">
+        <dc:Bounds x="1425" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1419" y="338" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AnalyzeResolveIssues_di" bpmnElement="Task_AnalyzeResolveIssues">
+        <dc:Bounds x="1290" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendConfirmationDoc_di" bpmnElement="Task_SendConfirmationDoc">
+        <dc:Bounds x="1520" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendGridRequest_di" bpmnElement="Task_SendGridRequest">
+        <dc:Bounds x="1650" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Catch_GridResponse_di" bpmnElement="Catch_GridResponse">
+        <dc:Bounds x="1782" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1756" y="352" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_GridObjections_di" bpmnElement="GW_GridObjections" isMarkerVisible="true">
+        <dc:Bounds x="1855" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1839" y="330" width="82" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ResolveConflict_di" bpmnElement="Task_ResolveConflict">
+        <dc:Bounds x="1830" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CreateCISContract_di" bpmnElement="Task_CreateCISContract">
+        <dc:Bounds x="1950" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_CustomerDecision_di" bpmnElement="GW_CustomerDecision">
+        <dc:Bounds x="2085" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2072" y="345" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Catch_CustomerDecision_di" bpmnElement="Catch_CustomerDecision">
+        <dc:Bounds x="2172" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2145" y="302" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Timer_7Days_di" bpmnElement="Timer_7Days">
+        <dc:Bounds x="2172" y="432" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2155" y="475" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_DecisionOutcome_di" bpmnElement="GW_DecisionOutcome" isMarkerVisible="true">
+        <dc:Bounds x="2245" y="325" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2225" y="295" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_MergeAcceptance_di" bpmnElement="GW_MergeAcceptance" isMarkerVisible="true">
+        <dc:Bounds x="2245" y="425" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Withdrawal_di" bpmnElement="End_Withdrawal">
+        <dc:Bounds x="2322" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2302" y="375" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Catch_MeterDataReceived_di" bpmnElement="Catch_MeterDataReceived">
+        <dc:Bounds x="2252" y="522" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2162" y="526" width="80" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ImportMeterData_di" bpmnElement="Task_ImportMeterData">
+        <dc:Bounds x="2220" y="580" width="100" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_NewCustomerWon_di" bpmnElement="End_NewCustomerWon">
+        <dc:Bounds x="2342" y="587" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2324" y="630" width="73" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Grid Operator Pool -->
+      <bpmndi:BPMNShape id="Participant_GridOperator_di" bpmnElement="Participant_GridOperator" isHorizontal="true">
+        <dc:Bounds x="160" y="670" width="2200" height="240" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_GridRequestReceived_di" bpmnElement="Start_GridRequestReceived">
+        <dc:Bounds x="1652" y="732" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1638" y="775" width="65" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckConcurrence_di" bpmnElement="Task_CheckConcurrence">
+        <dc:Bounds x="1710" y="710" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_GridConcurrence_di" bpmnElement="GW_GridConcurrence" isMarkerVisible="true">
+        <dc:Bounds x="1835" y="725" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1827" y="688" width="66" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InformConflict_di" bpmnElement="Task_InformConflict">
+        <dc:Bounds x="1810" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_MergeGridResponse_di" bpmnElement="GW_MergeGridResponse" isMarkerVisible="true">
+        <dc:Bounds x="1925" y="725" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendGridResponse_di" bpmnElement="Task_SendGridResponse">
+        <dc:Bounds x="1990" y="710" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TerminateOldAgreement_di" bpmnElement="Task_TerminateOldAgreement">
+        <dc:Bounds x="2110" y="710" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Timer_SwitchDate_di" bpmnElement="Timer_SwitchDate">
+        <dc:Bounds x="2232" y="732" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2210" y="682" width="81" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_ForkGridData_di" bpmnElement="GW_ForkGridData">
+        <dc:Bounds x="2285" y="725" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendMeterData_di" bpmnElement="Task_SendMeterData">
+        <dc:Bounds x="2240" y="800" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ComputeSendFinalBillingGrid_di" bpmnElement="Task_ComputeSendFinalBillingGrid">
+        <dc:Bounds x="2350" y="710" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_JoinGridData_di" bpmnElement="GW_JoinGridData">
+        <dc:Bounds x="2355" y="815" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_GridOperator_di" bpmnElement="End_GridOperator">
+        <dc:Bounds x="2422" y="822" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2405" y="865" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Old Supplier Pool -->
+      <bpmndi:BPMNShape id="Participant_OldSupplier_di" bpmnElement="Participant_OldSupplier" isHorizontal="true">
+        <dc:Bounds x="160" y="940" width="2200" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_OldSupplier_di" bpmnElement="Start_OldSupplier">
+        <dc:Bounds x="2112" y="1022" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2086" y="1065" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Old_ProcessTermination_di" bpmnElement="Task_Old_ProcessTermination">
+        <dc:Bounds x="2170" y="1000" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Old_WaitFork_di" bpmnElement="GW_Old_WaitFork">
+        <dc:Bounds x="2285" y="1015" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Old_ReceiveMeterData_di" bpmnElement="Task_Old_ReceiveMeterData">
+        <dc:Bounds x="2240" y="950" width="100" height="55" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Old_ReceiveGridBilling_di" bpmnElement="Task_Old_ReceiveGridBilling">
+        <dc:Bounds x="2350" y="950" width="100" height="55" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Old_WaitJoin_di" bpmnElement="GW_Old_WaitJoin">
+        <dc:Bounds x="2285" y="1075" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Old_SendFinalBilling_di" bpmnElement="Task_Old_SendFinalBilling">
+        <dc:Bounds x="2100" y="1050" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_OldSupplier_di" bpmnElement="End_OldSupplier">
+        <dc:Bounds x="1992" y="1072" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1973" y="1115" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Customer Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_C1_di" bpmnElement="Flow_C1"><di:waypoint x="248" y="160" /><di:waypoint x="300" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C2_di" bpmnElement="Flow_C2"><di:waypoint x="400" y="160" /><di:waypoint x="1520" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C3_di" bpmnElement="Flow_C3"><di:waypoint x="1620" y="160" /><di:waypoint x="2100" y="160" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C4_di" bpmnElement="Flow_C4"><di:waypoint x="2200" y="160" /><di:waypoint x="2282" y="160" /></bpmndi:BPMNEdge>
+
+      <!-- New Supplier Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_NS1_di" bpmnElement="Flow_NS1"><di:waypoint x="248" y="400" /><di:waypoint x="300" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS2_di" bpmnElement="Flow_NS2"><di:waypoint x="400" y="400" /><di:waypoint x="430" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS3_di" bpmnElement="Flow_NS3"><di:waypoint x="530" y="400" /><di:waypoint x="565" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ErrorYes_di" bpmnElement="Flow_ErrorYes"><di:waypoint x="590" y="425" /><di:waypoint x="590" y="500" /><di:waypoint x="650" y="500" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ErrorNo_di" bpmnElement="Flow_ErrorNo"><di:waypoint x="615" y="400" /><di:waypoint x="785" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS4_di" bpmnElement="Flow_NS4"><di:waypoint x="750" y="500" /><di:waypoint x="810" y="500" /><di:waypoint x="810" y="425" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS5_di" bpmnElement="Flow_NS5"><di:waypoint x="835" y="400" /><di:waypoint x="865" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CustExistsYes_di" bpmnElement="Flow_CustExistsYes"><di:waypoint x="915" y="400" /><di:waypoint x="1085" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CustExistsNo_di" bpmnElement="Flow_CustExistsNo"><di:waypoint x="890" y="425" /><di:waypoint x="890" y="500" /><di:waypoint x="950" y="500" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS6_di" bpmnElement="Flow_NS6"><di:waypoint x="1050" y="500" /><di:waypoint x="1110" y="500" /><di:waypoint x="1110" y="425" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS7_di" bpmnElement="Flow_NS7"><di:waypoint x="1135" y="400" /><di:waypoint x="1160" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS8_di" bpmnElement="Flow_NS8"><di:waypoint x="1260" y="400" /><di:waypoint x="1290" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS9_di" bpmnElement="Flow_NS9"><di:waypoint x="1390" y="400" /><di:waypoint x="1425" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DocsSuccessNo_di" bpmnElement="Flow_DocsSuccessNo"><di:waypoint x="1450" y="425" /><di:waypoint x="1450" y="520" /><di:waypoint x="1390" y="520" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_LoopDocs_di" bpmnElement="Flow_LoopDocs"><di:waypoint x="1290" y="520" /><di:waypoint x="1210" y="520" /><di:waypoint x="1210" y="440" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DocsSuccessYes_di" bpmnElement="Flow_DocsSuccessYes"><di:waypoint x="1475" y="400" /><di:waypoint x="1520" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS10_di" bpmnElement="Flow_NS10"><di:waypoint x="1620" y="400" /><di:waypoint x="1650" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS11_di" bpmnElement="Flow_NS11"><di:waypoint x="1750" y="400" /><di:waypoint x="1782" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS12_di" bpmnElement="Flow_NS12"><di:waypoint x="1818" y="400" /><di:waypoint x="1855" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ConcurrenceYes_di" bpmnElement="Flow_ConcurrenceYes"><di:waypoint x="1880" y="425" /><di:waypoint x="1880" y="480" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ConcurrenceNo_di" bpmnElement="Flow_ConcurrenceNo"><di:waypoint x="1905" y="400" /><di:waypoint x="1950" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS13_di" bpmnElement="Flow_NS13"><di:waypoint x="1930" y="520" /><di:waypoint x="2000" y="520" /><di:waypoint x="2000" y="440" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS14_di" bpmnElement="Flow_NS14"><di:waypoint x="2050" y="400" /><di:waypoint x="2085" y="400" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToCatchDecision_di" bpmnElement="Flow_ToCatchDecision"><di:waypoint x="2110" y="375" /><di:waypoint x="2110" y="350" /><di:waypoint x="2172" y="350" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_To7DaysTimer_di" bpmnElement="Flow_To7DaysTimer"><di:waypoint x="2110" y="425" /><di:waypoint x="2110" y="450" /><di:waypoint x="2172" y="450" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS15_di" bpmnElement="Flow_NS15"><di:waypoint x="2208" y="350" /><di:waypoint x="2245" y="350" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Withdrawal_di" bpmnElement="Flow_Withdrawal"><di:waypoint x="2295" y="350" /><di:waypoint x="2322" y="350" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Confirmed_di" bpmnElement="Flow_Confirmed"><di:waypoint x="2270" y="375" /><di:waypoint x="2270" y="425" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS16_di" bpmnElement="Flow_NS16"><di:waypoint x="2208" y="450" /><di:waypoint x="2245" y="450" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS17_di" bpmnElement="Flow_NS17"><di:waypoint x="2270" y="475" /><di:waypoint x="2270" y="522" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS18_di" bpmnElement="Flow_NS18"><di:waypoint x="2270" y="558" /><di:waypoint x="2270" y="580" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NS19_di" bpmnElement="Flow_NS19"><di:waypoint x="2320" y="605" /><di:waypoint x="2342" y="605" /></bpmndi:BPMNEdge>
+
+      <!-- Grid Operator Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_GO1_di" bpmnElement="Flow_GO1"><di:waypoint x="1688" y="750" /><di:waypoint x="1710" y="750" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO2_di" bpmnElement="Flow_GO2"><di:waypoint x="1810" y="750" /><di:waypoint x="1835" y="750" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GridConcYes_di" bpmnElement="Flow_GridConcYes"><di:waypoint x="1860" y="775" /><di:waypoint x="1860" y="810" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GridConcNo_di" bpmnElement="Flow_GridConcNo"><di:waypoint x="1885" y="750" /><di:waypoint x="1925" y="750" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO3_di" bpmnElement="Flow_GO3"><di:waypoint x="1910" y="850" /><di:waypoint x="1950" y="850" /><di:waypoint x="1950" y="775" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO4_di" bpmnElement="Flow_GO4"><di:waypoint x="1975" y="750" /><di:waypoint x="1990" y="750" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO5_di" bpmnElement="Flow_GO5"><di:waypoint x="2090" y="750" /><di:waypoint x="2110" y="750" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO6_di" bpmnElement="Flow_GO6"><di:waypoint x="2210" y="750" /><di:waypoint x="2232" y="750" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO7_di" bpmnElement="Flow_GO7"><di:waypoint x="2268" y="750" /><di:waypoint x="2285" y="750" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO8_di" bpmnElement="Flow_GO8"><di:waypoint x="2310" y="775" /><di:waypoint x="2310" y="800" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO9_di" bpmnElement="Flow_GO9"><di:waypoint x="2335" y="750" /><di:waypoint x="2350" y="750" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO10_di" bpmnElement="Flow_GO10"><di:waypoint x="2340" y="840" /><di:waypoint x="2355" y="840" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO11_di" bpmnElement="Flow_GO11"><di:waypoint x="2380" y="790" /><di:waypoint x="2380" y="815" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO12_di" bpmnElement="Flow_GO12"><di:waypoint x="2405" y="840" /><di:waypoint x="2422" y="840" /></bpmndi:BPMNEdge>
+
+      <!-- Old Supplier Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_OS1_di" bpmnElement="Flow_OS1"><di:waypoint x="2148" y="1040" /><di:waypoint x="2170" y="1040" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OS2_di" bpmnElement="Flow_OS2"><di:waypoint x="2270" y="1040" /><di:waypoint x="2285" y="1040" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OS3_di" bpmnElement="Flow_OS3"><di:waypoint x="2310" y="1015" /><di:waypoint x="2310" y="980" /><di:waypoint x="2290" y="980" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OS4_di" bpmnElement="Flow_OS4"><di:waypoint x="2335" y="1040" /><di:waypoint x="2400" y="1040" /><di:waypoint x="2400" y="1005" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OS5_di" bpmnElement="Flow_OS5"><di:waypoint x="2240" y="980" /><di:waypoint x="2210" y="980" /><di:waypoint x="2210" y="1100" /><di:waypoint x="2285" y="1100" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OS6_di" bpmnElement="Flow_OS6"><di:waypoint x="2400" y="1005" /><di:waypoint x="2400" y="1100" /><di:waypoint x="2335" y="1100" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OS7_di" bpmnElement="Flow_OS7"><di:waypoint x="2285" y="1100" /><di:waypoint x="2200" y="1100" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_OS8_di" bpmnElement="Flow_OS8"><di:waypoint x="2100" y="1090" /><di:waypoint x="2028" y="1090" /></bpmndi:BPMNEdge>
+
+      <!-- Message Flows -->
+      <bpmndi:BPMNEdge id="MF_1_di" bpmnElement="MF_1"><di:waypoint x="350" y="200" /><di:waypoint x="350" y="290" /><di:waypoint x="230" y="290" /><di:waypoint x="230" y="382" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_2_di" bpmnElement="MF_2"><di:waypoint x="1570" y="360" /><di:waypoint x="1570" y="200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_3_di" bpmnElement="MF_3"><di:waypoint x="1700" y="440" /><di:waypoint x="1700" y="586" /><di:waypoint x="1670" y="586" /><di:waypoint x="1670" y="732" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_4_di" bpmnElement="MF_4"><di:waypoint x="1860" y="810" /><di:waypoint x="1860" y="560" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_5_di" bpmnElement="MF_5"><di:waypoint x="2040" y="710" /><di:waypoint x="2040" y="546" /><di:waypoint x="1800" y="546" /><di:waypoint x="1800" y="418" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_6_di" bpmnElement="MF_6"><di:waypoint x="2160" y="790" /><di:waypoint x="2160" y="1000" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_7_di" bpmnElement="MF_7"><di:waypoint x="1620" y="180" /><di:waypoint x="2190" y="180" /><di:waypoint x="2190" y="332" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_8_di" bpmnElement="MF_8"><di:waypoint x="2270" y="800" /><di:waypoint x="2270" y="558" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_9_di" bpmnElement="

@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataStoreReference id="ds_db" name="Account Defaulter Table / Database" />
+    <bpmn:dataStoreReference id="ds_crm" name="CRM System" />
+    <bpmn:dataObjectReference id="do_defaulter_table" name="Table of defaulting accounts" dataObjectRef="do_defaulter_table_do" />
+    <bpmn:dataObject id="do_defaulter_table_do" />
+    <bpmn:startEvent id="evt_start" name="Weekday morning process started">
+      <bpmn:outgoing>sf_1</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="evt_start_timerdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_alert_230" name="Send alert to supervisor (2:30 pm deadline missed)">
+      <bpmn:incoming>sf_230_no</bpmn:incoming>
+      <bpmn:outgoing>sf_10</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_alert_230_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_alert_400" name="Send message to supervisor (4:00 pm deadline missed)">
+      <bpmn:incoming>sf_400_no</bpmn:incoming>
+      <bpmn:outgoing>sf_15</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_alert_400_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_send_table_am" name="Send table to account management">
+      <bpmn:incoming>sf_7</bpmn:incoming>
+      <bpmn:outgoing>sf_8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_send_table_am_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="evt_end" name="Process completed">
+      <bpmn:incoming>sf_16</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_backup_db" name="Backup database">
+      <bpmn:incoming>sf_1</bpmn:incoming>
+      <bpmn:outgoing>sf_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_backup_db_doa0">
+        <bpmn:targetRef>ds_db</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_check_defaulter_table" name="Check Account Defaulter table for new records">
+      <bpmn:incoming>sf_2</bpmn:incoming>
+      <bpmn:outgoing>sf_3</bpmn:outgoing>
+      <bpmn:property id="task_check_defaulter_table_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_defaulter_table_dia0">
+        <bpmn:sourceRef>ds_db</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_defaulter_table_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_check_crm_initial" name="Check CRM system for new returns">
+      <bpmn:incoming>sf_rec_no</bpmn:incoming>
+      <bpmn:outgoing>sf_4</bpmn:outgoing>
+      <bpmn:property id="task_check_crm_initial_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_crm_initial_dia0">
+        <bpmn:sourceRef>ds_crm</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_crm_initial_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_register_defaulters" name="Register all defaulting accounts and customers">
+      <bpmn:incoming>sf_crm_yes</bpmn:incoming>
+      <bpmn:outgoing>sf_5</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_register_defaulters_doa0">
+        <bpmn:targetRef>ds_db</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_check_advised_codes" name="Check if defaulting client codes have been previously advised">
+      <bpmn:incoming>sf_5</bpmn:incoming>
+      <bpmn:outgoing>sf_6</bpmn:outgoing>
+      <bpmn:property id="task_check_advised_codes_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_advised_codes_dia0">
+        <bpmn:sourceRef>ds_db</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_advised_codes_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_produce_table" name="Produce table of defaulting accounts">
+      <bpmn:incoming>sf_adv_not</bpmn:incoming>
+      <bpmn:outgoing>sf_7</bpmn:outgoing>
+      <bpmn:property id="task_produce_table_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_produce_table_dia0">
+        <bpmn:sourceRef>ds_db</bpmn:sourceRef>
+        <bpmn:targetRef>task_produce_table_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_produce_table_doa0">
+        <bpmn:targetRef>do_defaulter_table</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_check_230_deadline" name="Check if 2:30 pm deadline is met">
+      <bpmn:incoming>sf_adv_yes</bpmn:incoming>
+      <bpmn:incoming>sf_8</bpmn:incoming>
+      <bpmn:outgoing>sf_9</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_check_crm_second" name="Check CRM system for new returns after report completion">
+      <bpmn:incoming>sf_rec_yes</bpmn:incoming>
+      <bpmn:incoming>sf_crm_no</bpmn:incoming>
+      <bpmn:incoming>sf_11</bpmn:incoming>
+      <bpmn:outgoing>sf_12</bpmn:outgoing>
+      <bpmn:property id="task_check_crm_second_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_crm_second_dia0">
+        <bpmn:sourceRef>ds_crm</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_crm_second_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_reconcile" name="Reconcile with existing account defaulters table">
+      <bpmn:incoming>sf_crm2_yes</bpmn:incoming>
+      <bpmn:outgoing>sf_13</bpmn:outgoing>
+      <bpmn:property id="task_reconcile_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_reconcile_dia0">
+        <bpmn:sourceRef>ds_crm</bpmn:sourceRef>
+        <bpmn:targetRef>task_reconcile_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_reconcile_dia1">
+        <bpmn:sourceRef>ds_db</bpmn:sourceRef>
+        <bpmn:targetRef>task_reconcile_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_reconcile_doa0">
+        <bpmn:targetRef>ds_db</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_check_400_deadline" name="Check if 4:00 pm deadline is met">
+      <bpmn:incoming>sf_crm2_no</bpmn:incoming>
+      <bpmn:incoming>sf_13</bpmn:incoming>
+      <bpmn:outgoing>sf_14</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_new_records" name="New records found?" isMarkerVisible="true">
+      <bpmn:incoming>sf_3</bpmn:incoming>
+      <bpmn:outgoing>sf_rec_no</bpmn:outgoing>
+      <bpmn:outgoing>sf_rec_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_crm_initial" name="New returns exist?" isMarkerVisible="true">
+      <bpmn:incoming>sf_4</bpmn:incoming>
+      <bpmn:outgoing>sf_crm_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_crm_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_advised" name="Client codes previously advised?" isMarkerVisible="true">
+      <bpmn:incoming>sf_6</bpmn:incoming>
+      <bpmn:outgoing>sf_adv_not</bpmn:outgoing>
+      <bpmn:outgoing>sf_adv_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_230_deadline" name="Completed by 2:30 pm?" isMarkerVisible="true">
+      <bpmn:incoming>sf_9</bpmn:incoming>
+      <bpmn:outgoing>sf_230_no</bpmn:outgoing>
+      <bpmn:outgoing>sf_230_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_230_merge" name="Merge 2:30 PM flow" isMarkerVisible="true">
+      <bpmn:incoming>sf_230_yes</bpmn:incoming>
+      <bpmn:incoming>sf_10</bpmn:incoming>
+      <bpmn:outgoing>sf_11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_crm_second" name="New returns filed?" isMarkerVisible="true">
+      <bpmn:incoming>sf_12</bpmn:incoming>
+      <bpmn:outgoing>sf_crm2_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_crm2_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_400_deadline" name="Completed by 4:00 pm?" isMarkerVisible="true">
+      <bpmn:incoming>sf_14</bpmn:incoming>
+      <bpmn:outgoing>sf_400_no</bpmn:outgoing>
+      <bpmn:outgoing>sf_400_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_400_merge" name="Merge 4:00 PM flow" isMarkerVisible="true">
+      <bpmn:incoming>sf_400_yes</bpmn:incoming>
+      <bpmn:incoming>sf_15</bpmn:incoming>
+      <bpmn:outgoing>sf_16</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_1" sourceRef="evt_start" targetRef="task_backup_db" />
+    <bpmn:sequenceFlow id="sf_2" sourceRef="task_backup_db" targetRef="task_check_defaulter_table" />
+    <bpmn:sequenceFlow id="sf_3" sourceRef="task_check_defaulter_table" targetRef="gw_new_records" />
+    <bpmn:sequenceFlow id="sf_rec_no" sourceRef="gw_new_records" targetRef="task_check_crm_initial" name="No new records found" />
+    <bpmn:sequenceFlow id="sf_rec_yes" sourceRef="gw_new_records" targetRef="task_check_crm_second" name="New records found" />
+    <bpmn:sequenceFlow id="sf_4" sourceRef="task_check_crm_initial" targetRef="gw_crm_initial" />
+    <bpmn:sequenceFlow id="sf_crm_yes" sourceRef="gw_crm_initial" targetRef="task_register_defaulters" name="New returns exist" />
+    <bpmn:sequenceFlow id="sf_crm_no" sourceRef="gw_crm_initial" targetRef="task_check_crm_second" name="No new returns exist" />
+    <bpmn:sequenceFlow id="sf_5" sourceRef="task_register_defaulters" targetRef="task_check_advised_codes" />
+    <bpmn:sequenceFlow id="sf_6" sourceRef="task_check_advised_codes" targetRef="gw_advised" />
+    <bpmn:sequenceFlow id="sf_adv_not" sourceRef="gw_advised" targetRef="task_produce_table" name="Not previously advised" />
+    <bpmn:sequenceFlow id="sf_adv_yes" sourceRef="gw_advised" targetRef="task_check_230_deadline" name="Previously advised" />
+    <bpmn:sequenceFlow id="sf_7" sourceRef="task_produce_table" targetRef="evt_send_table_am" />
+    <bpmn:sequenceFlow id="sf_8" sourceRef="evt_send_table_am" targetRef="task_check_230_deadline" />
+    <bpmn:sequenceFlow id="sf_9" sourceRef="task_check_230_deadline" targetRef="gw_230_deadline" />
+    <bpmn:sequenceFlow id="sf_230_no" sourceRef="gw_230_deadline" targetRef="evt_alert_230" name="Not completed by 2:30 pm" />
+    <bpmn:sequenceFlow id="sf_230_yes" sourceRef="gw_230_deadline" targetRef="gw_230_merge" name="Completed before 2:30 pm" />
+    <bpmn:sequenceFlow id="sf_10" sourceRef="evt_alert_230" targetRef="gw_230_merge" />
+    <bpmn:sequenceFlow id="sf_11" sourceRef="gw_230_merge" targetRef="task_check_crm_second" />
+    <bpmn:sequenceFlow id="sf_12" sourceRef="task_check_crm_second" targetRef="gw_crm_second" />
+    <bpmn:sequenceFlow id="sf_crm2_yes" sourceRef="gw_crm_second" targetRef="task_reconcile" name="New returns filed" />
+    <bpmn:sequenceFlow id="sf_crm2_no" sourceRef="gw_crm_second" targetRef="task_check_400_deadline" name="No new returns filed" />
+    <bpmn:sequenceFlow id="sf_13" sourceRef="task_reconcile" targetRef="task_check_400_deadline" />
+    <bpmn:sequenceFlow id="sf_14" sourceRef="task_check_400_deadline" targetRef="gw_400_deadline" />
+    <bpmn:sequenceFlow id="sf_400_no" sourceRef="gw_400_deadline" targetRef="evt_alert_400" name="Not completed by 4:00 pm" />
+    <bpmn:sequenceFlow id="sf_400_yes" sourceRef="gw_400_deadline" targetRef="gw_400_merge" name="Completed before 4:00 pm" />
+    <bpmn:sequenceFlow id="sf_15" sourceRef="evt_alert_400" targetRef="gw_400_merge" />
+    <bpmn:sequenceFlow id="sf_16" sourceRef="gw_400_merge" targetRef="evt_end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="evt_alert_230_di" bpmnElement="evt_alert_230">
+        <dc:Bounds x="2250" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_alert_400_di" bpmnElement="evt_alert_400">
+        <dc:Bounds x="1870" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_di" bpmnElement="evt_end">
+        <dc:Bounds x="2250" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_table_am_di" bpmnElement="evt_send_table_am">
+        <dc:Bounds x="2060" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_di" bpmnElement="evt_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_230_deadline_di" bpmnElement="gw_230_deadline">
+        <dc:Bounds x="2060" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_230_merge_di" bpmnElement="gw_230_merge">
+        <dc:Bounds x="2440" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_400_deadline_di" bpmnElement="gw_400_deadline">
+        <dc:Bounds x="1680" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_400_merge_di" bpmnElement="gw_400_merge">
+        <dc:Bounds x="2060" y="350" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_advised_di" bpmnElement="gw_advised">
+        <dc:Bounds x="1680" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_crm_initial_di" bpmnElement="gw_crm_initial">
+        <dc:Bounds x="1110" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_crm_second_di" bpmnElement="gw_crm_second">
+        <dc:Bounds x="1110" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_new_records_di" bpmnElement="gw_new_records">
+        <dc:Bounds x="730" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_backup_db_di" bpmnElement="task_backup_db">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_230_deadline_di" bpmnElement="task_check_230_deadline">
+        <dc:Bounds x="2250" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_400_deadline_di" bpmnElement="task_check_400_deadline">
+        <dc:Bounds x="1490" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_advised_codes_di" bpmnElement="task_check_advised_codes">
+        <dc:Bounds x="1490" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_crm_initial_di" bpmnElement="task_check_crm_initial">
+        <dc:Bounds x="920" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_crm_second_di" bpmnElement="task_check_crm_second">
+        <dc:Bounds x="2630" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_defaulter_table_di" bpmnElement="task_check_defaulter_table">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_produce_table_di" bpmnElement="task_produce_table">
+        <dc:Bounds x="1870" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reconcile_di" bpmnElement="task_reconcile">
+        <dc:Bounds x="1300" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_register_defaulters_di" bpmnElement="task_register_defaulters">
+        <dc:Bounds x="1300" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_db_di" bpmnElement="ds_db">
+        <dc:Bounds x="1161" y="490" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_crm_di" bpmnElement="ds_crm">
+        <dc:Bounds x="1636" y="490" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_defaulter_table_di" bpmnElement="do_defaulter_table">
+        <dc:Bounds x="1890" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_1_di" bpmnElement="sf_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_2_di" bpmnElement="sf_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_3_di" bpmnElement="sf_3">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_rec_no_di" bpmnElement="sf_rec_no">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_rec_yes_di" bpmnElement="sf_rec_yes">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="2680" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_4_di" bpmnElement="sf_4">
+        <di:waypoint x="970" y="140" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_crm_yes_di" bpmnElement="sf_crm_yes">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_crm_no_di" bpmnElement="sf_crm_no">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="2680" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_5_di" bpmnElement="sf_5">
+        <di:waypoint x="1350" y="265" />
+        <di:waypoint x="1540" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_6_di" bpmnElement="sf_6">
+        <di:waypoint x="1540" y="265" />
+        <di:waypoint x="1705" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_adv_not_di" bpmnElement="sf_adv_not">
+        <di:waypoint x="1705" y="250" />
+        <di:waypoint x="1920" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_adv_yes_di" bpmnElement="sf_adv_yes">
+        <di:waypoint x="1705" y="250" />
+        <di:waypoint x="2300" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_7_di" bpmnElement="sf_7">
+        <di:waypoint x="1920" y="265" />
+        <di:waypoint x="2078" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_8_di" bpmnElement="sf_8">
+        <di:waypoint x="2078" y="118" />
+        <di:waypoint x="2300" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_9_di" bpmnElement="sf_9">
+        <di:waypoint x="2300" y="390" />
+        <di:waypoint x="2085" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_230_no_di" bpmnElement="sf_230_no">
+        <di:waypoint x="2085" y="250" />
+        <di:waypoint x="2268" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_230_yes_di" bpmnElement="sf_230_yes">
+        <di:waypoint x="2085" y="250" />
+        <di:waypoint x="2465" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_10_di" bpmnElement="sf_10">
+        <di:waypoint x="2268" y="118" />
+        <di:waypoint x="2465" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_11_di" bpmnElement="sf_11">
+        <di:waypoint x="2465" y="125" />
+        <di:waypoint x="2680" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_12_di" bpmnElement="sf_12">
+        <di:waypoint x="2680" y="140" />
+        <di:waypoint x="1135" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_crm2_yes_di" bpmnElement="sf_crm2_yes">
+        <di:waypoint x="1135" y="250" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_crm2_no_di" bpmnElement="sf_crm2_no">
+        <di:waypoint x="1135" y="250" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_13_di" bpmnElement="sf_13">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_14_di" bpmnElement="sf_14">
+        <di:waypoint x="1540" y="140" />
+        <di:waypoint x="1705" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_400_no_di" bpmnElement="sf_400_no">
+        <di:waypoint x="1705" y="125" />
+        <di:waypoint x="1888" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_400_yes_di" bpmnElement="sf_400_yes">
+        <di:waypoint x="1705" y="125" />
+        <di:waypoint x="2085" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_15_di" bpmnElement="sf_15">
+        <di:waypoint x="1888" y="118" />
+        <di:waypoint x="2085" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_16_di" bpmnElement="sf_16">
+        <di:waypoint x="2085" y="375" />
+        <di:waypoint x="2268" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_backup_db_doa0_di" bpmnElement="task_backup_db_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="1186" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_defaulter_table_dia0_di" bpmnElement="task_check_defaulter_table_dia0">
+        <di:waypoint x="1186" y="515" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_crm_initial_dia0_di" bpmnElement="task_check_crm_initial_dia0">
+        <di:waypoint x="1661" y="515" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_defaulters_doa0_di" bpmnElement="task_register_defaulters_doa0">
+        <di:waypoint x="1350" y="265" />
+        <di:waypoint x="1186" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_advised_codes_dia0_di" bpmnElement="task_check_advised_codes_dia0">
+        <di:waypoint x="1186" y="515" />
+        <di:waypoint x="1540" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_produce_table_dia0_di" bpmnElement="task_produce_table_dia0">
+        <di:waypoint x="1186" y="515" />
+        <di:waypoint x="1920" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_produce_table_doa0_di" bpmnElement="task_produce_table_doa0">
+        <di:waypoint x="1920" y="265" />
+        <di:waypoint x="1908" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_crm_second_dia0_di" bpmnElement="task_check_crm_second_dia0">
+        <di:waypoint x="1661" y="515" />
+        <di:waypoint x="2680" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reconcile_dia0_di" bpmnElement="task_reconcile_dia0">
+        <di:waypoint x="1661" y="515" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reconcile_dia1_di" bpmnElement="task_reconcile_dia1">
+        <di:waypoint x="1186" y="515" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reconcile_doa0_di" bpmnElement="task_reconcile_doa0">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1186" y="515" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

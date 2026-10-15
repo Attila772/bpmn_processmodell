@@ -1,0 +1,379 @@
+{
+  "name": "Master Data Change Process",
+  "resources": [
+    {
+      "name": "EC",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "INQ",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "IP",
+      "capacity": 1,
+      "resource_type": "department"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_ec_start",
+      "name": "Start: EC initiates change",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_inq_receive_change",
+      "name": "Receive change notification from EC",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Change Notification"
+    },
+    {
+      "id": "evt_ip_receive_check_request",
+      "name": "Receive check request from INQ",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Check Request"
+    },
+    {
+      "id": "evt_inq_receive_decision",
+      "name": "Receive decision from IP",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Decision Result"
+    },
+    {
+      "id": "evt_ec_end_confirmed",
+      "name": "End: Changes Confirmed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_ec_end_rejected",
+      "name": "End: Changes Rejected",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_ec_notify_inq",
+      "name": "Notify INQ about master data change",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "EC",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_inq_notify_ip",
+      "name": "Notify IP of the change",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "INQ",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_ip_check_feasibility",
+      "name": "Check whether master data can be changed at desired time",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "IP",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_ip_send_decision",
+      "name": "Send confirmation or rejection to INQ",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "IP",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_inq_forward_decision",
+      "name": "Forward decision to EC",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "INQ",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_ip_decision",
+      "name": "Decision on Master Data Change",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_ip_to_confirm",
+          "condition": "Confirm changes"
+        },
+        {
+          "flow_id": "flow_ip_to_reject",
+          "condition": "Reject changes"
+        }
+      ]
+    },
+    {
+      "id": "gw_inq_route",
+      "name": "Route Decision to EC",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_inq_to_confirm_end",
+          "condition": "Confirmed"
+        },
+        {
+          "flow_id": "flow_inq_to_reject_end",
+          "condition": "Rejected"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_ec_start_to_notify",
+      "source_id": "evt_ec_start",
+      "target_id": "task_ec_notify_inq",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ec_notify_to_end_msg",
+      "source_id": "task_ec_notify_inq",
+      "target_id": "evt_ec_send_change",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_recv_to_notify_ip",
+      "source_id": "evt_inq_receive_change",
+      "target_id": "task_inq_notify_ip",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_notify_to_end_msg",
+      "source_id": "task_inq_notify_ip",
+      "target_id": "evt_inq_send_check_req",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_recv_to_check",
+      "source_id": "evt_ip_receive_check_request",
+      "target_id": "task_ip_check_feasibility",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_check_to_gateway",
+      "source_id": "task_ip_check_feasibility",
+      "target_id": "gw_ip_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_to_confirm",
+      "source_id": "gw_ip_decision",
+      "target_id": "task_ip_send_decision",
+      "condition_name": "Confirm changes"
+    },
+    {
+      "id": "flow_ip_to_reject",
+      "source_id": "gw_ip_decision",
+      "target_id": "task_ip_send_decision",
+      "condition_name": "Reject changes"
+    },
+    {
+      "id": "flow_ip_send_to_end_msg",
+      "source_id": "task_ip_send_decision",
+      "target_id": "evt_ip_send_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_recv_dec_to_forward",
+      "source_id": "evt_inq_receive_decision",
+      "target_id": "task_inq_forward_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_forward_to_gateway",
+      "source_id": "task_inq_forward_decision",
+      "target_id": "gw_inq_route",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_to_confirm_end",
+      "source_id": "gw_inq_route",
+      "target_id": "evt_inq_send_confirm",
+      "condition_name": "Confirmed"
+    },
+    {
+      "id": "flow_inq_to_reject_end",
+      "source_id": "gw_inq_route",
+      "target_id": "evt_inq_send_reject",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_ec_recv_confirm_to_end",
+      "source_id": "evt_ec_receive_confirm",
+      "target_id": "evt_ec_end_confirmed",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ec_recv_reject_to_end",
+      "source_id": "evt_ec_receive_reject",
+      "target_id": "evt_ec_end_rejected",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_ec",
+      "name": "EC",
+      "element_ids": [
+        "evt_ec_start",
+        "task_ec_notify_inq",
+        "evt_ec_send_change",
+        "evt_ec_receive_confirm",
+        "evt_ec_receive_reject",
+        "evt_ec_end_confirmed",
+        "evt_ec_end_rejected"
+      ]
+    },
+    {
+      "id": "pool_inq",
+      "name": "INQ",
+      "element_ids": [
+        "evt_inq_receive_change",
+        "task_inq_notify_ip",
+        "evt_inq_send_check_req",
+        "evt_inq_receive_decision",
+        "task_inq_forward_decision",
+        "evt_inq_send_confirm",
+        "evt_inq_send_reject",
+        "gw_inq_route"
+      ]
+    },
+    {
+      "id": "pool_ip",
+      "name": "IP",
+      "element_ids": [
+        "evt_ip_receive_check_request",
+        "task_ip_check_feasibility",
+        "gw_ip_decision",
+        "task_ip_send_decision",
+        "evt_ip_send_decision"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_ec_to_inq",
+      "source_id": "evt_ec_send_change",
+      "target_id": "evt_inq_receive_change",
+      "name": "Change Notification"
+    },
+    {
+      "id": "msg_flow_inq_to_ip",
+      "source_id": "evt_inq_send_check_req",
+      "target_id": "evt_ip_receive_check_request",
+      "name": "Check Request"
+    },
+    {
+      "id": "msg_flow_ip_to_inq",
+      "source_id": "evt_ip_send_decision",
+      "target_id": "evt_inq_receive_decision",
+      "name": "Decision Result"
+    },
+    {
+      "id": "msg_flow_inq_to_ec_confirm",
+      "source_id": "evt_inq_send_confirm",
+      "target_id": "evt_ec_receive_confirm",
+      "name": "Confirmation"
+    },
+    {
+      "id": "msg_flow_inq_to_ec_reject",
+      "source_id": "evt_inq_send_reject",
+      "target_id": "evt_ec_receive_reject",
+      "name": "Rejection"
+    }
+  ],
+  "data_objects": [],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

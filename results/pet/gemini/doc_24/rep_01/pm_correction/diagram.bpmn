@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="doc_customer_obj" name="Customer Data Object" dataObjectRef="doc_customer_obj_do" />
+    <bpmn:dataObject id="doc_customer_obj_do" />
+    <bpmn:dataObjectReference id="doc_contract_docs" name="Contract Documents" dataObjectRef="doc_contract_docs_do" />
+    <bpmn:dataObject id="doc_contract_docs_do" />
+    <bpmn:startEvent id="evt_start" name="Switch-over request received">
+      <bpmn:outgoing>sf_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_withdrawal" name="Process ended due to customer withdrawal">
+      <bpmn:incoming>sf_customer_withdraw</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_end_complete" name="Process completed (new customer won)">
+      <bpmn:incoming>sf_10</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_receive_data" name="Receive customer data and enter into CRM">
+      <bpmn:incoming>sf_1</bpmn:incoming>
+      <bpmn:outgoing>sf_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_receive_data_doa0">
+        <bpmn:targetRef>doc_customer_obj</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_compare_data" name="Compare data with database and check for completeness and plausibility">
+      <bpmn:incoming>sf_2</bpmn:incoming>
+      <bpmn:outgoing>sf_3</bpmn:outgoing>
+      <bpmn:property id="task_compare_data_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_compare_data_dia0">
+        <bpmn:sourceRef>doc_customer_obj</bpmn:sourceRef>
+        <bpmn:targetRef>task_compare_data_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_prepare_contract" name="Prepare contract documents">
+      <bpmn:incoming>sf_3</bpmn:incoming>
+      <bpmn:incoming>sf_6</bpmn:incoming>
+      <bpmn:outgoing>sf_4</bpmn:outgoing>
+      <bpmn:property id="task_prepare_contract_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_prepare_contract_dia0">
+        <bpmn:sourceRef>doc_customer_obj</bpmn:sourceRef>
+        <bpmn:targetRef>task_prepare_contract_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_prepare_contract_doa0">
+        <bpmn:targetRef>doc_contract_docs</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_check_contract_docs" name="Perform automated check of contract documents in CIS">
+      <bpmn:incoming>sf_4</bpmn:incoming>
+      <bpmn:outgoing>sf_5</bpmn:outgoing>
+      <bpmn:property id="task_check_contract_docs_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_contract_docs_dia0">
+        <bpmn:sourceRef>doc_contract_docs</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_contract_docs_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="task_resolve_doc_issues" name="Analyze and resolve document generation issues">
+      <bpmn:incoming>sf_doc_check_neg</bpmn:incoming>
+      <bpmn:outgoing>sf_6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_send_confirmation_doc" name="Send confirmation document to customer and automated request to grid operator">
+      <bpmn:incoming>sf_doc_check_pos</bpmn:incoming>
+      <bpmn:outgoing>sf_7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="task_grid_check" name="Check switch-over request for supplier concurrence and transmit response">
+      <bpmn:incoming>sf_7</bpmn:incoming>
+      <bpmn:outgoing>sf_8</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_create_cis_contract" name="Create CIS contract">
+      <bpmn:incoming>sf_8</bpmn:incoming>
+      <bpmn:outgoing>sf_9</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_import_meter_data" name="Import power meter data into required systems">
+      <bpmn:incoming>sf_customer_confirm</bpmn:incoming>
+      <bpmn:outgoing>sf_10</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_doc_check_result" name="Contract documents valid?" isMarkerVisible="true">
+      <bpmn:incoming>sf_5</bpmn:incoming>
+      <bpmn:outgoing>sf_doc_check_pos</bpmn:outgoing>
+      <bpmn:outgoing>sf_doc_check_neg</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_customer_decision" name="Customer decision or 7-day timeout" isMarkerVisible="true">
+      <bpmn:incoming>sf_9</bpmn:incoming>
+      <bpmn:outgoing>sf_customer_confirm</bpmn:outgoing>
+      <bpmn:outgoing>sf_customer_withdraw</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_1" sourceRef="evt_start" targetRef="task_receive_data" />
+    <bpmn:sequenceFlow id="sf_2" sourceRef="task_receive_data" targetRef="task_compare_data" />
+    <bpmn:sequenceFlow id="sf_3" sourceRef="task_compare_data" targetRef="task_prepare_contract" />
+    <bpmn:sequenceFlow id="sf_4" sourceRef="task_prepare_contract" targetRef="task_check_contract_docs" />
+    <bpmn:sequenceFlow id="sf_5" sourceRef="task_check_contract_docs" targetRef="gw_doc_check_result" />
+    <bpmn:sequenceFlow id="sf_doc_check_pos" sourceRef="gw_doc_check_result" targetRef="task_send_confirmation_doc" name="Positive response" />
+    <bpmn:sequenceFlow id="sf_doc_check_neg" sourceRef="gw_doc_check_result" targetRef="task_resolve_doc_issues" name="Negative response" />
+    <bpmn:sequenceFlow id="sf_6" sourceRef="task_resolve_doc_issues" targetRef="task_prepare_contract" />
+    <bpmn:sequenceFlow id="sf_7" sourceRef="task_send_confirmation_doc" targetRef="task_grid_check" />
+    <bpmn:sequenceFlow id="sf_8" sourceRef="task_grid_check" targetRef="task_create_cis_contract" />
+    <bpmn:sequenceFlow id="sf_9" sourceRef="task_create_cis_contract" targetRef="gw_customer_decision" />
+    <bpmn:sequenceFlow id="sf_customer_confirm" sourceRef="gw_customer_decision" targetRef="task_import_meter_data" name="Confirmed or 7 days elapsed" />
+    <bpmn:sequenceFlow id="sf_customer_withdraw" sourceRef="gw_customer_decision" targetRef="evt_end_withdrawal" name="Withdrawal" />
+    <bpmn:sequenceFlow id="sf_10" sourceRef="task_import_meter_data" targetRef="evt_end_complete" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="evt_end_complete_di" bpmnElement="evt_end_complete">
+        <dc:Bounds x="2250" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_withdrawal_di" bpmnElement="evt_end_withdrawal">
+        <dc:Bounds x="2060" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_di" bpmnElement="evt_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_customer_decision_di" bpmnElement="gw_customer_decision">
+        <dc:Bounds x="1870" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_doc_check_result_di" bpmnElement="gw_doc_check_result">
+        <dc:Bounds x="1110" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_contract_docs_di" bpmnElement="task_check_contract_docs">
+        <dc:Bounds x="920" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_compare_data_di" bpmnElement="task_compare_data">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_cis_contract_di" bpmnElement="task_create_cis_contract">
+        <dc:Bounds x="1680" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_grid_check_di" bpmnElement="task_grid_check">
+        <dc:Bounds x="1490" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_import_meter_data_di" bpmnElement="task_import_meter_data">
+        <dc:Bounds x="2060" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_contract_di" bpmnElement="task_prepare_contract">
+        <dc:Bounds x="1490" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_receive_data_di" bpmnElement="task_receive_data">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_resolve_doc_issues_di" bpmnElement="task_resolve_doc_issues">
+        <dc:Bounds x="1300" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_confirmation_doc_di" bpmnElement="task_send_confirmation_doc">
+        <dc:Bounds x="1300" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_customer_obj_di" bpmnElement="doc_customer_obj">
+        <dc:Bounds x="813" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_contract_docs_di" bpmnElement="doc_contract_docs">
+        <dc:Bounds x="1225" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_1_di" bpmnElement="sf_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_2_di" bpmnElement="sf_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_3_di" bpmnElement="sf_3">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="1540" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_4_di" bpmnElement="sf_4">
+        <di:waypoint x="1540" y="265" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_5_di" bpmnElement="sf_5">
+        <di:waypoint x="970" y="140" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_doc_check_pos_di" bpmnElement="sf_doc_check_pos">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_doc_check_neg_di" bpmnElement="sf_doc_check_neg">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_6_di" bpmnElement="sf_6">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1540" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_7_di" bpmnElement="sf_7">
+        <di:waypoint x="1350" y="265" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_8_di" bpmnElement="sf_8">
+        <di:waypoint x="1540" y="140" />
+        <di:waypoint x="1730" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_9_di" bpmnElement="sf_9">
+        <di:waypoint x="1730" y="140" />
+        <di:waypoint x="1895" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_customer_confirm_di" bpmnElement="sf_customer_confirm">
+        <di:waypoint x="1895" y="125" />
+        <di:waypoint x="2110" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_customer_withdraw_di" bpmnElement="sf_customer_withdraw">
+        <di:waypoint x="1895" y="125" />
+        <di:waypoint x="2078" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_10_di" bpmnElement="sf_10">
+        <di:waypoint x="2110" y="265" />
+        <di:waypoint x="2268" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_receive_data_doa0_di" bpmnElement="task_receive_data_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="831" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_compare_data_dia0_di" bpmnElement="task_compare_data_dia0">
+        <di:waypoint x="831" y="390" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_contract_dia0_di" bpmnElement="task_prepare_contract_dia0">
+        <di:waypoint x="831" y="390" />
+        <di:waypoint x="1540" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_contract_doa0_di" bpmnElement="task_prepare_contract_doa0">
+        <di:waypoint x="1540" y="265" />
+        <di:waypoint x="1243" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_contract_docs_dia0_di" bpmnElement="task_check_contract_docs_dia0">
+        <di:waypoint x="1243" y="390" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

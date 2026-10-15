@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://acme.ag/bpmn/invoiceprocess"
+             xmlns:tns="http://acme.ag/bpmn/invoiceprocess"
+             id="Definitions_1">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_ACME" name="ACME AG" processRef="Process_InvoiceHandling"/>
+  </collaboration>
+
+  <process id="Process_InvoiceHandling" name="Invoice Handling Process" isExecutable="false">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Secretariat" name="Secretariat">
+        <flowNodeRef>StartEvent_1</flowNodeRef>
+        <flowNodeRef>Task_1</flowNodeRef>
+        <flowNodeRef>Task_2</flowNodeRef>
+      </lane>
+      <lane id="Lane_Accounting" name="Accounting Employee">
+        <flowNodeRef>Task_3</flowNodeRef>
+        <flowNodeRef>Task_4</flowNodeRef>
+        <flowNodeRef>Task_5</flowNodeRef>
+        <flowNodeRef>Task_10</flowNodeRef>
+        <flowNodeRef>Task_11</flowNodeRef>
+        <flowNodeRef>Gateway_3</flowNodeRef>
+        <flowNodeRef>Task_13</flowNodeRef>
+        <flowNodeRef>Task_14</flowNodeRef>
+        <flowNodeRef>Task_16</flowNodeRef>
+        <flowNodeRef>Task_19</flowNodeRef>
+        <flowNodeRef>Task_20</flowNodeRef>
+        <flowNodeRef>EndEvent_1</flowNodeRef>
+      </lane>
+      <lane id="Lane_CostCenterManager" name="Cost Center Manager">
+        <flowNodeRef>Task_6</flowNodeRef>
+        <flowNodeRef>Gateway_1</flowNodeRef>
+        <flowNodeRef>Task_7</flowNodeRef>
+        <flowNodeRef>Gateway_2</flowNodeRef>
+        <flowNodeRef>Task_8</flowNodeRef>
+        <flowNodeRef>Task_9</flowNodeRef>
+      </lane>
+      <lane id="Lane_CommercialManager" name="Commercial Manager">
+        <flowNodeRef>Task_15</flowNodeRef>
+        <flowNodeRef>Gateway_4</flowNodeRef>
+        <flowNodeRef>Task_17</flowNodeRef>
+        <flowNodeRef>Gateway_5</flowNodeRef>
+      </lane>
+      <lane id="Lane_Board" name="Board">
+        <flowNodeRef>Task_18</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Events -->
+    <startEvent id="StartEvent_1" name="Invoice received (paper/fax)">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <endEvent id="EndEvent_1" name="Invoice instance closed">
+      <incoming>Flow_28</incoming>
+    </endEvent>
+
+    <!-- Secretariat Tasks -->
+    <task id="Task_1" name="Perform visual inspection of invoice">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <task id="Task_2" name="Forward invoice to accounting employee">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <!-- Accounting Employee Tasks -->
+    <task id="Task_3" name="Identify supplier and create invoice instance in ACME Financial Accounting">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </task>
+
+    <task id="Task_4" name="Check invoice items and note cost center / managers on docket">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_5</outgoing>
+    </task>
+
+    <task id="Task_5" name="Send invoice copy and docket via internal mail to first cost center manager">
+      <incoming>Flow_5</incoming>
+      <incoming>Flow_14</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <!-- Cost Center Manager Tasks -->
+    <task id="Task_6" name="Review invoice item for accuracy">
+      <incoming>Flow_6</incoming>
+      <incoming>Flow_11</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_1" name="Item accurate?">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_8</outgoing>
+      <outgoing>Flow_9</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_7" name="Mark item as 'Accurate Position (AP)' on docket">
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_10</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_2" name="All items AP?">
+      <incoming>Flow_10</incoming>
+      <outgoing>Flow_11</outgoing>
+      <outgoing>Flow_12</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_8" name="Forward invoice copy to next cost center manager (per docket)">
+      <incoming>Flow_12</incoming>
+      <outgoing>Flow_6a</outgoing>
+    </task>
+
+    <task id="Task_9" name="Reject item: note rejection and explanation on docket">
+      <incoming>Flow_9</incoming>
+      <outgoing>Flow_13</outgoing>
+    </task>
+
+    <!-- Accounting Employee - clarification loop -->
+    <task id="Task_10" name="Receive rejected invoice copy and docket">
+      <incoming>Flow_13</incoming>
+      <outgoing>Flow_15</outgoing>
+    </task>
+
+    <task id="Task_11" name="Clarify inconsistency with vendor (consult cost center manager by phone/e-mail if necessary)">
+      <incoming>Flow_15</incoming>
+      <incoming>Flow_17</incoming>
+      <outgoing>Flow_16</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_3" name="Inconsistency resolved?">
+      <incoming>Flow_16</incoming>
+      <outgoing>Flow_17</outgoing>
+      <outgoing>Flow_14</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_13" name="Send invoice copy back to cost center managers">
+      <incoming>Flow_14</incoming>
+      <outgoing>Flow_5x</outgoing>
+    </task>
+
+    <!-- Forward to Commercial Manager -->
+    <task id="Task_14" name="Forward invoice copy to commercial manager">
+      <incoming>Flow_11_toCommercial</incoming>
+      <outgoing>Flow_18</outgoing>
+    </task>
+
+    <task id="Task_15" name="Perform commercial audit">
+      <incoming>Flow_18</incoming>
+      <incoming>Flow_20</incoming>
+      <outgoing>Flow_19</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_4" name="Complaint during audit?">
+      <incoming>Flow_19</incoming>
+      <outgoing>Flow_21</outgoing>
+      <outgoing>Flow_22</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_16" name="Resolve complaint with supplier">
+      <incoming>Flow_21</incoming>
+      <outgoing>Flow_20</outgoing>
+    </task>
+
+    <task id="Task_17" name="Issue approval for payment">
+      <incoming>Flow_22</incoming>
+      <outgoing>Flow_23</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_5" name="Amount exceeds EUR 20,000?">
+      <incoming>Flow_23</incoming>
+      <outgoing>Flow_24</outgoing>
+      <outgoing>Flow_25</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_18" name="Perform 4-eyes check (Board review)">
+      <incoming>Flow_24</incoming>
+      <outgoing>Flow_26</outgoing>
+    </task>
+
+    <task id="Task_19" name="Return invoice copy and docket to accounting employee (signature file)">
+      <incoming>Flow_25</incoming>
+      <incoming>Flow_26</incoming>
+      <outgoing>Flow_27</outgoing>
+    </task>
+
+    <task id="Task_20" name="Issue payment instructions and close instance in ACME Financial Accounting">
+      <incoming>Flow_27</incoming>
+      <outgoing>Flow_28</outgoing>
+    </task>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_1"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="Task_2"/>
+    <sequenceFlow id="Flow_3" sourceRef="Task_2" targetRef="Task_3"/>
+    <sequenceFlow id="Flow_4" sourceRef="Task_3" targetRef="Task_4"/>
+    <sequenceFlow id="Flow_5" sourceRef="Task_4" targetRef="Task_5"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_5" targetRef="Task_6"/>
+
+    <sequenceFlow id="Flow_7" sourceRef="Task_6" targetRef="Gateway_1"/>
+    <sequenceFlow id="Flow_8" name="accurate" sourceRef="Gateway_1" targetRef="Task_7"/>
+    <sequenceFlow id="Flow_9" name="not accurate" sourceRef="Gateway_1" targetRef="Task_9"/>
+
+    <sequenceFlow id="Flow_10" sourceRef="Task_7" targetRef="Gateway_2"/>
+    <sequenceFlow id="Flow_11" name="more items pending" sourceRef="Gateway_2" targetRef="Task_6"/>
+    <sequenceFlow id="Flow_12" name="more items pending (next manager)" sourceRef="Gateway_2" targetRef="Task_8"/>
+    <sequenceFlow id="Flow_6a" sourceRef="Task_8" targetRef="Task_6"/>
+
+    <sequenceFlow id="Flow_11_toCommercial" name="all items AP" sourceRef="Gateway_2" targetRef="Task_14"/>
+
+    <sequenceFlow id="Flow_13" sourceRef="Task_9" targetRef="Task_10"/>
+    <sequenceFlow id="Flow_15" sourceRef="Task_10" targetRef="Task_11"/>
+    <sequenceFlow id="Flow_16" sourceRef="Task_11" targetRef="Gateway_3"/>
+    <sequenceFlow id="Flow_17" name="not resolved" sourceRef="Gateway_3" targetRef="Task_11"/>
+    <sequenceFlow id="Flow_14" name="resolved" sourceRef="Gateway_3" targetRef="Task_13"/>
+    <sequenceFlow id="Flow_5x" sourceRef="Task_13" targetRef="Task_5"/>
+
+    <sequenceFlow id="Flow_18" sourceRef="Task_14" targetRef="Task_15"/>
+    <sequenceFlow id="Flow_19" sourceRef="Task_15" targetRef="Gateway_4"/>
+    <sequenceFlow id="Flow_21" name="complaint" sourceRef="Gateway_4" targetRef="Task_16"/>
+    <sequenceFlow id="Flow_22" name="no complaint" sourceRef="Gateway_4" targetRef="Task_17"/>
+    <sequenceFlow id="Flow_20" sourceRef="Task_16" targetRef="Task_15"/>
+
+    <sequenceFlow id="Flow_23" sourceRef="Task_17" targetRef="Gateway_5"/>
+    <sequenceFlow id="Flow_24" name="exceeds EUR 20,000" sourceRef="Gateway_5" targetRef="Task_18"/>
+    <sequenceFlow id="Flow_25" name="does not exceed EUR 20,000" sourceRef="Gateway_5" targetRef="Task_19"/>
+    <sequenceFlow id="Flow_26" sourceRef="Task_18" targetRef="Task_19"/>
+
+    <sequenceFlow id="Flow_27" sourceRef="Task_19" targetRef="Task_20"/>
+    <sequenceFlow id="Flow_28" sourceRef="Task_20" targetRef="EndEvent_1"/>
+
+  </process>
+</definitions>

@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://www.example.org/bpmn"
+             id="definitions_mortgage">
+
+  <process id="mortgage_offer_process" name="Mortgage Offer Process" isExecutable="true">
+
+    <startEvent id="start_event" name="Process Started">
+      <outgoing>seq_start_to_send</outgoing>
+    </startEvent>
+
+    <sendTask id="send_offer" name="Send Mortgage Offer to Customer">
+      <incoming>seq_start_to_send</incoming>
+      <outgoing>seq_send_to_event_based</outgoing>
+    </sendTask>
+
+    <eventBasedGateway id="event_gateway" name="Wait for Customer Reply">
+      <incoming>seq_send_to_event_based</incoming>
+      <outgoing>seq_eg_to_decline</outgoing>
+      <outgoing>seq_eg_to_accept</outgoing>
+      <outgoing>seq_eg_to_timer</outgoing>
+    </eventBasedGateway>
+
+    <!-- Branch 1: Customer Declines -->
+    <intermediateCatchEvent id="catch_decline" name="Offer Declined Received">
+      <incoming>seq_eg_to_decline</incoming>
+      <outgoing>seq_decline_to_update</outgoing>
+      <messageEventDefinition id="msg_def_decline"/>
+    </intermediateCatchEvent>
+
+    <task id="update_decline" name="Update Case Details (Declined)">
+      <incoming>seq_decline_to_update</incoming>
+      <outgoing>seq_update_to_archive_cancellation</outgoing>
+    </task>
+
+    <task id="archive_cancellation" name="Archive Case Prior to Cancellation">
+      <incoming>seq_update_to_archive_cancellation</incoming>
+      <outgoing>seq_archive_cancellation_to_end</outgoing>
+    </task>
+
+    <endEvent id="end_cancelled" name="Case Cancelled">
+      <incoming>seq_archive_cancellation_to_end</incoming>
+    </endEvent>
+
+    <!-- Branch 2: Customer Accepts / Sends Documents -->
+    <intermediateCatchEvent id="catch_accept" name="Completed Offer Documents Received">
+      <incoming>seq_eg_to_accept</incoming>
+      <outgoing>seq_accept_to_gateway</outgoing>
+      <messageEventDefinition id="msg_def_accept"/>
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="gw_check_docs" name="All Prerequisite Documents Attached?">
+      <incoming>seq_accept_to_gateway</incoming>
+      <outgoing>seq_docs_yes</outgoing>
+      <outgoing>seq_docs_no</outgoing>
+    </exclusiveGateway>
+
+    <task id="move_to_admin" name="Move Case to Administration for Completion">
+      <incoming>seq_docs_yes</incoming>
+      <outgoing>seq_admin_to_end</outgoing>
+    </task>
+
+    <endEvent id="end_completed" name="Case Completed">
+      <incoming>seq_admin_to_end</incoming>
+    </endEvent>
+
+    <sendTask id="request_docs" name="Request Outstanding Documents from Customer">
+      <incoming>seq_docs_no</incoming>
+      <outgoing>seq_request_to_end</outgoing>
+    </sendTask>
+
+    <endEvent id="end_awaiting_docs" name="Awaiting Outstanding Documents">
+      <incoming>seq_request_to_end</incoming>
+    </endEvent>
+
+    <!-- Branch 3: Timeout (2 Weeks) -->
+    <intermediateCatchEvent id="catch_timer" name="2 Weeks Timeout">
+      <incoming>seq_eg_to_timer</incoming>
+      <outgoing>seq_timer_to_update</outgoing>
+      <timerEventDefinition id="timer_def_2weeks">
+        <timeDuration xsi:type="tFormalExpression">P14D</timeDuration>
+      </timerEventDefinition>
+    </intermediateCatchEvent>
+
+    <task id="update_timeout" name="Update Case Details (No Answer)">
+      <incoming>seq_timer_to_update</incoming>
+      <outgoing>seq_update_timeout_to_archive_timeout</outgoing>
+    </task>
+
+    <task id="archive_timeout" name="Archive Case Prior to Cancellation">
+      <incoming>seq_update_timeout_to_archive_timeout</incoming>
+      <outgoing>seq_archive_timeout_to_end</outgoing>
+    </task>
+
+    <endEvent id="end_timeout_cancelled" name="Case Cancelled (Timeout)">
+      <incoming>seq_archive_timeout_to_end</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="seq_start_to_send" sourceRef="start_event" targetRef="send_offer"/>
+    <sequenceFlow id="seq_send_to_event_based" sourceRef="send_offer" targetRef="event_gateway"/>
+
+    <sequenceFlow id="seq_eg_to_decline" sourceRef="event_gateway" targetRef="catch_decline"/>
+    <sequenceFlow id="seq_decline_to_update" sourceRef="catch_decline" targetRef="update_decline"/>
+    <sequenceFlow id="seq_update_to_archive_cancellation" sourceRef="update_decline" targetRef="archive_cancellation"/>
+    <sequenceFlow id="seq_archive_cancellation_to_end" sourceRef="archive_cancellation" targetRef="end_cancelled"/>
+
+    <sequenceFlow id="seq_eg_to_accept" sourceRef="event_gateway" targetRef="catch_accept"/>
+    <sequenceFlow id="seq_accept_to_gateway" sourceRef="catch_accept" targetRef="gw_check_docs"/>
+    <sequenceFlow id="seq_docs_yes" name="Yes" sourceRef="gw_check_docs" targetRef="move_to_admin"/>
+    <sequenceFlow id="seq_admin_to_end" sourceRef="move_to_admin" targetRef="end_completed"/>
+    <sequenceFlow id="seq_docs_no" name="No" sourceRef="gw_check_docs" targetRef="request_docs"/>
+    <sequenceFlow id="seq_request_to_end" sourceRef="request_docs" targetRef="end_awaiting_docs"/>
+
+    <sequenceFlow id="seq_eg_to_timer" sourceRef="event_gateway" targetRef="catch_timer"/>
+    <sequenceFlow id="seq_timer_to_update" sourceRef="catch_timer" targetRef="update_timeout"/>
+    <sequenceFlow id="seq_update_timeout_to_archive_timeout" sourceRef="update_timeout" targetRef="archive_timeout"/>
+    <sequenceFlow id="seq_archive_timeout_to_end" sourceRef="archive_timeout" targetRef="end_timeout_cancelled"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_mortgage">
+    <bpmndi:BPMNPlane id="BPMNPlane_mortgage" bpmnElement="mortgage_offer_process">
+
+      <!-- Nodes -->
+      <bpmndi:BPMNShape id="shape_start_event" bpmnElement="start_event">
+        <omgdc:Bounds x="152" y="312" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="131" y="355" width="78" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_send_offer" bpmnElement="send_offer">
+        <omgdc:Bounds x="238" y="290" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_event_gateway" bpmnElement="event_gateway" isMarkerVisible="true">
+        <omgdc:Bounds x="388" y="305" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="375" y="268" width="76" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Decline Branch Shapes -->
+      <bpmndi:BPMNShape id="shape_catch_decline" bpmnElement="catch_decline">
+        <omgdc:Bounds x="488" y="122" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="470" y="85" width="72" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_update_decline" bpmnElement="update_decline">
+        <omgdc:Bounds x="574" y="100" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_archive_cancellation" bpmnElement="archive_cancellation">
+        <omgdc:Bounds x="724" y="100" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_end_cancelled" bpmnElement="end_cancelled">
+        <omgdc:Bounds x="874" y="122" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="854" y="165" width="76" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Accept Branch Shapes -->
+      <bpmndi:BPMNShape id="shape_catch_accept" bpmnElement="catch_accept">
+        <omgdc:Bounds x="488" y="312" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="466" y="355" width="81" height="40"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_gw_check_docs" bpmnElement="gw_check_docs" isMarkerVisible="true">
+        <omgdc:Bounds x="599" y="305" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="585" y="255" width="78" height="40"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_move_to_admin" bpmnElement="move_to_admin">
+        <omgdc:Bounds x="724" y="290" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_end_completed" bpmnElement="end_completed">
+        <omgdc:Bounds x="874" y="312" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="852" y="355" width="80" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_request_docs" bpmnElement="request_docs">
+        <omgdc:Bounds x="724" y="410" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_end_awaiting_docs" bpmnElement="end_awaiting_docs">
+        <omgdc:Bounds x="874" y="432" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="860" y="475" width="65" height="40"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Timer Branch Shapes -->
+      <bpmndi:BPMNShape id="shape_catch_timer" bpmnElement="catch_timer">
+        <omgdc:Bounds x="488" y="562" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="464" y="605" width="85" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_update_timeout" bpmnElement="update_timeout">
+        <omgdc:Bounds x="574" y="540" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_archive_timeout" bpmnElement="archive_timeout">
+        <omgdc:Bounds x="724" y="540" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_end_timeout_cancelled" bpmnElement="end_timeout_cancelled">
+        <omgdc:Bounds x="874" y="562" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="854" y="605" width="76" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="edge_seq_start_to_send" bpmnElement="seq_start_to_send">
+        <omgdi:waypoint x="188" y="330"/>
+        <omgdi:waypoint x="238" y="330"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_send_to_event_based" bpmnElement="seq_send_to_event_based">
+        <omgdi:waypoint x="338" y="330"/>
+        <omgdi:waypoint x="388" y="330"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Decline Edges -->
+      <bpmndi:BPMNEdge id="edge_seq_eg_to_decline" bpmnElement="seq_eg_to_decline">
+        <omgdi:waypoint x="413" y="305"/>
+        <omgdi:waypoint x="413" y="140"/>
+        <omgdi:waypoint x="488" y="140"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_decline_to_update" bpmnElement="seq_decline_to_update">
+        <omgdi:waypoint x="524" y="140"/>
+        <omgdi:waypoint x="574" y="140"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_update_to_archive_cancellation" bpmnElement="seq_update_to_archive_cancellation">
+        <omgdi:waypoint x="674" y="140"/>
+        <omgdi:waypoint x="724" y="140"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_archive_cancellation_to_end" bpmnElement="seq_archive_cancellation_to_end">
+        <omgdi:waypoint x="824" y="140"/>
+        <omgdi:waypoint x="874" y="140"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Accept Edges -->
+      <bpmndi:BPMNEdge id="edge_seq_eg_to_accept" bpmnElement="seq_eg_to_accept">
+        <omgdi:waypoint x="438" y="330"/>
+        <omgdi:waypoint x="488" y="330"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_accept_to_gateway" bpmnElement="seq_accept_to_gateway">
+        <omgdi:waypoint x="524" y="330"/>
+        <omgdi:waypoint x="599" y="330"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_docs_yes" bpmnElement="seq_docs_yes">
+        <omgdi:waypoint x="649" y="330"/>
+        <omgdi:waypoint x="724" y="330"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="677" y="312" width="18" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_admin_to_end" bpmnElement="seq_admin_to_end">
+        <omgdi:waypoint x="824" y="330"/>
+        <omgdi:waypoint x="874" y="330"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_docs_no" bpmnElement="seq_docs_no">
+        <omgdi:waypoint x="624" y="355"/>
+        <omgdi:waypoint x="624" y="450"/>
+        <omgdi:waypoint x="724" y="450"/>
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="632" y="400" width="15" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_request_to_end" bpmnElement="seq_request_to_end">
+        <omgdi:waypoint x="824" y="450"/>
+        <omgdi:waypoint x="874" y="450"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Timer Edges -->
+      <bpmndi:BPMNEdge id="edge_seq_eg_to_timer" bpmnElement="seq_eg_to_timer">
+        <omgdi:waypoint x="413" y="355"/>
+        <omgdi:waypoint x="413" y="580"/>
+        <omgdi:waypoint x="488" y="580"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_timer_to_update" bpmnElement="seq_timer_to_update">
+        <omgdi:waypoint x="524" y="580"/>
+        <omgdi:waypoint x="574" y="580"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_update_timeout_to_archive_timeout" bpmnElement="seq_update_timeout_to_archive_timeout">
+        <omgdi:waypoint x="674" y="580"/>
+        <omgdi:waypoint x="724" y="580"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_archive_timeout_to_end" bpmnElement="seq_archive_timeout_to_end">
+        <omgdi:waypoint x="824" y="580"/>
+        <omgdi:waypoint x="874" y="580"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

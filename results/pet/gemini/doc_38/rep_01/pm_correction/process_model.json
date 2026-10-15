@@ -1,0 +1,207 @@
+{
+  "name": "Loan Approval Process",
+  "resources": [
+    {
+      "name": "Risk Assessment Web Service",
+      "capacity": 1,
+      "resource_type": "system"
+    },
+    {
+      "name": "Approver Web Service",
+      "capacity": 1,
+      "resource_type": "system"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_1",
+      "name": "Customer Request Received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Customer Loan Request"
+    },
+    {
+      "id": "end_approved",
+      "name": "Loan Approved",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Loan Approval Feedback"
+    },
+    {
+      "id": "end_denied",
+      "name": "Loan Denied",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Loan Denial Feedback"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_risk_assessment",
+      "name": "Assess Request via Risk Assessment Web Service",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Risk Assessment Web Service",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_loan_request"
+      ],
+      "output_data_ids": [
+        "data_risk_assessment_result"
+      ]
+    },
+    {
+      "id": "task_approver_service",
+      "name": "Process Request via Approver Web Service",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Approver Web Service",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_loan_request",
+        "data_risk_assessment_result"
+      ],
+      "output_data_ids": [
+        "data_approval_decision"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_risk_check",
+      "name": "Check Risk and Amount",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "sf_3",
+          "condition": "Small loan and low risk"
+        },
+        {
+          "flow_id": "sf_4",
+          "condition": "High risk"
+        },
+        {
+          "flow_id": "sf_5",
+          "condition": "Needs further review or loan >= $10,000"
+        }
+      ]
+    },
+    {
+      "id": "gw_approver_result",
+      "name": "Approver Decision",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "sf_7",
+          "condition": "Approved by Approver"
+        },
+        {
+          "flow_id": "sf_8",
+          "condition": "Denied by Approver"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "sf_1",
+      "source_id": "start_1",
+      "target_id": "task_risk_assessment",
+      "condition_name": null
+    },
+    {
+      "id": "sf_2",
+      "source_id": "task_risk_assessment",
+      "target_id": "gw_risk_check",
+      "condition_name": null
+    },
+    {
+      "id": "sf_3",
+      "source_id": "gw_risk_check",
+      "target_id": "end_approved",
+      "condition_name": "Small loan and low risk"
+    },
+    {
+      "id": "sf_4",
+      "source_id": "gw_risk_check",
+      "target_id": "end_denied",
+      "condition_name": "High risk"
+    },
+    {
+      "id": "sf_5",
+      "source_id": "gw_risk_check",
+      "target_id": "task_approver_service",
+      "condition_name": "Needs further review or loan >= $10,000"
+    },
+    {
+      "id": "sf_6",
+      "source_id": "task_approver_service",
+      "target_id": "gw_approver_result",
+      "condition_name": null
+    },
+    {
+      "id": "sf_7",
+      "source_id": "gw_approver_result",
+      "target_id": "end_approved",
+      "condition_name": "Approved"
+    },
+    {
+      "id": "sf_8",
+      "source_id": "gw_approver_result",
+      "target_id": "end_denied",
+      "condition_name": "Denied"
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [
+    {
+      "id": "data_loan_request",
+      "name": "Customer Loan Request"
+    },
+    {
+      "id": "data_risk_assessment_result",
+      "name": "Risk Assessment Result"
+    },
+    {
+      "id": "data_approval_decision",
+      "name": "Approval Decision"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

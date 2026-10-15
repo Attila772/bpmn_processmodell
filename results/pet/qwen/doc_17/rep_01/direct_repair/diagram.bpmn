@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="JobDescriptionProcess" name="Job Description Creation and Approval" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_VacancyReported" name="Vacancy Reported">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_CreateJobDescription" name="Create Job Description">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckConfusion</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_ConfusionCheck" name="Is there confusion?">
+      <bpmn:incoming>Flow_CheckConfusion</bpmn:incoming>
+      <bpmn:outgoing>Flow_AskDepartment</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SubmitForApproval</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_AskDepartment" name="Ask Department for Clarification">
+      <bpmn:incoming>Flow_AskDepartment</bpmn:incoming>
+      <bpmn:outgoing>Flow_BackToCreate</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_VacancyReported" targetRef="Task_CreateJobDescription" />
+    <bpmn:sequenceFlow id="Flow_CheckConfusion" sourceRef="Task_CreateJobDescription" targetRef="Gateway_ConfusionCheck" />
+    <bpmn:sequenceFlow id="Flow_AskDepartment" name="Yes, confused" sourceRef="Gateway_ConfusionCheck" targetRef="Task_AskDepartment" />
+    <bpmn:sequenceFlow id="Flow_BackToCreate" sourceRef="Task_AskDepartment" targetRef="Task_CreateJobDescription" />
+    <bpmn:sequenceFlow id="Flow_SubmitForApproval" name="No confusion" sourceRef="Gateway_ConfusionCheck" targetRef="Task_SubmitForConsideration" />
+    <bpmn:task id="Task_SubmitForConsideration" name="Submit Job Description for Consideration">
+      <bpmn:incoming>Flow_SubmitForApproval</bpmn:incoming>
+      <bpmn:incoming>Flow_ResubmitAfterCorrection</bpmn:incoming>
+      <bpmn:outgoing>Flow_WaitForDecision</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_ApprovalDecision" name="Wait for Approval Decision">
+      <bpmn:incoming>Flow_WaitForDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_DecisionGateway</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_WaitForDecision" sourceRef="Task_SubmitForConsideration" targetRef="Event_ApprovalDecision" />
+    <bpmn:exclusiveGateway id="Gateway_ApprovalDecision" name="Approved?">
+      <bpmn:incoming>Flow_DecisionGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_DecisionGateway" sourceRef="Event_ApprovalDecision" targetRef="Gateway_ApprovalDecision" />
+    <bpmn:task id="Task_CorrectDescription" name="Correct Job Description">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_ResubmitAfterCorrection</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_Rejected" name="Rejected / Correction Requested" sourceRef="Gateway_ApprovalDecision" targetRef="Task_CorrectDescription" />
+    <bpmn:sequenceFlow id="Flow_ResubmitAfterCorrection" sourceRef="Task_CorrectDescription" targetRef="Task_SubmitForConsideration" />
+    <bpmn:task id="Task_PostJob" name="Post the Job">
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEnd</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_Approved" name="Approved" sourceRef="Gateway_ApprovalDecision" targetRef="Task_PostJob" />
+    <bpmn:endEvent id="EndEvent_JobPosted" name="Job Posted">
+      <bpmn:incoming>Flow_ToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ToEnd" sourceRef="Task_PostJob" targetRef="EndEvent_JobPosted" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="JobDescriptionProcess">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_VacancyReported">
+        <dc:Bounds x="179" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="159" y="142" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_11d38v2_di" bpmnElement="Task_CreateJobDescription">
+        <dc:Bounds x="260" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0o4k3qz_di" bpmnElement="Gateway_ConfusionCheck" isMarkerVisible="true">
+        <dc:Bounds x="395" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="385" y="150" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1w3j5k8_di" bpmnElement="Task_AskDepartment">
+        <dc:Bounds x="490" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0x9y2z1_di" bpmnElement="Task_SubmitForConsideration">
+        <dc:Bounds x="490" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1a2b3c4_di" bpmnElement="Event_ApprovalDecision">
+        <dc:Bounds x="639" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1m2n3o4_di" bpmnElement="Gateway_ApprovalDecision" isMarkerVisible="true">
+        <dc:Bounds x="715" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1p2q3r4_di" bpmnElement="Task_CorrectDescription">
+        <dc:Bounds x="810" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1s2t3u4_di" bpmnElement="Task_PostJob">
+        <dc:Bounds x="810" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1v2w3x4_di" bpmnElement="EndEvent_JobPosted">
+        <dc:Bounds x="979" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="215" y="117" />
+        <di:waypoint x="260" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CheckConfusion_di" bpmnElement="Flow_CheckConfusion">
+        <di:waypoint x="360" y="120" />
+        <di:waypoint x="395" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AskDepartment_di" bpmnElement="Flow_AskDepartment">
+        <di:waypoint x="420" y="145" />
+        <di:waypoint x="420" y="220" />
+        <di:waypoint x="490" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="425" y="170" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BackToCreate_di" bpmnElement="Flow_BackToCreate">
+        <di:waypoint x="590" y="220" />
+        <di:waypoint x="650" y="220" />
+        <di:waypoint x="650" y="120" />
+        <di:waypoint x="360" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SubmitForApproval_di" bpmnElement="Flow_SubmitForApproval">
+        <di:waypoint x="445" y="120" />
+        <di:waypoint x="490" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="450" y="100" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_WaitForDecision_di" bpmnElement="Flow_WaitForDecision">
+        <di:waypoint x="590" y="120" />
+        <di:waypoint x="639" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DecisionGateway_di" bpmnElement="Flow_DecisionGateway">
+        <di:waypoint x="675" y="117" />
+        <di:waypoint x="715" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="765" y="120" />
+        <di:waypoint x="810" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="770" y="150" width="100" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ResubmitAfterCorrection_di" bpmnElement="Flow_ResubmitAfterCorrection">
+        <di:waypoint x="910" y="220" />
+        <di:waypoint x="970" y="220" />
+        <di:waypoint x="970" y="120" />
+        <di:waypoint x="590" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="765" y="120" />
+        <di:waypoint x="810" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="770" y="100" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToEnd_di" bpmnElement="Flow_ToEnd">
+        <di:waypoint x="910" y="120" />
+        <di:waypoint x="979" y="117" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

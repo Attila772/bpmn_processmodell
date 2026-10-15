@@ -1,0 +1,253 @@
+{
+  "name": "Annual Meeting Schedule Coordination Process",
+  "resources": [
+    {
+      "name": "Coordination Unit",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "Support Officer",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Committee Members",
+      "capacity": 10,
+      "resource_type": "external_party"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start",
+      "name": "Start of Annual Planning (November)",
+      "event_position": "start",
+      "trigger_type": "timer",
+      "message_name": null
+    },
+    {
+      "id": "evt_end",
+      "name": "Schedule Finalized",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_msg_send_schedule",
+      "name": "Send Draft Schedule to Committees",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Draft Meeting Schedule Email"
+    },
+    {
+      "id": "evt_msg_recv_conflicts",
+      "name": "Receive Conflict Reports from Committees",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Conflict Report Email"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_draft_schedule",
+      "name": "Draft schedule and add dates to calendars",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Coordination Unit",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_draft_schedule"
+      ]
+    },
+    {
+      "id": "task_check_dates_support",
+      "name": "Check dates and suggest modifications",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Support Officer",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_draft_schedule"
+      ],
+      "output_data_ids": [
+        "data_modifications"
+      ]
+    },
+    {
+      "id": "task_recheck_conflicts_internal",
+      "name": "Recheck all dates and look for potential conflicts",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Coordination Unit",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_draft_schedule",
+        "data_modifications"
+      ],
+      "output_data_ids": [
+        "data_final_draft_schedule"
+      ]
+    },
+    {
+      "id": "task_committee_check_diaries",
+      "name": "Check diaries and advise of conflicts",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Committee Members",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_final_draft_schedule"
+      ],
+      "output_data_ids": [
+        "data_conflict_reports"
+      ]
+    }
+  ],
+  "gateways": [],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start",
+      "target_id": "task_draft_schedule",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_draft_schedule",
+      "target_id": "task_check_dates_support",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "task_check_dates_support",
+      "target_id": "task_recheck_conflicts_internal",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_recheck_conflicts_internal",
+      "target_id": "evt_msg_send_schedule",
+      "condition_name": null
+    },
+    {
+      "id": "flow_5",
+      "source_id": "evt_msg_recv_conflicts",
+      "target_id": "task_committee_check_diaries",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "task_committee_check_diaries",
+      "target_id": "evt_end",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_coordination",
+      "name": "Town Planning Authority (Coordination Unit & Support Officer)",
+      "element_ids": [
+        "evt_start",
+        "task_draft_schedule",
+        "task_check_dates_support",
+        "task_recheck_conflicts_internal",
+        "evt_msg_send_schedule"
+      ]
+    },
+    {
+      "id": "pool_committees",
+      "name": "Independent Committee Members",
+      "element_ids": [
+        "evt_msg_recv_conflicts",
+        "task_committee_check_diaries",
+        "evt_end"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_1",
+      "source_id": "evt_msg_send_schedule",
+      "target_id": "evt_msg_recv_conflicts",
+      "name": "Draft Meeting Schedule Email"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_draft_schedule",
+      "name": "Draft Schedule of Meetings"
+    },
+    {
+      "id": "data_modifications",
+      "name": "Suggested Modifications"
+    },
+    {
+      "id": "data_final_draft_schedule",
+      "name": "Final Draft Schedule"
+    },
+    {
+      "id": "data_conflict_reports",
+      "name": "Conflict Reports from Members"
+    }
+  ],
+  "data_stores": [
+    {
+      "id": "store_calendars",
+      "name": "Calendars"
+    }
+  ],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

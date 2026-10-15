@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="CourtFilePreparationProcess" name="Court File Preparation Process" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_1" name="Morning Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_CheckFiles" name="Check files for order">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_FilesStatus" name="Are files missing?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Missing</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Present</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_SearchFiles" name="Initiate search for missing files">
+      <bpmn:incoming>Flow_Missing</bpmn:incoming>
+      <bpmn:outgoing>Flow_SearchDone</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TrackFiles" name="Physically track files to location">
+      <bpmn:incoming>Flow_Present</bpmn:incoming>
+      <bpmn:outgoing>Flow_TrackDone</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:parallelGateway id="Gateway_ConvergeFiles" name="Files Ready">
+      <bpmn:incoming>Flow_SearchDone</bpmn:incoming>
+      <bpmn:incoming>Flow_TrackDone</bpmn:incoming>
+      <bpmn:outgoing>Flow_Handover</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:task id="Task_HandToAssociate" name="Hand files to Associate">
+      <bpmn:incoming>Flow_Handover</bpmn:incoming>
+      <bpmn:outgoing>Flow_DistributeLawList</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_DistributeLawList" name="Distribute Judge's Law List">
+      <bpmn:incoming>Flow_DistributeLawList</bpmn:incoming>
+      <bpmn:outgoing>Flow_ConductHearings</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_ConductHearings" name="Conduct directions hearings">
+      <bpmn:incoming>Flow_ConductHearings</bpmn:incoming>
+      <bpmn:outgoing>Flow_End</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_1" name="Process Complete">
+      <bpmn:incoming>Flow_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CheckFiles" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CheckFiles" targetRef="Gateway_FilesStatus" />
+    <bpmn:sequenceFlow id="Flow_Missing" name="Yes, Missing" sourceRef="Gateway_FilesStatus" targetRef="Task_SearchFiles">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Present" name="No, Present" sourceRef="Gateway_FilesStatus" targetRef="Task_TrackFiles">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SearchDone" sourceRef="Task_SearchFiles" targetRef="Gateway_ConvergeFiles" />
+    <bpmn:sequenceFlow id="Flow_TrackDone" sourceRef="Task_TrackFiles" targetRef="Gateway_ConvergeFiles" />
+    <bpmn:sequenceFlow id="Flow_Handover" sourceRef="Gateway_ConvergeFiles" targetRef="Task_HandToAssociate" />
+    <bpmn:sequenceFlow id="Flow_DistributeLawList" sourceRef="Task_HandToAssociate" targetRef="Task_DistributeLawList" />
+    <bpmn:sequenceFlow id="Flow_ConductHearings" sourceRef="Task_DistributeLawList" targetRef="Task_ConductHearings" />
+    <bpmn:sequenceFlow id="Flow_End" sourceRef="Task_ConductHearings" targetRef="EndEvent_1" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="InvoiceExaminationProcess" name="Invoice Examination Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_BillTempContinuationMetering" name="MPOO sends bill for temporary continuation of metering point operations">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_ExamineBillTempContinuationMetering" name="GO examines the bill">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_TempContinuationMetering" name="Process End">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_BillTempContinuationMetering" targetRef="Task_ExamineBillTempContinuationMetering" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ExamineBillTempContinuationMetering" targetRef="EndEvent_TempContinuationMetering" />
+
+    <bpmn:startEvent id="StartEvent_BillTempContinuationMeasurement" name="MSPO sends bill for temporary continuation of measurement">
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_ExamineBillTempContinuationMeasurement" name="GO examines the bill">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_TempContinuationMeasurement" name="Process End">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="StartEvent_BillTempContinuationMeasurement" targetRef="Task_ExamineBillTempContinuationMeasurement" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_ExamineBillTempContinuationMeasurement" targetRef="EndEvent_TempContinuationMeasurement" />
+
+    <bpmn:startEvent id="StartEvent_BillAdditionalReadings" name="MSPO sends bill for additional readings">
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_ExamineBillAdditionalReadings" name="GO examines the bill">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_AdditionalReadings" name="Process End">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="StartEvent_BillAdditionalReadings" targetRef="Task_ExamineBillAdditionalReadings" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_ExamineBillAdditionalReadings" targetRef="EndEvent_AdditionalReadings" />
+
+    <bpmn:startEvent id="StartEvent_BillEquipmentAcquisition" name="MPOO sends bill for equipment acquisition to MPON or GO">
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_ExamineBillEquipmentAcquisition" name="MPON or GO examines the bill">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_DecisionEquipment" name="Decision on Invoice">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_Confirm_Equipment</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Reject_Equipment</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ConfirmInvoiceEquipment" name="Confirm invoice with payment advice to MPOO">
+      <bpmn:incoming>Flow_Confirm_Equipment</bpmn:incoming>
+      <bpmn:outgoing>Flow_End_Confirm_Equipment</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_RejectInvoiceEquipment" name="Reject invoice of MPOO">
+      <bpmn:incoming>Flow_Reject_Equipment</bpmn:incoming>
+      <bpmn:outgoing>Flow_End_Reject_Equipment</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_ConfirmEquipment" name="Confirmation Sent">
+      <bpmn:incoming>Flow_End_Confirm_Equipment</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_RejectEquipment" name="Rejection Sent">
+      <bpmn:incoming>Flow_End_Reject_Equipment</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="StartEvent_BillEquipmentAcquisition" targetRef="Task_ExamineBillEquipmentAcquisition" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_ExamineBillEquipmentAcquisition" targetRef="Gateway_DecisionEquipment" />
+    <bpmn:sequenceFlow id="Flow_Confirm_Equipment" sourceRef="Gateway_DecisionEquipment" targetRef="Task_ConfirmInvoiceEquipment">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Confirm</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Reject_Equipment" sourceRef="Gateway_DecisionEquipment" targetRef="Task_RejectInvoiceEquipment">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Reject</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_End_Confirm_Equipment" sourceRef="Task_ConfirmInvoiceEquipment" targetRef="EndEvent_ConfirmEquipment" />
+    <bpmn:sequenceFlow id="Flow_End_Reject_Equipment" sourceRef="Task_RejectInvoiceEquipment" targetRef="EndEvent_RejectEquipment" />
+  </bpmn:process>
+</bpmn:definitions>

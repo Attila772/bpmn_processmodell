@@ -1,0 +1,251 @@
+{
+  "name": "MSPO Deregistration and GO Assignment Process",
+  "resources": [
+    {
+      "name": "GO",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "MSPO",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_mspo_dereg",
+      "name": "MSPO initiates deregistration",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_reject",
+      "name": "Deregistration rejected",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "msg_start_go_verify",
+      "name": "Receive deregistration request",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Deregistration Request"
+    },
+    {
+      "id": "msg_end_mspo_notify",
+      "name": "Notify MSPO of assignment change",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Assignment Change Notification to MSPO"
+    },
+    {
+      "id": "msg_end_mpo_notify",
+      "name": "Notify MPO of GO assignment",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Assignment Notification to MPO"
+    },
+    {
+      "id": "msg_end_sp_notify",
+      "name": "Notify SP of GO assignment",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Assignment Notification to SP"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_submit_dereg",
+      "name": "Submit deregistration",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MSPO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_dereg_request"
+      ]
+    },
+    {
+      "id": "task_verify_dereg",
+      "name": "Verify deregistration",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "GO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_dereg_request"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_assign_self",
+      "name": "Assign self as MSP",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "GO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_decision",
+      "name": "Decision on deregistration",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_to_reject",
+          "condition": "Reject deregistration"
+        },
+        {
+          "flow_id": "flow_to_confirm",
+          "condition": "Preliminarily confirm deregistration"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "start_mspo_dereg",
+      "target_id": "task_submit_dereg",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_submit_dereg",
+      "target_id": "msg_end_mspo_notify",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "msg_start_go_verify",
+      "target_id": "task_verify_dereg",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_verify_dereg",
+      "target_id": "gw_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_reject",
+      "source_id": "gw_decision",
+      "target_id": "end_reject",
+      "condition_name": "Reject deregistration"
+    },
+    {
+      "id": "flow_to_confirm",
+      "source_id": "gw_decision",
+      "target_id": "task_assign_self",
+      "condition_name": "Preliminarily confirm deregistration"
+    },
+    {
+      "id": "flow_5",
+      "source_id": "task_assign_self",
+      "target_id": "msg_end_mspo_notify",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "task_assign_self",
+      "target_id": "msg_end_mpo_notify",
+      "condition_name": null
+    },
+    {
+      "id": "flow_7",
+      "source_id": "task_assign_self",
+      "target_id": "msg_end_sp_notify",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_mspon",
+      "name": "MSPO",
+      "element_ids": [
+        "start_mspo_dereg",
+        "task_submit_dereg",
+        "msg_end_mspo_notify"
+      ]
+    },
+    {
+      "id": "pool_go",
+      "name": "GO",
+      "element_ids": [
+        "msg_start_go_verify",
+        "task_verify_dereg",
+        "gw_decision",
+        "end_reject",
+        "task_assign_self",
+        "msg_end_mpo_notify",
+        "msg_end_sp_notify"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_1",
+      "source_id": "msg_end_mspo_notify",
+      "target_id": "msg_start_go_verify",
+      "name": "Deregistration Request"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_dereg_request",
+      "name": "Deregistration Request Document"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

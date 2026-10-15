@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="data_order_ticket" name="Order ticket" dataObjectRef="data_order_ticket_do" />
+    <bpmn:dataObject id="data_order_ticket_do" />
+    <bpmn:dataObjectReference id="data_prepared_food" name="Prepared food" dataObjectRef="data_prepared_food_do" />
+    <bpmn:dataObject id="data_prepared_food_do" />
+    <bpmn:dataObjectReference id="data_ready_cart" name="Ready cart" dataObjectRef="data_ready_cart_do" />
+    <bpmn:dataObject id="data_ready_cart_do" />
+    <bpmn:dataObjectReference id="data_nonalc_drinks" name="Nonalcoholic drinks" dataObjectRef="data_nonalc_drinks_do" />
+    <bpmn:dataObject id="data_nonalc_drinks_do" />
+    <bpmn:dataObjectReference id="data_alc_beverages" name="Alcoholic beverages" dataObjectRef="data_alc_beverages_do" />
+    <bpmn:dataObject id="data_alc_beverages_do" />
+    <bpmn:startEvent id="start_event" name="Guest calls room service">
+      <bpmn:outgoing>flow_start_to_take</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_event" name="Order completed and billed">
+      <bpmn:incoming>flow_debit_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_take_order" name="Take down the order">
+      <bpmn:incoming>flow_start_to_take</bpmn:incoming>
+      <bpmn:outgoing>flow_take_to_submit</bpmn:outgoing>
+      <bpmn:outgoing>flow_take_to_assign</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_take_order_doa0">
+        <bpmn:targetRef>data_order_ticket</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_submit_kitchen" name="Submit order ticket to kitchen">
+      <bpmn:incoming>flow_take_to_submit</bpmn:incoming>
+      <bpmn:outgoing>flow_submit_to_kitchen</bpmn:outgoing>
+      <bpmn:property id="task_submit_kitchen_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_submit_kitchen_dia0">
+        <bpmn:sourceRef>data_order_ticket</bpmn:sourceRef>
+        <bpmn:targetRef>task_submit_kitchen_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_prepare_food" name="Prepare food">
+      <bpmn:incoming>flow_submit_to_kitchen</bpmn:incoming>
+      <bpmn:outgoing>flow_food_to_sync</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_prepare_food_doa0">
+        <bpmn:targetRef>data_prepared_food</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_assign_waiter" name="Assign order to waiter">
+      <bpmn:incoming>flow_take_to_assign</bpmn:incoming>
+      <bpmn:outgoing>flow_assign_to_gateway</bpmn:outgoing>
+      <bpmn:outgoing>flow_assign_to_cart</bpmn:outgoing>
+      <bpmn:outgoing>flow_assign_to_nonalc</bpmn:outgoing>
+      <bpmn:property id="task_assign_waiter_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_assign_waiter_dia0">
+        <bpmn:sourceRef>data_order_ticket</bpmn:sourceRef>
+        <bpmn:targetRef>task_assign_waiter_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_ready_cart" name="Ready cart (tablecloth, silverware)">
+      <bpmn:incoming>flow_assign_to_cart</bpmn:incoming>
+      <bpmn:outgoing>flow_cart_to_sync</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_ready_cart_doa0">
+        <bpmn:targetRef>data_ready_cart</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_prepare_nonalc" name="Prepare nonalcoholic drinks">
+      <bpmn:incoming>flow_assign_to_nonalc</bpmn:incoming>
+      <bpmn:outgoing>flow_nonalc_to_sync</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_prepare_nonalc_doa0">
+        <bpmn:targetRef>data_nonalc_drinks</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_fetch_wine" name="Fetch wine from cellar and prepare alcoholic beverages">
+      <bpmn:incoming>flow_yes_alcohol</bpmn:incoming>
+      <bpmn:outgoing>flow_wine_to_sync</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_fetch_wine_doa0">
+        <bpmn:targetRef>data_alc_beverages</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_deliver" name="Deliver to guest's room">
+      <bpmn:incoming>flow_sync_to_deliver</bpmn:incoming>
+      <bpmn:outgoing>flow_deliver_to_debit</bpmn:outgoing>
+      <bpmn:property id="task_deliver_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_deliver_dia0">
+        <bpmn:sourceRef>data_prepared_food</bpmn:sourceRef>
+        <bpmn:targetRef>task_deliver_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_deliver_dia1">
+        <bpmn:sourceRef>data_ready_cart</bpmn:sourceRef>
+        <bpmn:targetRef>task_deliver_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_deliver_dia2">
+        <bpmn:sourceRef>data_nonalc_drinks</bpmn:sourceRef>
+        <bpmn:targetRef>task_deliver_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_deliver_dia3">
+        <bpmn:sourceRef>data_alc_beverages</bpmn:sourceRef>
+        <bpmn:targetRef>task_deliver_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_debit_account" name="Debit guest's account">
+      <bpmn:incoming>flow_deliver_to_debit</bpmn:incoming>
+      <bpmn:outgoing>flow_debit_to_end</bpmn:outgoing>
+      <bpmn:property id="task_debit_account_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_debit_account_dia0">
+        <bpmn:sourceRef>data_order_ticket</bpmn:sourceRef>
+        <bpmn:targetRef>task_debit_account_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gateway_alcohol_check" name="Does order include alcohol?" isMarkerVisible="true">
+      <bpmn:incoming>flow_assign_to_gateway</bpmn:incoming>
+      <bpmn:outgoing>flow_yes_alcohol</bpmn:outgoing>
+      <bpmn:outgoing>flow_no_alcohol</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gateway_sync_delivery" name="Wait for all components">
+      <bpmn:incoming>flow_no_alcohol</bpmn:incoming>
+      <bpmn:incoming>flow_wine_to_sync</bpmn:incoming>
+      <bpmn:incoming>flow_cart_to_sync</bpmn:incoming>
+      <bpmn:incoming>flow_nonalc_to_sync</bpmn:incoming>
+      <bpmn:incoming>flow_food_to_sync</bpmn:incoming>
+      <bpmn:outgoing>flow_sync_to_deliver</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="flow_start_to_take" sourceRef="start_event" targetRef="task_take_order" />
+    <bpmn:sequenceFlow id="flow_take_to_submit" sourceRef="task_take_order" targetRef="task_submit_kitchen" />
+    <bpmn:sequenceFlow id="flow_submit_to_kitchen" sourceRef="task_submit_kitchen" targetRef="task_prepare_food" />
+    <bpmn:sequenceFlow id="flow_take_to_assign" sourceRef="task_take_order" targetRef="task_assign_waiter" />
+    <bpmn:sequenceFlow id="flow_assign_to_gateway" sourceRef="task_assign_waiter" targetRef="gateway_alcohol_check" />
+    <bpmn:sequenceFlow id="flow_yes_alcohol" sourceRef="gateway_alcohol_check" targetRef="task_fetch_wine" name="Yes" />
+    <bpmn:sequenceFlow id="flow_no_alcohol" sourceRef="gateway_alcohol_check" targetRef="gateway_sync_delivery" name="No" />
+    <bpmn:sequenceFlow id="flow_wine_to_sync" sourceRef="task_fetch_wine" targetRef="gateway_sync_delivery" />
+    <bpmn:sequenceFlow id="flow_assign_to_cart" sourceRef="task_assign_waiter" targetRef="task_ready_cart" />
+    <bpmn:sequenceFlow id="flow_assign_to_nonalc" sourceRef="task_assign_waiter" targetRef="task_prepare_nonalc" />
+    <bpmn:sequenceFlow id="flow_cart_to_sync" sourceRef="task_ready_cart" targetRef="gateway_sync_delivery" />
+    <bpmn:sequenceFlow id="flow_nonalc_to_sync" sourceRef="task_prepare_nonalc" targetRef="gateway_sync_delivery" />
+    <bpmn:sequenceFlow id="flow_food_to_sync" sourceRef="task_prepare_food" targetRef="gateway_sync_delivery" />
+    <bpmn:sequenceFlow id="flow_sync_to_deliver" sourceRef="gateway_sync_delivery" targetRef="task_deliver" />
+    <bpmn:sequenceFlow id="flow_deliver_to_debit" sourceRef="task_deliver" targetRef="task_debit_account" />
+    <bpmn:sequenceFlow id="flow_debit_to_end" sourceRef="task_debit_account" targetRef="end_event" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="end_event_di" bpmnElement="end_event">
+        <dc:Bounds x="1490" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_alcohol_check_di" bpmnElement="gateway_alcohol_check">
+        <dc:Bounds x="730" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_sync_delivery_di" bpmnElement="gateway_sync_delivery">
+        <dc:Bounds x="1110" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_event_di" bpmnElement="start_event">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assign_waiter_di" bpmnElement="task_assign_waiter">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_debit_account_di" bpmnElement="task_debit_account">
+        <dc:Bounds x="1300" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_deliver_di" bpmnElement="task_deliver">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_fetch_wine_di" bpmnElement="task_fetch_wine">
+        <dc:Bounds x="920" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_food_di" bpmnElement="task_prepare_food">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_nonalc_di" bpmnElement="task_prepare_nonalc">
+        <dc:Bounds x="730" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ready_cart_di" bpmnElement="task_ready_cart">
+        <dc:Bounds x="730" y="475" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_submit_kitchen_di" bpmnElement="task_submit_kitchen">
+        <dc:Bounds x="540" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_take_order_di" bpmnElement="task_take_order">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_order_ticket_di" bpmnElement="data_order_ticket">
+        <dc:Bounds x="702" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_prepared_food_di" bpmnElement="data_prepared_food">
+        <dc:Bounds x="940" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_ready_cart_di" bpmnElement="data_ready_cart">
+        <dc:Bounds x="940" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_nonalc_drinks_di" bpmnElement="data_nonalc_drinks">
+        <dc:Bounds x="940" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_alc_beverages_di" bpmnElement="data_alc_beverages">
+        <dc:Bounds x="1035" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_take_di" bpmnElement="flow_start_to_take">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_take_to_submit_di" bpmnElement="flow_take_to_submit">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_submit_to_kitchen_di" bpmnElement="flow_submit_to_kitchen">
+        <di:waypoint x="590" y="265" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_take_to_assign_di" bpmnElement="flow_take_to_assign">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_assign_to_gateway_di" bpmnElement="flow_assign_to_gateway">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_yes_alcohol_di" bpmnElement="flow_yes_alcohol">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_no_alcohol_di" bpmnElement="flow_no_alcohol">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_wine_to_sync_di" bpmnElement="flow_wine_to_sync">
+        <di:waypoint x="970" y="140" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_assign_to_cart_di" bpmnElement="flow_assign_to_cart">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="780" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_assign_to_nonalc_di" bpmnElement="flow_assign_to_nonalc">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="780" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cart_to_sync_di" bpmnElement="flow_cart_to_sync">
+        <di:waypoint x="780" y="515" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_nonalc_to_sync_di" bpmnElement="flow_nonalc_to_sync">
+        <di:waypoint x="780" y="390" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_food_to_sync_di" bpmnElement="flow_food_to_sync">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sync_to_deliver_di" bpmnElement="flow_sync_to_deliver">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_deliver_to_debit_di" bpmnElement="flow_deliver_to_debit">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_debit_to_end_di" bpmnElement="flow_debit_to_end">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1508" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_take_order_doa0_di" bpmnElement="task_take_order_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="720" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_kitchen_dia0_di" bpmnElement="task_submit_kitchen_dia0">
+        <di:waypoint x="720" y="640" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_food_doa0_di" bpmnElement="task_prepare_food_doa0">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="958" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_assign_waiter_dia0_di" bpmnElement="task_assign_waiter_dia0">
+        <di:waypoint x="720" y="640" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_ready_cart_doa0_di" bpmnElement="task_ready_cart_doa0">
+        <di:waypoint x="780" y="515" />
+        <di:waypoint x="958" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_nonalc_doa0_di" bpmnElement="task_prepare_nonalc_doa0">
+        <di:waypoint x="780" y="390" />
+        <di:waypoint x="958" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_fetch_wine_doa0_di" bpmnElement="task_fetch_wine_doa0">
+        <di:waypoint x="970" y="140" />
+        <di:waypoint x="1053" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_deliver_dia0_di" bpmnElement="task_deliver_dia0">
+        <di:waypoint x="958" y="640" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_deliver_dia1_di" bpmnElement="task_deliver_dia1">
+        <di:waypoint x="958" y="640" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_deliver_dia2_di" bpmnElement="task_deliver_dia2">
+        <di:waypoint x="958" y="640" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_deliver_dia3_di" bpmnElement="task_deliver_dia3">
+        <di:waypoint x="1053" y="640" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_debit_account_dia0_di" bpmnElement="task_debit_account_dia0">
+        <di:waypoint x="720" y="640" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

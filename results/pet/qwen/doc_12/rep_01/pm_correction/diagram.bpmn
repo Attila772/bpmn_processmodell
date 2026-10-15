@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_assembler_part" name="Assembler AG" processRef="pool_assembler_proc" />
+    <bpmn:participant id="pool_supplier_part" name="Supplier" processRef="pool_supplier_proc" />
+    <bpmn:messageFlow id="msg_flow_1" sourceRef="evt_end_order_sent" targetRef="evt_start_order_received" name="Order" />
+    <bpmn:messageFlow id="msg_flow_2" sourceRef="evt_end_invoice_sent" targetRef="evt_start_invoice_received" name="Invoice" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_assembler_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_order" name="Order" dataObjectRef="data_order_do" />
+    <bpmn:dataObject id="data_order_do" />
+    <bpmn:dataObjectReference id="data_invoice_p1" name="Invoice" dataObjectRef="data_invoice_p1_do" />
+    <bpmn:dataObject id="data_invoice_p1_do" />
+    <bpmn:startEvent id="evt_start_assembler" name="First of the month">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="evt_start_assembler_timerdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_order_sent" name="Order sent to supplier">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_order_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_invoice_received" name="Receive invoice from Supplier">
+      <bpmn:outgoing>flow_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_invoice_received_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_process" name="Process completed">
+      <bpmn:incoming>flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_create_order" name="Place order for product parts">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_create_order_doa0">
+        <bpmn:targetRef>data_order</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_receive_invoice" name="Receive and process invoice">
+      <bpmn:incoming>flow_5</bpmn:incoming>
+      <bpmn:outgoing>flow_6</bpmn:outgoing>
+      <bpmn:property id="task_receive_invoice_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_receive_invoice_dia0">
+        <bpmn:sourceRef>data_invoice_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_receive_invoice_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="evt_start_assembler" targetRef="task_create_order" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_create_order" targetRef="evt_end_order_sent" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="evt_start_invoice_received" targetRef="task_receive_invoice" />
+    <bpmn:sequenceFlow id="flow_6" sourceRef="task_receive_invoice" targetRef="evt_end_process" />
+  </bpmn:process>
+  <bpmn:process id="pool_supplier_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_order_p1" name="Order" dataObjectRef="data_order_p1_do" />
+    <bpmn:dataObject id="data_order_p1_do" />
+    <bpmn:dataObjectReference id="data_invoice" name="Invoice" dataObjectRef="data_invoice_do" />
+    <bpmn:dataObject id="data_invoice_do" />
+    <bpmn:startEvent id="evt_start_order_received" name="Receive order from Assembler AG">
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_order_received_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_invoice_sent" name="Invoice sent to Assembler AG">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_invoice_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_process_order" name="Process the order">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+      <bpmn:property id="task_process_order_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_process_order_dia0">
+        <bpmn:sourceRef>data_order_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_process_order_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_process_order_doa0">
+        <bpmn:targetRef>data_invoice</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="flow_3" sourceRef="evt_start_order_received" targetRef="task_process_order" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="task_process_order" targetRef="evt_end_invoice_sent" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_assembler_part_di" bpmnElement="pool_assembler_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_supplier_part_di" bpmnElement="pool_supplier_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_invoice_sent_di" bpmnElement="evt_end_invoice_sent">
+        <dc:Bounds x="540" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_order_sent_di" bpmnElement="evt_end_order_sent">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_process_di" bpmnElement="evt_end_process">
+        <dc:Bounds x="540" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_assembler_di" bpmnElement="evt_start_assembler">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_invoice_received_di" bpmnElement="evt_start_invoice_received">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_order_received_di" bpmnElement="evt_start_order_received">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_order_di" bpmnElement="task_create_order">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_process_order_di" bpmnElement="task_process_order">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_receive_invoice_di" bpmnElement="task_receive_invoice">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_order_di" bpmnElement="data_order">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_invoice_p1_di" bpmnElement="data_invoice_p1">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_order_p1_di" bpmnElement="data_order_p1">
+        <dc:Bounds x="370" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_invoice_di" bpmnElement="data_invoice">
+        <dc:Bounds x="370" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="558" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_1_di" bpmnElement="msg_flow_1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_2_di" bpmnElement="msg_flow_2">
+        <di:waypoint x="558" y="578" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_order_doa0_di" bpmnElement="task_create_order_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_process_order_dia0_di" bpmnElement="task_process_order_dia0">
+        <di:waypoint x="388" y="725" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_process_order_doa0_di" bpmnElement="task_process_order_doa0">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="388" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_receive_invoice_dia0_di" bpmnElement="task_receive_invoice_dia0">
+        <di:waypoint x="388" y="390" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

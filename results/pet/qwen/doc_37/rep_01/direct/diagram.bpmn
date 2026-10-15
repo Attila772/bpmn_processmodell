@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="MailProcessingProcess" name="Mail Processing Process" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Collection" name="Mail Collected Daily">
+      <bpmn:outgoing>Flow_CollectionToSort</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_SortUnopened" name="Sort Unopened Mail into Business Areas">
+      <bpmn:extensionElements>
+        <bpmn:dataInputAssociation>
+          <bpmn:sourceRef>Data_Mail</bpmn:sourceRef>
+          <bpmn:targetRef>Data_SortedMail</bpmn:targetRef>
+        </bpmn:dataInputAssociation>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_CollectionToSort</bpmn:incoming>
+      <bpmn:outgoing>Flow_SortToDistribute</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Distribute" name="Distribute Mail">
+      <bpmn:incoming>Flow_SortToDistribute</bpmn:incoming>
+      <bpmn:outgoing>Flow_DistributeToRegistry</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_OpenAndRegister" name="Open, Sort and Register in Manual Incoming Mail Register">
+      <bpmn:incoming>Flow_DistributeToRegistry</bpmn:incoming>
+      <bpmn:outgoing>Flow_RegisterToQC</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_QualityCheck" name="Perform Quality Check">
+      <bpmn:incoming>Flow_RegisterToQC</bpmn:incoming>
+      <bpmn:outgoing>Flow_QCDecision</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_ComplianceCheck" name="Compliant?">
+      <bpmn:incoming>Flow_QCDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reject</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Accept</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Reject" sourceRef="Gateway_ComplianceCheck" targetRef="Task_RejectMail">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Not Compliant</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Accept" sourceRef="Gateway_ComplianceCheck" targetRef="Task_CaptureDetails">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">Compliant</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:task id="Task_RejectMail" name="Compile Requisition List and Send Back to Party">
+      <bpmn:incoming>Flow_Reject</bpmn:incoming>
+      <bpmn:outgoing>Flow_RejectToEnd</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Mail Rejected">
+      <bpmn:incoming>Flow_RejectToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_CaptureDetails" name="Capture Matter Details (Types of Action)">
+      <bpmn:incoming>Flow_Accept</bpmn:incoming>
+      <bpmn:outgoing>Flow_DetailsToCashier</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TakeFees" name="Take Applicable Fees">
+      <bpmn:incoming>Flow_DetailsToCashier</bpmn:incoming>
+      <bpmn:outgoing>Flow_FeesToParallel</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:parallelGateway id="Gateway_ParallelStart" name="Split Tasks">
+      <bpmn:incoming>Flow_FeesToParallel</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPostEnvelope</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToPrintFile</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:task id="Task_PostEnvelope" name="Put Receipt and Copied Docs into Envelope and Post to Party">
+      <bpmn:incoming>Flow_ToPostEnvelope</bpmn:incoming>
+      <bpmn:outgoing>Flow_PostToJoin</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_PrintFile" name="Capture Party Details and Print Physical Court File">
+      <bpmn:incoming>Flow_ToPrintFile</bpmn:incoming>
+      <bpmn:outgoing>Flow_PrintToJoin</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:parallelGateway id="Gateway_ParallelEnd" name="Join Tasks">
+      <bpmn:incoming>Flow_PostToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_PrintToJoin</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinToEnd</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:endEvent id="EndEvent_Processed" name="Process Completed">
+      <bpmn:incoming>Flow_JoinToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_CollectionToSort" sourceRef="StartEvent_Collection" targetRef="Task_SortUnopened" />
+    <bpmn:sequenceFlow id="Flow_SortToDistribute" sourceRef="Task_SortUnopened" targetRef="Task_Distribute" />
+    <bpmn:sequenceFlow id="Flow_DistributeToRegistry" sourceRef="Task_Distribute" targetRef="Task_OpenAndRegister" />
+    <bpmn:sequenceFlow id="Flow_RegisterToQC" sourceRef="Task_OpenAndRegister" targetRef="Task_QualityCheck" />
+    <bpmn:sequenceFlow id="Flow_QCDecision" sourceRef="Task_QualityCheck" targetRef="Gateway_ComplianceCheck" />
+    <bpmn:sequenceFlow id="Flow_RejectToEnd" sourceRef="Task_RejectMail" targetRef="EndEvent_Rejected" />
+    <bpmn:sequenceFlow id="Flow_DetailsToCashier" sourceRef="Task_CaptureDetails" targetRef="Task_TakeFees" />
+    <bpmn:sequenceFlow id="Flow_FeesToParallel" sourceRef="Task_TakeFees" targetRef="Gateway_ParallelStart" />
+    <bpmn:sequenceFlow id="Flow_ToPostEnvelope" sourceRef="Gateway_ParallelStart" targetRef="Task_PostEnvelope" />
+    <bpmn:sequenceFlow id="Flow_ToPrintFile" sourceRef="Gateway_ParallelStart" targetRef="Task_PrintFile" />
+    <bpmn:sequenceFlow id="Flow_PostToJoin" sourceRef="Task_PostEnvelope" targetRef="Gateway_ParallelEnd" />
+    <bpmn:sequenceFlow id="Flow_PrintToJoin" sourceRef="Task_PrintFile" targetRef="Gateway_ParallelEnd" />
+    <bpmn:sequenceFlow id="Flow_JoinToEnd" sourceRef="Gateway_ParallelEnd" targetRef="EndEvent_Processed" />
+    
+    <!-- Data Objects (Optional but good for completeness based on description) -->
+    <bpmn:dataObject id="Data_Mail" name="Incoming Mail" />
+    <bpmn:dataObject id="Data_SortedMail" name="Sorted Mail" />
+  </bpmn:process>
+  <bpmn:bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmn:bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="MailProcessingProcess">
+      <bpmn:bpmndi:BPMNShape id="StartEvent_Collection_di" bpmnElement="StartEvent_Collection">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Task_SortUnopened_di" bpmnElement="Task_SortUnopened">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Task_Distribute_di" bpmnElement="Task_Distribute">
+        <dc:Bounds x="380" y="80" width="100" height="80" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Task_OpenAndRegister_di" bpmnElement="Task_OpenAndRegister">
+        <dc:Bounds x="520" y="80" width="100" height="80" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Task_QualityCheck_di" bpmnElement="Task_QualityCheck">
+        <dc:Bounds x="660" y="80" width="100" height="80" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Gateway_ComplianceCheck_di" bpmnElement="Gateway_ComplianceCheck" isMarkerVisible="true">
+        <dc:Bounds x="802" y="92" width="52" height="52" />
+        <bpmn:bpmndi:BPMNLabel />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Task_RejectMail_di" bpmnElement="Task_RejectMail">
+        <dc:Bounds x="900" y="160" width="100" height="80" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="1052" y="182" width="36" height="36" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Task_CaptureDetails_di" bpmnElement="Task_CaptureDetails">
+        <dc:Bounds x="900" y="40" width="100" height="80" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Task_TakeFees_di" bpmnElement="Task_TakeFees">
+        <dc:Bounds x="1040" y="40" width="100" height="80" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Gateway_ParallelStart_di" bpmnElement="Gateway_ParallelStart" isMarkerVisible="true">
+        <dc:Bounds x="1172" y="52" width="52" height="52" />
+        <bpmn:bpmndi:BPMNLabel />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Task_PostEnvelope_di" bpmnElement="Task_PostEnvelope">
+        <dc:Bounds x="1270" y="10" width="100" height="80" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Task_PrintFile_di" bpmnElement="Task_PrintFile">
+        <dc:Bounds x="1270" y="100" width="100" height="80" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="Gateway_ParallelEnd_di" bpmnElement="Gateway_ParallelEnd" isMarkerVisible="true">
+        <dc:Bounds x="1412" y="52" width="52" height="52" />
+        <bpmn:bpmndi:BPMNLabel />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNShape id="EndEvent_Processed_di" bpmnElement="EndEvent_Processed">
+        <dc:Bounds x="1512" y="62" width="36" height="36" />
+      </bpmn:bpmndi:BPMNShape>
+      <bpmn:bpmndi:BPMNEdge id="Flow_CollectionToSort_di" bpmnElement="Flow_CollectionToSort">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_SortToDistribute_di" bpmnElement="Flow_SortToDistribute">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="380" y="120" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_DistributeToRegistry_di" bpmnElement="Flow_DistributeToRegistry">
+        <di:waypoint x="480" y="120" />
+        <di:waypoint x="520" y="120" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_RegisterToQC_di" bpmnElement="Flow_RegisterToQC">
+        <di:waypoint x="620" y="120" />
+        <di:waypoint x="660" y="120" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_QCDecision_di" bpmnElement="Flow_QCDecision">
+        <di:waypoint x="760" y="120" />
+        <di:waypoint x="802" y="118" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_Reject_di" bpmnElement="Flow_Reject">
+        <di:waypoint x="828" y="144" />
+        <di:waypoint x="828" y="200" />
+        <di:waypoint x="900" y="200" />
+        <bpmn:bpmndi:BPMNLabel>
+          <dc:Bounds x="838" y="160" width="60" height="14" />
+        </bpmn:bpmndi:BPMNLabel>
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_Accept_di" bpmnElement="Flow_Accept">
+        <di:waypoint x="854" y="118" />
+        <di:waypoint x="900" y="80" />
+        <bpmn:bpmndi:BPMNLabel>
+          <dc:Bounds x="864" y="80" width="40" height="14" />
+        </bpmn:bpmndi:BPMNLabel>
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_RejectToEnd_di" bpmnElement="Flow_RejectToEnd">
+        <di:waypoint x="1000" y="200" />
+        <di:waypoint x="1052" y="200" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_DetailsToCashier_di" bpmnElement="Flow_DetailsToCashier">
+        <di:waypoint x="1000" y="80" />
+        <di:waypoint x="1040" y="80" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_FeesToParallel_di" bpmnElement="Flow_FeesToParallel">
+        <di:waypoint x="1140" y="80" />
+        <di:waypoint x="1172" y="78" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_ToPostEnvelope_di" bpmnElement="Flow_ToPostEnvelope">
+        <di:waypoint x="1224" y="78" />
+        <di:waypoint x="1270" y="50" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_ToPrintFile_di" bpmnElement="Flow_ToPrintFile">
+        <di:waypoint x="1224" y="78" />
+        <di:waypoint x="1270" y="140" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_PostToJoin_di" bpmnElement="Flow_PostToJoin">
+        <di:waypoint x="1370" y="50" />
+        <di:waypoint x="1438" y="78" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_PrintToJoin_di" bpmnElement="Flow_PrintToJoin">
+        <di:waypoint x="1370" y="140" />
+        <di:waypoint x="1438" y="104" />
+      </bpmn:bpmndi:BPMNEdge>
+      <bpmn:bpmndi:BPMNEdge id="Flow_JoinToEnd_di" bpmnElement="Flow_JoinToEnd">
+        <di:waypoint x="1464" y="78" />
+        <di:waypoint x="1512" y="80" />
+      </bpmn:bpmndi:BPMNEdge>
+    </bpmn:bpmndi:BPMNPlane>
+  </bpmn:bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="Process_Defaulter" isExecutable="true">
+
+    <startEvent id="StartEvent_1" name="Weekday Morning">
+      <outgoing>Flow_Start_To_SubMorning</outgoing>
+      <timerEventDefinition id="TimerDef_Start">
+        <timeCycle>0 0 7 ? * MON-FRI</timeCycle>
+      </timerEventDefinition>
+    </startEvent>
+
+    <!-- ===================== MORNING SUBPROCESS ===================== -->
+    <subProcess id="SubProcess_Morning" name="Morning Defaulter Processing">
+      <incoming>Flow_Start_To_SubMorning</incoming>
+      <outgoing>Flow_SubMorning_To_SubAfternoon</outgoing>
+
+      <startEvent id="StartEvent_Morning" name="Begin Morning Process">
+        <outgoing>Flow_SM_Start_To_Backup</outgoing>
+      </startEvent>
+
+      <task id="Task_Backup" name="Backup Database">
+        <incoming>Flow_SM_Start_To_Backup</incoming>
+        <outgoing>Flow_Backup_To_CheckTable</outgoing>
+      </task>
+
+      <task id="Task_CheckDefaulterTable" name="Check Account Defaulter Table for New Records">
+        <incoming>Flow_Backup_To_CheckTable</incoming>
+        <outgoing>Flow_CheckTable_To_GwNewRecords</outgoing>
+      </task>
+
+      <exclusiveGateway id="Gateway_NewRecords" name="New Records Found?">
+        <incoming>Flow_CheckTable_To_GwNewRecords</incoming>
+        <outgoing>Flow_NewRecords_Yes</outgoing>
+        <outgoing>Flow_NewRecords_No</outgoing>
+      </exclusiveGateway>
+
+      <task id="Task_CheckCRM1" name="Check CRM System for New Returns Filed">
+        <incoming>Flow_NewRecords_No</incoming>
+        <outgoing>Flow_CheckCRM1_To_GwReturns1</outgoing>
+      </task>
+
+      <exclusiveGateway id="Gateway_NewReturns1" name="New Returns Filed?">
+        <incoming>Flow_CheckCRM1_To_GwReturns1</incoming>
+        <outgoing>Flow_Returns1_Yes</outgoing>
+        <outgoing>Flow_Returns1_No</outgoing>
+      </exclusiveGateway>
+
+      <task id="Task_RegisterDefaulters" name="Register Defaulting Accounts and Customers">
+        <incoming>Flow_Returns1_Yes</incoming>
+        <outgoing>Flow_Register_To_GwAdvised</outgoing>
+      </task>
+
+      <exclusiveGateway id="Gateway_PreviouslyAdvised" name="Client Codes Previously Advised?">
+        <incoming>Flow_Register_To_GwAdvised</incoming>
+        <outgoing>Flow_Advised_Yes</outgoing>
+        <outgoing>Flow_Advised_No</outgoing>
+      </exclusiveGateway>
+
+      <task id="Task_ProduceTable" name="Produce Defaulting Accounts Table and Send to Account Management">
+        <incoming>Flow_Advised_No</incoming>
+        <outgoing>Flow_ProduceTable_To_EndMorning</outgoing>
+      </task>
+
+      <endEvent id="EndEvent_Morning" name="Morning Process Complete">
+        <incoming>Flow_NewRecords_Yes</incoming>
+        <incoming>Flow_Returns1_No</incoming>
+        <incoming>Flow_Advised_Yes</incoming>
+        <incoming>Flow_ProduceTable_To_EndMorning</incoming>
+      </endEvent>
+
+      <sequenceFlow id="Flow_SM_Start_To_Backup" sourceRef="StartEvent_Morning" targetRef="Task_Backup" />
+      <sequenceFlow id="Flow_Backup_To_CheckTable" sourceRef="Task_Backup" targetRef="Task_CheckDefaulterTable" />
+      <sequenceFlow id="Flow_CheckTable_To_GwNewRecords" sourceRef="Task_CheckDefaulterTable" targetRef="Gateway_NewRecords" />
+      <sequenceFlow id="Flow_NewRecords_Yes" name="Yes" sourceRef="Gateway_NewRecords" targetRef="EndEvent_Morning" />
+      <sequenceFlow id="Flow_NewRecords_No" name="No" sourceRef="Gateway_NewRecords" targetRef="Task_CheckCRM1" />
+      <sequenceFlow id="Flow_CheckCRM1_To_GwReturns1" sourceRef="Task_CheckCRM1" targetRef="Gateway_NewReturns1" />
+      <sequenceFlow id="Flow_Returns1_Yes" name="Yes" sourceRef="Gateway_NewReturns1" targetRef="Task_RegisterDefaulters" />
+      <sequenceFlow id="Flow_Returns1_No" name="No" sourceRef="Gateway_NewReturns1" targetRef="EndEvent_Morning" />
+      <sequenceFlow id="Flow_Register_To_GwAdvised" sourceRef="Task_RegisterDefaulters" targetRef="Gateway_PreviouslyAdvised" />
+      <sequenceFlow id="Flow_Advised_Yes" name="Yes" sourceRef="Gateway_PreviouslyAdvised" targetRef="EndEvent_Morning" />
+      <sequenceFlow id="Flow_Advised_No" name="No" sourceRef="Gateway_PreviouslyAdvised" targetRef="Task_ProduceTable" />
+      <sequenceFlow id="Flow_ProduceTable_To_EndMorning" sourceRef="Task_ProduceTable" targetRef="EndEvent_Morning" />
+
+    </subProcess>
+
+    <boundaryEvent id="BoundaryTimer_1430" name="2:30 PM Deadline" attachedToRef="SubProcess_Morning" cancelActivity="true">
+      <outgoing>Flow_Boundary1430_To_Alert</outgoing>
+      <timerEventDefinition id="TimerDef_1430">
+        <timeDate>14:30:00</timeDate>
+      </timerEventDefinition>
+    </boundaryEvent>
+
+    <task id="Task_AlertSupervisor" name="Send Alert to Supervisor">
+      <incoming>Flow_Boundary1430_To_Alert</incoming>
+      <outgoing>Flow_Alert_To_EndAlert</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_AlertSent" name="Alert Sent">
+      <incoming>Flow_Alert_To_EndAlert</incoming>
+    </endEvent>
+
+    <!-- ===================== AFTERNOON SUBPROCESS ===================== -->
+    <subProcess id="SubProcess_Afternoon" name="Afternoon Reconciliation Processing">
+      <incoming>Flow_SubMorning_To_SubAfternoon</incoming>
+      <outgoing>Flow_SubAfternoon_To_End</outgoing>
+
+      <startEvent id="StartEvent_Afternoon" name="Begin Afternoon Process">
+        <outgoing>Flow_SA_Start_To_CheckCRM2</outgoing>
+      </startEvent>
+
+      <task id="Task_CheckCRM2" name="Check CRM System for New Returns Filed">
+        <incoming>Flow_SA_Start_To_CheckCRM2</incoming>
+        <outgoing>Flow_CheckCRM2_To_GwReturns2</outgoing>
+      </task>
+
+      <exclusiveGateway id="Gateway_NewReturns2" name="New Returns Filed?">
+        <incoming>Flow_CheckCRM2_To_GwReturns2</incoming>
+        <outgoing>Flow_Returns2_Yes</outgoing>
+        <outgoing>Flow_Returns2_No</outgoing>
+      </exclusiveGateway>
+
+      <task id="Task_Reconcile" name="Reconcile with Existing Account Defaulters Table">
+        <incoming>Flow_Returns2_Yes</incoming>
+        <outgoing>Flow_Reconcile_To_EndAfternoon</outgoing>
+      </task>
+
+      <endEvent id="EndEvent_Afternoon" name="Afternoon Process Complete">
+        <incoming>Flow_Returns2_No</incoming>
+        <incoming>Flow_Reconcile_To_EndAfternoon</incoming>
+      </endEvent>
+
+      <sequenceFlow id="Flow_SA_Start_To_CheckCRM2" sourceRef="StartEvent_Afternoon" targetRef="Task_CheckCRM2" />
+      <sequenceFlow id="Flow_CheckCRM2_To_GwReturns2" sourceRef="Task_CheckCRM2" targetRef="Gateway_NewReturns2" />
+      <sequenceFlow id="Flow_Returns2_Yes" name="Yes" sourceRef="Gateway_NewReturns2" targetRef="Task_Reconcile" />
+      <sequenceFlow id="Flow_Returns2_No" name="No" sourceRef="Gateway_NewReturns2" targetRef="EndEvent_Afternoon" />
+      <sequenceFlow id="Flow_Reconcile_To_EndAfternoon" sourceRef="Task_Reconcile" targetRef="EndEvent_Afternoon" />
+
+    </subProcess>
+
+    <boundaryEvent id="BoundaryTimer_1600" name="4:00 PM Deadline" attachedToRef="SubProcess_Afternoon" cancelActivity="true">
+      <outgoing>Flow_Boundary1600_To_Message</outgoing>
+      <timerEventDefinition id="TimerDef_1600">
+        <timeDate>16:00:00</timeDate>
+      </timerEventDefinition>
+    </boundaryEvent>
+
+    <task id="Task_MessageSupervisor" name="Send Message to Supervisor">
+      <incoming>Flow_Boundary1600_To_Message</incoming>
+      <outgoing>Flow_Message_To_EndMessage</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_MessageSent" name="Message Sent">
+      <incoming>Flow_Message_To_EndMessage</incoming>
+    </endEvent>
+
+    <endEvent id="EndEvent_Process" name="Process Complete">
+      <incoming>Flow_SubAfternoon_To_End</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_Start_To_SubMorning" sourceRef="StartEvent_1" targetRef="SubProcess_Morning" />
+    <sequenceFlow id="Flow_SubMorning_To_SubAfternoon" sourceRef="SubProcess_Morning" targetRef="SubProcess_Afternoon" />
+    <sequenceFlow id="Flow_Boundary1430_To_Alert" sourceRef="BoundaryTimer_1430" targetRef="Task_AlertSupervisor" />
+    <sequenceFlow id="Flow_Alert_To_EndAlert" sourceRef="Task_AlertSupervisor" targetRef="EndEvent_AlertSent" />
+    <sequenceFlow id="Flow_SubAfternoon_To_End" sourceRef="SubProcess_Afternoon" targetRef="EndEvent_Process" />
+    <sequenceFlow id="Flow_Boundary1600_To_Message" sourceRef="BoundaryTimer_1600" targetRef="Task_MessageSupervisor" />
+    <sequenceFlow id="Flow_Message_To_EndMessage" sourceRef="Task_MessageSupervisor" targetRef="EndEvent_MessageSent" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_Defaulter">
+
+      <bpmndi:BPMNShape id="BPMNShape_StartEvent_1" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="40" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_SubProcess_Morning" bpmnElement="SubProcess_Morning" isExpanded="true">
+        <omgdc:Bounds x="130" y="60" width="700" height="260" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_StartEvent_Morning" bpmnElement="StartEvent_Morning">
+        <omgdc:Bounds x="150" y="170" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_Backup" bpmnElement="Task_Backup">
+        <omgdc:Bounds x="220" y="150" width="100" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_CheckDefaulterTable" bpmnElement="Task_CheckDefaulterTable">
+        <omgdc:Bounds x="350" y="150" width="110" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Gateway_NewRecords" bpmnElement="Gateway_NewRecords" isMarkerVisible="true">
+        <omgdc:Bounds x="495" y="165" width="40" height="40" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_CheckCRM1" bpmnElement="Task_CheckCRM1">
+        <omgdc:Bounds x="560" y="90" width="110" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Gateway_NewReturns1" bpmnElement="Gateway_NewReturns1" isMarkerVisible="true">
+        <omgdc:Bounds x="700" y="105" width="40" height="40" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_RegisterDefaulters" bpmnElement="Task_RegisterDefaulters">
+        <omgdc:Bounds x="560" y="20" width="130" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Gateway_PreviouslyAdvised" bpmnElement="Gateway_PreviouslyAdvised" isMarkerVisible="true">
+        <omgdc:Bounds x="430" y="25" width="40" height="40" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_ProduceTable" bpmnElement="Task_ProduceTable">
+        <omgdc:Bounds x="330" y="10" width="130" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_EndEvent_Morning" bpmnElement="EndEvent_Morning">
+        <omgdc:Bounds x="760" y="255" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_BoundaryTimer_1430" bpmnElement="BoundaryTimer_1430">
+        <omgdc:Bounds x="712" y="302" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_AlertSupervisor" bpmnElement="Task_AlertSupervisor">
+        <omgdc:Bounds x="700" y="380" width="120" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_EndEvent_AlertSent" bpmnElement="EndEvent_AlertSent">
+        <omgdc:Bounds x="860" y="398" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_SubProcess_Afternoon" bpmnElement="SubProcess_Afternoon" isExpanded="true">
+        <omgdc:Bounds x="900" y="100" width="480" height="180" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_StartEvent_Afternoon" bpmnElement="StartEvent_Afternoon">
+        <omgdc:Bounds x="920" y="170" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_CheckCRM2" bpmnElement="Task_CheckCRM2">
+        <omgdc:Bounds x="990" y="150" width="120" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Gateway_NewReturns2" bpmnElement="Gateway_NewReturns2" isMarkerVisible="true">
+        <omgdc:Bounds x="1150" y="165" width="40" height="40" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_Reconcile" bpmnElement="Task_Reconcile">
+        <omgdc:Bounds x="1220" y="110" width="130" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_EndEvent_Afternoon" bpmnElement="EndEvent_Afternoon">
+        <omgdc:Bounds x="1330" y="195" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_BoundaryTimer_1600" bpmnElement="BoundaryTimer_1600">
+        <omgdc:Bounds x="1030" y="262" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_MessageSupervisor" bpmnElement="Task_MessageSupervisor">
+        <omgdc:Bounds x="1000" y="340" width="130" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_EndEvent_MessageSent" bpmnElement="EndEvent_MessageSent">
+        <omgdc:Bounds x="1170" y="358" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_EndEvent_Process" bpmnElement="EndEvent_Process">
+        <omgdc:Bounds x="1430" y="170" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Start_To_SubMorning" bpmnElement="Flow_Start_To_SubMorning">
+        <omgdi:waypoint x="76" y="178" />
+        <omgdi:waypoint x="130" y="178" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_SM_Start_To_Backup" bpmnElement="Flow_SM_Start_To_Backup">
+        <omgdi:waypoint x="186" y="188" />
+        <omgdi:waypoint x="220" y="185" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Backup_To_CheckTable" bpmnElement="Flow_Backup_To_CheckTable">
+        <omgdi:waypoint x="320" y="185" />
+        <omgdi:waypoint x="350" y="185" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CheckTable_To_GwNewRecords" bpmnElement="Flow_CheckTable_To_GwNewRecords">
+        <omgdi:waypoint x="460" y="185" />
+        <omgdi:waypoint x="495" y="185" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_NewRecords_Yes" bpmnElement="Flow_NewRecords_Yes">
+        <omgdi:waypoint x="515" y="205" />
+        <omgdi:waypoint x="515" y="273" />
+        <omgdi:waypoint x="760" y="273" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_NewRecords_No" bpmnElement="Flow_NewRecords_No">
+        <omgdi:waypoint x="515" y="165" />
+        <omgdi:waypoint x="515" y="125" />
+        <omgdi:waypoint x="560" y="125" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CheckCRM1_To_GwReturns1" bpmnElement="Flow_CheckCRM1_To_GwReturns1">
+        <omgdi:waypoint x="670" y="125" />
+        <omgdi:waypoint x="700" y="125" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Returns1_Yes" bpmnElement="Flow_Returns1_Yes">
+        <omgdi:waypoint x="720" y="105" />
+        <omgdi:waypoint x="720" y="50" />
+        <omgdi:waypoint x="690" y="50" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Returns1_No" bpmnElement="Flow_Returns1_No">
+        <omgdi:waypoint x="720" y="145" />
+        <omgdi:waypoint x="720" y="220" />
+        <omgdi:waypoint x="760" y="273" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Register_To_GwAdvised" bpmnElement="Flow_Register_To_GwAdvised">
+        <omgdi:waypoint x="560" y="50" />
+        <omgdi:waypoint x="470" y="45" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Advised_Yes" bpmnElement="Flow_Advised_Yes">
+        <omgdi:waypoint x="450" y="65" />
+        <omgdi:waypoint x="450" y="120" />
+        <omgdi:waypoint x="760" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Advised_No" bpmnElement="Flow_Advised_No">
+        <omgdi:waypoint x="430" y="45" />
+        <omgdi:waypoint x="460" y="40" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ProduceTable_To_EndMorning" bpmnElement="Flow_ProduceTable_To_EndMorning">
+        <omgdi:waypoint x="395" y="70" />
+        <omgdi:waypoint x="395" y="100" />
+        <omgdi:waypoint x="778" y="255" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_SubMorning_To_SubAfternoon" bpmnElement="Flow_SubMorning_To_SubAfternoon">
+        <omgdi:waypoint x="830" y="190" />
+        <omgdi:waypoint x="900" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Boundary1430_To_Alert" bpmnElement="Flow_Boundary1430_To_Alert">
+        <omgdi:waypoint x="730" y="338" />
+        <omgdi:waypoint x="730" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Alert_To_EndAlert" bpmnElement="Flow_Alert_To_EndAlert">
+        <omgdi:waypoint x="820" y="415" />
+        <omgdi:waypoint x="860" y="416" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_SA_Start_To_CheckCRM2" bpmnElement="Flow_SA_Start_To_CheckCRM2">
+        <omgdi:waypoint x="956" y="188" />
+        <omgdi:waypoint x="990" y="185" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CheckCRM2_To_GwReturns2" bpmnElement="Flow_CheckCRM2_To_GwReturns2">
+        <omgdi:waypoint x="1110" y="185" />
+        <omgdi:waypoint x="1150" y="185" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Returns2_Yes" bpmnElement="Flow_Returns2_Yes">
+        <omgdi:waypoint x="1180" y="175" />
+        <omgdi:waypoint x="1220" y="150" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Returns2_No" bpmnElement="Flow_Returns2_No">
+        <omgdi:waypoint x="1180" y="195" />
+        <omgdi:waypoint x="1330" y="210" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Reconcile_To_EndAfternoon" bpmnElement="Flow_Reconcile_To_EndAfternoon">
+        <omgdi:waypoint x="1300" y="180" />
+        <omgdi:waypoint x="1348" y="195" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Boundary1600_To_Message" bpmnElement="Flow_Boundary1600_To_Message">
+        <omgdi:waypoint x="1048" y="298" />
+        <omgdi:waypoint x="1050" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Message_To_EndMessage" bpmnElement="Flow_Message_To_EndMessage">
+        <omgdi:waypoint x="1130" y="375" />
+        <omgdi:waypoint x="1170" y="376" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_SubAfternoon_To_End" bpmnElement="Flow_SubAfternoon_To_End">
+        <omgdi:waypoint x="1380" y="190" />
+        <omgdi:waypoint x="1430" y="188" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

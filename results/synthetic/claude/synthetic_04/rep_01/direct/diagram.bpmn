@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:bpsim="http://www.bpsim.org/schemas/1.0"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://www.example.org/bpmn20">
+
+  <process id="Process_SyntheticProcess4" name="Synthetic Process 4" isExecutable="true">
+
+    <startEvent id="StartEvent_1" name="New Case Arrival">
+      <extensionElements>
+        <bpsim:BPSimData>
+          <bpsim:Scenario>
+            <bpsim:ElementParameters elementRef="StartEvent_1">
+              <bpsim:TimeParameters>
+                <bpsim:InterTriggerTimer>
+                  <bpsim:DistributionParameters>
+                    <bpsim:Exponential mean="PT12M"/>
+                  </bpsim:DistributionParameters>
+                </bpsim:InterTriggerTimer>
+              </bpsim:TimeParameters>
+            </bpsim:ElementParameters>
+          </bpsim:Scenario>
+        </bpsim:BPSimData>
+      </extensionElements>
+      <outgoing>Flow_Start_To_Assess</outgoing>
+    </startEvent>
+
+    <serviceTask id="Task_AssessDocument0" name="Assess document 0">
+      <extensionElements>
+        <bpsim:BPSimData>
+          <bpsim:Scenario>
+            <bpsim:ElementParameters elementRef="Task_AssessDocument0">
+              <bpsim:TimeParameters>
+                <bpsim:ProcessingTime>
+                  <bpsim:DistributionParameters>
+                    <bpsim:Normal mean="PT5M" standardDeviation="PT0S"/>
+                  </bpsim:DistributionParameters>
+                </bpsim:ProcessingTime>
+              </bpsim:TimeParameters>
+            </bpsim:ElementParameters>
+          </bpsim:Scenario>
+        </bpsim:BPSimData>
+      </extensionElements>
+      <incoming>Flow_Start_To_Assess</incoming>
+      <outgoing>Flow_Assess_To_Gateway</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="Gateway_Decision" name="Document Assessed?">
+      <incoming>Flow_Assess_To_Gateway</incoming>
+      <outgoing>Flow_Gateway_To_Review</outgoing>
+      <outgoing>Flow_Gateway_To_Validate</outgoing>
+    </exclusiveGateway>
+
+    <serviceTask id="Task_ReviewRequest1" name="Review request 1">
+      <extensionElements>
+        <bpsim:BPSimData>
+          <bpsim:Scenario>
+            <bpsim:ElementParameters elementRef="Task_ReviewRequest1">
+              <bpsim:TimeParameters>
+                <bpsim:ProcessingTime>
+                  <bpsim:DistributionParameters>
+                    <bpsim:Exponential mean="PT9M"/>
+                  </bpsim:DistributionParameters>
+                </bpsim:ProcessingTime>
+              </bpsim:TimeParameters>
+              <bpsim:ResourceParameters>
+                <bpsim:Resource name="Worker 1"/>
+              </bpsim:ResourceParameters>
+            </bpsim:ElementParameters>
+          </bpsim:Scenario>
+        </bpsim:BPSimData>
+      </extensionElements>
+      <incoming>Flow_Gateway_To_Review</incoming>
+      <outgoing>Flow_Review_To_End</outgoing>
+    </serviceTask>
+
+    <serviceTask id="Task_ValidateClaim2" name="Validate claim 2">
+      <extensionElements>
+        <bpsim:BPSimData>
+          <bpsim:Scenario>
+            <bpsim:ElementParameters elementRef="Task_ValidateClaim2">
+              <bpsim:TimeParameters>
+                <bpsim:ProcessingTime>
+                  <bpsim:DistributionParameters>
+                    <bpsim:Exponential mean="PT15M"/>
+                  </bpsim:DistributionParameters>
+                </bpsim:ProcessingTime>
+              </bpsim:TimeParameters>
+              <bpsim:ResourceParameters>
+                <bpsim:Resource name="Worker 1"/>
+              </bpsim:ResourceParameters>
+            </bpsim:ElementParameters>
+          </bpsim:Scenario>
+        </bpsim:BPSimData>
+      </extensionElements>
+      <incoming>Flow_Gateway_To_Validate</incoming>
+      <outgoing>Flow_Validate_To_End</outgoing>
+    </serviceTask>
+
+    <endEvent id="EndEvent_1" name="Process End">
+      <incoming>Flow_Review_To_End</incoming>
+      <incoming>Flow_Validate_To_End</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_Start_To_Assess" sourceRef="StartEvent_1" targetRef="Task_AssessDocument0"/>
+    <sequenceFlow id="Flow_Assess_To_Gateway" sourceRef="Task_AssessDocument0" targetRef="Gateway_Decision"/>
+
+    <sequenceFlow id="Flow_Gateway_To_Review" name="43%" sourceRef="Gateway_Decision" targetRef="Task_ReviewRequest1">
+      <extensionElements>
+        <bpsim:BPSimData>
+          <bpsim:Scenario>
+            <bpsim:ElementParameters elementRef="Flow_Gateway_To_Review">
+              <bpsim:ControlParameters>
+                <bpsim:Probability probability="0.43"/>
+              </bpsim:ControlParameters>
+            </bpsim:ElementParameters>
+          </bpsim:Scenario>
+        </bpsim:BPSimData>
+      </extensionElements>
+      <conditionExpression xsi:type="tFormalExpression">${random() &lt; 0.43}</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_Gateway_To_Validate" name="57%" sourceRef="Gateway_Decision" targetRef="Task_ValidateClaim2">
+      <extensionElements>
+        <bpsim:BPSimData>
+          <bpsim:Scenario>
+            <bpsim:ElementParameters elementRef="Flow_Gateway_To_Validate">
+              <bpsim:ControlParameters>
+                <bpsim:Probability probability="0.57"/>
+              </bpsim:ControlParameters>
+            </bpsim:ElementParameters>
+          </bpsim:Scenario>
+        </bpsim:BPSimData>
+      </extensionElements>
+      <conditionExpression xsi:type="tFormalExpression">${random() &gt;= 0.43}</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_Review_To_End" sourceRef="Task_ReviewRequest1" targetRef="EndEvent_1"/>
+    <sequenceFlow id="Flow_Validate_To_End" sourceRef="Task_ValidateClaim2" targetRef="EndEvent_1"/>
+
+    <extensionElements>
+      <bpsim:BPSimData>
+        <bpsim:Scenario name="Synthetic Process 4 Simulation">
+          <bpsim:ScenarioParameters>
+            <bpsim:Duration>PT8H</bpsim:Duration>
+          </bpsim:ScenarioParameters>
+        </bpsim:Scenario>
+      </bpsim:BPSimData>
+    </extensionElements>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_SyntheticProcess4">
+
+      <bpmndi:BPMNShape id="BPMNShape_StartEvent_1" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="100" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_AssessDocument0" bpmnElement="Task_AssessDocument0">
+        <omgdc:Bounds x="190" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Gateway_Decision" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <omgdc:Bounds x="340" y="193" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_ReviewRequest1" bpmnElement="Task_ReviewRequest1">
+        <omgdc:Bounds x="450" y="100" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_Task_ValidateClaim2" bpmnElement="Task_ValidateClaim2">
+        <omgdc:Bounds x="450" y="260" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BPMNShape_EndEvent_1" bpmnElement="EndEvent_1">
+        <omgdc:Bounds x="620" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Start_To_Assess" bpmnElement="Flow_Start_To_Assess">
+        <omgdi:waypoint x="136" y="218"/>
+        <omgdi:waypoint x="190" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Assess_To_Gateway" bpmnElement="Flow_Assess_To_Gateway">
+        <omgdi:waypoint x="290" y="218"/>
+        <omgdi:waypoint x="340" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Gateway_To_Review" bpmnElement="Flow_Gateway_To_Review">
+        <omgdi:waypoint x="365" y="193"/>
+        <omgdi:waypoint x="365" y="140"/>
+        <omgdi:waypoint x="450" y="140"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Gateway_To_Validate" bpmnElement="Flow_Gateway_To_Validate">
+        <omgdi:waypoint x="365" y="243"/>
+        <omgdi:waypoint x="365" y="300"/>
+        <omgdi:waypoint x="450" y="300"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Review_To_End" bpmnElement="Flow_Review_To_End">
+        <omgdi:waypoint x="550" y="140"/>
+        <omgdi:waypoint x="638" y="140"/>
+        <omgdi:waypoint x="638" y="200"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_Validate_To_End" bpmnElement="Flow_Validate_To_End">
+        <omgdi:waypoint x="550" y="300"/>
+        <omgdi:waypoint x="638" y="300"/>
+        <omgdi:waypoint x="638" y="236"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

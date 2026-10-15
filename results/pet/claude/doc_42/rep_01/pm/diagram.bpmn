@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Pool_GO_part" name="GO" processRef="Pool_GO_proc" />
+    <bpmn:participant id="Pool_MSP_part" name="MSP" processRef="Pool_MSP_proc" />
+    <bpmn:participant id="Pool_SP_part" name="SP" processRef="Pool_SP_proc" />
+    <bpmn:messageFlow id="MF1" sourceRef="End_SendRequest" targetRef="Start_ReceiveRequest" name="Measurement Request" />
+    <bpmn:messageFlow id="MF2" sourceRef="End_DenyRequest" targetRef="Start_ReceiveResult" name="Request Denial" />
+    <bpmn:messageFlow id="MF3" sourceRef="End_InformFailure" targetRef="Start_ReceiveResult" name="Reading Failure Notice" />
+    <bpmn:messageFlow id="MF4" sourceRef="End_TransmitValues" targetRef="Start_ReceiveResult" name="Measured Values" />
+    <bpmn:messageFlow id="MF5" sourceRef="End_SendChanged" targetRef="Start_ReceiveChangedValues" name="Changed Values" />
+    <bpmn:messageFlow id="MF6" sourceRef="Task_TransmitReadingsSP" targetRef="Start_ReceiveReadings" name="Readings" />
+  </bpmn:collaboration>
+  <bpmn:process id="Pool_GO_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="Data_Request" name="Measurement Request" dataObjectRef="Data_Request_do" />
+    <bpmn:dataObject id="Data_Request_do" />
+    <bpmn:dataObjectReference id="Data_MeasuredValues_p1" name="Measured Values" dataObjectRef="Data_MeasuredValues_p1_do" />
+    <bpmn:dataObject id="Data_MeasuredValues_p1_do" />
+    <bpmn:dataObjectReference id="Data_ChangedValues" name="Changed Values" dataObjectRef="Data_ChangedValues_do" />
+    <bpmn:dataObject id="Data_ChangedValues_do" />
+    <bpmn:dataObjectReference id="Data_Readings" name="Readings" dataObjectRef="Data_Readings_do" />
+    <bpmn:dataObject id="Data_Readings_do" />
+    <bpmn:startEvent id="Start_GO" name="Start">
+      <bpmn:outgoing>SF1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="End_SendRequest" name="Request Sent">
+      <bpmn:incoming>SF2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="End_SendRequest_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="Start_ReceiveResult" name="Result Received">
+      <bpmn:outgoing>SF9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="Start_ReceiveResult_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="Task_InformedFailure" name="GO Informed of Failure">
+      <bpmn:incoming>Flow_ToInformedFailure</bpmn:incoming>
+      <bpmn:outgoing>SF10</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="End_SendChanged" name="Changed Values Sent">
+      <bpmn:incoming>SF12</bpmn:incoming>
+      <bpmn:messageEventDefinition id="End_SendChanged_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_ProcessComplete" name="GO Process Complete">
+      <bpmn:incoming>SF10</bpmn:incoming>
+      <bpmn:incoming>SF14</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_RequestMeasurements" name="Request Measurements">
+      <bpmn:incoming>SF1</bpmn:incoming>
+      <bpmn:outgoing>SF2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="Task_RequestMeasurements_doa0">
+        <bpmn:targetRef>Data_Request</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Task_ProcessValues" name="Process Measured Values">
+      <bpmn:incoming>Flow_ToProcessValues</bpmn:incoming>
+      <bpmn:outgoing>SF11</bpmn:outgoing>
+      <bpmn:property id="Task_ProcessValues_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="Task_ProcessValues_dia0">
+        <bpmn:sourceRef>Data_MeasuredValues_p1</bpmn:sourceRef>
+        <bpmn:targetRef>Task_ProcessValues_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="Task_ProcessValues_doa0">
+        <bpmn:targetRef>Data_ChangedValues</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Task_SendChangedValues" name="Send Changed Values to MSP">
+      <bpmn:incoming>SF11</bpmn:incoming>
+      <bpmn:outgoing>SF12</bpmn:outgoing>
+      <bpmn:outgoing>SF13</bpmn:outgoing>
+      <bpmn:property id="Task_SendChangedValues_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="Task_SendChangedValues_dia0">
+        <bpmn:sourceRef>Data_ChangedValues</bpmn:sourceRef>
+        <bpmn:targetRef>Task_SendChangedValues_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Task_TransmitReadingsSP" name="Transmit Readings to SP">
+      <bpmn:incoming>SF13</bpmn:incoming>
+      <bpmn:outgoing>SF14</bpmn:outgoing>
+      <bpmn:property id="Task_TransmitReadingsSP_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="Task_TransmitReadingsSP_dia0">
+        <bpmn:sourceRef>Data_ChangedValues</bpmn:sourceRef>
+        <bpmn:targetRef>Task_TransmitReadingsSP_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="Task_TransmitReadingsSP_doa0">
+        <bpmn:targetRef>Data_Readings</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_ResultType" name="Result Type" isMarkerVisible="true">
+      <bpmn:incoming>SF9</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToInformedFailure</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToProcessValues</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SF1" sourceRef="Start_GO" targetRef="Task_RequestMeasurements" />
+    <bpmn:sequenceFlow id="SF2" sourceRef="Task_RequestMeasurements" targetRef="End_SendRequest" />
+    <bpmn:sequenceFlow id="SF9" sourceRef="Start_ReceiveResult" targetRef="Gateway_ResultType" />
+    <bpmn:sequenceFlow id="Flow_ToInformedFailure" sourceRef="Gateway_ResultType" targetRef="Task_InformedFailure" name="failure" />
+    <bpmn:sequenceFlow id="Flow_ToProcessValues" sourceRef="Gateway_ResultType" targetRef="Task_ProcessValues" name="values received" />
+    <bpmn:sequenceFlow id="SF10" sourceRef="Task_InformedFailure" targetRef="End_ProcessComplete" />
+    <bpmn:sequenceFlow id="SF11" sourceRef="Task_ProcessValues" targetRef="Task_SendChangedValues" />
+    <bpmn:sequenceFlow id="SF12" sourceRef="Task_SendChangedValues" targetRef="End_SendChanged" />
+    <bpmn:sequenceFlow id="SF13" sourceRef="Task_SendChangedValues" targetRef="Task_TransmitReadingsSP" />
+    <bpmn:sequenceFlow id="SF14" sourceRef="Task_TransmitReadingsSP" targetRef="End_ProcessComplete" />
+  </bpmn:process>
+  <bpmn:process id="Pool_MSP_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="Data_Request_p1" name="Measurement Request" dataObjectRef="Data_Request_p1_do" />
+    <bpmn:dataObject id="Data_Request_p1_do" />
+    <bpmn:dataObjectReference id="Data_MeasuredValues" name="Measured Values" dataObjectRef="Data_MeasuredValues_do" />
+    <bpmn:dataObject id="Data_MeasuredValues_do" />
+    <bpmn:dataObjectReference id="Data_ChangedValues_p1" name="Changed Values" dataObjectRef="Data_ChangedValues_p1_do" />
+    <bpmn:dataObject id="Data_ChangedValues_p1_do" />
+    <bpmn:startEvent id="Start_ReceiveRequest" name="Request Received">
+      <bpmn:outgoing>SF3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="Start_ReceiveRequest_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="End_DenyRequest" name="Denial Sent">
+      <bpmn:incoming>SF5</bpmn:incoming>
+      <bpmn:messageEventDefinition id="End_DenyRequest_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_InformFailure" name="Failure Notice Sent">
+      <bpmn:incoming>SF7</bpmn:incoming>
+      <bpmn:messageEventDefinition id="End_InformFailure_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_TransmitValues" name="Values Sent">
+      <bpmn:incoming>SF8</bpmn:incoming>
+      <bpmn:messageEventDefinition id="End_TransmitValues_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="Start_ReceiveChangedValues" name="Changed Values Received">
+      <bpmn:outgoing>SF15</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="Start_ReceiveChangedValues_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="End_MSPComplete" name="MSP Process Complete">
+      <bpmn:incoming>SF16</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_CheckRequest" name="Check Received Request">
+      <bpmn:incoming>SF3</bpmn:incoming>
+      <bpmn:outgoing>SF4</bpmn:outgoing>
+      <bpmn:property id="Task_CheckRequest_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="Task_CheckRequest_dia0">
+        <bpmn:sourceRef>Data_Request_p1</bpmn:sourceRef>
+        <bpmn:targetRef>Task_CheckRequest_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Task_DenyRequest" name="Deny Request">
+      <bpmn:incoming>Flow_ToDeny</bpmn:incoming>
+      <bpmn:outgoing>SF5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:manualTask id="Task_PerformMeasurement" name="Perform Measurement">
+      <bpmn:incoming>Flow_ToPerform</bpmn:incoming>
+      <bpmn:outgoing>SF6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="Task_PerformMeasurement_doa0">
+        <bpmn:targetRef>Data_MeasuredValues</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:task id="Task_InformFailure" name="Inform GO about Reading Failure">
+      <bpmn:incoming>Flow_ToInformFailure</bpmn:incoming>
+      <bpmn:outgoing>SF7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TransmitValues" name="Transmit Measured Values to GO">
+      <bpmn:incoming>Flow_ToTransmitValues</bpmn:incoming>
+      <bpmn:outgoing>SF8</bpmn:outgoing>
+      <bpmn:property id="Task_TransmitValues_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="Task_TransmitValues_dia0">
+        <bpmn:sourceRef>Data_MeasuredValues</bpmn:sourceRef>
+        <bpmn:targetRef>Task_TransmitValues_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Task_ReceiveChangedValues" name="Receive Changed Values">
+      <bpmn:incoming>SF15</bpmn:incoming>
+      <bpmn:outgoing>SF16</bpmn:outgoing>
+      <bpmn:property id="Task_ReceiveChangedValues_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="Task_ReceiveChangedValues_dia0">
+        <bpmn:sourceRef>Data_ChangedValues_p1</bpmn:sourceRef>
+        <bpmn:targetRef>Task_ReceiveChangedValues_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_RequestDecision" name="Request Valid?" isMarkerVisible="true">
+      <bpmn:incoming>SF4</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToDeny</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToPerform</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="Gateway_MeasurementOutcome" name="Reading Successful?" isMarkerVisible="true">
+      <bpmn:incoming>SF6</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToInformFailure</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToTransmitValues</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SF3" sourceRef="Start_ReceiveRequest" targetRef="Task_CheckRequest" />
+    <bpmn:sequenceFlow id="SF4" sourceRef="Task_CheckRequest" targetRef="Gateway_RequestDecision" />
+    <bpmn:sequenceFlow id="Flow_ToDeny" sourceRef="Gateway_RequestDecision" targetRef="Task_DenyRequest" name="request denied" />
+    <bpmn:sequenceFlow id="Flow_ToPerform" sourceRef="Gateway_RequestDecision" targetRef="Task_PerformMeasurement" name="request accepted" />
+    <bpmn:sequenceFlow id="SF5" sourceRef="Task_DenyRequest" targetRef="End_DenyRequest" />
+    <bpmn:sequenceFlow id="SF6" sourceRef="Task_PerformMeasurement" targetRef="Gateway_MeasurementOutcome" />
+    <bpmn:sequenceFlow id="Flow_ToInformFailure" sourceRef="Gateway_MeasurementOutcome" targetRef="Task_InformFailure" name="reading failed" />
+    <bpmn:sequenceFlow id="Flow_ToTransmitValues" sourceRef="Gateway_MeasurementOutcome" targetRef="Task_TransmitValues" name="reading successful" />
+    <bpmn:sequenceFlow id="SF7" sourceRef="Task_InformFailure" targetRef="End_InformFailure" />
+    <bpmn:sequenceFlow id="SF8" sourceRef="Task_TransmitValues" targetRef="End_TransmitValues" />
+    <bpmn:sequenceFlow id="SF15" sourceRef="Start_ReceiveChangedValues" targetRef="Task_ReceiveChangedValues" />
+    <bpmn:sequenceFlow id="SF16" sourceRef="Task_ReceiveChangedValues" targetRef="End_MSPComplete" />
+  </bpmn:process>
+  <bpmn:process id="Pool_SP_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="Data_Readings_p1" name="Readings" dataObjectRef="Data_Readings_p1_do" />
+    <bpmn:dataObject id="Data_Readings_p1_do" />
+    <bpmn:startEvent id="Start_ReceiveReadings" name="Readings Received">
+      <bpmn:outgoing>SF17</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="Start_ReceiveReadings_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="End_SPComplete" name="SP Process Complete">
+      <bpmn:incoming>SF18</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_ReceiveReadings" name="Receive Readings">
+      <bpmn:incoming>SF17</bpmn:incoming>
+      <bpmn:outgoing>SF18</bpmn:outgoing>
+      <bpmn:property id="Task_ReceiveReadings_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="Task_ReceiveReadings_dia0">
+        <bpmn:sourceRef>Data_Readings_p1</bpmn:sourceRef>
+        <bpmn:targetRef>Task_ReceiveReadings_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="SF17" sourceRef="Start_ReceiveReadings" targetRef="Task_ReceiveReadings" />
+    <bpmn:sequenceFlow id="SF18" sourceRef="Task_ReceiveReadings" targetRef="End_SPComplete" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Pool_GO_part_di" bpmnElement="Pool_GO_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1330" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pool_MSP_part_di" bpmnElement="Pool_MSP_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="1520" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pool_SP_part_di" bpmnElement="Pool_SP_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1085" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_DenyRequest_di" bpmnElement="End_DenyRequest">
+        <dc:Bounds x="920" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_InformFailure_di" bpmnElement="End_InformFailure">
+        <dc:Bounds x="1300" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_MSPComplete_di" bpmnElement="End_MSPComplete">
+        <dc:Bounds x="540" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_ProcessComplete_di" bpmnElement="End_ProcessComplete">
+        <dc:Bounds x="1110" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_SPComplete_di" bpmnElement="End_SPComplete">
+        <dc:Bounds x="540" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_SendChanged_di" bpmnElement="End_SendChanged">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_SendRequest_di" bpmnElement="End_SendRequest">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_TransmitValues_di" bpmnElement="End_TransmitValues">
+        <dc:Bounds x="1300" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_MeasurementOutcome_di" bpmnElement="Gateway_MeasurementOutcome">
+        <dc:Bounds x="920" y="810" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_RequestDecision_di" bpmnElement="Gateway_RequestDecision">
+        <dc:Bounds x="540" y="810" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ResultType_di" bpmnElement="Gateway_ResultType">
+        <dc:Bounds x="350" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_GO_di" bpmnElement="Start_GO">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_ReceiveChangedValues_di" bpmnElement="Start_ReceiveChangedValues">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_ReceiveReadings_di" bpmnElement="Start_ReceiveReadings">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_ReceiveRequest_di" bpmnElement="Start_ReceiveRequest">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_ReceiveResult_di" bpmnElement="Start_ReceiveResult">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckRequest_di" bpmnElement="Task_CheckRequest">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DenyRequest_di" bpmnElement="Task_DenyRequest">
+        <dc:Bounds x="730" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InformFailure_di" bpmnElement="Task_InformFailure">
+        <dc:Bounds x="1110" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InformedFailure_di" bpmnElement="Task_InformedFailure">
+        <dc:Bounds x="540" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PerformMeasurement_di" bpmnElement="Task_PerformMeasurement">
+        <dc:Bounds x="730" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ProcessValues_di" bpmnElement="Task_ProcessValues">
+        <dc:Bounds x="540" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReceiveChangedValues_di" bpmnElement="Task_ReceiveChangedValues">
+        <dc:Bounds x="350" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReceiveReadings_di" bpmnElement="Task_ReceiveReadings">
+        <dc:Bounds x="350" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RequestMeasurements_di" bpmnElement="Task_RequestMeasurements">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendChangedValues_di" bpmnElement="Task_SendChangedValues">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TransmitReadingsSP_di" bpmnElement="Task_TransmitReadingsSP">
+        <dc:Bounds x="920" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TransmitValues_di" bpmnElement="Task_TransmitValues">
+        <dc:Bounds x="1110" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Data_Request_di" bpmnElement="Data_Request">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Data_MeasuredValues_p1_di" bpmnElement="Data_MeasuredValues_p1">
+        <dc:Bounds x="560" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Data_ChangedValues_di" bpmnElement="Data_ChangedValues">
+        <dc:Bounds x="750" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Data_Readings_di" bpmnElement="Data_Readings">
+        <dc:Bounds x="940" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Data_Request_p1_di" bpmnElement="Data_Request_p1">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Data_MeasuredValues_di" bpmnElement="Data_MeasuredValues">
+        <dc:Bounds x="940" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Data_ChangedValues_p1_di" bpmnElement="Data_ChangedValues_p1">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Data_Readings_p1_di" bpmnElement="Data_Readings_p1">
+        <dc:Bounds x="370" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SF1_di" bpmnElement="SF1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF2_di" bpmnElement="SF2">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF3_di" bpmnElement="SF3">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF4_di" bpmnElement="SF4">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="565" y="835" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToDeny_di" bpmnElement="Flow_ToDeny">
+        <di:waypoint x="565" y="835" />
+        <di:waypoint x="780" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToPerform_di" bpmnElement="Flow_ToPerform">
+        <di:waypoint x="565" y="835" />
+        <di:waypoint x="780" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF5_di" bpmnElement="SF5">
+        <di:waypoint x="780" y="725" />
+        <di:waypoint x="938" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF6_di" bpmnElement="SF6">
+        <di:waypoint x="780" y="850" />
+        <di:waypoint x="945" y="835" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToInformFailure_di" bpmnElement="Flow_ToInformFailure">
+        <di:waypoint x="945" y="835" />
+        <di:waypoint x="1160" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToTransmitValues_di" bpmnElement="Flow_ToTransmitValues">
+        <di:waypoint x="945" y="835" />
+        <di:waypoint x="1160" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF7_di" bpmnElement="SF7">
+        <di:waypoint x="1160" y="725" />
+        <di:waypoint x="1318" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF8_di" bpmnElement="SF8">
+        <di:waypoint x="1160" y="850" />
+        <di:waypoint x="1318" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF9_di" bpmnElement="SF9">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="375" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToInformedFailure_di" bpmnElement="Flow_ToInformedFailure">
+        <di:waypoint x="375" y="125" />
+        <di:waypoint x="558" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToProcessValues_di" bpmnElement="Flow_ToProcessValues">
+        <di:waypoint x="375" y="125" />
+        <di:waypoint x="590" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF10_di" bpmnElement="SF10">
+        <di:waypoint x="558" y="243" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF11_di" bpmnElement="SF11">
+        <di:waypoint x="590" y="390" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF12_di" bpmnElement="SF12">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF13_di" bpmnElement="SF13">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="970" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF14_di" bpmnElement="SF14">
+        <di:waypoint x="970" y="265" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF15_di" bpmnElement="SF15">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF16_di" bpmnElement="SF16">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="558" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF17_di" bpmnElement="SF17">
+        <di:waypoint x="178" y="1163" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF18_di" bpmnElement="SF18">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="558" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF1_di" bpmnElement="MF1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF2_di" bpmnElement="MF2">
+        <di:waypoint x="938" y="703" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF3_di" bpmnElement="MF3">
+        <di:waypoint x="1318" y="703" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF4_di" bpmnElement="MF4">
+        <di:waypoint x="1318" y="828" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF5_di" bpmnElement="MF5">
+        <di:waypoint x="938" y="118" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF6_di" bpmnElement="MF6">
+        <di:waypoint x="970" y="265" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_RequestMeasurements_doa0_di" bpmnElement="Task_RequestMeasurements_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="388" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_CheckRequest_dia0_di" bpmnElement="Task_CheckRequest_dia0">
+        <di:waypoint x="388" y="975" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_PerformMeasurement_doa0_di" bpmnElement="Task_PerformMeasurement_doa0">
+        <di:waypoint x="780" y="850" />
+        <di:waypoint x="958" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_TransmitValues_dia0_di" bpmnElement="Task_TransmitValues_dia0">
+        <di:waypoint x="958" y="975" />
+        <di:waypoint x="1160" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_ProcessValues_dia0_di" bpmnElement="Task_ProcessValues_dia0">
+        <di:waypoint x="578" y="515" />
+        <di:waypoint x="590" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_ProcessValues_doa0_di" bpmnElement="Task_ProcessValues_doa0">
+        <di:waypoint x="590" y="390" />
+        <di:waypoint x="768" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_SendChangedValues_dia0_di" bpmnElement="Task_SendChangedValues_dia0">
+        <di:waypoint x="768" y="515" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_ReceiveChangedValues_dia0_di" bpmnElement="Task_ReceiveChangedValues_dia0">
+        <di:waypoint x="388" y="975" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_TransmitReadingsSP_dia0_di" bpmnElement="Task_TransmitReadingsSP_dia0">
+        <di:waypoint x="768" y="515" />
+        <di:waypoint x="970" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_TransmitReadingsSP_doa0_di" bpmnElement="Task_TransmitReadingsSP_doa0">
+        <di:waypoint x="970" y="265" />
+        <di:waypoint x="958" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_ReceiveReadings_dia0_di" bpmnElement="Task_ReceiveReadings_dia0">
+        <di:waypoint x="388" y="1310" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

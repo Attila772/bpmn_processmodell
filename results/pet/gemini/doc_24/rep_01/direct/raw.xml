@@ -1,0 +1,807 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- COLLABORATION -->
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Customer" name="Customer" processRef="Process_Customer" />
+    <bpmn:participant id="Participant_CustomerService" name="Customer Service (Shared Service Center - Sales &amp; Distribution)" processRef="Process_CustomerService" />
+    <bpmn:participant id="Participant_GridOperator" name="Grid Operator" processRef="Process_GridOperator" />
+    <bpmn:participant id="Participant_OldSupplier" name="Old Supplier" processRef="Process_OldSupplier" />
+
+    <!-- MESSAGE FLOWS -->
+    <bpmn:messageFlow id="MF_1" name="Switch-over Request" sourceRef="Task_Cust_SendRequest" targetRef="StartEvent_CS_Received" />
+    <bpmn:messageFlow id="MF_2" name="Confirmation Document" sourceRef="Task_CS_SendConfirmationDoc" targetRef="Event_Cust_ReceiveDoc" />
+    <bpmn:messageFlow id="MF_3" name="Switch-over Question" sourceRef="Task_CS_SendGridRequest" targetRef="StartEvent_GO_ReceiveRequest" />
+    <bpmn:messageFlow id="MF_4" name="Concurrence Conflict Notice" sourceRef="Task_GO_InformSuppliers" targetRef="Event_CS_ReceiveConcurrence" />
+    <bpmn:messageFlow id="MF_5" name="Response (No Objection)" sourceRef="Task_GO_SendResponse" targetRef="Event_CS_ReceiveGridResponse" />
+    <bpmn:messageFlow id="MF_6" name="Contract Withdrawal / Confirmation" sourceRef="Task_Cust_Decide" targetRef="Event_CS_ReceiveCustomerResponse" />
+    <bpmn:messageFlow id="MF_7" name="Meter Data (CS)" sourceRef="Task_GO_SendMeterData" targetRef="Event_CS_ReceiveMeterData" />
+    <bpmn:messageFlow id="MF_8" name="Meter Data &amp; Final Billing (Old Supplier)" sourceRef="Task_GO_SendMeterData" targetRef="Event_OS_ReceiveMeterData" />
+    <bpmn:messageFlow id="MF_9" name="Final Billing" sourceRef="Task_OS_SendFinalBilling" targetRef="Event_Cust_ReceiveFinalBilling" />
+  </bpmn:collaboration>
+
+  <!-- PROCESS: CUSTOMER -->
+  <bpmn:process id="Process_Customer" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Cust" name="Desire Switch-over">
+      <bpmn:outgoing>SequenceFlow_C1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_Cust_SendRequest" name="Transmit Data &#38; Request Switch-over">
+      <bpmn:incoming>SequenceFlow_C1</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_C2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_Cust_ReceiveDoc" name="Receive Confirmation Document">
+      <bpmn:incoming>SequenceFlow_C2</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_C3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_C1" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_Cust_Decide" name="Check Contract Details &#38; Decide (Confirm/Withdraw)">
+      <bpmn:incoming>SequenceFlow_C3</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_C4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_Cust_ReceiveFinalBilling" name="Receive Final Billing from Old Supplier">
+      <bpmn:incoming>SequenceFlow_C4</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_C5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_C2" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="EndEvent_Cust" name="Customer Switch-over Completed">
+      <bpmn:incoming>SequenceFlow_C5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SequenceFlow_C1" sourceRef="StartEvent_Cust" targetRef="Task_Cust_SendRequest" />
+    <bpmn:sequenceFlow id="SequenceFlow_C2" sourceRef="Task_Cust_SendRequest" targetRef="Event_Cust_ReceiveDoc" />
+    <bpmn:sequenceFlow id="SequenceFlow_C3" sourceRef="Event_Cust_ReceiveDoc" targetRef="Task_Cust_Decide" />
+    <bpmn:sequenceFlow id="SequenceFlow_C4" sourceRef="Task_Cust_Decide" targetRef="Event_Cust_ReceiveFinalBilling" />
+    <bpmn:sequenceFlow id="SequenceFlow_C5" sourceRef="Event_Cust_ReceiveFinalBilling" targetRef="EndEvent_Cust" />
+  </bpmn:process>
+
+  <!-- PROCESS: CUSTOMER SERVICE -->
+  <bpmn:process id="Process_CustomerService" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_CS_Received" name="Switch-over Request Received">
+      <bpmn:outgoing>SequenceFlow_CS1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_CS1" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_CS_EnterCRM" name="Enter Customer Data into CRM">
+      <bpmn:incoming>SequenceFlow_CS1</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_1">
+        <bpmn:targetRef>DataObjectReference_CustomerData</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CS_CompareData" name="Compare with Internal Data Base &#38; Check Completeness/Plausibility">
+      <bpmn:incoming>SequenceFlow_CS2</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS3</bpmn:outgoing>
+      <bpmn:dataInputAssociation id="DIA_1">
+        <bpmn:sourceRef>DataObjectReference_CustomerData</bpmn:sourceRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_ErrorsExist" name="Errors Found?">
+      <bpmn:incoming>SequenceFlow_CS3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Errors_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Errors_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CS_FixErrors" name="Correct Errors using Simple Error List">
+      <bpmn:incoming>Flow_Errors_Yes</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_CustomerExists" name="Customer Exists in DB?">
+      <bpmn:incoming>Flow_Errors_No</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_CS4</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cust_No</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Cust_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CS_CreateNewCustomer" name="Create New Customer Object">
+      <bpmn:incoming>Flow_Cust_No</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS5</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_2">
+        <bpmn:targetRef>DataObjectReference_CustomerObject</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_MergeCustomerObj" name="Merge">
+      <bpmn:incoming>SequenceFlow_CS5</bpmn:incoming>
+      <bpmn:incoming>Flow_Cust_Yes</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CS_PrepareContract" name="Prepare Contract Documents for Switch">
+      <bpmn:incoming>SequenceFlow_CS6</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_CS8</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS7</bpmn:outgoing>
+      <bpmn:dataInputAssociation id="DIA_2">
+        <bpmn:sourceRef>DataObjectReference_CustomerObject</bpmn:sourceRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+
+    <bpmn:serviceTask id="Task_CS_AutomatedCheck" name="Automated Check of Documents in CIS">
+      <bpmn:incoming>SequenceFlow_CS7</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS71</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_CISResponse" name="CIS Generation Successful?">
+      <bpmn:incoming>SequenceFlow_CS71</bpmn:incoming>
+      <bpmn:outgoing>Flow_CIS_Negative</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CIS_Positive</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CS_AnalyzeIssues" name="Analyze and Resolve Contract Generation Issues">
+      <bpmn:incoming>Flow_CIS_Negative</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sendTask id="Task_CS_SendConfirmationDoc" name="Send Confirmation Document to Customer">
+      <bpmn:incoming>Flow_CIS_Positive</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS9</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="Task_CS_SendGridRequest" name="Send Switch-over Request to Grid Operator via CIS">
+      <bpmn:incoming>SequenceFlow_CS9</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS10</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:eventBasedGateway id="Gateway_GridResponse" name="Wait for Grid Operator Response">
+      <bpmn:incoming>SequenceFlow_CS10</bpmn:incoming>
+      <bpmn:outgoing>Flow_Catch_NoObjection</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Catch_Concurrence</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_CS_ReceiveGridResponse" name="Response: No Objections">
+      <bpmn:incoming>Flow_Catch_NoObjection</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS11</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_CS2" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="Event_CS_ReceiveConcurrence" name="Supplier Concurrence Conflict">
+      <bpmn:incoming>Flow_Catch_Concurrence</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS12</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_CS3" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_CS_ResolveConflict" name="Demand Conflict Resolution / Coordinate Resolution">
+      <bpmn:incoming>SequenceFlow_CS12</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_CS_ConflictTerminated" name="Process Terminated due to Unresolved Conflict">
+      <bpmn:incoming>SequenceFlow_CS13</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_CS_CreateCISContract" name="Create CIS Contract">
+      <bpmn:incoming>SequenceFlow_CS11</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS14</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:eventBasedGateway id="Gateway_CustomerResponse" name="Wait for Customer Acceptance / Withdrawal">
+      <bpmn:incoming>SequenceFlow_CS14</bpmn:incoming>
+      <bpmn:outgoing>Flow_Catch_CustMsg</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Catch_Timer</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_CS_ReceiveCustomerResponse" name="Customer Message Received">
+      <bpmn:incoming>Flow_Catch_CustMsg</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS15</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_CS4" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="Event_CS_Timer7Days" name="7 Days Expiration">
+      <bpmn:incoming>Flow_Catch_Timer</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS16</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TED_1">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P7D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_EvaluateCustDecision" name="Decision?">
+      <bpmn:incoming>SequenceFlow_CS15</bpmn:incoming>
+      <bpmn:outgoing>Flow_Cust_Withdrawn</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Cust_Confirmed</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="EndEvent_CS_Withdrawn" name="Process Ended (Customer Withdrawal)">
+      <bpmn:incoming>Flow_Cust_Withdrawn</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_MergeAcceptance" name="Proceed with Switch">
+      <bpmn:incoming>Flow_Cust_Confirmed</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_CS16</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS17</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_CS_ReceiveMeterData" name="Receive Meter Data (Services Consumption Report)">
+      <bpmn:incoming>SequenceFlow_CS17</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS18</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_CS5" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_CS_ImportMeterData" name="Import Meter Data into Required Systems">
+      <bpmn:incoming>SequenceFlow_CS18</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CS19</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_CS_Success" name="Process Ended (New Customer Won)">
+      <bpmn:incoming>SequenceFlow_CS19</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:dataObjectReference id="DataObjectReference_CustomerData" name="Customer Data" dataObjectRef="DataObject_CustomerData" />
+    <bpmn:dataObject id="DataObject_CustomerData" />
+
+    <bpmn:dataObjectReference id="DataObjectReference_CustomerObject" name="Customer Object [Name, Address, Power Gauge]" dataObjectRef="DataObject_CustomerObject" />
+    <bpmn:dataObject id="DataObject_CustomerObject" />
+
+    <!-- CS SEQUENCE FLOWS -->
+    <bpmn:sequenceFlow id="SequenceFlow_CS1" sourceRef="StartEvent_CS_Received" targetRef="Task_CS_EnterCRM" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS2" sourceRef="Task_CS_EnterCRM" targetRef="Task_CS_CompareData" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS3" sourceRef="Task_CS_CompareData" targetRef="Gateway_ErrorsExist" />
+    <bpmn:sequenceFlow id="Flow_Errors_Yes" name="Yes" sourceRef="Gateway_ErrorsExist" targetRef="Task_CS_FixErrors" />
+    <bpmn:sequenceFlow id="Flow_Errors_No" name="No" sourceRef="Gateway_ErrorsExist" targetRef="Gateway_CustomerExists" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS4" sourceRef="Task_CS_FixErrors" targetRef="Gateway_CustomerExists" />
+    <bpmn:sequenceFlow id="Flow_Cust_No" name="No" sourceRef="Gateway_CustomerExists" targetRef="Task_CS_CreateNewCustomer" />
+    <bpmn:sequenceFlow id="Flow_Cust_Yes" name="Yes" sourceRef="Gateway_CustomerExists" targetRef="Gateway_MergeCustomerObj" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS5" sourceRef="Task_CS_CreateNewCustomer" targetRef="Gateway_MergeCustomerObj" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS6" sourceRef="Gateway_MergeCustomerObj" targetRef="Task_CS_PrepareContract" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS7" sourceRef="Task_CS_PrepareContract" targetRef="Task_CS_AutomatedCheck" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS71" sourceRef="Task_CS_AutomatedCheck" targetRef="Gateway_CISResponse" />
+    <bpmn:sequenceFlow id="Flow_CIS_Negative" name="Negative" sourceRef="Gateway_CISResponse" targetRef="Task_CS_AnalyzeIssues" />
+    <bpmn:sequenceFlow id="Flow_CIS_Positive" name="Positive" sourceRef="Gateway_CISResponse" targetRef="Task_CS_SendConfirmationDoc" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS8" sourceRef="Task_CS_AnalyzeIssues" targetRef="Task_CS_PrepareContract" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS9" sourceRef="Task_CS_SendConfirmationDoc" targetRef="Task_CS_SendGridRequest" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS10" sourceRef="Task_CS_SendGridRequest" targetRef="Gateway_GridResponse" />
+    <bpmn:sequenceFlow id="Flow_Catch_NoObjection" sourceRef="Gateway_GridResponse" targetRef="Event_CS_ReceiveGridResponse" />
+    <bpmn:sequenceFlow id="Flow_Catch_Concurrence" sourceRef="Gateway_GridResponse" targetRef="Event_CS_ReceiveConcurrence" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS11" sourceRef="Event_CS_ReceiveGridResponse" targetRef="Task_CS_CreateCISContract" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS12" sourceRef="Event_CS_ReceiveConcurrence" targetRef="Task_CS_ResolveConflict" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS13" sourceRef="Task_CS_ResolveConflict" targetRef="EndEvent_CS_ConflictTerminated" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS14" sourceRef="Task_CS_CreateCISContract" targetRef="Gateway_CustomerResponse" />
+    <bpmn:sequenceFlow id="Flow_Catch_CustMsg" sourceRef="Gateway_CustomerResponse" targetRef="Event_CS_ReceiveCustomerResponse" />
+    <bpmn:sequenceFlow id="Flow_Catch_Timer" sourceRef="Gateway_CustomerResponse" targetRef="Event_CS_Timer7Days" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS15" sourceRef="Event_CS_ReceiveCustomerResponse" targetRef="Gateway_EvaluateCustDecision" />
+    <bpmn:sequenceFlow id="Flow_Cust_Withdrawn" name="Withdrawal" sourceRef="Gateway_EvaluateCustDecision" targetRef="EndEvent_CS_Withdrawn" />
+    <bpmn:sequenceFlow id="Flow_Cust_Confirmed" name="Confirmation" sourceRef="Gateway_EvaluateCustDecision" targetRef="Gateway_MergeAcceptance" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS16" sourceRef="Event_CS_Timer7Days" targetRef="Gateway_MergeAcceptance" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS17" sourceRef="Gateway_MergeAcceptance" targetRef="Event_CS_ReceiveMeterData" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS18" sourceRef="Event_CS_ReceiveMeterData" targetRef="Task_CS_ImportMeterData" />
+    <bpmn:sequenceFlow id="SequenceFlow_CS19" sourceRef="Task_CS_ImportMeterData" targetRef="EndEvent_CS_Success" />
+  </bpmn:process>
+
+  <!-- PROCESS: GRID OPERATOR -->
+  <bpmn:process id="Process_GridOperator" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_GO_ReceiveRequest" name="Receive Switch-over Question">
+      <bpmn:outgoing>SequenceFlow_GO1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_GO1" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_GO_CheckConcurrence" name="Check for Supplier Concurrence">
+      <bpmn:incoming>SequenceFlow_GO1</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_GO2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_GO_Concurrence" name="Supplier Concurrence?">
+      <bpmn:incoming>SequenceFlow_GO2</bpmn:incoming>
+      <bpmn:outgoing>Flow_GO_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GO_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_GO_InformSuppliers" name="Inform All Involved Suppliers &#38; Demand Conflict Resolution">
+      <bpmn:incoming>Flow_GO_Yes</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_GO3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_GO_Conflict" name="Stopped Due to Conflict">
+      <bpmn:incoming>SequenceFlow_GO3</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_GO_SendResponse" name="Transmit Response (No Objections)">
+      <bpmn:incoming>Flow_GO_No</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_GO4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_GO_TerminateOldAgreement" name="Communicate with Old Supplier &#38; Terminate Sales Agreement">
+      <bpmn:incoming>SequenceFlow_GO4</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_GO5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="Event_GO_SwitchDate" name="On Switch-Date (Max 10 days post start)">
+      <bpmn:incoming>SequenceFlow_GO5</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_GO6</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TED_2">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P10D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_GO_SendMeterData" name="Transmit Power Meter Data (Consumption Report)">
+      <bpmn:incoming>SequenceFlow_GO6</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_GO7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_GO_ComputeBilling" name="Compute Final Billing for Old Supplier">
+      <bpmn:incoming>SequenceFlow_GO7</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_GO8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_GO_Finished" name="Grid Operator Process Ended">
+      <bpmn:incoming>SequenceFlow_GO8</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SequenceFlow_GO1" sourceRef="StartEvent_GO_ReceiveRequest" targetRef="Task_GO_CheckConcurrence" />
+    <bpmn:sequenceFlow id="SequenceFlow_GO2" sourceRef="Task_GO_CheckConcurrence" targetRef="Gateway_GO_Concurrence" />
+    <bpmn:sequenceFlow id="Flow_GO_Yes" name="Yes" sourceRef="Gateway_GO_Concurrence" targetRef="Task_GO_InformSuppliers" />
+    <bpmn:sequenceFlow id="Flow_GO_No" name="No" sourceRef="Gateway_GO_Concurrence" targetRef="Task_GO_SendResponse" />
+    <bpmn:sequenceFlow id="SequenceFlow_GO3" sourceRef="Task_GO_InformSuppliers" targetRef="EndEvent_GO_Conflict" />
+    <bpmn:sequenceFlow id="SequenceFlow_GO4" sourceRef="Task_GO_SendResponse" targetRef="Task_GO_TerminateOldAgreement" />
+    <bpmn:sequenceFlow id="SequenceFlow_GO5" sourceRef="Task_GO_TerminateOldAgreement" targetRef="Event_GO_SwitchDate" />
+    <bpmn:sequenceFlow id="SequenceFlow_GO6" sourceRef="Event_GO_SwitchDate" targetRef="Task_GO_SendMeterData" />
+    <bpmn:sequenceFlow id="SequenceFlow_GO7" sourceRef="Task_GO_SendMeterData" targetRef="Task_GO_ComputeBilling" />
+    <bpmn:sequenceFlow id="SequenceFlow_GO8" sourceRef="Task_GO_ComputeBilling" targetRef="EndEvent_GO_Finished" />
+  </bpmn:process>
+
+  <!-- PROCESS: OLD SUPPLIER -->
+  <bpmn:process id="Process_OldSupplier" isExecutable="false">
+    <bpmn:startEvent id="Event_OS_ReceiveMeterData" name="Receive Meter Data &#38; Grid Final Billing">
+      <bpmn:outgoing>SequenceFlow_OS1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_OS1" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_OS_CreateFinalBilling" name="Create Final Billing for Customer">
+      <bpmn:incoming>SequenceFlow_OS1</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_OS2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sendTask id="Task_OS_SendFinalBilling" name="Send Final Billing to Customer">
+      <bpmn:incoming>SequenceFlow_OS2</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_OS3</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_OS_Finished" name="Old Supplier Process Ended">
+      <bpmn:incoming>SequenceFlow_OS3</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SequenceFlow_OS1" sourceRef="Event_OS_ReceiveMeterData" targetRef="Task_OS_CreateFinalBilling" />
+    <bpmn:sequenceFlow id="SequenceFlow_OS2" sourceRef="Task_OS_CreateFinalBilling" targetRef="Task_OS_SendFinalBilling" />
+    <bpmn:sequenceFlow id="SequenceFlow_OS3" sourceRef="Task_OS_SendFinalBilling" targetRef="EndEvent_OS_Finished" />
+  </bpmn:process>
+
+  <!-- BPMN DIAGRAM -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <!-- PARTICIPANTS -->
+      <bpmndi:BPMNShape id="Participant_Customer_di" bpmnElement="Participant_Customer" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2200" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_CustomerService_di" bpmnElement="Participant_CustomerService" isHorizontal="true">
+        <dc:Bounds x="160" y="290" width="2200" height="420" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_GridOperator_di" bpmnElement="Participant_GridOperator" isHorizontal="true">
+        <dc:Bounds x="160" y="740" width="2200" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_OldSupplier_di" bpmnElement="Participant_OldSupplier" isHorizontal="true">
+        <dc:Bounds x="160" y="1030" width="2200" height="180" />
+      </bpmndi:BPMNShape>
+
+      <!-- CUSTOMER SHAPES -->
+      <bpmndi:BPMNShape id="StartEvent_Cust_di" bpmnElement="StartEvent_Cust">
+        <dc:Bounds x="212" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Cust_SendRequest_di" bpmnElement="Task_Cust_SendRequest">
+        <dc:Bounds x="280" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Cust_ReceiveDoc_di" bpmnElement="Event_Cust_ReceiveDoc">
+        <dc:Bounds x="1102" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Cust_Decide_di" bpmnElement="Task_Cust_Decide">
+        <dc:Bounds x="1500" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Cust_ReceiveFinalBilling_di" bpmnElement="Event_Cust_ReceiveFinalBilling">
+        <dc:Bounds x="2102" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Cust_di" bpmnElement="EndEvent_Cust">
+        <dc:Bounds x="2202" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- CUSTOMER FLOWS -->
+      <bpmndi:BPMNEdge id="SequenceFlow_C1_di" bpmnElement="SequenceFlow_C1">
+        <di:waypoint x="248" y="170" />
+        <di:waypoint x="280" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_C2_di" bpmnElement="SequenceFlow_C2">
+        <di:waypoint x="380" y="170" />
+        <di:waypoint x="1102" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_C3_di" bpmnElement="SequenceFlow_C3">
+        <di:waypoint x="1138" y="170" />
+        <di:waypoint x="1500" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_C4_di" bpmnElement="SequenceFlow_C4">
+        <di:waypoint x="1600" y="170" />
+        <di:waypoint x="2102" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_C5_di" bpmnElement="SequenceFlow_C5">
+        <di:waypoint x="2138" y="170" />
+        <di:waypoint x="2202" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <!-- CUSTOMER SERVICE SHAPES -->
+      <bpmndi:BPMNShape id="StartEvent_CS_Received_di" bpmnElement="StartEvent_CS_Received">
+        <dc:Bounds x="282" y="452" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_EnterCRM_di" bpmnElement="Task_CS_EnterCRM">
+        <dc:Bounds x="350" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_CustomerData_di" bpmnElement="DataObjectReference_CustomerData">
+        <dc:Bounds x="382" y="335" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_CompareData_di" bpmnElement="Task_CS_CompareData">
+        <dc:Bounds x="480" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ErrorsExist_di" bpmnElement="Gateway_ErrorsExist" isMarkerVisible="true">
+        <dc:Bounds x="605" y="445" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_FixErrors_di" bpmnElement="Task_CS_FixErrors">
+        <dc:Bounds x="580" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CustomerExists_di" bpmnElement="Gateway_CustomerExists" isMarkerVisible="true">
+        <dc:Bounds x="695" y="445" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_CreateNewCustomer_di" bpmnElement="Task_CS_CreateNewCustomer">
+        <dc:Bounds x="770" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_CustomerObject_di" bpmnElement="DataObjectReference_CustomerObject">
+        <dc:Bounds x="802" y="335" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_MergeCustomerObj_di" bpmnElement="Gateway_MergeCustomerObj" isMarkerVisible="true">
+        <dc:Bounds x="895" y="445" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_PrepareContract_di" bpmnElement="Task_CS_PrepareContract">
+        <dc:Bounds x="970" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_AutomatedCheck_di" bpmnElement="Task_CS_AutomatedCheck">
+        <dc:Bounds x="970" y="550" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CISResponse_di" bpmnElement="Gateway_CISResponse" isMarkerVisible="true">
+        <dc:Bounds x="1115" y="565" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_AnalyzeIssues_di" bpmnElement="Task_CS_AnalyzeIssues">
+        <dc:Bounds x="1090" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_SendConfirmationDoc_di" bpmnElement="Task_CS_SendConfirmationDoc">
+        <dc:Bounds x="1200" y="550" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_SendGridRequest_di" bpmnElement="Task_CS_SendGridRequest">
+        <dc:Bounds x="1330" y="550" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_GridResponse_di" bpmnElement="Gateway_GridResponse">
+        <dc:Bounds x="1465" y="565" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_CS_ReceiveGridResponse_di" bpmnElement="Event_CS_ReceiveGridResponse">
+        <dc:Bounds x="1552" y="522" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_CS_ReceiveConcurrence_di" bpmnElement="Event_CS_ReceiveConcurrence">
+        <dc:Bounds x="1552" y="612" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_ResolveConflict_di" bpmnElement="Task_CS_ResolveConflict">
+        <dc:Bounds x="1630" y="590" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_CS_ConflictTerminated_di" bpmnElement="EndEvent_CS_ConflictTerminated">
+        <dc:Bounds x="1762" y="612" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_CreateCISContract_di" bpmnElement="Task_CS_CreateCISContract">
+        <dc:Bounds x="1630" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CustomerResponse_di" bpmnElement="Gateway_CustomerResponse">
+        <dc:Bounds x="1765" y="515" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_CS_ReceiveCustomerResponse_di" bpmnElement="Event_CS_ReceiveCustomerResponse">
+        <dc:Bounds x="1842" y="472" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_CS_Timer7Days_di" bpmnElement="Event_CS_Timer7Days">
+        <dc:Bounds x="1842" y="562" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_EvaluateCustDecision_di" bpmnElement="Gateway_EvaluateCustDecision" isMarkerVisible="true">
+        <dc:Bounds x="1915" y="465" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_CS_Withdrawn_di" bpmnElement="EndEvent_CS_Withdrawn">
+        <dc:Bounds x="1922" y="362" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_MergeAcceptance_di" bpmnElement="Gateway_MergeAcceptance" isMarkerVisible="true">
+        <dc:Bounds x="2005" y="515" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_CS_ReceiveMeterData_di" bpmnElement="Event_CS_ReceiveMeterData">
+        <dc:Bounds x="2082" y="522" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CS_ImportMeterData_di" bpmnElement="Task_CS_ImportMeterData">
+        <dc:Bounds x="2150" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_CS_Success_di" bpmnElement="EndEvent_CS_Success">
+        <dc:Bounds x="2292" y="522" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- CUSTOMER SERVICE FLOWS -->
+      <bpmndi:BPMNEdge id="SequenceFlow_CS1_di" bpmnElement="SequenceFlow_CS1">
+        <di:waypoint x="318" y="470" />
+        <di:waypoint x="350" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS2_di" bpmnElement="SequenceFlow_CS2">
+        <di:waypoint x="450" y="470" />
+        <di:waypoint x="480" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS3_di" bpmnElement="SequenceFlow_CS3">
+        <di:waypoint x="580" y="470" />
+        <di:waypoint x="605" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Errors_Yes_di" bpmnElement="Flow_Errors_Yes">
+        <di:waypoint x="630" y="445" />
+        <di:waypoint x="630" y="410" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Errors_No_di" bpmnElement="Flow_Errors_No">
+        <di:waypoint x="655" y="470" />
+        <di:waypoint x="695" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS4_di" bpmnElement="SequenceFlow_CS4">
+        <di:waypoint x="680" y="370" />
+        <di:waypoint x="720" y="370" />
+        <di:waypoint x="720" y="445" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Cust_No_di" bpmnElement="Flow_Cust_No">
+        <di:waypoint x="745" y="470" />
+        <di:waypoint x="770" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Cust_Yes_di" bpmnElement="Flow_Cust_Yes">
+        <di:waypoint x="720" y="495" />
+        <di:waypoint x="720" y="540" />
+        <di:waypoint x="920" y="540" />
+        <di:waypoint x="920" y="495" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS5_di" bpmnElement="SequenceFlow_CS5">
+        <di:waypoint x="870" y="470" />
+        <di:waypoint x="895" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS6_di" bpmnElement="SequenceFlow_CS6">
+        <di:waypoint x="945" y="470" />
+        <di:waypoint x="970" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS7_di" bpmnElement="SequenceFlow_CS7">
+        <di:waypoint x="1020" y="510" />
+        <di:waypoint x="1020" y="550" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS71_di" bpmnElement="SequenceFlow_CS71">
+        <di:waypoint x="1070" y="590" />
+        <di:waypoint x="1115" y="590" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CIS_Negative_di" bpmnElement="Flow_CIS_Negative">
+        <di:waypoint x="1140" y="565" />
+        <di:waypoint x="1140" y="510" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CIS_Positive_di" bpmnElement="Flow_CIS_Positive">
+        <di:waypoint x="1165" y="590" />
+        <di:waypoint x="1200" y="590" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS8_di" bpmnElement="SequenceFlow_CS8">
+        <di:waypoint x="1090" y="470" />
+        <di:waypoint x="1070" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS9_di" bpmnElement="SequenceFlow_CS9">
+        <di:waypoint x="1300" y="590" />
+        <di:waypoint x="1330" y="590" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS10_di" bpmnElement="SequenceFlow_CS10">
+        <di:waypoint x="1430" y="590" />
+        <di:waypoint x="1465" y="590" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Catch_NoObjection_di" bpmnElement="Flow_Catch_NoObjection">
+        <di:waypoint x="1490" y="565" />
+        <di:waypoint x="1490" y="540" />
+        <di:waypoint x="1552" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Catch_Concurrence_di" bpmnElement="Flow_Catch_Concurrence">
+        <di:waypoint x="1490" y="615" />
+        <di:waypoint x="1490" y="630" />
+        <di:waypoint x="1552" y="630" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS11_di" bpmnElement="SequenceFlow_CS11">
+        <di:waypoint x="1588" y="540" />
+        <di:waypoint x="1630" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS12_di" bpmnElement="SequenceFlow_CS12">
+        <di:waypoint x="1588" y="630" />
+        <di:waypoint x="1630" y="630" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS13_di" bpmnElement="SequenceFlow_CS13">
+        <di:waypoint x="1730" y="630" />
+        <di:waypoint x="1762" y="630" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS14_di" bpmnElement="SequenceFlow_CS14">
+        <di:waypoint x="1730" y="540" />
+        <di:waypoint x="1765" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Catch_CustMsg_di" bpmnElement="Flow_Catch_CustMsg">
+        <di:waypoint x="1790" y="515" />
+        <di:waypoint x="1790" y="490" />
+        <di:waypoint x="1842" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Catch_Timer_di" bpmnElement="Flow_Catch_Timer">
+        <di:waypoint x="1790" y="565" />
+        <di:waypoint x="1790" y="580" />
+        <di:waypoint x="1842" y="580" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS15_di" bpmnElement="SequenceFlow_CS15">
+        <di:waypoint x="1878" y="490" />
+        <di:waypoint x="1915" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Cust_Withdrawn_di" bpmnElement="Flow_Cust_Withdrawn">
+        <di:waypoint x="1940" y="465" />
+        <di:waypoint x="1940" y="398" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Cust_Confirmed_di" bpmnElement="Flow_Cust_Confirmed">
+        <di:waypoint x="1965" y="490" />
+        <di:waypoint x="2030" y="490" />
+        <di:waypoint x="2030" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS16_di" bpmnElement="SequenceFlow_CS16">
+        <di:waypoint x="1878" y="580" />
+        <di:waypoint x="2030" y="580" />
+        <di:waypoint x="2030" y="565" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS17_di" bpmnElement="SequenceFlow_CS17">
+        <di:waypoint x="2055" y="540" />
+        <di:waypoint x="2082" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS18_di" bpmnElement="SequenceFlow_CS18">
+        <di:waypoint x="2118" y="540" />
+        <di:waypoint x="2150" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_CS19_di" bpmnElement="SequenceFlow_CS19">
+        <di:waypoint x="2250" y="540" />
+        <di:waypoint x="2292" y="540" />
+      </bpmndi:BPMNEdge>
+
+      <!-- GRID OPERATOR SHAPES -->
+      <bpmndi:BPMNShape id="StartEvent_GO_ReceiveRequest_di" bpmnElement="StartEvent_GO_ReceiveRequest">
+        <dc:Bounds x="1362" y="852" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_CheckConcurrence_di" bpmnElement="Task_GO_CheckConcurrence">
+        <dc:Bounds x="1430" y="830" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_GO_Concurrence_di" bpmnElement="Gateway_GO_Concurrence" isMarkerVisible="true">
+        <dc:Bounds x="1565" y="845" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_InformSuppliers_di" bpmnElement="Task_GO_InformSuppliers">
+        <dc:Bounds x="1540" y="750" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_GO_Conflict_di" bpmnElement="EndEvent_GO_Conflict">
+        <dc:Bounds x="1682" y="772" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_SendResponse_di" bpmnElement="Task_GO_SendResponse">
+        <dc:Bounds x="1650" y="830" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_TerminateOldAgreement_di" bpmnElement="Task_GO_TerminateOldAgreement">
+        <dc:Bounds x="1780" y="830" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_GO_SwitchDate_di" bpmnElement="Event_GO_SwitchDate">
+        <dc:Bounds x="1922" y="852" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_SendMeterData_di" bpmnElement="Task_GO_SendMeterData">
+        <dc:Bounds x="2000" y="830" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_ComputeBilling_di" bpmnElement="Task_GO_ComputeBilling">
+        <dc:Bounds x="2130" y="830" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_GO_Finished_di" bpmnElement="EndEvent_GO_Finished">
+        <dc:Bounds x="2272" y="852" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- GRID OPERATOR FLOWS -->
+      <bpmndi:BPMNEdge id="SequenceFlow_GO1_di" bpmnElement="SequenceFlow_GO1">
+        <di:waypoint x="1398" y="870" />
+        <di:waypoint x="1430" y="870" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_GO2_di" bpmnElement="SequenceFlow_GO2">
+        <di:waypoint x="1530" y="870" />
+        <di:waypoint x="1565" y="870" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_Yes_di" bpmnElement="Flow_GO_Yes">
+        <di:waypoint x="1590" y="845" />
+        <di:waypoint x="1590" y="830" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_No_di" bpmnElement="Flow_GO_No">
+        <di:waypoint x="1615" y="870" />
+        <di:waypoint x="1650" y="870" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_GO3_di" bpmnElement="SequenceFlow_GO3">
+        <di:waypoint x="1640" y="790" />
+        <di:waypoint x="1682" y="790" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_GO4_di" bpmnElement="SequenceFlow_GO4">
+        <di:waypoint x="1750" y="870" />
+        <di:waypoint x="1780" y="870" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_GO5_di" bpmnElement="SequenceFlow_GO5">
+        <di:waypoint x="1880" y="870" />
+        <di:waypoint x="1922" y="870" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_GO6_di" bpmnElement="SequenceFlow_GO6">
+        <di:waypoint x="1958" y="870" />
+        <di:waypoint x="2000" y="870" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_GO7_di" bpmnElement="SequenceFlow_GO7">
+        <di:waypoint x="2100" y="870" />
+        <di:waypoint x="2130" y="870" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_GO8_di" bpmnElement="SequenceFlow_GO8">
+        <di:waypoint x="2230" y="870" />
+        <di:waypoint x="2272" y="870" />
+      </bpmndi:BPMNEdge>
+
+      <!-- OLD SUPPLIER SHAPES -->
+      <bpmndi:BPMNShape id="Event_OS_ReceiveMeterData_di" bpmnElement="Event_OS_ReceiveMeterData">
+        <dc:Bounds x="2002" y="1102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_OS_CreateFinalBilling_di" bpmnElement="Task_OS_CreateFinalBilling">
+        <dc:Bounds x="2070" y="1080" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_OS_SendFinalBilling_di" bpmnElement="Task_OS_SendFinalBilling">
+        <dc:Bounds x="2200" y="1080" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_OS_Finished_di" bpmnElement="EndEvent_OS_Finished">
+        <dc:Bounds x="2322" y="1102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- OLD SUPPLIER FLOWS -->
+      <bpmndi:BPMNEdge id="SequenceFlow_OS1_di" bpmnElement="SequenceFlow_OS1">
+        <di:waypoint x="2038" y="1120" />
+        <di:waypoint x="2070" y="1120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_OS2_di" bpmnElement="SequenceFlow_OS2">
+        <di:waypoint x="2170" y="1120" />
+        <di:waypoint x="2200" y="1120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_OS3_di" bpmnElement="SequenceFlow_OS3">
+        <di:waypoint x="2300" y="1120" />
+        <di:waypoint x="2322" y="1120" />
+      </bpmndi:BPMNEdge>
+
+      <!-- MESSAGE FLOWS -->
+      <bpmndi:BPMNEdge id="MF_1_di" bpmnElement="MF_1">
+        <di:waypoint x="300" y="210" />
+        <di:waypoint x="300" y="452" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_2_di" bpmnElement="MF_2">
+        <di:waypoint x="1250" y="550" />
+        <di:waypoint x="1250" y="270" />
+        <di:waypoint x="1120" y="270" />
+        <di:waypoint x="1120" y="188" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_3_di" bpmnElement="MF_3">
+        <di:waypoint x="1380" y="630" />
+        <di:waypoint x="1380" y="852" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_4_di" bpmnElement="MF_4">
+        <di:waypoint x="1570" y="750" />
+        <di:waypoint x="1570" y="648" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_5_di" bpmnElement="MF_5">
+        <di:waypoint x="1700" y="830" />
+        <di:waypoint x="1700" y="700" />
+        <di:waypoint x="1570" y="700" />
+        <di:waypoint x="1570" y="558" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_6_di" bpmnElement="MF_6">
+        <di:waypoint x="1550" y="210" />
+        <di:waypoint x="1550" y="320" />
+        <di:waypoint x="1860" y="320" />
+        <di:waypoint x="1860" y="472" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_7_di" bpmnElement="MF_7">
+        <di:waypoint x="2050" y="830" />
+        <di:waypoint x="2050" y

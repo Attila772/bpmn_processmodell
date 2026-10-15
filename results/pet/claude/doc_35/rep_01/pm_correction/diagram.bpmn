@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mpon_part" name="MPON" processRef="pool_mpon_proc" />
+    <bpmn:participant id="pool_mpoo_part" name="MPOO" processRef="pool_mpoo_proc" />
+    <bpmn:messageFlow id="mf1" sourceRef="evt_send_request" targetRef="evt_receive_request" name="Übernahmeangebot-Anfrage" />
+    <bpmn:messageFlow id="mf2" sourceRef="evt_send_tender" targetRef="evt_receive_tender" name="Angebot" />
+    <bpmn:messageFlow id="mf3" sourceRef="evt_send_order" targetRef="evt_receive_order" name="Bestellung" />
+    <bpmn:messageFlow id="mf4" sourceRef="task_confirm_order_send_masterdata" targetRef="evt_receive_confirmation" name="Bestellbestätigung und Stammdaten" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mpon_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_tender_p1" name="Angebot zur Geräteübernahme" dataObjectRef="doc_tender_p1_do" />
+    <bpmn:dataObject id="doc_tender_p1_do" />
+    <bpmn:dataObjectReference id="doc_order" name="Bestellung" dataObjectRef="doc_order_do" />
+    <bpmn:dataObject id="doc_order_do" />
+    <bpmn:startEvent id="start_mpon" name="Prozessstart">
+      <bpmn:outgoing>sf1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_send_request" name="Übernahmeangebot-Anfrage gesendet">
+      <bpmn:incoming>sf2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_request_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_receive_tender" name="Angebot empfangen">
+      <bpmn:outgoing>sf5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_tender_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="evt_send_order" name="Bestellung gesendet">
+      <bpmn:incoming>sf6</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_order_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_receive_confirmation" name="Bestellbestätigung und Stammdaten empfangen">
+      <bpmn:outgoing>sf9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_confirmation_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end_mpon" name="Prozessende MPON">
+      <bpmn:incoming>sf9</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_request_bid" name="Geräteübernahmeangebot anfordern">
+      <bpmn:incoming>sf1</bpmn:incoming>
+      <bpmn:outgoing>sf2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_place_order" name="Bestellung bei MPOO aufgeben">
+      <bpmn:incoming>sf5</bpmn:incoming>
+      <bpmn:outgoing>sf6</bpmn:outgoing>
+      <bpmn:property id="task_place_order_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_place_order_dia0">
+        <bpmn:sourceRef>doc_tender_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_place_order_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_place_order_doa0">
+        <bpmn:targetRef>doc_order</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf1" sourceRef="start_mpon" targetRef="task_request_bid" />
+    <bpmn:sequenceFlow id="sf2" sourceRef="task_request_bid" targetRef="evt_send_request" />
+    <bpmn:sequenceFlow id="sf5" sourceRef="evt_receive_tender" targetRef="task_place_order" />
+    <bpmn:sequenceFlow id="sf6" sourceRef="task_place_order" targetRef="evt_send_order" />
+    <bpmn:sequenceFlow id="sf9" sourceRef="evt_receive_confirmation" targetRef="end_mpon" />
+  </bpmn:process>
+  <bpmn:process id="pool_mpoo_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_tender" name="Angebot zur Geräteübernahme" dataObjectRef="doc_tender_do" />
+    <bpmn:dataObject id="doc_tender_do" />
+    <bpmn:dataObjectReference id="doc_order_p1" name="Bestellung" dataObjectRef="doc_order_p1_do" />
+    <bpmn:dataObject id="doc_order_p1_do" />
+    <bpmn:dataObjectReference id="doc_order_confirmation" name="Bestellbestätigung" dataObjectRef="doc_order_confirmation_do" />
+    <bpmn:dataObject id="doc_order_confirmation_do" />
+    <bpmn:dataObjectReference id="doc_masterdata" name="Stammdaten" dataObjectRef="doc_masterdata_do" />
+    <bpmn:dataObject id="doc_masterdata_do" />
+    <bpmn:startEvent id="evt_receive_request" name="Übernahmeangebot angefragt">
+      <bpmn:outgoing>sf3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_request_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_send_tender" name="Angebot gesendet">
+      <bpmn:incoming>sf4</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_tender_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_receive_order" name="Bestellung empfangen">
+      <bpmn:outgoing>sf7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_order_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end_mpoo" name="Prozessende MPOO">
+      <bpmn:incoming>sf8</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_send_tender" name="Angebot zur Geräteübernahme senden">
+      <bpmn:incoming>sf3</bpmn:incoming>
+      <bpmn:outgoing>sf4</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_tender_doa0">
+        <bpmn:targetRef>doc_tender</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_confirm_order_send_masterdata" name="Bestellung bestätigen und Stammdaten senden">
+      <bpmn:incoming>sf7</bpmn:incoming>
+      <bpmn:outgoing>sf8</bpmn:outgoing>
+      <bpmn:property id="task_confirm_order_send_masterdata_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_confirm_order_send_masterdata_dia0">
+        <bpmn:sourceRef>doc_order_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_confirm_order_send_masterdata_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_confirm_order_send_masterdata_doa0">
+        <bpmn:targetRef>doc_order_confirmation</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="task_confirm_order_send_masterdata_doa1">
+        <bpmn:targetRef>doc_masterdata</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf3" sourceRef="evt_receive_request" targetRef="task_send_tender" />
+    <bpmn:sequenceFlow id="sf4" sourceRef="task_send_tender" targetRef="evt_send_tender" />
+    <bpmn:sequenceFlow id="sf7" sourceRef="evt_receive_order" targetRef="task_confirm_order_send_masterdata" />
+    <bpmn:sequenceFlow id="sf8" sourceRef="task_confirm_order_send_masterdata" targetRef="end_mpoo" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mpon_part_di" bpmnElement="pool_mpon_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpoo_part_di" bpmnElement="pool_mpoo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_mpon_di" bpmnElement="end_mpon">
+        <dc:Bounds x="350" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_mpoo_di" bpmnElement="end_mpoo">
+        <dc:Bounds x="540" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_confirmation_di" bpmnElement="evt_receive_confirmation">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_order_di" bpmnElement="evt_receive_order">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_request_di" bpmnElement="evt_receive_request">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_tender_di" bpmnElement="evt_receive_tender">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_order_di" bpmnElement="evt_send_order">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_request_di" bpmnElement="evt_send_request">
+        <dc:Bounds x="540" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_tender_di" bpmnElement="evt_send_tender">
+        <dc:Bounds x="540" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_mpon_di" bpmnElement="start_mpon">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_confirm_order_send_masterdata_di" bpmnElement="task_confirm_order_send_masterdata">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_place_order_di" bpmnElement="task_place_order">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_request_bid_di" bpmnElement="task_request_bid">
+        <dc:Bounds x="350" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_tender_di" bpmnElement="task_send_tender">
+        <dc:Bounds x="350" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_tender_p1_di" bpmnElement="doc_tender_p1">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_order_di" bpmnElement="doc_order">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_tender_di" bpmnElement="doc_tender">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_order_p1_di" bpmnElement="doc_order_p1">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_order_confirmation_di" bpmnElement="doc_order_confirmation">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_masterdata_di" bpmnElement="doc_masterdata">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf1_di" bpmnElement="sf1">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf2_di" bpmnElement="sf2">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="558" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf3_di" bpmnElement="sf3">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf4_di" bpmnElement="sf4">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="558" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf5_di" bpmnElement="sf5">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf6_di" bpmnElement="sf6">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf7_di" bpmnElement="sf7">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf8_di" bpmnElement="sf8">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="558" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf9_di" bpmnElement="sf9">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="368" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf1_di" bpmnElement="mf1">
+        <di:waypoint x="558" y="243" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf2_di" bpmnElement="mf2">
+        <di:waypoint x="558" y="828" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf3_di" bpmnElement="mf3">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf4_di" bpmnElement="mf4">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_tender_doa0_di" bpmnElement="task_send_tender_doa0">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="388" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_place_order_dia0_di" bpmnElement="task_place_order_dia0">
+        <di:waypoint x="388" y="515" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_place_order_doa0_di" bpmnElement="task_place_order_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="388" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_confirm_order_send_masterdata_dia0_di" bpmnElement="task_confirm_order_send_masterdata_dia0">
+        <di:waypoint x="388" y="975" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_confirm_order_send_masterdata_doa0_di" bpmnElement="task_confirm_order_send_masterdata_doa0">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="388" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_confirm_order_send_masterdata_doa1_di" bpmnElement="task_confirm_order_send_masterdata_doa1">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="388" y="975" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

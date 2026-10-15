@@ -1,0 +1,331 @@
+{
+  "name": "Master Data Change Notification Process",
+  "resources": [
+    {
+      "name": "EC",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "INQ",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "IP",
+      "capacity": 1,
+      "resource_type": "department"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_ec",
+      "name": "Change of master data occurs",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_ec_notify",
+      "name": "Change notified to INQ",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Master data change notification"
+    },
+    {
+      "id": "start_inq_receive",
+      "name": "Change notification received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Master data change notification"
+    },
+    {
+      "id": "end_inq_notify",
+      "name": "Change notified to IP",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Change notification to IP"
+    },
+    {
+      "id": "start_inq_result",
+      "name": "Decision received from IP",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Decision notification"
+    },
+    {
+      "id": "end_inq_result",
+      "name": "Process finished",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "start_ip_receive",
+      "name": "Change notification received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Change notification to IP"
+    },
+    {
+      "id": "end_ip_confirm",
+      "name": "Confirmation sent",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Decision notification"
+    },
+    {
+      "id": "end_ip_reject",
+      "name": "Rejection sent",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Decision notification"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_inq_notify",
+      "name": "Notify IP of the change",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_master_data_change"
+      ],
+      "output_data_ids": [
+        "data_master_data_change"
+      ]
+    },
+    {
+      "id": "task_ip_check",
+      "name": "Check whether master data can be changed at desired time",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_master_data_change"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_ip_confirm",
+      "name": "Confirm the changes of the INQ",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_decision"
+      ]
+    },
+    {
+      "id": "task_ip_reject",
+      "name": "Reject the changes of the INQ",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_decision"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_ip_decision",
+      "name": "Can master data be changed at desired time?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_gw_confirm",
+          "condition": "confirmed"
+        },
+        {
+          "flow_id": "flow_gw_reject",
+          "condition": "rejected"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "sf1",
+      "source_id": "start_ec",
+      "target_id": "end_ec_notify",
+      "condition_name": null
+    },
+    {
+      "id": "sf2",
+      "source_id": "start_inq_receive",
+      "target_id": "task_inq_notify",
+      "condition_name": null
+    },
+    {
+      "id": "sf3",
+      "source_id": "task_inq_notify",
+      "target_id": "end_inq_notify",
+      "condition_name": null
+    },
+    {
+      "id": "sf4",
+      "source_id": "start_inq_result",
+      "target_id": "end_inq_result",
+      "condition_name": null
+    },
+    {
+      "id": "sf5",
+      "source_id": "start_ip_receive",
+      "target_id": "task_ip_check",
+      "condition_name": null
+    },
+    {
+      "id": "sf6",
+      "source_id": "task_ip_check",
+      "target_id": "gw_ip_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_gw_confirm",
+      "source_id": "gw_ip_decision",
+      "target_id": "task_ip_confirm",
+      "condition_name": "confirmed"
+    },
+    {
+      "id": "flow_gw_reject",
+      "source_id": "gw_ip_decision",
+      "target_id": "task_ip_reject",
+      "condition_name": "rejected"
+    },
+    {
+      "id": "sf7",
+      "source_id": "task_ip_confirm",
+      "target_id": "end_ip_confirm",
+      "condition_name": null
+    },
+    {
+      "id": "sf8",
+      "source_id": "task_ip_reject",
+      "target_id": "end_ip_reject",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_ec",
+      "name": "EC",
+      "element_ids": [
+        "start_ec",
+        "end_ec_notify"
+      ]
+    },
+    {
+      "id": "pool_inq",
+      "name": "INQ",
+      "element_ids": [
+        "start_inq_receive",
+        "task_inq_notify",
+        "end_inq_notify",
+        "start_inq_result",
+        "end_inq_result"
+      ]
+    },
+    {
+      "id": "pool_ip",
+      "name": "IP",
+      "element_ids": [
+        "start_ip_receive",
+        "task_ip_check",
+        "gw_ip_decision",
+        "task_ip_confirm",
+        "task_ip_reject",
+        "end_ip_confirm",
+        "end_ip_reject"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "mf1",
+      "source_id": "end_ec_notify",
+      "target_id": "start_inq_receive",
+      "name": "Master data change notification"
+    },
+    {
+      "id": "mf2",
+      "source_id": "end_inq_notify",
+      "target_id": "start_ip_receive",
+      "name": "Change notification to IP"
+    },
+    {
+      "id": "mf3",
+      "source_id": "end_ip_confirm",
+      "target_id": "start_inq_result",
+      "name": "Decision notification"
+    },
+    {
+      "id": "mf4",
+      "source_id": "end_ip_reject",
+      "target_id": "start_inq_result",
+      "name": "Decision notification"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_master_data_change",
+      "name": "Master data change information"
+    },
+    {
+      "id": "data_decision",
+      "name": "Confirmation/Rejection decision"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": null,
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

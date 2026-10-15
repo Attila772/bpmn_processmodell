@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mpo_part" name="MPO" processRef="pool_mpo_proc" />
+    <bpmn:participant id="pool_fd_part" name="Fault Detector" processRef="pool_fd_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_msp_part" name="MSP" processRef="pool_msp_proc" />
+    <bpmn:messageFlow id="msg_flow_fd_to_mpo" sourceRef="evt_start_fd_report" targetRef="gw_merge_start" name="Failure Report" />
+    <bpmn:messageFlow id="msg_flow_mpo_to_go_confirm" sourceRef="evt_msg_send_go_confirm" targetRef="evt_msg_recv_go_confirm" name="Confirmation Notice" />
+    <bpmn:messageFlow id="msg_flow_mpo_to_msp_confirm" sourceRef="evt_msg_send_msp_confirm" targetRef="evt_msg_recv_msp_confirm" name="Confirmation Notice" />
+    <bpmn:messageFlow id="msg_flow_mpo_to_fd_results" sourceRef="evt_msg_send_fd_results" targetRef="evt_msg_recv_fd_results" name="Repair Results" />
+    <bpmn:messageFlow id="msg_flow_mpo_to_go_resolve" sourceRef="evt_msg_send_go_resolve" targetRef="evt_msg_recv_go_resolve" name="Resolution Notice" />
+    <bpmn:messageFlow id="msg_flow_mpo_to_msp_resolve" sourceRef="evt_msg_send_msp_resolve" targetRef="evt_msg_recv_msp_resolve" name="Resolution Notice" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mpo_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_repair_results" name="Results of repairs carried out" dataObjectRef="data_repair_results_do" />
+    <bpmn:dataObject id="data_repair_results_do" />
+    <bpmn:startEvent id="evt_start_mpo_suspicion" name="MPO Has Suspicion of Fault">
+      <bpmn:outgoing>flow_start_mpo_to_merge</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_reject" name="Failure Rejected">
+      <bpmn:incoming>flow_to_reject_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_send_go_confirm" name="Inform GO of Confirmation">
+      <bpmn:incoming>flow_confirm_to_send_go</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_send_go_confirm_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_send_msp_confirm" name="Inform MSP of Confirmation">
+      <bpmn:incoming>flow_confirm_to_send_msp</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_send_msp_confirm_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_send_fd_results" name="Share Repair Results with FD">
+      <bpmn:incoming>flow_fix_to_send_fd</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_send_fd_results_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_send_go_resolve" name="Inform GO of Resolution">
+      <bpmn:incoming>flow_resolve_to_send_go</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_send_go_resolve_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_send_msp_resolve" name="Inform MSP of Resolution">
+      <bpmn:incoming>flow_resolve_to_send_msp</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_send_msp_resolve_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="evt_end_process" name="Process Completed">
+      <bpmn:incoming>flow_join_resolve_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_examine_failure" name="Examine the failure">
+      <bpmn:incoming>flow_merge_to_examine</bpmn:incoming>
+      <bpmn:outgoing>flow_examine_to_decision</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_fix_fault" name="Fix the fault at the measuring device">
+      <bpmn:incoming>flow_join_confirm_to_fix</bpmn:incoming>
+      <bpmn:outgoing>flow_fix_to_send_fd</bpmn:outgoing>
+      <bpmn:outgoing>flow_fix_to_parallel_resolve</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_fix_fault_doa0">
+        <bpmn:targetRef>data_repair_results</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:inclusiveGateway id="gw_merge_start" name="Merge Start Triggers">
+      <bpmn:incoming>flow_start_fd_to_merge</bpmn:incoming>
+      <bpmn:incoming>flow_start_mpo_to_merge</bpmn:incoming>
+      <bpmn:outgoing>flow_merge_to_examine</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_decision_confirmed" name="Is Failure Confirmed?" isMarkerVisible="true">
+      <bpmn:incoming>flow_examine_to_decision</bpmn:incoming>
+      <bpmn:outgoing>flow_to_reject_end</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_parallel_confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_parallel_confirm" name="Parallel Informations (Confirm)">
+      <bpmn:incoming>flow_to_parallel_confirm</bpmn:incoming>
+      <bpmn:outgoing>flow_confirm_to_send_go</bpmn:outgoing>
+      <bpmn:outgoing>flow_confirm_to_send_msp</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_join_confirm" name="Join Confirmations">
+      <bpmn:outgoing>flow_join_confirm_to_fix</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_parallel_resolve" name="Parallel Informations (Resolve)">
+      <bpmn:incoming>flow_fix_to_parallel_resolve</bpmn:incoming>
+      <bpmn:outgoing>flow_resolve_to_send_go</bpmn:outgoing>
+      <bpmn:outgoing>flow_resolve_to_send_msp</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_join_resolve" name="Join Resolutions">
+      <bpmn:outgoing>flow_join_resolve_to_end</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="flow_start_mpo_to_merge" sourceRef="evt_start_mpo_suspicion" targetRef="gw_merge_start" />
+    <bpmn:sequenceFlow id="flow_merge_to_examine" sourceRef="gw_merge_start" targetRef="task_examine_failure" />
+    <bpmn:sequenceFlow id="flow_examine_to_decision" sourceRef="task_examine_failure" targetRef="gw_decision_confirmed" />
+    <bpmn:sequenceFlow id="flow_to_reject_end" sourceRef="gw_decision_confirmed" targetRef="evt_end_reject" name="Rejected" />
+    <bpmn:sequenceFlow id="flow_to_parallel_confirm" sourceRef="gw_decision_confirmed" targetRef="gw_parallel_confirm" name="Confirmed" />
+    <bpmn:sequenceFlow id="flow_confirm_to_send_go" sourceRef="gw_parallel_confirm" targetRef="evt_msg_send_go_confirm" />
+    <bpmn:sequenceFlow id="flow_confirm_to_send_msp" sourceRef="gw_parallel_confirm" targetRef="evt_msg_send_msp_confirm" />
+    <bpmn:sequenceFlow id="flow_fix_to_send_fd" sourceRef="task_fix_fault" targetRef="evt_msg_send_fd_results" />
+    <bpmn:sequenceFlow id="flow_fix_to_parallel_resolve" sourceRef="task_fix_fault" targetRef="gw_parallel_resolve" />
+    <bpmn:sequenceFlow id="flow_resolve_to_send_go" sourceRef="gw_parallel_resolve" targetRef="evt_msg_send_go_resolve" />
+    <bpmn:sequenceFlow id="flow_resolve_to_send_msp" sourceRef="gw_parallel_resolve" targetRef="evt_msg_send_msp_resolve" />
+    <bpmn:sequenceFlow id="flow_join_confirm_to_fix" sourceRef="gw_join_confirm" targetRef="task_fix_fault" />
+    <bpmn:sequenceFlow id="flow_join_resolve_to_end" sourceRef="gw_join_resolve" targetRef="evt_end_process" />
+  </bpmn:process>
+  <bpmn:process id="pool_fd_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_start_fd_report" name="Fault Detector Reports Failure">
+      <bpmn:outgoing>flow_start_fd_to_merge</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_fd_report_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_recv_fd_results" name="Receive Repair Results">
+      <bpmn:messageEventDefinition id="evt_msg_recv_fd_results_msgdef" />
+    </bpmn:intermediateThrowEvent>
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:intermediateThrowEvent id="evt_msg_recv_go_confirm" name="Receive Confirmation from MPO">
+      <bpmn:messageEventDefinition id="evt_msg_recv_go_confirm_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_recv_go_resolve" name="Receive Resolution from MPO">
+      <bpmn:messageEventDefinition id="evt_msg_recv_go_resolve_msgdef" />
+    </bpmn:intermediateThrowEvent>
+  </bpmn:process>
+  <bpmn:process id="pool_msp_proc" isExecutable="false">
+    <bpmn:intermediateThrowEvent id="evt_msg_recv_msp_confirm" name="Receive Confirmation from MPO">
+      <bpmn:messageEventDefinition id="evt_msg_recv_msp_confirm_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_recv_msp_resolve" name="Receive Resolution from MPO">
+      <bpmn:messageEventDefinition id="evt_msg_recv_msp_resolve_msgdef" />
+    </bpmn:intermediateThrowEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mpo_part_di" bpmnElement="pool_mpo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1330" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_fd_part_di" bpmnElement="pool_fd_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="700" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1085" width="700" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_msp_part_di" bpmnElement="pool_msp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1545" width="700" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_process_di" bpmnElement="evt_end_process">
+        <dc:Bounds x="350" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_reject_di" bpmnElement="evt_end_reject">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_recv_fd_results_di" bpmnElement="evt_msg_recv_fd_results">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_recv_go_confirm_di" bpmnElement="evt_msg_recv_go_confirm">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_recv_go_resolve_di" bpmnElement="evt_msg_recv_go_resolve">
+        <dc:Bounds x="160" y="1270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_recv_msp_confirm_di" bpmnElement="evt_msg_recv_msp_confirm">
+        <dc:Bounds x="160" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_recv_msp_resolve_di" bpmnElement="evt_msg_recv_msp_resolve">
+        <dc:Bounds x="160" y="1730" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_send_fd_results_di" bpmnElement="evt_msg_send_fd_results">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_send_go_confirm_di" bpmnElement="evt_msg_send_go_confirm">
+        <dc:Bounds x="1110" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_send_go_resolve_di" bpmnElement="evt_msg_send_go_resolve">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_send_msp_confirm_di" bpmnElement="evt_msg_send_msp_confirm">
+        <dc:Bounds x="1110" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_send_msp_resolve_di" bpmnElement="evt_msg_send_msp_resolve">
+        <dc:Bounds x="730" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_fd_report_di" bpmnElement="evt_start_fd_report">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpo_suspicion_di" bpmnElement="evt_start_mpo_suspicion">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_decision_confirmed_di" bpmnElement="gw_decision_confirmed">
+        <dc:Bounds x="730" y="350" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_join_confirm_di" bpmnElement="gw_join_confirm">
+        <dc:Bounds x="160" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_join_resolve_di" bpmnElement="gw_join_resolve">
+        <dc:Bounds x="160" y="350" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_merge_start_di" bpmnElement="gw_merge_start">
+        <dc:Bounds x="350" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_parallel_confirm_di" bpmnElement="gw_parallel_confirm">
+        <dc:Bounds x="920" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_parallel_resolve_di" bpmnElement="gw_parallel_resolve">
+        <dc:Bounds x="540" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_failure_di" bpmnElement="task_examine_failure">
+        <dc:Bounds x="540" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_fix_fault_di" bpmnElement="task_fix_fault">
+        <dc:Bounds x="350" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_repair_results_di" bpmnElement="data_repair_results">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_fd_to_merge_di" bpmnElement="flow_start_fd_to_merge">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="375" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_mpo_to_merge_di" bpmnElement="flow_start_mpo_to_merge">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="375" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_merge_to_examine_di" bpmnElement="flow_merge_to_examine">
+        <di:waypoint x="375" y="250" />
+        <di:waypoint x="590" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_examine_to_decision_di" bpmnElement="flow_examine_to_decision">
+        <di:waypoint x="590" y="390" />
+        <di:waypoint x="755" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_reject_end_di" bpmnElement="flow_to_reject_end">
+        <di:waypoint x="755" y="375" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_parallel_confirm_di" bpmnElement="flow_to_parallel_confirm">
+        <di:waypoint x="755" y="375" />
+        <di:waypoint x="945" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confirm_to_send_go_di" bpmnElement="flow_confirm_to_send_go">
+        <di:waypoint x="945" y="250" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confirm_to_send_msp_di" bpmnElement="flow_confirm_to_send_msp">
+        <di:waypoint x="945" y="250" />
+        <di:waypoint x="1128" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_fix_to_send_fd_di" bpmnElement="flow_fix_to_send_fd">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_fix_to_parallel_resolve_di" bpmnElement="flow_fix_to_parallel_resolve">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="565" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_resolve_to_send_go_di" bpmnElement="flow_resolve_to_send_go">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_resolve_to_send_msp_di" bpmnElement="flow_resolve_to_send_msp">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="748" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_join_confirm_to_fix_di" bpmnElement="flow_join_confirm_to_fix">
+        <di:waypoint x="185" y="250" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_join_resolve_to_end_di" bpmnElement="flow_join_resolve_to_end">
+        <di:waypoint x="185" y="375" />
+        <di:waypoint x="368" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_fd_to_mpo_di" bpmnElement="msg_flow_fd_to_mpo">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="375" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mpo_to_go_confirm_di" bpmnElement="msg_flow_mpo_to_go_confirm">
+        <di:waypoint x="1128" y="118" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mpo_to_msp_confirm_di" bpmnElement="msg_flow_mpo_to_msp_confirm">
+        <di:waypoint x="1128" y="243" />
+        <di:waypoint x="178" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mpo_to_fd_results_di" bpmnElement="msg_flow_mpo_to_fd_results">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mpo_to_go_resolve_di" bpmnElement="msg_flow_mpo_to_go_resolve">
+        <di:waypoint x="748" y="118" />
+        <di:waypoint x="178" y="1288" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mpo_to_msp_resolve_di" bpmnElement="msg_flow_mpo_to_msp_resolve">
+        <di:waypoint x="748" y="243" />
+        <di:waypoint x="178" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_fix_fault_doa0_di" bpmnElement="task_fix_fault_doa0">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="388" y="515" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

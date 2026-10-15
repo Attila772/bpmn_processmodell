@@ -1,0 +1,260 @@
+{
+  "name": "Loan Approval Process",
+  "resources": [
+    {
+      "name": "Risk Assessment Web Service",
+      "capacity": 1,
+      "resource_type": "system"
+    },
+    {
+      "name": "Approver Web Service",
+      "capacity": 1,
+      "resource_type": "system"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start",
+      "name": "Receive Customer Request",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_feedback_sent",
+      "name": "Feedback Sent to Customer",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_risk_assess",
+      "name": "Invoke Risk Assessment Web Service",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Risk Assessment Web Service",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_loan_request"
+      ],
+      "output_data_ids": [
+        "data_risk_result"
+      ]
+    },
+    {
+      "id": "task_approve_small_low_risk",
+      "name": "Auto-Approve Loan",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Risk Assessment Web Service",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_risk_result"
+      ],
+      "output_data_ids": [
+        "data_approval_decision"
+      ]
+    },
+    {
+      "id": "task_deny_high_risk",
+      "name": "Deny Loan",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Risk Assessment Web Service",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_risk_result"
+      ],
+      "output_data_ids": [
+        "data_approval_decision"
+      ]
+    },
+    {
+      "id": "task_send_to_approver",
+      "name": "Send to Approver Web Service",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Approver Web Service",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_risk_result",
+        "data_loan_request"
+      ],
+      "output_data_ids": [
+        "data_approval_decision"
+      ]
+    },
+    {
+      "id": "task_send_feedback",
+      "name": "Send Feedback to Customer",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_approval_decision"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_risk_check",
+      "name": "Check Risk and Amount",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_auto_approve",
+          "condition": "Small loan AND Low risk"
+        },
+        {
+          "flow_id": "flow_deny",
+          "condition": "High risk"
+        },
+        {
+          "flow_id": "flow_review",
+          "condition": "Further review needed OR Amount >= $10,000"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_to_assess",
+      "source_id": "evt_start",
+      "target_id": "task_risk_assess",
+      "condition_name": null
+    },
+    {
+      "id": "flow_assess_to_gw",
+      "source_id": "task_risk_assess",
+      "target_id": "gw_risk_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_auto_approve",
+      "source_id": "gw_risk_check",
+      "target_id": "task_approve_small_low_risk",
+      "condition_name": "Small loan AND Low risk"
+    },
+    {
+      "id": "flow_deny",
+      "source_id": "gw_risk_check",
+      "target_id": "task_deny_high_risk",
+      "condition_name": "High risk"
+    },
+    {
+      "id": "flow_review",
+      "source_id": "gw_risk_check",
+      "target_id": "task_send_to_approver",
+      "condition_name": "Further review needed OR Amount >= $10,000"
+    },
+    {
+      "id": "flow_approve_to_feedback",
+      "source_id": "task_approve_small_low_risk",
+      "target_id": "task_send_feedback",
+      "condition_name": null
+    },
+    {
+      "id": "flow_deny_to_feedback",
+      "source_id": "task_deny_high_risk",
+      "target_id": "task_send_feedback",
+      "condition_name": null
+    },
+    {
+      "id": "flow_approver_to_feedback",
+      "source_id": "task_send_to_approver",
+      "target_id": "task_send_feedback",
+      "condition_name": null
+    },
+    {
+      "id": "flow_feedback_to_end",
+      "source_id": "task_send_feedback",
+      "target_id": "evt_end_feedback_sent",
+      "condition_name": null
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [
+    {
+      "id": "data_loan_request",
+      "name": "Customer Loan Request"
+    },
+    {
+      "id": "data_risk_result",
+      "name": "Risk Assessment Result"
+    },
+    {
+      "id": "data_approval_decision",
+      "name": "Approval Decision"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

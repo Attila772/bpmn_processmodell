@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="LeadProcessingProcess" name="Lead Processing Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_CheckLeads" name="Check open leads">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_SelectTopFive" name="Select top five leads">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TellAssistant" name="Tell Sales Assistant to call contacts">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:subProcess id="SubProcess_CallCustomers" name="Call Customers Loop">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndLoop</bpmn:outgoing>
+      <bpmn:startEvent id="SubStart_1">
+        <bpmn:outgoing>SubFlow_1</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:task id="Task_CallCustomer" name="Call customer">
+        <bpmn:incoming>SubFlow_1</bpmn:incoming>
+        <bpmn:outgoing>SubFlow_2</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:exclusiveGateway id="Gateway_Interested" name="Interested?">
+        <bpmn:incoming>SubFlow_2</bpmn:incoming>
+        <bpmn:outgoing>SubFlow_Yes</bpmn:outgoing>
+        <bpmn:outgoing>SubFlow_No</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:task id="Task_SendNote" name="Send note to Manager">
+        <bpmn:incoming>SubFlow_Yes</bpmn:incoming>
+        <bpmn:outgoing>SubFlow_ToManager</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:endEvent id="SubEnd_Continue" name="Next Customer">
+        <bpmn:incoming>SubFlow_No</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:endEvent id="SubEnd_NoteSent" name="Note Sent">
+        <bpmn:incoming>SubFlow_ToManager</bpmn:incoming>
+      </bpmn:endEvent>
+    </bpmn:subProcess>
+    <bpmn:task id="Task_ProcessLead" name="Process the lead">
+      <bpmn:incoming>Flow_ProcessLead</bpmn:incoming>
+      <bpmn:outgoing>Flow_End</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_1" name="End">
+      <bpmn:incoming>Flow_End</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CheckLeads" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CheckLeads" targetRef="Task_SelectTopFive" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_SelectTopFive" targetRef="Task_TellAssistant" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_TellAssistant" targetRef="SubProcess_CallCustomers" />
+    
+    <!-- Subprocess Internal Flows -->
+    <bpmn:sequenceFlow id="SubFlow_1" sourceRef="SubStart_1" targetRef="Task_CallCustomer" />
+    <bpmn:sequenceFlow id="SubFlow_2" sourceRef="Task_CallCustomer" targetRef="Gateway_Interested" />
+    <bpmn:sequenceFlow id="SubFlow_Yes" name="Yes" sourceRef="Gateway_Interested" targetRef="Task_SendNote" />
+    <bpmn:sequenceFlow id="SubFlow_No" name="No" sourceRef="Gateway_Interested" targetRef="SubEnd_Continue" />
+    <bpmn:sequenceFlow id="SubFlow_ToManager" sourceRef="Task_SendNote" targetRef="SubEnd_NoteSent" />
+
+    <!-- Linking Subprocess Output to Main Process Logic -->
+    <!-- Note: In strict BPMN, a subprocess doesn't automatically pass control out based on internal end events without specific boundary events or multi-instance logic. 
+         However, to model "If interested -> Send Note -> Manager Processes", we need an explicit flow from the 'Note Sent' state to the Manager's task.
+         Since standard BPMN requires a single outgoing flow from a non-interrupting event or subprocess completion, 
+         we will model the loop as a Multi-Instance Task for clarity and correctness in execution, 
+         but given the prompt's narrative style, a simplified linear flow with a gateway outside is often expected in simple diagrams.
+         
+         Let's refine the structure to be strictly valid BPMN 2.0 XML that represents the logic:
+         The "Call Customers" is a loop. If ANY are interested, the Manager processes them.
+         To keep it simple and compliant with the text "Otherwise he calls the next customer", 
+         we will use a Multi-Instance Task for calling customers, and a Gateway after.
+    -->
+  </bpmn:process>
+  
+  <!-- Redefining Process for Strict Compliance and Clarity using Multi-Instance -->
+  <bpmn:process id="LeadProcessingProcessCorrected" name="Lead Processing Process" isExecutable="true">
+    <bpmn:startEvent id="Start_1">
+      <bpmn:outgoing>Seq_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:task id="Task_CheckOpenLeads" name="Check open leads">
+      <bpmn:incoming>Seq_1</bpmn:incoming>
+      <bpmn:outgoing>Seq_2</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:task id="Task_SelectTopFive" name="Select top five ones">
+      <bpmn:incoming>Seq_2</bpmn:incoming>
+      <bpmn:outgoing>Seq_3</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:task id="Task_InstructAssistant" name="Tell Sales Assistant to call contact person">
+      <bpmn:incoming>Seq_3</bpmn:incoming>
+      <bpmn:outgoing>Seq_4</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:task id="Task_CallEachCustomer" name="Call each customer">
+      <bpmn:incoming>Seq_4</bpmn:incoming>
+      <bpmn:outgoing>Seq_5</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics isSequential="false">
+        <bpmn:collectionElementReference>leads</bpmn:collectionElementReference>
+        <bpmn:dataInputAssociation>
+          <bpmn:sourceRef>Data_Store_Leads</bpmn:sourceRef>
+          <bpmn:targetRef>leadItem</bpmn:targetRef>
+        </bpmn:dataInputAssociation>
+      </bpmn:multiInstanceLoopCharacteristics>
+    </bpmn:task>
+    
+    <bpmn:dataStore id="Data_Store_Leads" name="Selected Leads" />
+    <bpmn:dataObject id="Data_Object_LeadItem" name="leadItem">
+      <bpmn:dataState>
+        <bpmn:dataState id="State_1" />
+      </bpmn:dataState>
+    </bpmn:dataObject>
+
+    <bpmn:exclusiveGateway id="Gateway_CheckInterest" name="Is someone interested?">
+      <bpmn:incoming>Seq_5</bpmn:incoming>
+      <bpmn:outgoing>Seq_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Seq_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:task id="Task_SendNoteToManager" name="Send note to Manager">
+      <bpmn:incoming>Seq_Yes</bpmn:incoming>
+      <bpmn:outgoing>Seq_6</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:endEvent id="End_NoInterest" name="No Interest">
+      <bpmn:incoming>Seq_No</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:task id="Task_ManagerProcessesLead" name="Manager processes the lead">
+      <bpmn:incoming>Seq_6</bpmn:incoming>
+      <bpmn:outgoing>Seq_7</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:endEvent id="End_Processed" name="End">
+      <bpmn:incoming>Seq_7</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Seq_1" sourceRef="Start_1" targetRef="Task_CheckOpenLeads" />
+    <bpmn:sequenceFlow id="Seq_2" sourceRef="Task_CheckOpenLeads" targetRef="Task_SelectTopFive" />
+    <bpmn:sequenceFlow id="Seq_3" sourceRef="Task_SelectTopFive" targetRef="Task_InstructAssistant" />
+    <bpmn:sequenceFlow id="Seq_4" sourceRef="Task_InstructAssistant" targetRef="Task_CallEachCustomer" />
+    <bpmn:sequenceFlow id="Seq_5" sourceRef="Task_CallEachCustomer" targetRef="Gateway_CheckInterest" />
+    <bpmn:sequenceFlow id="Seq_Yes" name="Yes" sourceRef="Gateway_CheckInterest" targetRef="Task_SendNoteToManager" />
+    <bpmn:sequenceFlow id="Seq_No" name="No" sourceRef="Gateway_CheckInterest" targetRef="End_NoInterest" />
+    <bpmn:sequenceFlow id="Seq_6" sourceRef="Task_SendNoteToManager" targetRef="Task_ManagerProcessesLead" />
+    <bpmn:sequenceFlow id="Seq_7" sourceRef="Task_ManagerProcessesLead" targetRef="End_Processed" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="LeadProcessingProcessCorrected">
+      <bpmndi:BPMNShape id="Shape_Start_1" bpmnElement="Start_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CheckOpenLeads" bpmnElement="Task_CheckOpenLeads">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_SelectTopFive" bpmnElement="Task_SelectTopFive">
+        <dc:Bounds x="390" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_InstructAssistant" bpmnElement="Task_InstructAssistant">
+        <dc:Bounds x="540" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CallEachCustomer" bpmnElement="Task_CallEachCustomer">
+        <dc:Bounds x="690" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_CheckInterest" bpmnElement="Gateway_CheckInterest" isMarkerVisible="true">
+        <dc:Bounds x="842" y="92" width="50" height="50" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_SendNoteToManager" bpmnElement="Task_SendNoteToManager">
+        <dc:Bounds x="950" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_NoInterest" bpmnElement="End_NoInterest">
+        <dc:Bounds x="842" y="202" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ManagerProcessesLead" bpmnElement="Task_ManagerProcessesLead">
+        <dc:Bounds x="1100" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_Processed" bpmnElement="End_Processed">
+        <dc:Bounds x="1252" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Edge_Seq_1" bpmnElement="Seq_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Seq_2" bpmnElement="Seq_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="390" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Seq_3" bpmnElement="Seq_3">
+        <di:waypoint x="490" y="120" />
+        <di:waypoint x="540" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Seq_4" bpmnElement="Seq_4">
+        <di:waypoint x="640" y="120" />
+        <di:waypoint x="690" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Seq_5" bpmnElement="Seq_5">
+        <di:waypoint x="790" y="120" />
+        <di:waypoint x="842" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Seq_Yes" bpmnElement="Seq_Yes">
+        <di:waypoint x="892" y="117" />
+        <di:waypoint x="950" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="910" y="100" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Seq_No" bpmnElement="Seq_No">
+        <di:waypoint x="867" y="142" />
+        <di:waypoint x="867" y="202" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="870" y="160" width="14" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Seq_6" bpmnElement="Seq_6">
+        <di:waypoint x="1050" y="120" />
+        <di:waypoint x="1100" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Seq_7" bpmnElement="Seq_7">
+        <di:waypoint x="1200" y="120" />
+        <di:waypoint x="1252" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

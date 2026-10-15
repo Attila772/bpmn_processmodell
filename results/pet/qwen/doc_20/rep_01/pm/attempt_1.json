@@ -1,0 +1,438 @@
+{
+  "name": "Order Processing and Production Planning",
+  "resources": [
+    {
+      "name": "Master",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Employee",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_sales_order",
+      "name": "New Order Received from Sales",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Sales Order"
+    },
+    {
+      "id": "evt_end_production_complete",
+      "name": "Production Completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_intermediate_pps_ready",
+      "name": "PPS Data Ready",
+      "event_position": "intermediate",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_intermediate_erp_synced",
+      "name": "ERP Synced",
+      "event_position": "intermediate",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_intermediate_procurement_done",
+      "name": "Procurement Decision/Action Done",
+      "event_position": "intermediate",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_intermediate_production_notice",
+      "name": "Production Start Notice",
+      "event_position": "intermediate",
+      "trigger_type": "timer",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_determine_parts",
+      "name": "Determine parts, quantities, and delivery date",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Master",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_order_details"
+      ]
+    },
+    {
+      "id": "task_enter_pps",
+      "name": "Enter data into PPS",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Master",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_order_details"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_pps_optimize",
+      "name": "Optimize production processes and create work packages",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "PPS System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_work_packages",
+        "data_procurement_list"
+      ]
+    },
+    {
+      "id": "task_transfer_to_erp",
+      "name": "Manually transfer data to ERP",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_work_packages",
+        "data_procurement_list"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_check_procurement_need",
+      "name": "Check if parts are missing",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_procurement_list"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_procur_parts",
+      "name": "Procure missing parts",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_procurement_list"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_implement_production",
+      "name": "Implement production",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_work_packages"
+      ],
+      "output_data_ids": [
+        "data_finished_product"
+      ]
+    },
+    {
+      "id": "task_quality_check",
+      "name": "Quality check of order",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_finished_product"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_procurement_decision",
+      "name": "Are parts missing?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_gw_yes",
+          "condition": "Yes (Parts Missing)"
+        },
+        {
+          "flow_id": "flow_gw_no",
+          "condition": "No (All Parts Available)"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start_sales_order",
+      "target_id": "task_determine_parts",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_determine_parts",
+      "target_id": "task_enter_pps",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "task_enter_pps",
+      "target_id": "evt_intermediate_pps_ready",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "evt_intermediate_pps_ready",
+      "target_id": "task_pps_optimize",
+      "condition_name": null
+    },
+    {
+      "id": "flow_5",
+      "source_id": "task_pps_optimize",
+      "target_id": "evt_intermediate_erp_synced",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "evt_intermediate_erp_synced",
+      "target_id": "task_transfer_to_erp",
+      "condition_name": null
+    },
+    {
+      "id": "flow_7",
+      "source_id": "task_transfer_to_erp",
+      "target_id": "task_check_procurement_need",
+      "condition_name": null
+    },
+    {
+      "id": "flow_8",
+      "source_id": "task_check_procurement_need",
+      "target_id": "gw_procurement_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_gw_yes",
+      "source_id": "gw_procurement_decision",
+      "target_id": "task_procur_parts",
+      "condition_name": "Yes (Parts Missing)"
+    },
+    {
+      "id": "flow_gw_no",
+      "source_id": "gw_procurement_decision",
+      "target_id": "evt_intermediate_procurement_done",
+      "condition_name": "No (All Parts Available)"
+    },
+    {
+      "id": "flow_9",
+      "source_id": "task_procur_parts",
+      "target_id": "evt_intermediate_procurement_done",
+      "condition_name": null
+    },
+    {
+      "id": "flow_10",
+      "source_id": "evt_intermediate_procurement_done",
+      "target_id": "evt_intermediate_production_notice",
+      "condition_name": null
+    },
+    {
+      "id": "flow_11",
+      "source_id": "evt_intermediate_production_notice",
+      "target_id": "task_implement_production",
+      "condition_name": null
+    },
+    {
+      "id": "flow_12",
+      "source_id": "task_implement_production",
+      "target_id": "task_quality_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_13",
+      "source_id": "task_quality_check",
+      "target_id": "evt_end_production_complete",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_internal",
+      "name": "Internal Production Department",
+      "element_ids": [
+        "evt_start_sales_order",
+        "task_determine_parts",
+        "task_enter_pps",
+        "evt_intermediate_pps_ready",
+        "task_pps_optimize",
+        "evt_intermediate_erp_synced",
+        "task_transfer_to_erp",
+        "task_check_procurement_need",
+        "gw_procurement_decision",
+        "task_procur_parts",
+        "evt_intermediate_procurement_done",
+        "evt_intermediate_production_notice",
+        "task_implement_production",
+        "task_quality_check",
+        "evt_end_production_complete",
+        "flow_1",
+        "flow_2",
+        "flow_3",
+        "flow_4",
+        "flow_5",
+        "flow_6",
+        "flow_7",
+        "flow_8",
+        "flow_gw_yes",
+        "flow_gw_no",
+        "flow_9",
+        "flow_10",
+        "flow_11",
+        "flow_12",
+        "flow_13"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_sales",
+      "source_id": "evt_start_sales_order",
+      "target_id": "evt_start_sales_order",
+      "name": "Sales Order"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_order_details",
+      "name": "Order Details (Parts, Quantities, Delivery Date)"
+    },
+    {
+      "id": "data_work_packages",
+      "name": "Work Packages"
+    },
+    {
+      "id": "data_procurement_list",
+      "name": "List of Parts to be Procured"
+    },
+    {
+      "id": "data_finished_product",
+      "name": "Finished Product"
+    }
+  ],
+  "data_stores": [
+    {
+      "id": "store_pps",
+      "name": "Production Planning System (PPS)"
+    },
+    {
+      "id": "store_erp",
+      "name": "Enterprise Resource Planning System (ERP)"
+    }
+  ],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

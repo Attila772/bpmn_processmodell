@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="definitions_office_supply"
+             targetNamespace="http://bpmn.org/examples"
+             exporter="Camunda Modeler"
+             exporterVersion="5.0.0">
+
+  <collaboration id="collaboration_1">
+    <participant id="participant_office_supply" name="Office Supply Request Process" processRef="process_office_supply" />
+  </collaboration>
+
+  <process id="process_office_supply" name="Office Supply Request" isExecutable="true">
+    <laneSet id="laneSet_1">
+      <lane id="lane_employee" name="Employee (Petitioner)">
+        <flowNodeRef>start_event_request</flowNodeRef>
+        <flowNodeRef>task_review_comments</flowNodeRef>
+      </lane>
+      <lane id="lane_supervisor" name="Immediate Supervisor">
+        <flowNodeRef>task_review_request</flowNodeRef>
+        <flowNodeRef>gateway_supervisor_decision</flowNodeRef>
+      </lane>
+      <lane id="lane_purchasing" name="Purchasing Department">
+        <flowNodeRef>subprocess_quotations</flowNodeRef>
+        <flowNodeRef>task_select_vendor</flowNodeRef>
+        <flowNodeRef>gateway_vendor_valid</flowNodeRef>
+        <flowNodeRef>task_confirm_vendor</flowNodeRef>
+      </lane>
+      <lane id="lane_system" name="System">
+        <flowNodeRef>task_notify_rejected</flowNodeRef>
+        <flowNodeRef>task_notify_change</flowNodeRef>
+        <flowNodeRef>task_generate_po</flowNodeRef>
+        <flowNodeRef>event_wait_delivery_invoice</flowNodeRef>
+        <flowNodeRef>task_notify_approved</flowNodeRef>
+        <flowNodeRef>end_event_rejected</flowNodeRef>
+        <flowNodeRef>end_event_approved</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Start Event -->
+    <startEvent id="start_event_request" name="Office supply request submitted">
+      <outgoing>seq_1</outgoing>
+    </startEvent>
+
+    <sequenceFlow id="seq_1" sourceRef="start_event_request" targetRef="task_review_request" />
+
+    <!-- Supervisor Review -->
+    <userTask id="task_review_request" name="Review supply request">
+      <incoming>seq_1</incoming>
+      <incoming>seq_resubmit</incoming>
+      <outgoing>seq_2</outgoing>
+    </userTask>
+
+    <sequenceFlow id="seq_2" sourceRef="task_review_request" targetRef="gateway_supervisor_decision" />
+
+    <exclusiveGateway id="gateway_supervisor_decision" name="Supervisor decision?">
+      <incoming>seq_2</incoming>
+      <outgoing>seq_rejected</outgoing>
+      <outgoing>seq_change_required</outgoing>
+      <outgoing>seq_approved</outgoing>
+    </exclusiveGateway>
+
+    <!-- Branch: Rejected -->
+    <sequenceFlow id="seq_rejected" name="Rejected" sourceRef="gateway_supervisor_decision" targetRef="task_notify_rejected" />
+
+    <serviceTask id="task_notify_rejected" name="Notify employee of rejection">
+      <incoming>seq_rejected</incoming>
+      <outgoing>seq_to_end_rejected</outgoing>
+    </serviceTask>
+
+    <sequenceFlow id="seq_to_end_rejected" sourceRef="task_notify_rejected" targetRef="end_event_rejected" />
+
+    <endEvent id="end_event_rejected" name="Request Rejected">
+      <incoming>seq_to_end_rejected</incoming>
+    </endEvent>
+
+    <!-- Branch: Change Required -->
+    <sequenceFlow id="seq_change_required" name="Change required" sourceRef="gateway_supervisor_decision" targetRef="task_notify_change" />
+
+    <serviceTask id="task_notify_change" name="Notify employee of change request">
+      <incoming>seq_change_required</incoming>
+      <outgoing>seq_to_review_comments</outgoing>
+    </serviceTask>
+
+    <sequenceFlow id="seq_to_review_comments" sourceRef="task_notify_change" targetRef="task_review_comments" />
+
+    <userTask id="task_review_comments" name="Review comments and update request">
+      <incoming>seq_to_review_comments</incoming>
+      <outgoing>seq_resubmit</outgoing>
+    </userTask>
+
+    <sequenceFlow id="seq_resubmit" sourceRef="task_review_comments" targetRef="task_review_request" />
+
+    <!-- Branch: Approved -->
+    <sequenceFlow id="seq_approved" name="Approved" sourceRef="gateway_supervisor_decision" targetRef="subprocess_quotations" />
+
+    <!-- Purchasing Subprocess -->
+    <subProcess id="subprocess_quotations" name="Make Quotations Subprocess">
+      <incoming>seq_approved</incoming>
+      <outgoing>seq_to_select_vendor</outgoing>
+      <startEvent id="sub_start" name="Start Quotations">
+        <outgoing>sub_seq_1</outgoing>
+      </startEvent>
+      <userTask id="sub_task_request_quotes" name="Request quotations from suppliers">
+        <incoming>sub_seq_1</incoming>
+        <outgoing>sub_seq_2</outgoing>
+      </userTask>
+      <userTask id="sub_task_receive_quotes" name="Receive and compile quotations">
+        <incoming>sub_seq_2</incoming>
+        <outgoing>sub_seq_3</outgoing>
+      </userTask>
+      <endEvent id="sub_end" name="Quotations Completed">
+        <incoming>sub_seq_3</incoming>
+      </endEvent>
+      <sequenceFlow id="sub_seq_1" sourceRef="sub_start" targetRef="sub_task_request_quotes" />
+      <sequenceFlow id="sub_seq_2" sourceRef="sub_task_request_quotes" targetRef="sub_task_receive_quotes" />
+      <sequenceFlow id="sub_seq_3" sourceRef="sub_task_receive_quotes" targetRef="sub_end" />
+    </subProcess>
+
+    <sequenceFlow id="seq_to_select_vendor" sourceRef="subprocess_quotations" targetRef="task_select_vendor" />
+
+    <userTask id="task_select_vendor" name="Select vendor">
+      <incoming>seq_to_select_vendor</incoming>
+      <incoming>seq_vendor_invalid</incoming>
+      <outgoing>seq_to_vendor_gateway</outgoing>
+    </userTask>
+
+    <sequenceFlow id="seq_to_vendor_gateway" sourceRef="task_select_vendor" targetRef="gateway_vendor_valid" />
+
+    <exclusiveGateway id="gateway_vendor_valid" name="Is vendor valid in system?">
+      <incoming>seq_to_vendor_gateway</incoming>
+      <outgoing>seq_vendor_valid</outgoing>
+      <outgoing>seq_vendor_invalid</outgoing>
+    </exclusiveGateway>
+
+    <sequenceFlow id="seq_vendor_invalid" name="No" sourceRef="gateway_vendor_valid" targetRef="task_select_vendor" />
+
+    <sequenceFlow id="seq_vendor_valid" name="Yes" sourceRef="gateway_vendor_valid" targetRef="task_confirm_vendor" />
+
+    <userTask id="task_confirm_vendor" name="Confirm vendor selection">
+      <incoming>seq_vendor_valid</incoming>
+      <outgoing>seq_to_generate_po</outgoing>
+    </userTask>
+
+    <sequenceFlow id="seq_to_generate_po" sourceRef="task_confirm_vendor" targetRef="task_generate_po" />
+
+    <!-- System Order & Delivery -->
+    <serviceTask id="task_generate_po" name="Generate and send purchase order">
+      <incoming>seq_to_generate_po</incoming>
+      <outgoing>seq_to_wait_delivery</outgoing>
+    </serviceTask>
+
+    <sequenceFlow id="seq_to_wait_delivery" sourceRef="task_generate_po" targetRef="event_wait_delivery_invoice" />
+
+    <intermediateCatchEvent id="event_wait_delivery_invoice" name="Wait for product delivery and invoice">
+      <incoming>seq_to_wait_delivery</incoming>
+      <outgoing>seq_to_notify_approved</outgoing>
+      <messageEventDefinition id="msg_event_def_delivery" />
+    </intermediateCatchEvent>
+
+    <sequenceFlow id="seq_to_notify_approved" sourceRef="event_wait_delivery_invoice" targetRef="task_notify_approved" />
+
+    <serviceTask id="task_notify_approved" name="Notify employee of fulfilled order">
+      <incoming>seq_to_notify_approved</incoming>
+      <outgoing>seq_to_end_approved</outgoing>
+    </serviceTask>
+
+    <sequenceFlow id="seq_to_end_approved" sourceRef="task_notify_approved" targetRef="end_event_approved" />
+
+    <endEvent id="end_event_approved" name="Request Fulfilled">
+      <incoming>seq_to_end_approved</incoming>
+    </endEvent>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="collaboration_1">
+      <bpmndi:BPMNShape id="shape_participant" bpmnElement="participant_office_supply" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1480" height="840" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_lane_employee" bpmnElement="lane_employee" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1450" height="180" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_lane_supervisor" bpmnElement="lane_supervisor" isHorizontal="true">
+        <dc:Bounds x="190" y="260" width="1450" height="200" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_lane_purchasing" bpmnElement="lane_purchasing" isHorizontal="true">
+        <dc:Bounds x="190" y="460" width="1450" height="260" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_lane_system" bpmnElement="lane_system" isHorizontal="true">
+        <dc:Bounds x="190" y="720" width="1450" height="200" />
+      </bpmndi:BPMNShape>
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="shape_start_event" bpmnElement="start_event_request">
+        <dc:Bounds x="242" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="219" y="185" width="83" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Review Request -->
+      <bpmndi:BPMNShape id="shape_task_review_request" bpmnElement="task_review_request">
+        <dc:Bounds x="330" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway Supervisor -->
+      <bpmndi:BPMNShape id="shape_gateway_supervisor" bpmnElement="gateway_supervisor_decision" isMarkerVisible="true">
+        <dc:Bounds x="485" y="335" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="473" y="305" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Notify Rejected -->
+      <bpmndi:BPMNShape id="shape_task_notify_rejected" bpmnElement="task_notify_rejected">
+        <dc:Bounds x="460" y="780" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event Rejected -->
+      <bpmndi:BPMNShape id="shape_end_rejected" bpmnElement="end_event_rejected">
+        <dc:Bounds x="612" y="802" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="587" y="845" width="87" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Notify Change -->
+      <bpmndi:BPMNShape id="shape_task_notify_change" bpmnElement="task_notify_change">
+        <dc:Bounds x="600" y="780" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Review Comments -->
+      <bpmndi:BPMNShape id="shape_task_review_comments" bpmnElement="task_review_comments">
+        <dc:Bounds x="600" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Subprocess Quotations -->
+      <bpmndi:BPMNShape id="shape_subprocess_quotations" bpmnElement="subprocess_quotations" isExpanded="true">
+        <dc:Bounds x="610" y="490" width="350" height="200" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_sub_start" bpmnElement="sub_start">
+        <dc:Bounds x="632" y="572" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="611" y="615" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_sub_task_request_quotes" bpmnElement="sub_task_request_quotes">
+        <dc:Bounds x="690" y="550" width="90" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_sub_task_receive_quotes" bpmnElement="sub_task_receive_quotes">
+        <dc:Bounds x="810" y="550" width="90" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="shape_sub_end" bpmnElement="sub_end">
+        <dc:Bounds x="912" y="572" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="898" y="615" width="64" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Select Vendor -->
+      <bpmndi:BPMNShape id="shape_task_select_vendor" bpmnElement="task_select_vendor">
+        <dc:Bounds x="1000" y="550" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Vendor Gateway -->
+      <bpmndi:BPMNShape id="shape_gateway_vendor_valid" bpmnElement="gateway_vendor_valid" isMarkerVisible="true">
+        <dc:Bounds x="1145" y="565" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1134" y="528" width="72" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Confirm Vendor -->
+      <bpmndi:BPMNShape id="shape_task_confirm_vendor" bpmnElement="task_confirm_vendor">
+        <dc:Bounds x="1240" y="550" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Generate PO -->
+      <bpmndi:BPMNShape id="shape_task_generate_po" bpmnElement="task_generate_po">
+        <dc:Bounds x="1240" y="780" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Catch Delivery -->
+      <bpmndi:BPMNShape id="shape_event_wait_delivery" bpmnElement="event_wait_delivery_invoice">
+        <dc:Bounds x="1382" y="802" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1361" y="845" width="79" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Notify Approved -->
+      <bpmndi:BPMNShape id="shape_task_notify_approved" bpmnElement="task_notify_approved">
+        <dc:Bounds x="1460" y="780" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event Approved -->
+      <bpmndi:BPMNShape id="shape_end_approved" bpmnElement="end_event_approved">
+        <dc:Bounds x="1582" y="802" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1559" y="845" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="edge_seq_1" bpmnElement="seq_1">
+        <di:waypoint x="278" y="160" />
+        <di:waypoint x="304" y="160" />
+        <di:waypoint x="304" y="360" />
+        <di:waypoint x="330" y="360" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_2" bpmnElement="seq_2">
+        <di:waypoint x="430" y="360" />
+        <di:waypoint x="485" y="360" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_rejected" bpmnElement="seq_rejected">
+        <di:waypoint x="510" y="385" />
+        <di:waypoint x="510" y="780" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="518" y="413" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_to_end_rejected" bpmnElement="seq_to_end_rejected">
+        <di:waypoint x="560" y="820" />
+        <di:waypoint x="612" y="820" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_change_required" bpmnElement="seq_change_required">
+        <di:waypoint x="535" y="360" />
+        <di:waypoint x="568" y="360" />
+        <di:waypoint x="568" y="820" />
+        <di:waypoint x="600" y="820" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="509" y="393" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_to_review_comments" bpmnElement="seq_to_review_comments">
+        <di:waypoint x="650" y="780" />
+        <di:waypoint x="650" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_resubmit" bpmnElement="seq_resubmit">
+        <di:waypoint x="600" y="160" />
+        <di:waypoint x="380" y="160" />
+        <di:waypoint x="380" y="320" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_approved" bpmnElement="seq_approved">
+        <di:waypoint x="510" y="385" />
+        <di:waypoint x="510" y="590" />
+        <di:waypoint x="610" y="590" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="517" y="443" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_sub_seq_1" bpmnElement="sub_seq_1">
+        <di:waypoint x="668" y="590" />
+        <di:waypoint x="690" y="590" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_sub_seq_2" bpmnElement="sub_seq_2">
+        <di:waypoint x="780" y="590" />
+        <di:waypoint x="810" y="590" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_sub_seq_3" bpmnElement="sub_seq_3">
+        <di:waypoint x="900" y="590" />
+        <di:waypoint x="912" y="590" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_to_select_vendor" bpmnElement="seq_to_select_vendor">
+        <di:waypoint x="960" y="590" />
+        <di:waypoint x="1000" y="590" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_to_vendor_gateway" bpmnElement="seq_to_vendor_gateway">
+        <di:waypoint x="1100" y="590" />
+        <di:waypoint x="1145" y="590" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_vendor_invalid" bpmnElement="seq_vendor_invalid">
+        <di:waypoint x="1170" y="615" />
+        <di:waypoint x="1170" y="660" />
+        <di:waypoint x="1050" y="660" />
+        <di:waypoint x="1050" y="630" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1103" y="642" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_vendor_valid" bpmnElement="seq_vendor_valid">
+        <di:waypoint x="1195" y="590" />
+        <di:waypoint x="1240" y="590" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1209" y="572" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_to_generate_po" bpmnElement="seq_to_generate_po">
+        <di:waypoint x="1290" y="630" />
+        <di:waypoint x="1290" y="780" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_to_wait_delivery" bpmnElement="seq_to_wait_delivery">
+        <di:waypoint x="1340" y="820" />
+        <di:waypoint x="1382" y="820" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_to_notify_approved" bpmnElement="seq_to_notify_approved">
+        <di:waypoint x="1418" y="820" />
+        <di:waypoint x="1460" y="820" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_seq_to_end_approved" bpmnElement="seq_to_end_approved">
+        <di:waypoint x="1560" y="820" />
+        <di:waypoint x="1582" y="820" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

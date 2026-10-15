@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="OfficeSupplyRequestProcess" name="Office Supply Request Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_SubmitRequest" name="Employee Submits Request">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_RegisterRequirement" name="Register Requirement">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_SubmitRequest" targetRef="Task_RegisterRequirement" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_RegisterRequirement" targetRef="Task_SupervisorReview" />
+    <bpmn:task id="Task_SupervisorReview" name="Supervisor Reviews Request">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Decision</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_SupervisorDecision" name="Supervisor Decision">
+      <bpmn:incoming>Flow_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ChangeRequired</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Decision" sourceRef="Task_SupervisorReview" targetRef="Gateway_SupervisorDecision" />
+    
+    <!-- Rejection Path -->
+    <bpmn:sequenceFlow id="Flow_Rejected" name="Rejected" sourceRef="Gateway_SupervisorDecision" targetRef="Task_SendNotificationRejection" />
+    <bpmn:task id="Task_SendNotificationRejection" name="Send Notification (Rejected)">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndReject</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Process Ends">
+      <bpmn:incoming>Flow_EndReject</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_EndReject" sourceRef="Task_SendNotificationRejection" targetRef="EndEvent_Rejected" />
+
+    <!-- Change Required Path -->
+    <bpmn:sequenceFlow id="Flow_ChangeRequired" name="Change Required" sourceRef="Gateway_SupervisorDecision" targetRef="Task_EmployeeReviewChanges" />
+    <bpmn:task id="Task_EmployeeReviewChanges" name="Employee Reviews Comments &amp; Makes Changes">
+      <bpmn:incoming>Flow_ChangeRequired</bpmn:incoming>
+      <bpmn:outgoing>Flow_Resubmit</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_Resubmit" name="Resubmit for Approval" sourceRef="Task_EmployeeReviewChanges" targetRef="Task_SupervisorReview" />
+
+    <!-- Approved Path -->
+    <bpmn:sequenceFlow id="Flow_Approved" name="Approved" sourceRef="Gateway_SupervisorDecision" targetRef="SubProcess_Purchase" />
+    
+    <bpmn:subProcess id="SubProcess_Purchase" name="Purchase Department Process">
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_VendorSelected</bpmn:outgoing>
+      
+      <bpmn:startEvent id="Start_SubProcess" name="">
+        <bpmn:outgoing>Flow_ToQuotation</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_ToQuotation" sourceRef="Start_SubProcess" targetRef="Task_MakeQuotations" />
+      
+      <bpmn:task id="Task_MakeQuotations" name="Make Quotations">
+        <bpmn:incoming>Flow_ToQuotation</bpmn:incoming>
+        <bpmn:outgoing>Flow_ToSelectVendor</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:sequenceFlow id="Flow_ToSelectVendor" sourceRef="Task_MakeQuotations" targetRef="Task_SelectVendor" />
+      
+      <bpmn:task id="Task_SelectVendor" name="Select Vendor">
+        <bpmn:incoming>Flow_ToSelectVendor</bpmn:incoming>
+        <bpmn:outgoing>Flow_CheckValidity</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:sequenceFlow id="Flow_CheckValidity" sourceRef="Task_SelectVendor" targetRef="Gateway_VendorValid" />
+      
+      <bpmn:exclusiveGateway id="Gateway_VendorValid" name="Is Vendor Valid?">
+        <bpmn:incoming>Flow_CheckValidity</bpmn:incoming>
+        <bpmn:outgoing>Flow_Valid</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Invalid</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      
+      <bpmn:sequenceFlow id="Flow_Invalid" name="No" sourceRef="Gateway_VendorValid" targetRef="Task_SelectVendor" />
+      <bpmn:sequenceFlow id="Flow_Valid" name="Yes" sourceRef="Gateway_VendorValid" targetRef="End_SubProcess" />
+      
+      <bpmn:endEvent id="End_SubProcess" name="">
+        <bpmn:incoming>Flow_Valid</bpmn:incoming>
+      </bpmn:endEvent>
+    </bpmn:subProcess>
+
+    <bpmn:sequenceFlow id="Flow_VendorSelected" sourceRef="SubProcess_Purchase" targetRef="Task_GeneratePO" />
+    
+    <bpmn:task id="Task_GeneratePO" name="Generate and Send Purchase Order">
+      <bpmn:incoming>Flow_VendorSelected</bpmn:incoming>
+      <bpmn:outgoing>Flow_WaitDelivery</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_WaitDelivery" sourceRef="Task_GeneratePO" targetRef="IntermediateCatchEvent_Delivery" />
+    
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_Delivery" name="Product Delivered &amp; Invoice Received">
+      <bpmn:incoming>Flow_WaitDelivery</bpmn:incoming>
+      <bpmn:outgoing>Flow_FinalNotify</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    
+    <bpmn:sequenceFlow id="Flow_FinalNotify" sourceRef="IntermediateCatchEvent_Delivery" targetRef="Task_SendNotificationSuccess" />
+    
+    <bpmn:task id="Task_SendNotificationSuccess" name="Send Notification (Success)">
+      <bpmn:incoming>Flow_FinalNotify</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndSuccess</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:endEvent id="EndEvent_Success" name="Process Completed">
+      <bpmn:incoming>Flow_EndSuccess</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_EndSuccess" sourceRef="Task_SendNotificationSuccess" targetRef="EndEvent_Success" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="OfficeSupplyRequestProcess">
+      <bpmndi:BPMNShape id="StartEvent_SubmitRequest_di" bpmnElement="StartEvent_SubmitRequest">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="132" y="145" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RegisterRequirement_di" bpmnElement="Task_RegisterRequirement">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SupervisorReview_di" bpmnElement="Task_SupervisorReview">
+        <dc:Bounds x="390" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_SupervisorDecision_di" bpmnElement="Gateway_SupervisorDecision" isMarkerVisible="true">
+        <dc:Bounds x="545" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="525" y="155" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Rejection Lane Visuals -->
+      <bpmndi:BPMNShape id="Task_SendNotificationRejection_di" bpmnElement="Task_SendNotificationRejection">
+        <dc:Bounds x="650" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="802" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="782" y="245" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Change Required Lane Visuals -->
+      <bpmndi:BPMNShape id="Task_EmployeeReviewChanges_di" bpmnElement="Task_EmployeeReviewChanges">
+        <dc:Bounds x="650" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Approved Lane Visuals -->
+      <bpmndi:BPMNShape id="SubProcess_Purchase_di" bpmnElement="SubProcess_Purchase" isExpanded="true">
+        <dc:Bounds x="650" y="280" width="300" height="200" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Inside Subprocess -->
+      <bpmndi:BPMNShape id="Start_SubProcess_di" bpmnElement="Start_SubProcess">
+        <dc:Bounds x="682" y="332" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_MakeQuotations_di" bpmnElement="Task_MakeQuotations">
+        <dc:Bounds x="750" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SelectVendor_di" bpmnElement="Task_SelectVendor">
+        <dc:Bounds x="900" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_VendorValid_di" bpmnElement="Gateway_VendorValid" isMarkerVisible="true">
+        <dc:Bounds x="1055" y="325" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_SubProcess_di" bpmnElement="End_SubProcess">
+        <dc:Bounds x="1152" y="332" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Post Subprocess -->
+      <bpmndi:BPMNShape id="Task_GeneratePO_di" bpmnElement="Task_GeneratePO">
+        <dc:Bounds x="1000" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="IntermediateCatchEvent_Delivery_di" bpmnElement="IntermediateCatchEvent_Delivery">
+        <dc:Bounds x="1152" y="112" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1122" y="155" width="96" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendNotificationSuccess_di" bpmnElement="Task_SendNotificationSuccess">
+        <dc:Bounds x="1240" y="90" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Success_di" bpmnElement="EndEvent_Success">
+        <dc:Bounds x="1392" y="112" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1372" y="155" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Connections -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="390" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Decision_di" bpmnElement="Flow_Decision">
+        <di:waypoint x="490" y="120" />
+        <di:waypoint x="545" y="120" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="570" y="145" />
+        <di:waypoint x="570" y="220" />
+        <di:waypoint x="650" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="575" y="180" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EndReject_di" bpmnElement="Flow_EndReject">
+        <di:waypoint x="750" y="220" />
+        <di:waypoint x="802" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ChangeRequired_di" bpmnElement="Flow_ChangeRequired">
+        <di:waypoint x="570" y="95" />
+        <di:waypoint x="570" y="70" />
+        <di:waypoint x="650" y="70" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="575" y="50" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Resubmit_di" bpmnElement="Flow_Resubmit">
+        <di:waypoint x="750" y="70" />
+        <di:waypoint x="850" y="70" />
+        <di:waypoint x="850" y="120" />
+        <di:waypoint x="490" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="750" y="40" width="100" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="595" y="120" />
+        <di:waypoint x="650" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="600" y="200" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Subprocess Internal Edges -->
+      <bpmndi:BPMNEdge id="Flow_ToQuotation_di" bpmnElement="Flow_ToQuotation">
+        <di:waypoint x="718" y="350" />
+        <di:waypoint x="750" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToSelectVendor_di" bpmnElement="Flow_ToSelectVendor">
+        <di:waypoint x="850" y="350" />
+        <di:waypoint x="900" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CheckValidity_di" bpmnElement="Flow_CheckValidity">
+        <di:waypoint x="1000" y="350" />
+        <di:waypoint x="1055" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Invalid_di" bpmnElement="Flow_Invalid">
+        <di:waypoint x="1080" y="325" />
+        <di:waypoint x="1080" y="280" />
+        <di:waypoint x="950" y="280" />
+        <di:waypoint x="950" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1010" y="270" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Valid_di" bpmnElement="Flow_Valid">
+        <di:waypoint x="1105" y="350" />
+        <di:waypoint x="1152" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1120" y="330" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- Post Subprocess Edges -->
+      <bpmndi:BPMNEdge id="Flow_VendorSelected_di" bpmnElement="Flow_VendorSelected">
+        <di:waypoint x="950" y="280" />
+        <di:waypoint x="950" y="140" />
+        <di:waypoint x="1000" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_WaitDelivery_di" bpmnElement="Flow_WaitDelivery">
+        <di:waypoint x="1100" y="140" />
+        <di:waypoint x="1152" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FinalNotify_di" bpmnElement="Flow_FinalNotify">
+        <di:waypoint x="1188" y="140" />
+        <di:waypoint x="1240" y="130" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EndSuccess_di" bpmnElement="Flow_EndSuccess">
+        <di:waypoint x="1340" y="130" />
+        <di:waypoint x="1392" y="130" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

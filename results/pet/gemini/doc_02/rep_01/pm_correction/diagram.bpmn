@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_customer_part" name="Customer" processRef="pool_customer_proc" />
+    <bpmn:participant id="pool_crs_part" name="CRS" processRef="pool_crs_proc" />
+    <bpmn:messageFlow id="msg_flow_computer" sourceRef="event_start_cust" targetRef="event_start_crs" name="Defective Computer" />
+    <bpmn:messageFlow id="msg_flow_cost_calc" sourceRef="task_check_defect" targetRef="task_decide_cost" name="Repair Cost Calculation" />
+    <bpmn:messageFlow id="msg_flow_decision" sourceRef="task_decide_cost" targetRef="gw_crs_decision" name="Decision (Accept/Reject)" />
+    <bpmn:messageFlow id="msg_flow_repaired_computer" sourceRef="event_end_crs_finished" targetRef="event_end_cust_repaired" name="Repaired Computer" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_customer_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_cost_calculation_p1" name="Repair Cost Calculation" dataObjectRef="data_cost_calculation_p1_do" />
+    <bpmn:dataObject id="data_cost_calculation_p1_do" />
+    <bpmn:startEvent id="event_start_cust" name="Defective computer brought in">
+      <bpmn:outgoing>flow_cust_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end_cust_take_home" name="Take computer home unrepaired">
+      <bpmn:incoming>flow_cust_decline</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_cust_repaired" name="Take repaired computer home">
+      <bpmn:incoming>flow_cust_accept</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_decide_cost" name="Decide if costs are acceptable">
+      <bpmn:incoming>flow_cust_1</bpmn:incoming>
+      <bpmn:outgoing>flow_cust_2</bpmn:outgoing>
+      <bpmn:property id="task_decide_cost_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_decide_cost_dia0">
+        <bpmn:sourceRef>data_cost_calculation_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_decide_cost_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_cost_acceptable" name="Costs acceptable?" isMarkerVisible="true">
+      <bpmn:incoming>flow_cust_2</bpmn:incoming>
+      <bpmn:outgoing>flow_cust_decline</bpmn:outgoing>
+      <bpmn:outgoing>flow_cust_accept</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_cust_1" sourceRef="event_start_cust" targetRef="task_decide_cost" />
+    <bpmn:sequenceFlow id="flow_cust_2" sourceRef="task_decide_cost" targetRef="gw_cost_acceptable" />
+    <bpmn:sequenceFlow id="flow_cust_decline" sourceRef="gw_cost_acceptable" targetRef="event_end_cust_take_home" name="Costs not acceptable" />
+    <bpmn:sequenceFlow id="flow_cust_accept" sourceRef="gw_cost_acceptable" targetRef="event_end_cust_repaired" name="Costs acceptable" />
+  </bpmn:process>
+  <bpmn:process id="pool_crs_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_cost_calculation" name="Repair Cost Calculation" dataObjectRef="data_cost_calculation_do" />
+    <bpmn:dataObject id="data_cost_calculation_do" />
+    <bpmn:startEvent id="event_start_crs" name="Defective computer received">
+      <bpmn:outgoing>flow_crs_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_crs_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end_crs_cancelled" name="Process terminated (declined)">
+      <bpmn:incoming>flow_crs_decline</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_crs_finished" name="Computer handed over">
+      <bpmn:incoming>flow_error_no</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_end_crs_finished_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_check_defect" name="Check defect and prepare cost calculation">
+      <bpmn:incoming>flow_crs_1</bpmn:incoming>
+      <bpmn:outgoing>flow_crs_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_check_defect_doa0">
+        <bpmn:targetRef>data_cost_calculation</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_repair_hw" name="Check and repair hardware">
+      <bpmn:incoming>flow_split_hw</bpmn:incoming>
+      <bpmn:outgoing>flow_hw_test</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_repair_sw" name="Check and configure software">
+      <bpmn:incoming>flow_split_sw</bpmn:incoming>
+      <bpmn:outgoing>flow_sw_test</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_test_hw" name="Test system functionality (HW)">
+      <bpmn:incoming>flow_hw_test</bpmn:incoming>
+      <bpmn:outgoing>flow_join_hw</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_test_sw" name="Test system functionality (SW)">
+      <bpmn:incoming>flow_sw_test</bpmn:incoming>
+      <bpmn:outgoing>flow_join_sw</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="gw_crs_decision" name="Customer decision received" isMarkerVisible="true">
+      <bpmn:incoming>flow_crs_2</bpmn:incoming>
+      <bpmn:outgoing>flow_crs_decline</bpmn:outgoing>
+      <bpmn:outgoing>flow_crs_continue</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_repair_split" name="Parallel repair tasks">
+      <bpmn:incoming>flow_crs_continue</bpmn:incoming>
+      <bpmn:incoming>flow_error_yes</bpmn:incoming>
+      <bpmn:outgoing>flow_split_hw</bpmn:outgoing>
+      <bpmn:outgoing>flow_split_sw</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_repair_join" name="Parallel repair completed">
+      <bpmn:incoming>flow_join_hw</bpmn:incoming>
+      <bpmn:incoming>flow_join_sw</bpmn:incoming>
+      <bpmn:outgoing>flow_crs_check</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:exclusiveGateway id="gw_check_errors" name="Error detected?" isMarkerVisible="true">
+      <bpmn:incoming>flow_crs_check</bpmn:incoming>
+      <bpmn:outgoing>flow_error_yes</bpmn:outgoing>
+      <bpmn:outgoing>flow_error_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_crs_1" sourceRef="event_start_crs" targetRef="task_check_defect" />
+    <bpmn:sequenceFlow id="flow_crs_2" sourceRef="task_check_defect" targetRef="gw_crs_decision" />
+    <bpmn:sequenceFlow id="flow_crs_decline" sourceRef="gw_crs_decision" targetRef="event_end_crs_cancelled" name="Declined" />
+    <bpmn:sequenceFlow id="flow_crs_continue" sourceRef="gw_crs_decision" targetRef="gw_repair_split" name="Accepted" />
+    <bpmn:sequenceFlow id="flow_split_hw" sourceRef="gw_repair_split" targetRef="task_repair_hw" />
+    <bpmn:sequenceFlow id="flow_split_sw" sourceRef="gw_repair_split" targetRef="task_repair_sw" />
+    <bpmn:sequenceFlow id="flow_hw_test" sourceRef="task_repair_hw" targetRef="task_test_hw" />
+    <bpmn:sequenceFlow id="flow_sw_test" sourceRef="task_repair_sw" targetRef="task_test_sw" />
+    <bpmn:sequenceFlow id="flow_join_hw" sourceRef="task_test_hw" targetRef="gw_repair_join" />
+    <bpmn:sequenceFlow id="flow_join_sw" sourceRef="task_test_sw" targetRef="gw_repair_join" />
+    <bpmn:sequenceFlow id="flow_crs_check" sourceRef="gw_repair_join" targetRef="gw_check_errors" />
+    <bpmn:sequenceFlow id="flow_error_yes" sourceRef="gw_check_errors" targetRef="gw_repair_split" name="Error detected" />
+    <bpmn:sequenceFlow id="flow_error_no" sourceRef="gw_check_errors" targetRef="event_end_crs_finished" name="No error" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_customer_part_di" bpmnElement="pool_customer_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="950" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_crs_part_di" bpmnElement="pool_crs_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="1900" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_crs_cancelled_di" bpmnElement="event_end_crs_cancelled">
+        <dc:Bounds x="730" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_crs_finished_di" bpmnElement="event_end_crs_finished">
+        <dc:Bounds x="1680" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_cust_repaired_di" bpmnElement="event_end_cust_repaired">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_cust_take_home_di" bpmnElement="event_end_cust_take_home">
+        <dc:Bounds x="730" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_crs_di" bpmnElement="event_start_crs">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_cust_di" bpmnElement="event_start_cust">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_check_errors_di" bpmnElement="gw_check_errors">
+        <dc:Bounds x="1490" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_cost_acceptable_di" bpmnElement="gw_cost_acceptable">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_crs_decision_di" bpmnElement="gw_crs_decision">
+        <dc:Bounds x="540" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_repair_join_di" bpmnElement="gw_repair_join">
+        <dc:Bounds x="1300" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_repair_split_di" bpmnElement="gw_repair_split">
+        <dc:Bounds x="1680" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_defect_di" bpmnElement="task_check_defect">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_decide_cost_di" bpmnElement="task_decide_cost">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_repair_hw_di" bpmnElement="task_repair_hw">
+        <dc:Bounds x="920" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_repair_sw_di" bpmnElement="task_repair_sw">
+        <dc:Bounds x="920" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_test_hw_di" bpmnElement="task_test_hw">
+        <dc:Bounds x="1110" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_test_sw_di" bpmnElement="task_test_sw">
+        <dc:Bounds x="1110" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_cost_calculation_p1_di" bpmnElement="data_cost_calculation_p1">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_cost_calculation_di" bpmnElement="data_cost_calculation">
+        <dc:Bounds x="370" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_cust_1_di" bpmnElement="flow_cust_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cust_2_di" bpmnElement="flow_cust_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cust_decline_di" bpmnElement="flow_cust_decline">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="748" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cust_accept_di" bpmnElement="flow_cust_accept">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_crs_1_di" bpmnElement="flow_crs_1">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_crs_2_di" bpmnElement="flow_crs_2">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="565" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_crs_decline_di" bpmnElement="flow_crs_decline">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="748" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_crs_continue_di" bpmnElement="flow_crs_continue">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="1705" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_split_hw_di" bpmnElement="flow_split_hw">
+        <di:waypoint x="1705" y="710" />
+        <di:waypoint x="970" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_split_sw_di" bpmnElement="flow_split_sw">
+        <di:waypoint x="1705" y="710" />
+        <di:waypoint x="970" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hw_test_di" bpmnElement="flow_hw_test">
+        <di:waypoint x="970" y="600" />
+        <di:waypoint x="1160" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sw_test_di" bpmnElement="flow_sw_test">
+        <di:waypoint x="970" y="725" />
+        <di:waypoint x="1160" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_join_hw_di" bpmnElement="flow_join_hw">
+        <di:waypoint x="1160" y="600" />
+        <di:waypoint x="1325" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_join_sw_di" bpmnElement="flow_join_sw">
+        <di:waypoint x="1160" y="725" />
+        <di:waypoint x="1325" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_crs_check_di" bpmnElement="flow_crs_check">
+        <di:waypoint x="1325" y="585" />
+        <di:waypoint x="1515" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_error_yes_di" bpmnElement="flow_error_yes">
+        <di:waypoint x="1515" y="585" />
+        <di:waypoint x="1705" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_error_no_di" bpmnElement="flow_error_no">
+        <di:waypoint x="1515" y="585" />
+        <di:waypoint x="1698" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_computer_di" bpmnElement="msg_flow_computer">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_cost_calc_di" bpmnElement="msg_flow_cost_calc">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_decision_di" bpmnElement="msg_flow_decision">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_repaired_computer_di" bpmnElement="msg_flow_repaired_computer">
+        <di:waypoint x="1698" y="578" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_defect_doa0_di" bpmnElement="task_check_defect_doa0">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="388" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_decide_cost_dia0_di" bpmnElement="task_decide_cost_dia0">
+        <di:waypoint x="388" y="390" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_MeasuringPointChange"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- Collaboration for choreography/interaction context -->
+  <bpmn:collaboration id="Collaboration_01">
+    <bpmn:participant id="Participant_MPO" name="Metering Point Operator (MPO)" processRef="Process_MPO_Change" />
+    <bpmn:participant id="Participant_External" name="SP / PU / GO" />
+    <bpmn:messageFlow id="MessageFlow_Request" name="Change Request" sourceRef="Participant_External" targetRef="StartEvent_RequestReceived" />
+    <bpmn:messageFlow id="MessageFlow_Rejection" name="Rejection Notification" sourceRef="Task_RejectRequest" targetRef="Participant_External" />
+    <bpmn:messageFlow id="MessageFlow_Confirmation" name="Confirmation Notification" sourceRef="Task_ConfirmRequest" targetRef="Participant_External" />
+    <bpmn:messageFlow id="MessageFlow_Implementation" name="Implementation Report" sourceRef="Task_ReportImplementation" targetRef="Participant_External" />
+    <bpmn:messageFlow id="MessageFlow_Failure" name="Failure Notification" sourceRef="Task_NotifyFailure" targetRef="Participant_External" />
+  </bpmn:collaboration>
+
+  <!-- Process definition for MPO -->
+  <bpmn:process id="Process_MPO_Change" name="Measuring Point Change Process" isExecutable="true">
+    
+    <!-- Start Events -->
+    <bpmn:startEvent id="StartEvent_InternalTrigger" name="MPO Causes Change">
+      <bpmn:outgoing>SequenceFlow_InternalToMerge</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:startEvent id="StartEvent_RequestReceived" name="Change Request Received from SP/PU/GO">
+      <bpmn:messageEventDefinition id="MessageEventDefinition_01" />
+      <bpmn:outgoing>SequenceFlow_RequestToReview</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Review Phase -->
+    <bpmn:userTask id="Task_ReviewRequest" name="Review Change Request">
+      <bpmn:incoming>SequenceFlow_RequestToReview</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ReviewToGatewayDecision</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ReviewDecision" name="Review Decision?">
+      <bpmn:incoming>SequenceFlow_ReviewToGatewayDecision</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_DecisionToReject</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_DecisionToConfirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Path A: Rejection -->
+    <bpmn:sendTask id="Task_RejectRequest" name="Reject Change Request">
+      <bpmn:incoming>SequenceFlow_DecisionToReject</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_RejectToEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_Rejected" name="Change Request Rejected">
+      <bpmn:incoming>SequenceFlow_RejectToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Path B: Confirmation & Merge -->
+    <bpmn:sendTask id="Task_ConfirmRequest" name="Confirm Change Request">
+      <bpmn:incoming>SequenceFlow_DecisionToConfirm</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ConfirmToMerge</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MergeTriggers" name="Merge Triggers">
+      <bpmn:incoming>SequenceFlow_InternalToMerge</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_ConfirmToMerge</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_MergeToPerform</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Execution Phase -->
+    <bpmn:serviceTask id="Task_PerformChange" name="Perform Measuring Point Change">
+      <bpmn:incoming>SequenceFlow_MergeToPerform</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_PerformToOutcome</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ExecutionOutcome" name="Change Successful?">
+      <bpmn:incoming>SequenceFlow_PerformToOutcome</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_OutcomeToSuccess</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_OutcomeToFailure</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Outcomes -->
+    <bpmn:sendTask id="Task_ReportImplementation" name="Report Implementation">
+      <bpmn:incoming>SequenceFlow_OutcomeToSuccess</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ReportToEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_Completed" name="Change Implemented">
+      <bpmn:incoming>SequenceFlow_ReportToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sendTask id="Task_NotifyFailure" name="Notify Failure of Changes">
+      <bpmn:incoming>SequenceFlow_OutcomeToFailure</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_FailureToEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_Failed" name="Change Failed">
+      <bpmn:incoming>SequenceFlow_FailureToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="SequenceFlow_InternalToMerge" sourceRef="StartEvent_InternalTrigger" targetRef="Gateway_MergeTriggers" />
+    <bpmn:sequenceFlow id="SequenceFlow_RequestToReview" sourceRef="StartEvent_RequestReceived" targetRef="Task_ReviewRequest" />
+    <bpmn:sequenceFlow id="SequenceFlow_ReviewToGatewayDecision" sourceRef="Task_ReviewRequest" targetRef="Gateway_ReviewDecision" />
+    <bpmn:sequenceFlow id="SequenceFlow_DecisionToReject" name="Rejected" sourceRef="Gateway_ReviewDecision" targetRef="Task_RejectRequest" />
+    <bpmn:sequenceFlow id="SequenceFlow_DecisionToConfirm" name="Confirmed" sourceRef="Gateway_ReviewDecision" targetRef="Task_ConfirmRequest" />
+    <bpmn:sequenceFlow id="SequenceFlow_RejectToEnd" sourceRef="Task_RejectRequest" targetRef="EndEvent_Rejected" />
+    <bpmn:sequenceFlow id="SequenceFlow_ConfirmToMerge" sourceRef="Task_ConfirmRequest" targetRef="Gateway_MergeTriggers" />
+    <bpmn:sequenceFlow id="SequenceFlow_MergeToPerform" sourceRef="Gateway_MergeTriggers" targetRef="Task_PerformChange" />
+    <bpmn:sequenceFlow id="SequenceFlow_PerformToOutcome" sourceRef="Task_PerformChange" targetRef="Gateway_ExecutionOutcome" />
+    <bpmn:sequenceFlow id="SequenceFlow_OutcomeToSuccess" name="Yes" sourceRef="Gateway_ExecutionOutcome" targetRef="Task_ReportImplementation" />
+    <bpmn:sequenceFlow id="SequenceFlow_OutcomeToFailure" name="No" sourceRef="Gateway_ExecutionOutcome" targetRef="Task_NotifyFailure" />
+    <bpmn:sequenceFlow id="SequenceFlow_ReportToEnd" sourceRef="Task_ReportImplementation" targetRef="EndEvent_Completed" />
+    <bpmn:sequenceFlow id="SequenceFlow_FailureToEnd" sourceRef="Task_NotifyFailure" targetRef="EndEvent_Failed" />
+
+  </bpmn:process>
+
+  <!-- BPMN Diagram Layout -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_01">
+      
+      <!-- Pools -->
+      <bpmndi:BPMNShape id="Participant_MPO_di" bpmnElement="Participant_MPO" isHorizontal="true">
+        <dc:Bounds x="160" y="200" width="1280" height="420" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_External_di" bpmnElement="Participant_External" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1280" height="60" />
+      </bpmndi:BPMNShape>
+
+      <!-- Flow Nodes within MPO Pool -->
+      <bpmndi:BPMNShape id="StartEvent_InternalTrigger_di" bpmnElement="StartEvent_InternalTrigger">
+        <dc:Bounds x="232" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="217" y="285" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_RequestReceived_di" bpmnElement="StartEvent_RequestReceived">
+        <dc:Bounds x="232" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="208" y="425" width="85" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReviewRequest_di" bpmnElement="Task_ReviewRequest">
+        <dc:Bounds x="320" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ReviewDecision_di" bpmnElement="Gateway_ReviewDecision" isMarkerVisible="true">
+        <dc:Bounds x="475" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="456" y="351" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RejectRequest_di" bpmnElement="Task_RejectRequest">
+        <dc:Bounds x="580" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="732" y="502" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="708" y="545" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ConfirmRequest_di" bpmnElement="Task_ConfirmRequest">
+        <dc:Bounds x="580" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MergeTriggers_di" bpmnElement="Gateway_MergeTriggers" isMarkerVisible="true">
+        <dc:Bounds x="725" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="713" y="211" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PerformChange_di" bpmnElement="Task_PerformChange">
+        <dc:Bounds x="830" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ExecutionOutcome_di" bpmnElement="Gateway_ExecutionOutcome" isMarkerVisible="true">
+        <dc:Bounds x="985" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="978" y="198" width="64" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReportImplementation_di" bpmnElement="Task_ReportImplementation">
+        <dc:Bounds x="1090" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Completed_di" bpmnElement="EndEvent_Completed">
+        <dc:Bounds x="1252" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1238" y="285" width="65" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_NotifyFailure_di" bpmnElement="Task_NotifyFailure">
+        <dc:Bounds x="1090" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Failed_di" bpmnElement="EndEvent_Failed">
+        <dc:Bounds x="1252" y="362" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1235" y="405" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="SequenceFlow_InternalToMerge_di" bpmnElement="SequenceFlow_InternalToMerge">
+        <di:waypoint x="268" y="260" />
+        <di:waypoint x="725" y="260" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_RequestToReview_di" bpmnElement="SequenceFlow_RequestToReview">
+        <di:waypoint x="268" y="400" />
+        <di:waypoint x="320" y="400" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ReviewToGatewayDecision_di" bpmnElement="SequenceFlow_ReviewToGatewayDecision">
+        <di:waypoint x="420" y="400" />
+        <di:waypoint x="475" y="400" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_DecisionToReject_di" bpmnElement="SequenceFlow_DecisionToReject">
+        <di:waypoint x="500" y="425" />
+        <di:waypoint x="500" y="520" />
+        <di:waypoint x="580" y="520" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="508" y="470" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_DecisionToConfirm_di" bpmnElement="SequenceFlow_DecisionToConfirm">
+        <di:waypoint x="525" y="400" />
+        <di:waypoint x="580" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="527" y="382" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_RejectToEnd_di" bpmnElement="SequenceFlow_RejectToEnd">
+        <di:waypoint x="680" y="520" />
+        <di:waypoint x="732" y="520" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ConfirmToMerge_di" bpmnElement="SequenceFlow_ConfirmToMerge">
+        <di:waypoint x="680" y="400" />
+        <di:waypoint x="750" y="400" />
+        <di:waypoint x="750" y="285" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_MergeToPerform_di" bpmnElement="SequenceFlow_MergeToPerform">
+        <di:waypoint x="775" y="260" />
+        <di:waypoint x="830" y="260" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_PerformToOutcome_di" bpmnElement="SequenceFlow_PerformToOutcome">
+        <di:waypoint x="930" y="260" />
+        <di:waypoint x="985" y="260" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_OutcomeToSuccess_di" bpmnElement="SequenceFlow_OutcomeToSuccess">
+        <di:waypoint x="1035" y="260" />
+        <di:waypoint x="1090" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1054" y="242" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_OutcomeToFailure_di" bpmnElement="SequenceFlow_OutcomeToFailure">
+        <di:waypoint x="1010" y="285" />
+        <di:waypoint x="1010" y="380" />
+        <di:waypoint x="1090" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1018" y="330" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ReportToEnd_di" bpmnElement="SequenceFlow_ReportToEnd">
+        <di:waypoint x="1190" y="260" />
+        <di:waypoint x="1252" y="260" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_FailureToEnd_di" bpmnElement="SequenceFlow_FailureToEnd">
+        <di:waypoint x="1190" y="380" />
+        <di:waypoint x="1252" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Message Flow Edges -->
+      <bpmndi:BPMNEdge id="MessageFlow_Request_di" bpmnElement="MessageFlow_Request">
+        <di:waypoint x="250" y="140" />
+        <di:waypoint x="250" y="382" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="259" y="163" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Rejection_di" bpmnElement="MessageFlow_Rejection">
+        <di:waypoint x="630" y="480" />
+        <di:waypoint x="630" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="636" y="163" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Confirmation_di" bpmnElement="MessageFlow_Confirmation">
+        <di:waypoint x="600" y="360" />
+        <di:waypoint x="600" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="528" y="163" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Implementation_di" bpmnElement="MessageFlow_Implementation">
+        <di:waypoint x="1140" y="220" />
+        <di:waypoint x="1140" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1146" y="163" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Failure_di" bpmnElement="MessageFlow_Failure">
+        <di:waypoint x="1110" y="340" />
+        <di:waypoint x="1110" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1051" y="163" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

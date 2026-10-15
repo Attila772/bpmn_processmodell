@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="EquipmentChangeProcess" name="Equipment Change Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Process Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_NotifyIntentions" />
+    
+    <!-- Step 1: The MPON notifies the MPOO about equipment change intentions. -->
+    <bpmn:task id="Task_NotifyIntentions" name="MPON notifies MPOO about equipment change intentions">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_NotifyIntentions" targetRef="Gateway_DismountDecision" />
+
+    <!-- Step 2: The MPOO announces self dismounting to the MPON or the MPOO shall notify the MPON about no self-dismounting of the MPOO. -->
+    <bpmn:exclusiveGateway id="Gateway_DismountDecision" name="Dismount Decision">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_SelfDismount</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoSelfDismount</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:sequenceFlow id="Flow_SelfDismount" name="Self Dismounting" sourceRef="Gateway_DismountDecision" targetRef="Task_MPOOAnnounceSelfDismount">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">selfDismount == true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_NoSelfDismount" name="No Self Dismounting" sourceRef="Gateway_DismountDecision" targetRef="Task_MPOONotifyNoSelfDismount">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">selfDismount == false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:task id="Task_MPOOAnnounceSelfDismount" name="MPOO announces self dismounting to MPON">
+      <bpmn:incoming>Flow_SelfDismount</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToFinalReading</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MPOONotifyNoSelfDismount" name="MPOO notifies MPON about no self-dismounting">
+      <bpmn:incoming>Flow_NoSelfDismount</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToFinalReading</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_ToFinalReading" sourceRef="Task_MPOOAnnounceSelfDismount" targetRef="Task_FinalReading" />
+    <bpmn:sequenceFlow id="Flow_FromNoSelfToFinal" sourceRef="Task_MPOONotifyNoSelfDismount" targetRef="Task_FinalReading" />
+
+    <!-- Step 3: The MPON or the MPOO perform the final reading. -->
+    <bpmn:task id="Task_FinalReading" name="Perform final reading (MPON or MPOO)">
+      <bpmn:incoming>Flow_ToFinalReading</bpmn:incoming>
+      <bpmn:incoming>Flow_FromNoSelfToFinal</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToDismountOld</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ToDismountOld" sourceRef="Task_FinalReading" targetRef="Task_DismountOldEquipment" />
+
+    <!-- Step 4: The MPON or the MPOO dismount the old equipment. -->
+    <bpmn:task id="Task_DismountOldEquipment" name="Dismount old equipment (MPON or MPOO)">
+      <bpmn:incoming>Flow_ToDismountOld</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToMountNew</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ToMountNew" sourceRef="Task_DismountOldEquipment" targetRef="Task_MountNewDevice" />
+
+    <!-- Step 5: The MPON mounts the new device. -->
+    <bpmn:task id="Task_MountNewDevice" name="MPON mounts the new device">
+      <bpmn:incoming>Flow_ToMountNew</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToReadMeter</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ToReadMeter" sourceRef="Task_MountNewDevice" targetRef="Task_ReadMeterCount" />
+
+    <!-- Step 6: The MPON reads the meter count from the installed meter. -->
+    <bpmn:task id="Task_ReadMeterCount" name="MPON reads meter count from installed meter">
+      <bpmn:incoming>Flow_ToReadMeter</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToSendFinalReading</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ToSendFinalReading" sourceRef="Task_ReadMeterCount" targetRef="Task_SendFinalReadingToGO" />
+
+    <!-- Step 7: The MPON sents the values of the final reading to the GO. -->
+    <bpmn:task id="Task_SendFinalReadingToGO" name="MPON sends final reading values to GO">
+      <bpmn:incoming>Flow_ToSendFinalReading</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToNotifyDeviceChanges</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ToNotifyDeviceChanges" sourceRef="Task_SendFinalReadingToGO" targetRef="Task_NotifyDeviceChangesToGO" />
+
+    <!-- Step 8: The MPON tells the GO about the device changes, the master data and the meter count at installation. -->
+    <bpmn:task id="Task_NotifyDeviceChangesToGO" name="MPON tells GO about device changes, master data, and meter count at installation">
+      <bpmn:incoming>Flow_ToNotifyDeviceChanges</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToNotifyMSP</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ToNotifyMSP" sourceRef="Task_NotifyDeviceChangesToGO" targetRef="Task_GONotifiesMSP" />
+
+    <!-- Step 9: The GO shall notify the MSP about the device changes, the master data, the meter count at dismounting, and the meter count at installation. -->
+    <bpmn:task id="Task_GONotifiesMSP" name="GO notifies MSP about device changes, master data, meter count at dismounting, and meter count at installation">
+      <bpmn:incoming>Flow_ToNotifyMSP</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEnd</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ToEnd" sourceRef="Task_GONotifiesMSP" targetRef="EndEvent_1" />
+
+    <bpmn:endEvent id="EndEvent_1" name="Process End">
+      <bpmn:incoming>Flow_ToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+</bpmn:definitions>

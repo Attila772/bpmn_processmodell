@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="data_claim_forms" name="Claim Forms" dataObjectRef="data_claim_forms_do" />
+    <bpmn:dataObject id="data_claim_forms_do" />
+    <bpmn:dataStoreReference id="store_claims_management_system" name="Claims Management System" />
+    <bpmn:startEvent id="start_claim_received" name="Claim received">
+      <bpmn:outgoing>sf_start_to_check</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_claim_received_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_claim_rejected" name="Claim rejected">
+      <bpmn:incoming>sf_inform_to_end_rejected</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_claim_registered" name="Claim notification completed">
+      <bpmn:incoming>sf_register_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_check_insurance" name="Check if claimant is insured">
+      <bpmn:incoming>sf_start_to_check</bpmn:incoming>
+      <bpmn:outgoing>sf_check_to_gw_insured</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_inform_rejection" name="Inform claimant of rejection">
+      <bpmn:incoming>sf_insured_no</bpmn:incoming>
+      <bpmn:outgoing>sf_inform_to_end_rejected</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_evaluate_severity" name="Evaluate severity of the claim">
+      <bpmn:incoming>sf_insured_yes</bpmn:incoming>
+      <bpmn:outgoing>sf_evaluate_to_gw_severity</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_send_simple_forms" name="Send relevant forms for simple claim">
+      <bpmn:incoming>sf_severity_simple</bpmn:incoming>
+      <bpmn:outgoing>sf_simple_to_join</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_simple_forms_doa0">
+        <bpmn:targetRef>data_claim_forms</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_send_complex_forms" name="Send relevant forms for complex claim">
+      <bpmn:incoming>sf_severity_complex</bpmn:incoming>
+      <bpmn:outgoing>sf_complex_to_join</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_complex_forms_doa0">
+        <bpmn:targetRef>data_claim_forms</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_receive_forms" name="Receive returned forms">
+      <bpmn:incoming>sf_join_to_receive</bpmn:incoming>
+      <bpmn:outgoing>sf_receive_to_loop_merge</bpmn:outgoing>
+      <bpmn:property id="task_receive_forms_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_receive_forms_dia0">
+        <bpmn:sourceRef>data_claim_forms</bpmn:sourceRef>
+        <bpmn:targetRef>task_receive_forms_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_check_completeness" name="Check forms for completeness">
+      <bpmn:incoming>sf_loop_merge_to_check</bpmn:incoming>
+      <bpmn:outgoing>sf_check_to_gw_complete</bpmn:outgoing>
+      <bpmn:property id="task_check_completeness_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_completeness_dia0">
+        <bpmn:sourceRef>data_claim_forms</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_completeness_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_inform_update_forms" name="Inform claimant to update forms">
+      <bpmn:incoming>sf_complete_no</bpmn:incoming>
+      <bpmn:outgoing>sf_inform_to_receive_updated</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_receive_updated_forms" name="Receive updated forms">
+      <bpmn:incoming>sf_inform_to_receive_updated</bpmn:incoming>
+      <bpmn:outgoing>sf_receive_updated_to_loop_merge</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_receive_updated_forms_doa0">
+        <bpmn:targetRef>data_claim_forms</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_register_claim" name="Register claim in Claims Management system">
+      <bpmn:incoming>sf_complete_yes</bpmn:incoming>
+      <bpmn:outgoing>sf_register_to_end</bpmn:outgoing>
+      <bpmn:property id="task_register_claim_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_register_claim_dia0">
+        <bpmn:sourceRef>data_claim_forms</bpmn:sourceRef>
+        <bpmn:targetRef>task_register_claim_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_register_claim_doa0">
+        <bpmn:targetRef>store_claims_management_system</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_insured_check" name="Is claimant insured?" isMarkerVisible="true">
+      <bpmn:incoming>sf_check_to_gw_insured</bpmn:incoming>
+      <bpmn:outgoing>sf_insured_no</bpmn:outgoing>
+      <bpmn:outgoing>sf_insured_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_severity_split" name="Claim severity?" isMarkerVisible="true">
+      <bpmn:incoming>sf_evaluate_to_gw_severity</bpmn:incoming>
+      <bpmn:outgoing>sf_severity_simple</bpmn:outgoing>
+      <bpmn:outgoing>sf_severity_complex</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_severity_join" name="Forms sent join" isMarkerVisible="true">
+      <bpmn:incoming>sf_simple_to_join</bpmn:incoming>
+      <bpmn:incoming>sf_complex_to_join</bpmn:incoming>
+      <bpmn:outgoing>sf_join_to_receive</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_completeness_check" name="Are forms complete?" isMarkerVisible="true">
+      <bpmn:incoming>sf_check_to_gw_complete</bpmn:incoming>
+      <bpmn:outgoing>sf_complete_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_complete_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_loop_merge" name="Loop merge for updated forms" isMarkerVisible="true">
+      <bpmn:incoming>sf_receive_to_loop_merge</bpmn:incoming>
+      <bpmn:incoming>sf_receive_updated_to_loop_merge</bpmn:incoming>
+      <bpmn:outgoing>sf_loop_merge_to_check</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_start_to_check" sourceRef="start_claim_received" targetRef="task_check_insurance" />
+    <bpmn:sequenceFlow id="sf_check_to_gw_insured" sourceRef="task_check_insurance" targetRef="gw_insured_check" />
+    <bpmn:sequenceFlow id="sf_insured_no" sourceRef="gw_insured_check" targetRef="task_inform_rejection" name="No" />
+    <bpmn:sequenceFlow id="sf_inform_to_end_rejected" sourceRef="task_inform_rejection" targetRef="end_claim_rejected" />
+    <bpmn:sequenceFlow id="sf_insured_yes" sourceRef="gw_insured_check" targetRef="task_evaluate_severity" name="Yes" />
+    <bpmn:sequenceFlow id="sf_evaluate_to_gw_severity" sourceRef="task_evaluate_severity" targetRef="gw_severity_split" />
+    <bpmn:sequenceFlow id="sf_severity_simple" sourceRef="gw_severity_split" targetRef="task_send_simple_forms" name="Simple claim" />
+    <bpmn:sequenceFlow id="sf_severity_complex" sourceRef="gw_severity_split" targetRef="task_send_complex_forms" name="Complex claim" />
+    <bpmn:sequenceFlow id="sf_simple_to_join" sourceRef="task_send_simple_forms" targetRef="gw_severity_join" />
+    <bpmn:sequenceFlow id="sf_complex_to_join" sourceRef="task_send_complex_forms" targetRef="gw_severity_join" />
+    <bpmn:sequenceFlow id="sf_join_to_receive" sourceRef="gw_severity_join" targetRef="task_receive_forms" />
+    <bpmn:sequenceFlow id="sf_receive_to_loop_merge" sourceRef="task_receive_forms" targetRef="gw_loop_merge" />
+    <bpmn:sequenceFlow id="sf_loop_merge_to_check" sourceRef="gw_loop_merge" targetRef="task_check_completeness" />
+    <bpmn:sequenceFlow id="sf_check_to_gw_complete" sourceRef="task_check_completeness" targetRef="gw_completeness_check" />
+    <bpmn:sequenceFlow id="sf_complete_yes" sourceRef="gw_completeness_check" targetRef="task_register_claim" name="Yes" />
+    <bpmn:sequenceFlow id="sf_register_to_end" sourceRef="task_register_claim" targetRef="end_claim_registered" />
+    <bpmn:sequenceFlow id="sf_complete_no" sourceRef="gw_completeness_check" targetRef="task_inform_update_forms" name="No" />
+    <bpmn:sequenceFlow id="sf_inform_to_receive_updated" sourceRef="task_inform_update_forms" targetRef="task_receive_updated_forms" />
+    <bpmn:sequenceFlow id="sf_receive_updated_to_loop_merge" sourceRef="task_receive_updated_forms" targetRef="gw_loop_merge" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="end_claim_registered_di" bpmnElement="end_claim_registered">
+        <dc:Bounds x="2440" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_claim_rejected_di" bpmnElement="end_claim_rejected">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_completeness_check_di" bpmnElement="gw_completeness_check">
+        <dc:Bounds x="2060" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_insured_check_di" bpmnElement="gw_insured_check">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_loop_merge_di" bpmnElement="gw_loop_merge">
+        <dc:Bounds x="2630" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_severity_join_di" bpmnElement="gw_severity_join">
+        <dc:Bounds x="1300" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_severity_split_di" bpmnElement="gw_severity_split">
+        <dc:Bounds x="920" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_claim_received_di" bpmnElement="start_claim_received">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_completeness_di" bpmnElement="task_check_completeness">
+        <dc:Bounds x="1870" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_insurance_di" bpmnElement="task_check_insurance">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_evaluate_severity_di" bpmnElement="task_evaluate_severity">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_rejection_di" bpmnElement="task_inform_rejection">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_update_forms_di" bpmnElement="task_inform_update_forms">
+        <dc:Bounds x="2250" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_receive_forms_di" bpmnElement="task_receive_forms">
+        <dc:Bounds x="1490" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_receive_updated_forms_di" bpmnElement="task_receive_updated_forms">
+        <dc:Bounds x="2440" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_register_claim_di" bpmnElement="task_register_claim">
+        <dc:Bounds x="2250" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_complex_forms_di" bpmnElement="task_send_complex_forms">
+        <dc:Bounds x="1110" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_simple_forms_di" bpmnElement="task_send_simple_forms">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_claim_forms_di" bpmnElement="data_claim_forms">
+        <dc:Bounds x="1731" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="store_claims_management_system_di" bpmnElement="store_claims_management_system">
+        <dc:Bounds x="2270" y="365" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_start_to_check_di" bpmnElement="sf_start_to_check">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_check_to_gw_insured_di" bpmnElement="sf_check_to_gw_insured">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_insured_no_di" bpmnElement="sf_insured_no">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_inform_to_end_rejected_di" bpmnElement="sf_inform_to_end_rejected">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_insured_yes_di" bpmnElement="sf_insured_yes">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_evaluate_to_gw_severity_di" bpmnElement="sf_evaluate_to_gw_severity">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="945" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_severity_simple_di" bpmnElement="sf_severity_simple">
+        <di:waypoint x="945" y="250" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_severity_complex_di" bpmnElement="sf_severity_complex">
+        <di:waypoint x="945" y="250" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_simple_to_join_di" bpmnElement="sf_simple_to_join">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_complex_to_join_di" bpmnElement="sf_complex_to_join">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_join_to_receive_di" bpmnElement="sf_join_to_receive">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_receive_to_loop_merge_di" bpmnElement="sf_receive_to_loop_merge">
+        <di:waypoint x="1540" y="140" />
+        <di:waypoint x="2655" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_loop_merge_to_check_di" bpmnElement="sf_loop_merge_to_check">
+        <di:waypoint x="2655" y="125" />
+        <di:waypoint x="1920" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_check_to_gw_complete_di" bpmnElement="sf_check_to_gw_complete">
+        <di:waypoint x="1920" y="140" />
+        <di:waypoint x="2085" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_complete_yes_di" bpmnElement="sf_complete_yes">
+        <di:waypoint x="2085" y="125" />
+        <di:waypoint x="2300" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_register_to_end_di" bpmnElement="sf_register_to_end">
+        <di:waypoint x="2300" y="265" />
+        <di:waypoint x="2458" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_complete_no_di" bpmnElement="sf_complete_no">
+        <di:waypoint x="2085" y="125" />
+        <di:waypoint x="2300" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_inform_to_receive_updated_di" bpmnElement="sf_inform_to_receive_updated">
+        <di:waypoint x="2300" y="140" />
+        <di:waypoint x="2490" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_receive_updated_to_loop_merge_di" bpmnElement="sf_receive_updated_to_loop_merge">
+        <di:waypoint x="2490" y="265" />
+        <di:waypoint x="2655" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_simple_forms_doa0_di" bpmnElement="task_send_simple_forms_doa0">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1749" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_complex_forms_doa0_di" bpmnElement="task_send_complex_forms_doa0">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1749" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_receive_forms_dia0_di" bpmnElement="task_receive_forms_dia0">
+        <di:waypoint x="1749" y="390" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_completeness_dia0_di" bpmnElement="task_check_completeness_dia0">
+        <di:waypoint x="1749" y="390" />
+        <di:waypoint x="1920" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_receive_updated_forms_doa0_di" bpmnElement="task_receive_updated_forms_doa0">
+        <di:waypoint x="2490" y="265" />
+        <di:waypoint x="1749" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_claim_dia0_di" bpmnElement="task_register_claim_dia0">
+        <di:waypoint x="1749" y="390" />
+        <di:waypoint x="2300" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_claim_doa0_di" bpmnElement="task_register_claim_doa0">
+        <di:waypoint x="2300" y="265" />
+        <di:waypoint x="2295" y="390" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

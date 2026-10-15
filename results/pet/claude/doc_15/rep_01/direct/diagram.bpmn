@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_CoordinationUnit" name="Coordination Unit" processRef="Process_CoordinationUnit" />
+    <bpmn:participant id="Participant_SupportOfficer" name="Support Officer" processRef="Process_SupportOfficer" />
+    <bpmn:participant id="Participant_CommitteeMembers" name="Committee Members" processRef="Process_CommitteeMembers" />
+
+    <bpmn:messageFlow id="MessageFlow_1" sourceRef="Task_AddDraftDates" targetRef="Task_CheckDates" />
+    <bpmn:messageFlow id="MessageFlow_2" sourceRef="Task_SuggestModifications" targetRef="Task_RecheckDates" />
+    <bpmn:messageFlow id="MessageFlow_3" sourceRef="Task_SendFinalSchedule" targetRef="Task_CheckDiaries" />
+    <bpmn:messageFlow id="MessageFlow_4" sourceRef="Task_AdviseConflicts" targetRef="EndEvent_ProcessComplete" />
+  </bpmn:collaboration>
+
+  <!-- Coordination Unit Process -->
+  <bpmn:process id="Process_CoordinationUnit" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_November" name="November arrives">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_DraftSchedule" name="Draft schedule of meetings for next calendar year">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AddDraftDates" name="Add draft dates to all calendars">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="IntermediateEvent_ReceiveModifications" name="Modifications received">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDef_1" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_RecheckDates" name="Recheck all dates">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_LookForConflicts" name="Look for potential conflicts">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SendFinalSchedule" name="Send final schedule to Committee Members by email">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_ProcessComplete" name="Schedule confirmed">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MessageEventDef_2" />
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_November" targetRef="Task_DraftSchedule" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_DraftSchedule" targetRef="Task_AddDraftDates" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_AddDraftDates" targetRef="IntermediateEvent_ReceiveModifications" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="IntermediateEvent_ReceiveModifications" targetRef="Task_RecheckDates" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_RecheckDates" targetRef="Task_LookForConflicts" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_LookForConflicts" targetRef="Task_SendFinalSchedule" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_SendFinalSchedule" targetRef="EndEvent_ProcessComplete" />
+  </bpmn:process>
+
+  <!-- Support Officer Process -->
+  <bpmn:process id="Process_SupportOfficer" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_ReceiveDraft" name="Draft dates received">
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDef_3" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_CheckDates" name="Check the dates">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SuggestModifications" name="Suggest modifications">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_SupportOfficerDone" name="Modifications sent">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="StartEvent_ReceiveDraft" targetRef="Task_CheckDates" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_CheckDates" targetRef="Task_SuggestModifications" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_SuggestModifications" targetRef="EndEvent_SupportOfficerDone" />
+  </bpmn:process>
+
+  <!-- Committee Members Process -->
+  <bpmn:process id="Process_CommitteeMembers" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_ReceiveSchedule" name="Final schedule received">
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDef_4" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_CheckDiaries" name="Check diaries">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AdviseConflicts" name="Advise Coordination Unit of any conflicts">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_CommitteeDone" name="Conflicts advised">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="StartEvent_ReceiveSchedule" targetRef="Task_CheckDiaries" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_CheckDiaries" targetRef="Task_AdviseConflicts" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_AdviseConflicts" targetRef="EndEvent_CommitteeDone" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Participant_CoordinationUnit_di" bpmnElement="Participant_CoordinationUnit" isHorizontal="true">
+        <omgdc:Bounds x="120" y="60" width="900" height="220" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_November_di" bpmnElement="StartEvent_November">
+        <omgdc:Bounds x="160" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DraftSchedule_di" bpmnElement="Task_DraftSchedule">
+        <omgdc:Bounds x="240" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AddDraftDates_di" bpmnElement="Task_AddDraftDates">
+        <omgdc:Bounds x="380" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="IntermediateEvent_ReceiveModifications_di" bpmnElement="IntermediateEvent_ReceiveModifications">
+        <omgdc:Bounds x="520" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RecheckDates_di" bpmnElement="Task_RecheckDates">
+        <omgdc:Bounds x="600" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_LookForConflicts_di" bpmnElement="Task_LookForConflicts">
+        <omgdc:Bounds x="740" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendFinalSchedule_di" bpmnElement="Task_SendFinalSchedule">
+        <omgdc:Bounds x="880" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_ProcessComplete_di" bpmnElement="EndEvent_ProcessComplete">
+        <omgdc:Bounds x="1020" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_SupportOfficer_di" bpmnElement="Participant_SupportOfficer" isHorizontal="true">
+        <omgdc:Bounds x="380" y="320" width="400" height="160" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_ReceiveDraft_di" bpmnElement="StartEvent_ReceiveDraft">
+        <omgdc:Bounds x="420" y="382" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckDates_di" bpmnElement="Task_CheckDates">
+        <omgdc:Bounds x="500" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SuggestModifications_di" bpmnElement="Task_SuggestModifications">
+        <omgdc:Bounds x="640" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_SupportOfficerDone_di" bpmnElement="EndEvent_SupportOfficerDone">
+        <omgdc:Bounds x="780" y="382" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_CommitteeMembers_di" bpmnElement="Participant_CommitteeMembers" isHorizontal="true">
+        <omgdc:Bounds x="880" y="520" width="400" height="160" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_ReceiveSchedule_di" bpmnElement="StartEvent_ReceiveSchedule">
+        <omgdc:Bounds x="920" y="582" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckDiaries_di" bpmnElement="Task_CheckDiaries">
+        <omgdc:Bounds x="1000" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AdviseConflicts_di" bpmnElement="Task_AdviseConflicts">
+        <omgdc:Bounds x="1140" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_CommitteeDone_di" bpmnElement="EndEvent_CommitteeDone">
+        <omgdc:Bounds x="1280" y="582" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="196" y="160" />
+        <omgdi:waypoint x="240" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="340" y="160" />
+        <omgdi:waypoint x="380" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <omgdi:waypoint x="480" y="160" />
+        <omgdi:waypoint x="520" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <omgdi:waypoint x="556" y="160" />
+        <omgdi:waypoint x="600" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <omgdi:waypoint x="700" y="160" />
+        <omgdi:waypoint x="740" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <omgdi:waypoint x="840" y="160" />
+        <omgdi:waypoint x="880" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <omgdi:waypoint x="980" y="160" />
+        <omgdi:waypoint x="1020" y="160" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <omgdi:waypoint x="456" y="400" />
+        <omgdi:waypoint x="500" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <omgdi:waypoint x="600" y="400" />
+        <omgdi:waypoint x="640" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <omgdi:waypoint x="740" y="400" />
+        <omgdi:waypoint x="780" y="400" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <omgdi:waypoint x="956" y="600" />
+        <omgdi:waypoint x="1000" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <omgdi:waypoint x="1100" y="600" />
+        <omgdi:waypoint x="1140" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <omgdi:waypoint x="1240" y="600" />
+        <omgdi:waypoint x="1280" y="600" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_1_di" bpmnElement="MessageFlow_1">
+        <omgdi:waypoint x="430" y="200" />
+        <omgdi:waypoint x="430" y="360" />
+        <omgdi:waypoint x="550" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_2_di" bpmnElement="MessageFlow_2">
+        <omgdi:waypoint x="690" y="360" />
+        <omgdi:waypoint x="690" y="280" />
+        <omgdi:waypoint x="650" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_3_di" bpmnElement="MessageFlow_3">
+        <omgdi:waypoint x="930" y="200" />
+        <omgdi:waypoint x="930" y="490" />
+        <omgdi:waypoint x="1050" y="560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_4_di" bpmnElement="MessageFlow_4">
+        <omgdi:waypoint x="1190" y="560" />
+        <omgdi:waypoint x="1190" y="300" />
+        <omgdi:waypoint x="1038" y="178" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

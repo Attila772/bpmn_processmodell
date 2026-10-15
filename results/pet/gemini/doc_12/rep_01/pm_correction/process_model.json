@@ -1,0 +1,256 @@
+{
+  "name": "Order and Invoice Process",
+  "resources": [
+    {
+      "name": "Assembler AG",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "Supplier",
+      "capacity": 1,
+      "resource_type": "external_party"
+    }
+  ],
+  "events": [
+    {
+      "id": "event_start_month",
+      "name": "First of each month",
+      "event_position": "start",
+      "trigger_type": "timer",
+      "message_name": null
+    },
+    {
+      "id": "event_order_sent",
+      "name": "Order sent",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Product Parts Order"
+    },
+    {
+      "id": "event_order_received",
+      "name": "Order received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Product Parts Order"
+    },
+    {
+      "id": "event_invoice_sent",
+      "name": "Invoice sent",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Invoice"
+    },
+    {
+      "id": "event_invoice_received",
+      "name": "Invoice received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Invoice"
+    },
+    {
+      "id": "event_end_process",
+      "name": "Process completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_send_order",
+      "name": "Send order to supplier",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Assembler AG",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_order"
+      ]
+    },
+    {
+      "id": "task_process_order",
+      "name": "Process order",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Supplier",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_order"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_send_invoice",
+      "name": "Send invoice to Assembler AG",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Supplier",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_invoice"
+      ]
+    },
+    {
+      "id": "task_receive_invoice",
+      "name": "Receive invoice",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Assembler AG",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_invoice"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "event_start_month",
+      "target_id": "task_send_order",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_send_order",
+      "target_id": "event_order_sent",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "event_order_received",
+      "target_id": "task_process_order",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_process_order",
+      "target_id": "task_send_invoice",
+      "condition_name": null
+    },
+    {
+      "id": "flow_5",
+      "source_id": "task_send_invoice",
+      "target_id": "event_invoice_sent",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "event_invoice_received",
+      "target_id": "task_receive_invoice",
+      "condition_name": null
+    },
+    {
+      "id": "flow_7",
+      "source_id": "task_receive_invoice",
+      "target_id": "event_end_process",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_assembler_ag",
+      "name": "Assembler AG",
+      "element_ids": [
+        "event_start_month",
+        "task_send_order",
+        "event_order_sent",
+        "event_invoice_received",
+        "task_receive_invoice",
+        "event_end_process"
+      ]
+    },
+    {
+      "id": "pool_supplier",
+      "name": "Supplier",
+      "element_ids": [
+        "event_order_received",
+        "task_process_order",
+        "task_send_invoice",
+        "event_invoice_sent"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_order",
+      "source_id": "event_order_sent",
+      "target_id": "event_order_received",
+      "name": "Product Parts Order"
+    },
+    {
+      "id": "msg_flow_invoice",
+      "source_id": "event_invoice_sent",
+      "target_id": "event_invoice_received",
+      "name": "Invoice"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_order",
+      "name": "Order"
+    },
+    {
+      "id": "data_invoice",
+      "name": "Invoice"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

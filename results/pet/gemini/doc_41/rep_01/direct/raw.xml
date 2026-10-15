@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             id="definitions_car_accident_claim"
+             targetNamespace="http://bpmn.org/examples"
+             exporter="BPMN Modeler"
+             exporterVersion="1.0">
+
+  <!-- Collaboration definition -->
+  <collaboration id="collaboration_1">
+    <participant id="participant_1" name="Car Accident Claims Process" processRef="process_car_accident_claim" />
+  </collaboration>
+
+  <!-- Process definition -->
+  <process id="process_car_accident_claim" isExecutable="true">
+    
+    <!-- Lanes -->
+    <laneSet id="laneSet_1">
+      <lane id="lane_system" name="System / Database">
+        <flowNodeRef>start_event_1</flowNodeRef>
+        <flowNodeRef>task_search_police_report</flowNodeRef>
+        <flowNodeRef>task_file_docs</flowNodeRef>
+      </lane>
+      <lane id="lane_claims_handler" name="Claims Handler">
+        <flowNodeRef>task_calculate_estimate</flowNodeRef>
+        <flowNodeRef>task_create_action_plan</flowNodeRef>
+      </lane>
+      <lane id="lane_claims_manager" name="Claims Manager">
+        <flowNodeRef>task_negotiate_settlement</flowNodeRef>
+        <flowNodeRef>task_inform_claimant</flowNodeRef>
+        <flowNodeRef>end_event_1</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Data Objects & Stores -->
+    <dataStoreReference id="dataStore_police_db" name="Police Report Database" />
+    <dataStoreReference id="dataStore_dms" name="Document Management System" />
+
+    <dataObject id="dataObject_claim_doc" name="Claim Documentation" />
+    <dataObjectReference id="dataObjectRef_claim_doc" name="Claim Documentation" dataObjectRef="dataObject_claim_doc" />
+
+    <dataObject id="dataObject_police_report" name="Police Report" />
+    <dataObjectReference id="dataObjectRef_police_report" name="Police Report" dataObjectRef="dataObject_police_report" />
+
+    <dataObject id="dataObject_claim_file" name="Claim File" />
+    <dataObjectReference id="dataObjectRef_claim_file" name="Claim File" dataObjectRef="dataObject_claim_file" />
+
+    <dataObject id="dataObject_action_plan_checklist" name="Action Plan Checklist" />
+    <dataObjectReference id="dataObjectRef_action_plan_checklist" name="Action Plan Checklist" dataObjectRef="dataObject_action_plan_checklist" />
+
+    <dataObject id="dataObject_action_plan" name="Action Plan" />
+    <dataObjectReference id="dataObjectRef_action_plan" name="Action Plan" dataObjectRef="dataObject_action_plan" />
+
+    <!-- Process Nodes -->
+    <startEvent id="start_event_1" name="Car accident claim received">
+      <outgoing>flow_1</outgoing>
+    </startEvent>
+
+    <serviceTask id="task_search_police_report" name="Search Police Report">
+      <incoming>flow_1</incoming>
+      <outgoing>flow_2</outgoing>
+      <property id="property_search_police_report" name="property" />
+      <dataInputAssociation id="dia_1">
+        <sourceRef>dataStore_police_db</sourceRef>
+        <targetRef>property_search_police_report</targetRef>
+      </dataInputAssociation>
+      <dataOutputAssociation id="doa_1">
+        <sourceRef>task_search_police_report</sourceRef>
+        <targetRef>dataObjectRef_police_report</targetRef>
+      </dataOutputAssociation>
+    </serviceTask>
+
+    <task id="task_file_docs" name="Put Police Report and Claim Documentation in File">
+      <incoming>flow_2</incoming>
+      <outgoing>flow_3</outgoing>
+      <property id="property_file_docs" name="property" />
+      <dataInputAssociation id="dia_2">
+        <sourceRef>dataObjectRef_police_report</sourceRef>
+        <targetRef>property_file_docs</targetRef>
+      </dataInputAssociation>
+      <dataInputAssociation id="dia_3">
+        <sourceRef>dataObjectRef_claim_doc</sourceRef>
+        <targetRef>property_file_docs</targetRef>
+      </dataInputAssociation>
+      <dataOutputAssociation id="doa_2">
+        <sourceRef>task_file_docs</sourceRef>
+        <targetRef>dataObjectRef_claim_file</targetRef>
+      </dataOutputAssociation>
+    </task>
+
+    <userTask id="task_calculate_estimate" name="Calculate Initial Claim Estimate">
+      <incoming>flow_3</incoming>
+      <outgoing>flow_4</outgoing>
+      <property id="property_calculate_estimate" name="property" />
+      <dataInputAssociation id="dia_4">
+        <sourceRef>dataObjectRef_claim_file</sourceRef>
+        <targetRef>property_calculate_estimate</targetRef>
+      </dataInputAssociation>
+    </userTask>
+
+    <userTask id="task_create_action_plan" name="Create Action Plan">
+      <incoming>flow_4</incoming>
+      <outgoing>flow_5</outgoing>
+      <property id="property_create_action_plan" name="property" />
+      <dataInputAssociation id="dia_5">
+        <sourceRef>dataObjectRef_action_plan_checklist</sourceRef>
+        <targetRef>property_create_action_plan</targetRef>
+      </dataInputAssociation>
+      <dataOutputAssociation id="doa_3">
+        <sourceRef>task_create_action_plan</sourceRef>
+        <targetRef>dataObjectRef_action_plan</targetRef>
+      </dataOutputAssociation>
+    </userTask>
+
+    <userTask id="task_negotiate_settlement" name="Negotiate Settlement">
+      <incoming>flow_5</incoming>
+      <outgoing>flow_6</outgoing>
+      <property id="property_negotiate_settlement" name="property" />
+      <dataInputAssociation id="dia_6">
+        <sourceRef>dataObjectRef_action_plan</sourceRef>
+        <targetRef>property_negotiate_settlement</targetRef>
+      </dataInputAssociation>
+    </userTask>
+
+    <sendTask id="task_inform_claimant" name="Inform Claimant of Outcome">
+      <incoming>flow_6</incoming>
+      <outgoing>flow_7</outgoing>
+    </sendTask>
+
+    <endEvent id="end_event_1" name="Claim process ended">
+      <incoming>flow_7</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="flow_1" sourceRef="start_event_1" targetRef="task_search_police_report" />
+    <sequenceFlow id="flow_2" sourceRef="task_search_police_report" targetRef="task_file_docs" />
+    <sequenceFlow id="flow_3" sourceRef="task_file_docs" targetRef="task_calculate_estimate" />
+    <sequenceFlow id="flow_4" sourceRef="task_calculate_estimate" targetRef="task_create_action_plan" />
+    <sequenceFlow id="flow_5" sourceRef="task_create_action_plan" targetRef="task_negotiate_settlement" />
+    <sequenceFlow id="flow_6" sourceRef="task_negotiate_settlement" targetRef="task_inform_claimant" />
+    <sequenceFlow id="flow_7" sourceRef="task_inform_claimant" targetRef="end_event_1" />
+
+    <!-- Association between DataStore DMS and Checklist Data Object -->
+    <association id="assoc_dms_checklist" sourceRef="dataStore_dms" targetRef="dataObjectRef_action_plan_checklist" />
+
+  </process>
+
+  <!-- BPMN Diagram Layout -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="collaboration_1">
+      
+      <!-- Pool -->
+      <bpmndi:BPMNShape id="participant_1_gui" bpmnElement="participant_1" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1200" height="660" />
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="lane_system_gui" bpmnElement="lane_system" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1170" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_claims_handler_gui" bpmnElement="lane_claims_handler" isHorizontal="true">
+        <dc:Bounds x="190" y="300" width="1170" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_claims_manager_gui" bpmnElement="lane_claims_manager" isHorizontal="true">
+        <dc:Bounds x="190" y="520" width="1170" height="220" />
+      </bpmndi:BPMNShape>
+
+      <!-- Events -->
+      <bpmndi:BPMNShape id="start_event_1_gui" bpmnElement="start_event_1">
+        <dc:Bounds x="242" y="162" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="217" y="205" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="end_event_1_gui" bpmnElement="end_event_1">
+        <dc:Bounds x="1262" y="612" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1245" y="655" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Tasks -->
+      <bpmndi:BPMNShape id="task_search_police_report_gui" bpmnElement="task_search_police_report">
+        <dc:Bounds x="330" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_file_docs_gui" bpmnElement="task_file_docs">
+        <dc:Bounds x="480" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_calculate_estimate_gui" bpmnElement="task_calculate_estimate">
+        <dc:Bounds x="630" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_create_action_plan_gui" bpmnElement="task_create_action_plan">
+        <dc:Bounds x="780" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_negotiate_settlement_gui" bpmnElement="task_negotiate_settlement">
+        <dc:Bounds x="930" y="590" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_inform_claimant_gui" bpmnElement="task_inform_claimant">
+        <dc:Bounds x="1090" y="590" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Data Stores -->
+      <bpmndi:BPMNShape id="dataStore_police_db_gui" bpmnElement="dataStore_police_db">
+        <dc:Bounds x="355" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="346" y="292" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="dataStore_dms_gui" bpmnElement="dataStore_dms">
+        <dc:Bounds x="805" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="797" y="200" width="66" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Data Objects -->
+      <bpmndi:BPMNShape id="dataObjectRef_claim_doc_gui" bpmnElement="dataObjectRef_claim_doc">
+        <dc:Bounds x="572" y="235" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="554" y="292" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="dataObjectRef_police_report_gui" bpmnElement="dataObjectRef_police_report">
+        <dc:Bounds x="452" y="235" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="437" y="292" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="dataObjectRef_claim_file_gui" bpmnElement="dataObjectRef_claim_file">
+        <dc:Bounds x="582" y="325" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="576" y="382" width="49" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="dataObjectRef_action_plan_checklist_gui" bpmnElement="dataObjectRef_action_plan_checklist">
+        <dc:Bounds x="892" y="325" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="882" y="382" width="57" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="dataObjectRef_action_plan_gui" bpmnElement="dataObjectRef_action_plan">
+        <dc:Bounds x="882" y="475" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="872" y="532" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="278" y="180" />
+        <di:waypoint x="330" y="180" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="430" y="180" />
+        <di:waypoint x="480" y="180" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="580" y="180" />
+        <di:waypoint x="605" y="180" />
+        <di:waypoint x="605" y="410" />
+        <di:waypoint x="630" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="730" y="410" />
+        <di:waypoint x="780" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="880" y="410" />
+        <di:waypoint x="905" y="410" />
+        <di:waypoint x="905" y="630" />
+        <di:waypoint x="930" y="630" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="1030" y="630" />
+        <di:waypoint x="1090" y="630" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_7_di" bpmnElement="flow_7">
+        <di:waypoint x="1190" y="630" />
+        <di:waypoint x="1262" y="630" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Data Association Edges -->
+      <bpmndi:BPMNEdge id="dia_1_di" bpmnElement="dia_1">
+        <di:waypoint x="380" y="235" />
+        <di:waypoint x="380" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="doa_1_di" bpmnElement="doa_1">
+        <di:waypoint x="410" y="220" />
+        <di:waypoint x="410" y="260" />
+        <di:waypoint x="452" y="260" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="dia_2_di" bpmnElement="dia_2">
+        <di:waypoint x="488" y="260" />
+        <di:waypoint x="510" y="260" />
+        <di:waypoint x="510" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="dia_3_di" bpmnElement="dia_3">
+        <di:waypoint x="572" y="260" />
+        <di:waypoint x="550" y="260" />
+        <di:waypoint x="550" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="doa_2_di" bpmnElement="doa_2">
+        <di:waypoint x="560" y="220" />
+        <di:waypoint x="560" y="350" />
+        <di:waypoint x="582" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="dia_4_di" bpmnElement="dia_4">
+        <di:waypoint x="618" y="350" />
+        <di:waypoint x="680" y="350" />
+        <di:waypoint x="680" y="370" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="dia_5_di" bpmnElement="dia_5">
+        <di:waypoint x="892" y="350" />
+        <di:waypoint x="850" y="350" />
+        <di:waypoint x="850" y="370" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="doa_3_di" bpmnElement="doa_3">
+        <di:waypoint x="830" y="450" />
+        <di:waypoint x="830" y="500" />
+        <di:waypoint x="882" y="500" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="dia_6_di" bpmnElement="dia_6">
+        <di:waypoint x="918" y="500" />
+        <di:waypoint x="980" y="500" />
+        <di:waypoint x="980" y="590" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="assoc_dms_checklist_di" bpmnElement="assoc_dms_checklist">
+        <di:waypoint x="855" y="260" />
+        <di:waypoint x="910" y="260" />
+        <di:waypoint x="910" y="325" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

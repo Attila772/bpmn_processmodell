@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_csr_part" name="Customer Service Representative" processRef="pool_csr_proc" />
+    <bpmn:participant id="pool_customer_part" name="Customer" processRef="pool_customer_proc" />
+    <bpmn:messageFlow id="mf1" sourceRef="event_wait_reply" targetRef="start_customer" name="Mortgage offer sent" />
+    <bpmn:messageFlow id="mf2" sourceRef="end_customer" targetRef="gw_reply_type" name="Customer response" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_csr_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_offer" name="Mortgage offer" dataObjectRef="do_offer_do" />
+    <bpmn:dataObject id="do_offer_do" />
+    <bpmn:dataObjectReference id="do_case_details" name="Case details" dataObjectRef="do_case_details_do" />
+    <bpmn:dataObject id="do_case_details_do" />
+    <bpmn:dataObjectReference id="do_completed_offer_p1" name="Completed offer documents" dataObjectRef="do_completed_offer_p1_do" />
+    <bpmn:dataObject id="do_completed_offer_p1_do" />
+    <bpmn:dataObjectReference id="do_prereq_docs_p1" name="Prerequisite documents" dataObjectRef="do_prereq_docs_p1_do" />
+    <bpmn:dataObject id="do_prereq_docs_p1_do" />
+    <bpmn:dataObjectReference id="do_outstanding_request" name="Outstanding documents request message" dataObjectRef="do_outstanding_request_do" />
+    <bpmn:dataObject id="do_outstanding_request_do" />
+    <bpmn:startEvent id="start_1" name="Process starts">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="event_wait_reply" name="Mortgage offer sent, waiting for reply">
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:incoming>f7</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_wait_reply_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end_cancel1" name="Case cancelled (declined)">
+      <bpmn:incoming>f5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_cancel2" name="Case cancelled (no answer)">
+      <bpmn:incoming>f10</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_admin" name="Case moved to administration">
+      <bpmn:incoming>f6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="timer_2weeks" name="2 weeks elapsed with no answer">
+      <bpmn:outgoing>f8</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="timer_2weeks_timerdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:userTask id="task_send_offer" name="Send Mortgage offer to customer">
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_offer_doa0">
+        <bpmn:targetRef>do_offer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_update_cancel1" name="Update case details (declined)">
+      <bpmn:incoming>flow_decline</bpmn:incoming>
+      <bpmn:outgoing>f4</bpmn:outgoing>
+      <bpmn:property id="task_update_cancel1_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_update_cancel1_dia0">
+        <bpmn:sourceRef>do_case_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_update_cancel1_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_update_cancel1_doa0">
+        <bpmn:targetRef>do_case_details</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:task id="task_archive_cancel1" name="Archive work prior to cancellation (declined)">
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>f5</bpmn:outgoing>
+      <bpmn:property id="task_archive_cancel1_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_archive_cancel1_dia0">
+        <bpmn:sourceRef>do_case_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_archive_cancel1_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:userTask id="task_move_admin" name="Move case to administration for completion">
+      <bpmn:incoming>flow_docs_yes</bpmn:incoming>
+      <bpmn:outgoing>f6</bpmn:outgoing>
+      <bpmn:property id="task_move_admin_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_move_admin_dia0">
+        <bpmn:sourceRef>do_completed_offer_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_move_admin_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_move_admin_dia1">
+        <bpmn:sourceRef>do_prereq_docs_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_move_admin_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_request_docs" name="Generate message requesting outstanding documents">
+      <bpmn:incoming>flow_docs_no</bpmn:incoming>
+      <bpmn:outgoing>f7</bpmn:outgoing>
+      <bpmn:property id="task_request_docs_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_request_docs_dia0">
+        <bpmn:sourceRef>do_prereq_docs_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_request_docs_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_request_docs_doa0">
+        <bpmn:targetRef>do_outstanding_request</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="task_update_cancel2" name="Update case details (no answer)">
+      <bpmn:incoming>flow_no_answer</bpmn:incoming>
+      <bpmn:outgoing>f9</bpmn:outgoing>
+      <bpmn:property id="task_update_cancel2_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_update_cancel2_dia0">
+        <bpmn:sourceRef>do_case_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_update_cancel2_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_update_cancel2_doa0">
+        <bpmn:targetRef>do_case_details</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:task id="task_archive_cancel2" name="Archive work prior to cancellation (no answer)">
+      <bpmn:incoming>f9</bpmn:incoming>
+      <bpmn:outgoing>f10</bpmn:outgoing>
+      <bpmn:property id="task_archive_cancel2_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_archive_cancel2_dia0">
+        <bpmn:sourceRef>do_case_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_archive_cancel2_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_reply_type" name="Customer reply type?" isMarkerVisible="true">
+      <bpmn:incoming>f3</bpmn:incoming>
+      <bpmn:incoming>f8</bpmn:incoming>
+      <bpmn:outgoing>flow_decline</bpmn:outgoing>
+      <bpmn:outgoing>flow_complete</bpmn:outgoing>
+      <bpmn:outgoing>flow_no_answer</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_docs_complete" name="All prerequisite documents provided?" isMarkerVisible="true">
+      <bpmn:incoming>flow_complete</bpmn:incoming>
+      <bpmn:outgoing>flow_docs_yes</bpmn:outgoing>
+      <bpmn:outgoing>flow_docs_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="f1" sourceRef="start_1" targetRef="task_send_offer" />
+    <bpmn:sequenceFlow id="f2" sourceRef="task_send_offer" targetRef="event_wait_reply" />
+    <bpmn:sequenceFlow id="f3" sourceRef="event_wait_reply" targetRef="gw_reply_type" />
+    <bpmn:sequenceFlow id="flow_decline" sourceRef="gw_reply_type" targetRef="task_update_cancel1" name="declines mortgage" />
+    <bpmn:sequenceFlow id="f4" sourceRef="task_update_cancel1" targetRef="task_archive_cancel1" />
+    <bpmn:sequenceFlow id="f5" sourceRef="task_archive_cancel1" targetRef="end_cancel1" />
+    <bpmn:sequenceFlow id="flow_complete" sourceRef="gw_reply_type" targetRef="gw_docs_complete" name="sends completed offer documents" />
+    <bpmn:sequenceFlow id="flow_docs_yes" sourceRef="gw_docs_complete" targetRef="task_move_admin" name="all documents provided" />
+    <bpmn:sequenceFlow id="f6" sourceRef="task_move_admin" targetRef="end_admin" />
+    <bpmn:sequenceFlow id="flow_docs_no" sourceRef="gw_docs_complete" targetRef="task_request_docs" name="documents missing" />
+    <bpmn:sequenceFlow id="f7" sourceRef="task_request_docs" targetRef="event_wait_reply" />
+    <bpmn:sequenceFlow id="flow_no_answer" sourceRef="gw_reply_type" targetRef="task_update_cancel2" name="no answer after 2 weeks" />
+    <bpmn:sequenceFlow id="f8" sourceRef="timer_2weeks" targetRef="gw_reply_type" />
+    <bpmn:sequenceFlow id="f9" sourceRef="task_update_cancel2" targetRef="task_archive_cancel2" />
+    <bpmn:sequenceFlow id="f10" sourceRef="task_archive_cancel2" targetRef="end_cancel2" />
+  </bpmn:process>
+  <bpmn:process id="pool_customer_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_offer_p1" name="Mortgage offer" dataObjectRef="do_offer_p1_do" />
+    <bpmn:dataObject id="do_offer_p1_do" />
+    <bpmn:dataObjectReference id="do_completed_offer" name="Completed offer documents" dataObjectRef="do_completed_offer_do" />
+    <bpmn:dataObject id="do_completed_offer_do" />
+    <bpmn:dataObjectReference id="do_prereq_docs" name="Prerequisite documents" dataObjectRef="do_prereq_docs_do" />
+    <bpmn:dataObject id="do_prereq_docs_do" />
+    <bpmn:startEvent id="start_customer" name="Customer receives offer">
+      <bpmn:outgoing>f11</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_customer_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_customer" name="Customer response sent">
+      <bpmn:incoming>f12</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_customer_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_customer_response" name="Customer calls, writes back, or sends documents">
+      <bpmn:incoming>f11</bpmn:incoming>
+      <bpmn:outgoing>f12</bpmn:outgoing>
+      <bpmn:property id="task_customer_response_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_customer_response_dia0">
+        <bpmn:sourceRef>do_offer_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_customer_response_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_customer_response_doa0">
+        <bpmn:targetRef>do_completed_offer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="task_customer_response_doa1">
+        <bpmn:targetRef>do_prereq_docs</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="f11" sourceRef="start_customer" targetRef="task_customer_response" />
+    <bpmn:sequenceFlow id="f12" sourceRef="task_customer_response" targetRef="end_customer" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_csr_part_di" bpmnElement="pool_csr_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1140" height="775" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_customer_part_di" bpmnElement="pool_customer_part" isHorizontal="true">
+        <dc:Bounds x="120" y="875" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_admin_di" bpmnElement="end_admin">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_cancel1_di" bpmnElement="end_cancel1">
+        <dc:Bounds x="920" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_cancel2_di" bpmnElement="end_cancel2">
+        <dc:Bounds x="920" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_customer_di" bpmnElement="end_customer">
+        <dc:Bounds x="540" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_wait_reply_di" bpmnElement="event_wait_reply">
+        <dc:Bounds x="920" y="475" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_docs_complete_di" bpmnElement="gw_docs_complete">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_reply_type_di" bpmnElement="gw_reply_type">
+        <dc:Bounds x="730" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_1_di" bpmnElement="start_1">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_customer_di" bpmnElement="start_customer">
+        <dc:Bounds x="160" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_archive_cancel1_di" bpmnElement="task_archive_cancel1">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_archive_cancel2_di" bpmnElement="task_archive_cancel2">
+        <dc:Bounds x="730" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_customer_response_di" bpmnElement="task_customer_response">
+        <dc:Bounds x="350" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_move_admin_di" bpmnElement="task_move_admin">
+        <dc:Bounds x="730" y="475" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_request_docs_di" bpmnElement="task_request_docs">
+        <dc:Bounds x="730" y="600" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_offer_di" bpmnElement="task_send_offer">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_update_cancel1_di" bpmnElement="task_update_cancel1">
+        <dc:Bounds x="540" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_update_cancel2_di" bpmnElement="task_update_cancel2">
+        <dc:Bounds x="540" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="timer_2weeks_di" bpmnElement="timer_2weeks">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_offer_di" bpmnElement="do_offer">
+        <dc:Bounds x="370" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_case_details_di" bpmnElement="do_case_details">
+        <dc:Bounds x="655" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_completed_offer_p1_di" bpmnElement="do_completed_offer_p1">
+        <dc:Bounds x="750" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_prereq_docs_p1_di" bpmnElement="do_prereq_docs_p1">
+        <dc:Bounds x="750" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_outstanding_request_di" bpmnElement="do_outstanding_request">
+        <dc:Bounds x="750" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_offer_p1_di" bpmnElement="do_offer_p1">
+        <dc:Bounds x="370" y="1075" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_completed_offer_di" bpmnElement="do_completed_offer">
+        <dc:Bounds x="370" y="1075" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_prereq_docs_di" bpmnElement="do_prereq_docs">
+        <dc:Bounds x="370" y="1075" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f1_di" bpmnElement="f1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="938" y="493" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f3_di" bpmnElement="f3">
+        <di:waypoint x="938" y="493" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_decline_di" bpmnElement="flow_decline">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f4_di" bpmnElement="f4">
+        <di:waypoint x="590" y="265" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f5_di" bpmnElement="f5">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="938" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_complete_di" bpmnElement="flow_complete">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_docs_yes_di" bpmnElement="flow_docs_yes">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f6_di" bpmnElement="f6">
+        <di:waypoint x="780" y="515" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_docs_no_di" bpmnElement="flow_docs_no">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f7_di" bpmnElement="f7">
+        <di:waypoint x="780" y="640" />
+        <di:waypoint x="938" y="493" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_no_answer_di" bpmnElement="flow_no_answer">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="590" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f8_di" bpmnElement="f8">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f9_di" bpmnElement="f9">
+        <di:waypoint x="590" y="390" />
+        <di:waypoint x="780" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f10_di" bpmnElement="f10">
+        <di:waypoint x="780" y="390" />
+        <di:waypoint x="938" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f11_di" bpmnElement="f11">
+        <di:waypoint x="178" y="953" />
+        <di:waypoint x="400" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f12_di" bpmnElement="f12">
+        <di:waypoint x="400" y="975" />
+        <di:waypoint x="558" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf1_di" bpmnElement="mf1">
+        <di:waypoint x="938" y="493" />
+        <di:waypoint x="178" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf2_di" bpmnElement="mf2">
+        <di:waypoint x="558" y="953" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_offer_doa0_di" bpmnElement="task_send_offer_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_customer_response_dia0_di" bpmnElement="task_customer_response_dia0">
+        <di:waypoint x="388" y="1100" />
+        <di:waypoint x="400" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_customer_response_doa0_di" bpmnElement="task_customer_response_doa0">
+        <di:waypoint x="400" y="975" />
+        <di:waypoint x="388" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_customer_response_doa1_di" bpmnElement="task_customer_response_doa1">
+        <di:waypoint x="400" y="975" />
+        <di:waypoint x="388" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_cancel1_dia0_di" bpmnElement="task_update_cancel1_dia0">
+        <di:waypoint x="673" y="765" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_cancel1_doa0_di" bpmnElement="task_update_cancel1_doa0">
+        <di:waypoint x="590" y="265" />
+        <di:waypoint x="673" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_archive_cancel1_dia0_di" bpmnElement="task_archive_cancel1_dia0">
+        <di:waypoint x="673" y="765" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_move_admin_dia0_di" bpmnElement="task_move_admin_dia0">
+        <di:waypoint x="768" y="765" />
+        <di:waypoint x="780" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_move_admin_dia1_di" bpmnElement="task_move_admin_dia1">
+        <di:waypoint x="768" y="765" />
+        <di:waypoint x="780" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_request_docs_dia0_di" bpmnElement="task_request_docs_dia0">
+        <di:waypoint x="768" y="765" />
+        <di:waypoint x="780" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_request_docs_doa0_di" bpmnElement="task_request_docs_doa0">
+        <di:waypoint x="780" y="640" />
+        <di:waypoint x="768" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_cancel2_dia0_di" bpmnElement="task_update_cancel2_dia0">
+        <di:waypoint x="673" y="765" />
+        <di:waypoint x="590" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_cancel2_doa0_di" bpmnElement="task_update_cancel2_doa0">
+        <di:waypoint x="590" y="390" />
+        <di:waypoint x="673" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_archive_cancel2_dia0_di" bpmnElement="task_archive_cancel2_dia0">
+        <di:waypoint x="673" y="765" />
+        <di:waypoint x="780" y="390" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

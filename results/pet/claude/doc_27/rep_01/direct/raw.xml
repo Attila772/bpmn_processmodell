@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_MPO" name="MPO" processRef="Process_MPO"/>
+    <participant id="Participant_FaultDetector" name="Fault Detector"/>
+    <participant id="Participant_GO" name="GO"/>
+    <participant id="Participant_MSP" name="MSP"/>
+
+    <messageFlow id="MessageFlow_1" name="Failure Report" sourceRef="Participant_FaultDetector" targetRef="StartEvent_FailureReported"/>
+    <messageFlow id="MessageFlow_2" name="Informs GO" sourceRef="Task_InformGO" targetRef="Participant_GO"/>
+    <messageFlow id="MessageFlow_3" name="Informs MSP" sourceRef="Task_InformMSP" targetRef="Participant_MSP"/>
+    <messageFlow id="MessageFlow_4" name="Shares Repair Results" sourceRef="Task_ShareResults" targetRef="Participant_FaultDetector"/>
+    <messageFlow id="MessageFlow_5" name="Informs GO about Resolution" sourceRef="Task_InformGOResolution" targetRef="Participant_GO"/>
+    <messageFlow id="MessageFlow_6" name="Informs MSP about Resolution" sourceRef="Task_InformMSPResolution" targetRef="Participant_MSP"/>
+  </collaboration>
+
+  <process id="Process_MPO" name="MPO Fault Handling Process" isExecutable="false">
+
+    <startEvent id="StartEvent_FailureReported" name="Fault Detector Reports Failure">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <startEvent id="StartEvent_Suspicion" name="MPO Suspects Own Fault">
+      <outgoing>Flow_2</outgoing>
+    </startEvent>
+
+    <exclusiveGateway id="Gateway_Merge" name="Trigger Received">
+      <incoming>Flow_1</incoming>
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_ExamineFailure" name="Examine the Failure">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Decision" name="Failure Confirmed?">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_Reject</outgoing>
+      <outgoing>Flow_Confirm</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="EndEvent_Rejected" name="Failure Rejected">
+      <incoming>Flow_Reject</incoming>
+    </endEvent>
+
+    <parallelGateway id="Gateway_Split" name="Inform Parties">
+      <incoming>Flow_Confirm</incoming>
+      <outgoing>Flow_ToInformGO</outgoing>
+      <outgoing>Flow_ToInformMSP</outgoing>
+    </parallelGateway>
+
+    <task id="Task_InformGO" name="Inform the GO">
+      <incoming>Flow_ToInformGO</incoming>
+      <outgoing>Flow_FromInformGO</outgoing>
+    </task>
+
+    <task id="Task_InformMSP" name="Inform the MSP">
+      <incoming>Flow_ToInformMSP</incoming>
+      <outgoing>Flow_FromInformMSP</outgoing>
+    </task>
+
+    <parallelGateway id="Gateway_Join" name="Both Informed">
+      <incoming>Flow_FromInformGO</incoming>
+      <incoming>Flow_FromInformMSP</incoming>
+      <outgoing>Flow_5</outgoing>
+    </parallelGateway>
+
+    <task id="Task_FixFault" name="Fix the Fault at the Measuring Device">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <task id="Task_ShareResults" name="Share Results of Repair with Fault Detector">
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+
+    <task id="Task_InformGOResolution" name="Inform GO about Resolution">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <task id="Task_InformMSPResolution" name="Inform MSP about Resolution">
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_9</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Resolved" name="Interference Resolved">
+      <incoming>Flow_9</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_FailureReported" targetRef="Gateway_Merge"/>
+    <sequenceFlow id="Flow_2" sourceRef="StartEvent_Suspicion" targetRef="Gateway_Merge"/>
+    <sequenceFlow id="Flow_3" sourceRef="Gateway_Merge" targetRef="Task_ExamineFailure"/>
+    <sequenceFlow id="Flow_4" sourceRef="Task_ExamineFailure" targetRef="Gateway_Decision"/>
+    <sequenceFlow id="Flow_Reject" name="Reject Failure" sourceRef="Gateway_Decision" targetRef="EndEvent_Rejected"/>
+    <sequenceFlow id="Flow_Confirm" name="Confirm Failure" sourceRef="Gateway_Decision" targetRef="Gateway_Split"/>
+    <sequenceFlow id="Flow_ToInformGO" sourceRef="Gateway_Split" targetRef="Task_InformGO"/>
+    <sequenceFlow id="Flow_ToInformMSP" sourceRef="Gateway_Split" targetRef="Task_InformMSP"/>
+    <sequenceFlow id="Flow_FromInformGO" sourceRef="Task_InformGO" targetRef="Gateway_Join"/>
+    <sequenceFlow id="Flow_FromInformMSP" sourceRef="Task_InformMSP" targetRef="Gateway_Join"/>
+    <sequenceFlow id="Flow_5" sourceRef="Gateway_Join" targetRef="Task_FixFault"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_FixFault" targetRef="Task_ShareResults"/>
+    <sequenceFlow id="Flow_7" sourceRef="Task_ShareResults" targetRef="Task_InformGOResolution"/>
+    <sequenceFlow id="Flow_8" sourceRef="Task_InformGOResolution" targetRef="Task_InformMSPResolution"/>
+    <sequenceFlow id="Flow_9" sourceRef="Task_InformMSPResolution" targetRef="EndEvent_Resolved"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Participant_MPO_di" bpmnElement="Participant_MPO" isHorizontal="true">
+        <omgdc:Bounds x="160" y="80" width="1400" height="300"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_FaultDetector_di" bpmnElement="Participant_FaultDetector" isHorizontal="true">
+        <omgdc:Bounds x="160" y="400" width="1400" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_GO_di" bpmnElement="Participant_GO" isHorizontal="true">
+        <omgdc:Bounds x="160" y="500" width="1400" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_MSP_di" bpmnElement="Participant_MSP" isHorizontal="true">
+        <omgdc:Bounds x="160" y="600" width="1400" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_FailureReported_di" bpmnElement="StartEvent_FailureReported">
+        <omgdc:Bounds x="200" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_Suspicion_di" bpmnElement="StartEvent_Suspicion">
+        <omgdc:Bounds x="200" y="140" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Merge_di" bpmnElement="Gateway_Merge">
+        <omgdc:Bounds x="280" y="177" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ExamineFailure_di" bpmnElement="Task_ExamineFailure">
+        <omgdc:Bounds x="370" y="162" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision">
+        <omgdc:Bounds x="510" y="177" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <omgdc:Bounds x="580" y="280" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Split_di" bpmnElement="Gateway_Split">
+        <omgdc:Bounds x="600" y="177" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InformGO_di" bpmnElement="Task_InformGO">
+        <omgdc:Bounds x="700" y="120" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InformMSP_di" bpmnElement="Task_InformMSP">
+        <omgdc:Bounds x="700" y="230" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Join_di" bpmnElement="Gateway_Join">
+        <omgdc:Bounds x="850" y="177" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_FixFault_di" bpmnElement="Task_FixFault">
+        <omgdc:Bounds x="940" y="162" width="110" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ShareResults_di" bpmnElement="Task_ShareResults">
+        <omgdc:Bounds x="1090" y="162" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InformGOResolution_di" bpmnElement="Task_InformGOResolution">
+        <omgdc:Bounds x="1250" y="162" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InformMSPResolution_di" bpmnElement="Task_InformMSPResolution">
+        <omgdc:Bounds x="1410" y="162" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Resolved_di" bpmnElement="EndEvent_Resolved">
+        <omgdc:Bounds x="1560" y="184" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="236" y="218"/>
+        <omgdi:waypoint x="280" y="202"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="236" y="158"/>
+        <omgdi:waypoint x="280" y="195"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <omgdi:waypoint x="330" y="202"/>
+        <omgdi:waypoint x="370" y="202"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <omgdi:waypoint x="470" y="202"/>
+        <omgdi:waypoint x="510" y="202"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Reject_di" bpmnElement="Flow_Reject">
+        <omgdi:waypoint x="535" y="227"/>
+        <omgdi:waypoint x="535" y="280"/>
+        <omgdi:waypoint x="598" y="298"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Confirm_di" bpmnElement="Flow_Confirm">
+        <omgdi:waypoint x="560" y="202"/>
+        <omgdi:waypoint x="600" y="202"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToInformGO_di" bpmnElement="Flow_ToInformGO">
+        <omgdi:waypoint x="625" y="177"/>
+        <omgdi:waypoint x="625" y="160"/>
+        <omgdi:waypoint x="700" y="160"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToInformMSP_di" bpmnElement="Flow_ToInformMSP">
+        <omgdi:waypoint x="625" y="227"/>
+        <omgdi:waypoint x="625" y="270"/>
+        <omgdi:waypoint x="700" y="270"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FromInformGO_di" bpmnElement="Flow_FromInformGO">
+        <omgdi:waypoint x="800" y="160"/>
+        <omgdi:waypoint x="875" y="160"/>
+        <omgdi:waypoint x="875" y="177"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FromInformMSP_di" bpmnElement="Flow_FromInformMSP">
+        <omgdi:waypoint x="800" y="270"/>
+        <omgdi:waypoint x="875" y="270"/>
+        <omgdi:waypoint x="875" y="227"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <omgdi:waypoint x="900" y="202"/>
+        <omgdi:waypoint x="940" y="202"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <omgdi:waypoint x="1050" y="202"/>
+        <omgdi:waypoint x="1090" y="202"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <omgdi:waypoint x="1210" y="202"/>
+        <omgdi:waypoint x="1250" y="202"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <omgdi:waypoint x="1370" y="202"/>
+        <omgdi:waypoint x="1410" y="202"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <omgdi:waypoint x="1530" y="202"/>
+        <omgdi:waypoint x="1560" y="202"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_1_di" bpmnElement="MessageFlow_1">
+        <omgdi:waypoint x="218" y="400"/>
+        <omgdi:waypoint x="218" y="236"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_2_di" bpmnElement="MessageFlow_2">
+        <omgdi:waypoint x="750" y="200"/>
+        <omgdi:waypoint x="750" y="500"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_3_di" bpmnElement="MessageFlow_3">
+        <omgdi:waypoint x="750" y="310"/>
+        <omgdi:waypoint x="750" y="600"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_4_di" bpmnElement="MessageFlow_4">
+        <omgdi:waypoint x="1150" y="242"/>
+        <omgdi:waypoint x="1150" y="400"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_5_di" bpmnElement="MessageFlow_5">
+        <omgdi:waypoint x="1310" y="242"/>
+        <omgdi:waypoint x="1310" y="500"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_6_di" bpmnElement="MessageFlow_6">
+        <omgdi:waypoint x="1470" y="242"/>
+        <omgdi:waypoint x="1470" y="600"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

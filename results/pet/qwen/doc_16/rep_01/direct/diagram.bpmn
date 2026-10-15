@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="LeadProcessingProcess" name="Lead Processing Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_CheckLeads" name="Check open leads">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_SelectTopFive" name="Select top five leads">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TellAssistant" name="Tell Sales Assistant to call contacts">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:subProcess id="SubProcess_CallCustomers" name="Call Customers Loop">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndLoop</bpmn:outgoing>
+      <bpmn:startEvent id="SubStart_1">
+        <bpmn:outgoing>SubFlow_1</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:task id="Task_CallCustomer" name="Call customer">
+        <bpmn:incoming>SubFlow_1</bpmn:incoming>
+        <bpmn:outgoing>SubFlow_2</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:exclusiveGateway id="Gateway_Interested" name="Interested?">
+        <bpmn:incoming>SubFlow_2</bpmn:incoming>
+        <bpmn:outgoing>SubFlow_Yes</bpmn:outgoing>
+        <bpmn:outgoing>SubFlow_No</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:task id="Task_SendNote" name="Send note to Manager">
+        <bpmn:incoming>SubFlow_Yes</bpmn:incoming>
+        <bpmn:outgoing>SubFlow_ToManager</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:endEvent id="SubEnd_Continue" name="Next Customer">
+        <bpmn:incoming>SubFlow_No</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:endEvent id="SubEnd_NoteSent" name="Note Sent">
+        <bpmn:incoming>SubFlow_ToManager</bpmn:incoming>
+      </bpmn:endEvent>
+    </bpmn:subProcess>
+    <bpmn:task id="Task_ProcessLead" name="Process the lead">
+      <bpmn:incoming>Flow_FromSub</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_1" name="End">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CheckLeads" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CheckLeads" targetRef="Task_SelectTopFive" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_SelectTopFive" targetRef="Task_TellAssistant" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_TellAssistant" targetRef="SubProcess_CallCustomers" />
+    <bpmn:sequenceFlow id="SubFlow_1" sourceRef="SubStart_1" targetRef="Task_CallCustomer" />
+    <bpmn:sequenceFlow id="SubFlow_2" sourceRef="Task_CallCustomer" targetRef="Gateway_Interested" />
+    <bpmn:sequenceFlow id="SubFlow_Yes" name="Yes" sourceRef="Gateway_Interested" targetRef="Task_SendNote" />
+    <bpmn:sequenceFlow id="SubFlow_No" name="No" sourceRef="Gateway_Interested" targetRef="SubEnd_Continue" />
+    <bpmn:sequenceFlow id="SubFlow_ToManager" sourceRef="Task_SendNote" targetRef="SubEnd_NoteSent" />
+    <!-- Note: In a strict BPMN loop, we would use a multi-instance or a specific loop structure. 
+         Here, to represent "Otherwise he calls the next customer" within the context of the description 
+         where the Manager processes the lead *after* the assistant sends a note, we model the SubProcess 
+         as the interaction phase. The flow from SubProcess to Task_ProcessLead implies the completion 
+         of the relevant interaction (the note being sent). -->
+    <bpmn:sequenceFlow id="Flow_FromSub" sourceRef="SubProcess_CallCustomers" targetRef="Task_ProcessLead" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_ProcessLead" targetRef="EndEvent_1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="LeadProcessingProcess">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="186" y="142" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckLeads_di" bpmnElement="Task_CheckLeads">
+        <dc:Bounds x="260" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SelectTopFive_di" bpmnElement="Task_SelectTopFive">
+        <dc:Bounds x="400" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TellAssistant_di" bpmnElement="Task_TellAssistant">
+        <dc:Bounds x="540" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubProcess_CallCustomers_di" bpmnElement="SubProcess_CallCustomers" isExpanded="true">
+        <dc:Bounds x="680" y="40" width="300" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubStart_1_di" bpmnElement="SubStart_1">
+        <dc:Bounds x="719" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CallCustomer_di" bpmnElement="Task_CallCustomer">
+        <dc:Bounds x="780" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Interested_di" bpmnElement="Gateway_Interested" isMarkerVisible="true">
+        <dc:Bounds x="915" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendNote_di" bpmnElement="Task_SendNote">
+        <dc:Bounds x="1000" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubEnd_Continue_di" bpmnElement="SubEnd_Continue">
+        <dc:Bounds x="919" y="179" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SubEnd_NoteSent_di" bpmnElement="SubEnd_NoteSent">
+        <dc:Bounds x="1139" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ProcessLead_di" bpmnElement="Task_ProcessLead">
+        <dc:Bounds x="1020" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1169" y="99" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="215" y="117" />
+        <di:waypoint x="260" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="360" y="120" />
+        <di:waypoint x="400" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="500" y="120" />
+        <di:waypoint x="540" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="640" y="120" />
+        <di:waypoint x="680" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SubFlow_1_di" bpmnElement="SubFlow_1">
+        <di:waypoint x="755" y="117" />
+        <di:waypoint x="780" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SubFlow_2_di" bpmnElement="SubFlow_2">
+        <di:waypoint x="880" y="120" />
+        <di:waypoint x="915" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SubFlow_Yes_di" bpmnElement="SubFlow_Yes">
+        <di:waypoint x="965" y="120" />
+        <di:waypoint x="1000" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="977" y="106" width="16" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SubFlow_No_di" bpmnElement="SubFlow_No">
+        <di:waypoint x="940" y="145" />
+        <di:waypoint x="940" y="179" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="940" y="155" width="16" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SubFlow_ToManager_di" bpmnElement="SubFlow_ToManager">
+        <di:waypoint x="1100" y="120" />
+        <di:waypoint x="1139" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FromSub_di" bpmnElement="Flow_FromSub">
+        <di:waypoint x="980" y="120" />
+        <di:waypoint x="1020" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1120" y="120" />
+        <di:waypoint x="1169" y="117" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

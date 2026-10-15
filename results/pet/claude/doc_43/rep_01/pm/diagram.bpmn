@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_employee_part" name="Employee" processRef="pool_employee_proc" />
+    <bpmn:participant id="pool_supervisor_part" name="Supervisor" processRef="pool_supervisor_proc" />
+    <bpmn:participant id="pool_treasurer_part" name="Treasurer" processRef="pool_treasurer_proc" />
+    <bpmn:messageFlow id="mf1" sourceRef="end_send_report_emp" targetRef="start_receive_report_sup" name="Expense Report Submitted" />
+    <bpmn:messageFlow id="mf2" sourceRef="end_send_approved" targetRef="start_receive_report_treas" name="Report Approved" />
+    <bpmn:messageFlow id="mf3" sourceRef="end_send_rejected" targetRef="start_receive_back" name="Report Rejected" />
+    <bpmn:messageFlow id="mf4" sourceRef="end_send_back_treas" targetRef="start_receive_back" name="Receipts Missing" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_employee_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_receipts" name="Receipts" dataObjectRef="do_receipts_do" />
+    <bpmn:dataObject id="do_receipts_do" />
+    <bpmn:dataObjectReference id="do_item_list" name="Item List" dataObjectRef="do_item_list_do" />
+    <bpmn:dataObject id="do_item_list_do" />
+    <bpmn:dataObjectReference id="do_expense_report" name="Expense Report" dataObjectRef="do_expense_report_do" />
+    <bpmn:dataObject id="do_expense_report_do" />
+    <bpmn:startEvent id="start_purchase" name="Need for purchase arises">
+      <bpmn:outgoing>sf1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:startEvent id="start_receive_back" name="Report returned for correction">
+      <bpmn:outgoing>sf4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_receive_back_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_send_report_emp" name="Report sent to Supervisor">
+      <bpmn:incoming>sf3</bpmn:incoming>
+      <bpmn:incoming>sf5</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_send_report_emp_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_purchase" name="Purchase Product or Service">
+      <bpmn:incoming>sf1</bpmn:incoming>
+      <bpmn:outgoing>sf2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_purchase_doa0">
+        <bpmn:targetRef>do_receipts</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_submit_report" name="Submit Expense Report">
+      <bpmn:incoming>sf2</bpmn:incoming>
+      <bpmn:outgoing>sf3</bpmn:outgoing>
+      <bpmn:property id="task_submit_report_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_submit_report_dia0">
+        <bpmn:sourceRef>do_receipts</bpmn:sourceRef>
+        <bpmn:targetRef>task_submit_report_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_submit_report_dia1">
+        <bpmn:sourceRef>do_item_list</bpmn:sourceRef>
+        <bpmn:targetRef>task_submit_report_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_submit_report_doa0">
+        <bpmn:targetRef>do_expense_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_edit_report" name="Edit Expense Report">
+      <bpmn:incoming>sf4</bpmn:incoming>
+      <bpmn:outgoing>sf5</bpmn:outgoing>
+      <bpmn:property id="task_edit_report_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_edit_report_dia0">
+        <bpmn:sourceRef>do_expense_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_edit_report_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_edit_report_doa0">
+        <bpmn:targetRef>do_expense_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="sf1" sourceRef="start_purchase" targetRef="task_purchase" />
+    <bpmn:sequenceFlow id="sf2" sourceRef="task_purchase" targetRef="task_submit_report" />
+    <bpmn:sequenceFlow id="sf3" sourceRef="task_submit_report" targetRef="end_send_report_emp" />
+    <bpmn:sequenceFlow id="sf4" sourceRef="start_receive_back" targetRef="task_edit_report" />
+    <bpmn:sequenceFlow id="sf5" sourceRef="task_edit_report" targetRef="end_send_report_emp" />
+  </bpmn:process>
+  <bpmn:process id="pool_supervisor_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_expense_report_p1" name="Expense Report" dataObjectRef="do_expense_report_p1_do" />
+    <bpmn:dataObject id="do_expense_report_p1_do" />
+    <bpmn:startEvent id="start_receive_report_sup" name="Report received by Supervisor">
+      <bpmn:outgoing>sf6</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_receive_report_sup_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_send_approved" name="Report sent to Treasurer">
+      <bpmn:incoming>flow_approve</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_send_approved_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_send_rejected" name="Rejection sent to Employee">
+      <bpmn:incoming>flow_reject</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_send_rejected_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_review_report" name="Review Expense Report">
+      <bpmn:incoming>sf6</bpmn:incoming>
+      <bpmn:outgoing>sf7</bpmn:outgoing>
+      <bpmn:property id="task_review_report_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_review_report_dia0">
+        <bpmn:sourceRef>do_expense_report_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_report_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_approve_reject" name="Supervisor Decision" isMarkerVisible="true">
+      <bpmn:incoming>sf7</bpmn:incoming>
+      <bpmn:outgoing>flow_approve</bpmn:outgoing>
+      <bpmn:outgoing>flow_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf6" sourceRef="start_receive_report_sup" targetRef="task_review_report" />
+    <bpmn:sequenceFlow id="sf7" sourceRef="task_review_report" targetRef="gw_approve_reject" />
+    <bpmn:sequenceFlow id="flow_approve" sourceRef="gw_approve_reject" targetRef="end_send_approved" name="approved" />
+    <bpmn:sequenceFlow id="flow_reject" sourceRef="gw_approve_reject" targetRef="end_send_rejected" name="rejected" />
+  </bpmn:process>
+  <bpmn:process id="pool_treasurer_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_expense_report_p2" name="Expense Report" dataObjectRef="do_expense_report_p2_do" />
+    <bpmn:dataObject id="do_expense_report_p2_do" />
+    <bpmn:dataObjectReference id="do_receipts_p1" name="Receipts" dataObjectRef="do_receipts_p1_do" />
+    <bpmn:dataObject id="do_receipts_p1_do" />
+    <bpmn:dataObjectReference id="do_item_list_p1" name="Item List" dataObjectRef="do_item_list_p1_do" />
+    <bpmn:dataObject id="do_item_list_p1_do" />
+    <bpmn:dataObjectReference id="do_payment_confirmation" name="Payment Confirmation" dataObjectRef="do_payment_confirmation_do" />
+    <bpmn:dataObject id="do_payment_confirmation_do" />
+    <bpmn:startEvent id="start_receive_report_treas" name="Report received by Treasurer">
+      <bpmn:outgoing>sf8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_receive_report_treas_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_send_back_treas" name="Report sent back to Employee">
+      <bpmn:incoming>flow_missing</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_send_back_treas_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="intermediate_wait_payment" name="Wait for Payment Confirmation">
+      <bpmn:incoming>sf11</bpmn:incoming>
+      <bpmn:outgoing>sf12</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="intermediate_wait_payment_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end_process_complete" name="Process Complete">
+      <bpmn:incoming>sf12</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_check_receipts" name="Check Receipts Against Items">
+      <bpmn:incoming>sf8</bpmn:incoming>
+      <bpmn:outgoing>sf9</bpmn:outgoing>
+      <bpmn:property id="task_check_receipts_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_receipts_dia0">
+        <bpmn:sourceRef>do_expense_report_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_receipts_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_check_receipts_dia1">
+        <bpmn:sourceRef>do_receipts_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_receipts_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_check_receipts_dia2">
+        <bpmn:sourceRef>do_item_list_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_receipts_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_accept_expenses" name="Accept Expenses for Processing">
+      <bpmn:incoming>flow_ok</bpmn:incoming>
+      <bpmn:outgoing>sf10</bpmn:outgoing>
+      <bpmn:property id="task_accept_expenses_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_accept_expenses_dia0">
+        <bpmn:sourceRef>do_expense_report_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_accept_expenses_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_link_payment" name="Link to Payment System">
+      <bpmn:incoming>sf10</bpmn:incoming>
+      <bpmn:outgoing>sf11</bpmn:outgoing>
+      <bpmn:property id="task_link_payment_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_link_payment_dia0">
+        <bpmn:sourceRef>do_expense_report_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_link_payment_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_link_payment_doa0">
+        <bpmn:targetRef>do_payment_confirmation</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_receipts_ok" name="Receipts Match?" isMarkerVisible="true">
+      <bpmn:incoming>sf9</bpmn:incoming>
+      <bpmn:outgoing>flow_ok</bpmn:outgoing>
+      <bpmn:outgoing>flow_missing</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf8" sourceRef="start_receive_report_treas" targetRef="task_check_receipts" />
+    <bpmn:sequenceFlow id="sf9" sourceRef="task_check_receipts" targetRef="gw_receipts_ok" />
+    <bpmn:sequenceFlow id="flow_ok" sourceRef="gw_receipts_ok" targetRef="task_accept_expenses" name="all in order" />
+    <bpmn:sequenceFlow id="flow_missing" sourceRef="gw_receipts_ok" targetRef="end_send_back_treas" name="missing or mismatched" />
+    <bpmn:sequenceFlow id="sf10" sourceRef="task_accept_expenses" targetRef="task_link_payment" />
+    <bpmn:sequenceFlow id="sf11" sourceRef="task_link_payment" targetRef="intermediate_wait_payment" />
+    <bpmn:sequenceFlow id="sf12" sourceRef="intermediate_wait_payment" targetRef="end_process_complete" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_employee_part_di" bpmnElement="pool_employee_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="950" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_supervisor_part_di" bpmnElement="pool_supervisor_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="950" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_treasurer_part_di" bpmnElement="pool_treasurer_part" isHorizontal="true">
+        <dc:Bounds x="120" y="960" width="1520" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_process_complete_di" bpmnElement="end_process_complete">
+        <dc:Bounds x="1300" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_send_approved_di" bpmnElement="end_send_approved">
+        <dc:Bounds x="730" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_send_back_treas_di" bpmnElement="end_send_back_treas">
+        <dc:Bounds x="730" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_send_rejected_di" bpmnElement="end_send_rejected">
+        <dc:Bounds x="730" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_send_report_emp_di" bpmnElement="end_send_report_emp">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_approve_reject_di" bpmnElement="gw_approve_reject">
+        <dc:Bounds x="540" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_receipts_ok_di" bpmnElement="gw_receipts_ok">
+        <dc:Bounds x="540" y="1020" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="intermediate_wait_payment_di" bpmnElement="intermediate_wait_payment">
+        <dc:Bounds x="1110" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_purchase_di" bpmnElement="start_purchase">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_receive_back_di" bpmnElement="start_receive_back">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_receive_report_sup_di" bpmnElement="start_receive_report_sup">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_receive_report_treas_di" bpmnElement="start_receive_report_treas">
+        <dc:Bounds x="160" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_accept_expenses_di" bpmnElement="task_accept_expenses">
+        <dc:Bounds x="730" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_receipts_di" bpmnElement="task_check_receipts">
+        <dc:Bounds x="350" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_edit_report_di" bpmnElement="task_edit_report">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_link_payment_di" bpmnElement="task_link_payment">
+        <dc:Bounds x="920" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_purchase_di" bpmnElement="task_purchase">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_report_di" bpmnElement="task_review_report">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_submit_report_di" bpmnElement="task_submit_report">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_receipts_di" bpmnElement="do_receipts">
+        <dc:Bounds x="465" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_item_list_di" bpmnElement="do_item_list">
+        <dc:Bounds x="560" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_expense_report_di" bpmnElement="do_expense_report">
+        <dc:Bounds x="465" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_expense_report_p1_di" bpmnElement="do_expense_report_p1">
+        <dc:Bounds x="370" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_expense_report_p2_di" bpmnElement="do_expense_report_p2">
+        <dc:Bounds x="686" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_receipts_p1_di" bpmnElement="do_receipts_p1">
+        <dc:Bounds x="370" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_item_list_p1_di" bpmnElement="do_item_list_p1">
+        <dc:Bounds x="370" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_payment_confirmation_di" bpmnElement="do_payment_confirmation">
+        <dc:Bounds x="940" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf1_di" bpmnElement="sf1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf2_di" bpmnElement="sf2">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf3_di" bpmnElement="sf3">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf4_di" bpmnElement="sf4">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf5_di" bpmnElement="sf5">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf6_di" bpmnElement="sf6">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf7_di" bpmnElement="sf7">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="565" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_approve_di" bpmnElement="flow_approve">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="748" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reject_di" bpmnElement="flow_reject">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="748" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf8_di" bpmnElement="sf8">
+        <di:waypoint x="178" y="1038" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf9_di" bpmnElement="sf9">
+        <di:waypoint x="400" y="1060" />
+        <di:waypoint x="565" y="1045" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ok_di" bpmnElement="flow_ok">
+        <di:waypoint x="565" y="1045" />
+        <di:waypoint x="780" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_missing_di" bpmnElement="flow_missing">
+        <di:waypoint x="565" y="1045" />
+        <di:waypoint x="748" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf10_di" bpmnElement="sf10">
+        <di:waypoint x="780" y="1185" />
+        <di:waypoint x="970" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf11_di" bpmnElement="sf11">
+        <di:waypoint x="970" y="1060" />
+        <di:waypoint x="1128" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf12_di" bpmnElement="sf12">
+        <di:waypoint x="1128" y="1038" />
+        <di:waypoint x="1318" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf1_di" bpmnElement="mf1">
+        <di:waypoint x="748" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf2_di" bpmnElement="mf2">
+        <di:waypoint x="748" y="578" />
+        <di:waypoint x="178" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf3_di" bpmnElement="mf3">
+        <di:waypoint x="748" y="703" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf4_di" bpmnElement="mf4">
+        <di:waypoint x="748" y="1038" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_purchase_doa0_di" bpmnElement="task_purchase_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="483" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_report_dia0_di" bpmnElement="task_submit_report_dia0">
+        <di:waypoint x="483" y="390" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_report_dia1_di" bpmnElement="task_submit_report_dia1">
+        <di:waypoint x="578" y="390" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_report_doa0_di" bpmnElement="task_submit_report_doa0">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="483" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_edit_report_dia0_di" bpmnElement="task_edit_report_dia0">
+        <di:waypoint x="483" y="390" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_edit_report_doa0_di" bpmnElement="task_edit_report_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="483" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_report_dia0_di" bpmnElement="task_review_report_dia0">
+        <di:waypoint x="388" y="850" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_receipts_dia0_di" bpmnElement="task_check_receipts_dia0">
+        <di:waypoint x="704" y="1310" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_receipts_dia1_di" bpmnElement="task_check_receipts_dia1">
+        <di:waypoint x="388" y="1310" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_receipts_dia2_di" bpmnElement="task_check_receipts_dia2">
+        <di:waypoint x="388" y="1310" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_accept_expenses_dia0_di" bpmnElement="task_accept_expenses_dia0">
+        <di:waypoint x="704" y="1310" />
+        <di:waypoint x="780" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_link_payment_dia0_di" bpmnElement="task_link_payment_dia0">
+        <di:waypoint x="704" y="1310" />
+        <di:waypoint x="970" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_link_payment_doa0_di" bpmnElement="task_link_payment_doa0">
+        <di:waypoint x="970" y="1060" />
+        <di:waypoint x="958" y="1310" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

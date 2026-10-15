@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             id="Definitions_1"
+             targetNamespace="http://example.com/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_MPOO" name="MPOO" processRef="Process_MPOO"/>
+    <participant id="Participant_GO" name="GO" processRef="Process_GO"/>
+    <participant id="Participant_MSPO" name="MSPO"/>
+    <participant id="Participant_SP" name="SP"/>
+
+    <messageFlow id="MF_Deregister" name="Deregistration" sourceRef="Task_Deregister" targetRef="Task_VerifyDereg"/>
+    <messageFlow id="MF_Oblige" name="Obligation to continue" sourceRef="Task_Oblige" targetRef="Task_ConfirmContinuation"/>
+    <messageFlow id="MF_InformMPOO" name="Info on assignment change" sourceRef="Task_InformMPOO" targetRef="Task_ReceiveInform"/>
+    <messageFlow id="MF_InformMSPO" name="Info on assignment of GO" sourceRef="Task_InformMSPO" targetRef="Participant_MSPO"/>
+    <messageFlow id="MF_InformSP" name="Info on assignment of GO" sourceRef="Task_InformSP" targetRef="Participant_SP"/>
+  </collaboration>
+
+  <!-- ===================== MPOO PROCESS ===================== -->
+  <process id="Process_MPOO" name="MPOO" isExecutable="false">
+    <startEvent id="StartEvent_1" name="Start"/>
+    <task id="Task_Deregister" name="Deregister at GO"/>
+    <task id="Task_ConfirmContinuation" name="Confirm continuation of operation"/>
+    <task id="Task_ReceiveInform" name="Receive info on end of assignment"/>
+    <endEvent id="EndEvent_MPOO" name="End"/>
+
+    <sequenceFlow id="SF_MPOO_1" sourceRef="StartEvent_1" targetRef="Task_Deregister"/>
+    <sequenceFlow id="SF_MPOO_2" sourceRef="Task_Deregister" targetRef="Task_ConfirmContinuation"/>
+    <sequenceFlow id="SF_MPOO_3" sourceRef="Task_ConfirmContinuation" targetRef="Task_ReceiveInform"/>
+    <sequenceFlow id="SF_MPOO_4" sourceRef="Task_ReceiveInform" targetRef="EndEvent_MPOO"/>
+  </process>
+
+  <!-- ===================== GO PROCESS ===================== -->
+  <process id="Process_GO" name="GO" isExecutable="false">
+    <task id="Task_VerifyDereg" name="Verify the deregistration"/>
+    <exclusiveGateway id="GW1" name="Deregistration decision"/>
+    <task id="Task_Reject" name="Reject deregistration of MPOO"/>
+    <endEvent id="EndEvent_Reject" name="End (rejected)"/>
+    <task id="Task_Confirm" name="Preliminarily confirm deregistration"/>
+    <task id="Task_PrepareReadmission" name="Prepare readmission of measuring point"/>
+    <exclusiveGateway id="GW2" name="Oblige continuation?"/>
+    <task id="Task_Oblige" name="Oblige MPOO to continue operation"/>
+    <exclusiveGateway id="GW3" name="Merge"/>
+    <task id="Task_EquipmentAcquisition" name="Perform equipment acquisition and/or equipment changes"/>
+    <task id="Task_AssignGOasMPO" name="Assign GO as MPO"/>
+    <task id="Task_InformMPOO" name="Inform MPOO about end of assignment of MPOO and start of assignment of GO"/>
+    <task id="Task_InformMSPO" name="Inform MSPO about assignment of GO"/>
+    <task id="Task_InformSP" name="Inform SP about assignment of GO"/>
+    <endEvent id="EndEvent_Process" name="End"/>
+
+    <sequenceFlow id="SF_GO_1" sourceRef="Task_VerifyDereg" targetRef="GW1"/>
+    <sequenceFlow id="SF_GO_2" name="Reject" sourceRef="GW1" targetRef="Task_Reject"/>
+    <sequenceFlow id="SF_GO_3" sourceRef="Task_Reject" targetRef="EndEvent_Reject"/>
+    <sequenceFlow id="SF_GO_4" name="Confirm" sourceRef="GW1" targetRef="Task_Confirm"/>
+    <sequenceFlow id="SF_GO_5" sourceRef="Task_Confirm" targetRef="Task_PrepareReadmission"/>
+    <sequenceFlow id="SF_GO_6" sourceRef="Task_PrepareReadmission" targetRef="GW2"/>
+    <sequenceFlow id="SF_GO_7" name="Oblige" sourceRef="GW2" targetRef="Task_Oblige"/>
+    <sequenceFlow id="SF_GO_8" name="No obligation" sourceRef="GW2" targetRef="GW3"/>
+    <sequenceFlow id="SF_GO_9" sourceRef="Task_Oblige" targetRef="GW3"/>
+    <sequenceFlow id="SF_GO_10" sourceRef="GW3" targetRef="Task_EquipmentAcquisition"/>
+    <sequenceFlow id="SF_GO_11" sourceRef="Task_EquipmentAcquisition" targetRef="Task_AssignGOasMPO"/>
+    <sequenceFlow id="SF_GO_12" sourceRef="Task_AssignGOasMPO" targetRef="Task_InformMPOO"/>
+    <sequenceFlow id="SF_GO_13" sourceRef="Task_InformMPOO" targetRef="Task_InformMSPO"/>
+    <sequenceFlow id="SF_GO_14" sourceRef="Task_InformMSPO" targetRef="Task_InformSP"/>
+    <sequenceFlow id="SF_GO_15" sourceRef="Task_InformSP" targetRef="EndEvent_Process"/>
+  </process>
+
+  <!-- ===================== DIAGRAM ===================== -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <!-- Pools -->
+      <bpmndi:BPMNShape id="Shape_Participant_MPOO" bpmnElement="Participant_MPOO" isHorizontal="true">
+        <omgdc:Bounds x="20" y="20" width="1900" height="200"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Participant_GO" bpmnElement="Participant_GO" isHorizontal="true">
+        <omgdc:Bounds x="20" y="240" width="1900" height="380"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Participant_MSPO" bpmnElement="Participant_MSPO" isHorizontal="true">
+        <omgdc:Bounds x="20" y="640" width="1900" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Participant_SP" bpmnElement="Participant_SP" isHorizontal="true">
+        <omgdc:Bounds x="20" y="740" width="1900" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <!-- MPOO elements -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_1" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="60" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Deregister" bpmnElement="Task_Deregister">
+        <omgdc:Bounds x="140" y="80" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ConfirmContinuation" bpmnElement="Task_ConfirmContinuation">
+        <omgdc:Bounds x="900" y="80" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ReceiveInform" bpmnElement="Task_ReceiveInform">
+        <omgdc:Bounds x="1500" y="80" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_MPOO" bpmnElement="EndEvent_MPOO">
+        <omgdc:Bounds x="1760" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- GO elements -->
+      <bpmndi:BPMNShape id="Shape_Task_VerifyDereg" bpmnElement="Task_VerifyDereg">
+        <omgdc:Bounds x="140" y="300" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GW1" bpmnElement="GW1">
+        <omgdc:Bounds x="320" y="320" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Reject" bpmnElement="Task_Reject">
+        <omgdc:Bounds x="420" y="240" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Reject" bpmnElement="EndEvent_Reject">
+        <omgdc:Bounds x="600" y="260" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Confirm" bpmnElement="Task_Confirm">
+        <omgdc:Bounds x="420" y="380" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_PrepareReadmission" bpmnElement="Task_PrepareReadmission">
+        <omgdc:Bounds x="620" y="380" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GW2" bpmnElement="GW2">
+        <omgdc:Bounds x="830" y="400" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Oblige" bpmnElement="Task_Oblige">
+        <omgdc:Bounds x="900" y="300" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GW3" bpmnElement="GW3">
+        <omgdc:Bounds x="1120" y="400" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_EquipmentAcquisition" bpmnElement="Task_EquipmentAcquisition">
+        <omgdc:Bounds x="1210" y="380" width="180" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_AssignGOasMPO" bpmnElement="Task_AssignGOasMPO">
+        <omgdc:Bounds x="1420" y="380" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_InformMPOO" bpmnElement="Task_InformMPOO">
+        <omgdc:Bounds x="1500" y="490" width="180" height="90"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_InformMSPO" bpmnElement="Task_InformMSPO">
+        <omgdc:Bounds x="1700" y="380" width="170" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_InformSP" bpmnElement="Task_InformSP">
+        <omgdc:Bounds x="1700" y="490" width="170" height="90"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Process" bpmnElement="EndEvent_Process">
+        <omgdc:Bounds x="1900" y="400" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- MPOO sequence flows -->
+      <bpmndi:BPMNEdge id="Edge_SF_MPOO_1" bpmnElement="SF_MPOO_1">
+        <omgdi:waypoint x="96" y="118"/>
+        <omgdi:waypoint x="140" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_MPOO_2" bpmnElement="SF_MPOO_2">
+        <omgdi:waypoint x="260" y="120"/>
+        <omgdi:waypoint x="900" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_MPOO_3" bpmnElement="SF_MPOO_3">
+        <omgdi:waypoint x="1040" y="120"/>
+        <omgdi:waypoint x="1500" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_MPOO_4" bpmnElement="SF_MPOO_4">
+        <omgdi:waypoint x="1650" y="120"/>
+        <omgdi:waypoint x="1760" y="118"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- GO sequence flows -->
+      <bpmndi:BPMNEdge id="Edge_SF_GO_1" bpmnElement="SF_GO_1">
+        <omgdi:waypoint x="270" y="340"/>
+        <omgdi:waypoint x="320" y="345"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_2" bpmnElement="SF_GO_2">
+        <omgdi:waypoint x="345" y="320"/>
+        <omgdi:waypoint x="345" y="280"/>
+        <omgdi:waypoint x="420" y="280"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_3" bpmnElement="SF_GO_3">
+        <omgdi:waypoint x="550" y="280"/>
+        <omgdi:waypoint x="600" y="278"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_4" bpmnElement="SF_GO_4">
+        <omgdi:waypoint x="345" y="370"/>
+        <omgdi:waypoint x="345" y="420"/>
+        <omgdi:waypoint x="420" y="420"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_5" bpmnElement="SF_GO_5">
+        <omgdi:waypoint x="570" y="420"/>
+        <omgdi:waypoint x="620" y="420"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_6" bpmnElement="SF_GO_6">
+        <omgdi:waypoint x="780" y="420"/>
+        <omgdi:waypoint x="830" y="425"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_7" bpmnElement="SF_GO_7">
+        <omgdi:waypoint x="855" y="400"/>
+        <omgdi:waypoint x="855" y="340"/>
+        <omgdi:waypoint x="900" y="340"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_8" bpmnElement="SF_GO_8">
+        <omgdi:waypoint x="880" y="425"/>
+        <omgdi:waypoint x="1120" y="425"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_9" bpmnElement="SF_GO_9">
+        <omgdi:waypoint x="1060" y="380"/>
+        <omgdi:waypoint x="1060" y="425"/>
+        <omgdi:waypoint x="1120" y="425"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_10" bpmnElement="SF_GO_10">
+        <omgdi:waypoint x="1170" y="425"/>
+        <omgdi:waypoint x="1210" y="420"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_11" bpmnElement="SF_GO_11">
+        <omgdi:waypoint x="1390" y="420"/>
+        <omgdi:waypoint x="1420" y="420"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_12" bpmnElement="SF_GO_12">
+        <omgdi:waypoint x="1495" y="460"/>
+        <omgdi:waypoint x="1495" y="490"/>
+        <omgdi:waypoint x="1590" y="490"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_13" bpmnElement="SF_GO_13">
+        <omgdi:waypoint x="1680" y="535"/>
+        <omgdi:waypoint x="1700" y="500"/>
+        <omgdi:waypoint x="1700" y="420"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_14" bpmnElement="SF_GO_14">
+        <omgdi:waypoint x="1785" y="460"/>
+        <omgdi:waypoint x="1785" y="490"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF_GO_15" bpmnElement="SF_GO_15">
+        <omgdi:waypoint x="1870" y="535"/>
+        <omgdi:waypoint x="1918" y="535"/>
+        <omgdi:waypoint x="1918" y="436"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Message flows -->
+      <bpmndi:BPMNEdge id="Edge_MF_Deregister" bpmnElement="MF_Deregister">
+        <omgdi:waypoint x="200" y="160"/>
+        <omgdi:waypoint x="200" y="300"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_Oblige" bpmnElement="MF_Oblige">
+        <omgdi:waypoint x="970" y="300"/>
+        <omgdi:waypoint x="970" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_InformMPOO" bpmnElement="MF_InformMPOO">
+        <omgdi:waypoint x="1590" y="490"/>
+        <omgdi:waypoint x="1575" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_InformMSPO" bpmnElement="MF_InformMSPO">
+        <omgdi:waypoint x="1785" y="460"/>
+        <omgdi:waypoint x="1785" y="640"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_InformSP" bpmnElement="MF_InformSP">
+        <omgdi:waypoint x="1785" y="580"/>
+        <omgdi:waypoint x="1785" y="740"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

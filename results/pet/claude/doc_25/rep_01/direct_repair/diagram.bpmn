@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_OfficeSupplyRequest"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="Process_OfficeSupplyRequest" name="Office Supply Request" isExecutable="true">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Employee" name="Employee">
+        <flowNodeRef>StartEvent_SubmitRequest</flowNodeRef>
+        <flowNodeRef>Task_RegisterRequest</flowNodeRef>
+        <flowNodeRef>Task_ReviewComments</flowNodeRef>
+      </lane>
+      <lane id="Lane_Supervisor" name="Supervisor">
+        <flowNodeRef>Task_ReceiveRequest</flowNodeRef>
+        <flowNodeRef>Task_EvaluateRequest</flowNodeRef>
+        <flowNodeRef>Gateway_SupervisorDecision</flowNodeRef>
+      </lane>
+      <lane id="Lane_Purchasing" name="Purchasing Department">
+        <flowNodeRef>SubProcess_MakeQuotations</flowNodeRef>
+        <flowNodeRef>Task_SelectVendor</flowNodeRef>
+        <flowNodeRef>Gateway_VendorValid</flowNodeRef>
+        <flowNodeRef>Task_ConfirmVendor</flowNodeRef>
+      </lane>
+      <lane id="Lane_System" name="System">
+        <flowNodeRef>Task_SendApprovalNotification</flowNodeRef>
+        <flowNodeRef>Task_SendChangeNotification</flowNodeRef>
+        <flowNodeRef>Task_SendRejectionNotification</flowNodeRef>
+        <flowNodeRef>Task_GeneratePurchaseOrder</flowNodeRef>
+        <flowNodeRef>Task_SendPurchaseOrder</flowNodeRef>
+        <flowNodeRef>Task_WaitForDeliveryAndInvoice</flowNodeRef>
+        <flowNodeRef>Task_SendCompletionNotification</flowNodeRef>
+        <flowNodeRef>EndEvent_Rejected</flowNodeRef>
+        <flowNodeRef>EndEvent_Completed</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Employee -->
+    <startEvent id="StartEvent_SubmitRequest" name="Employee submits office supply request">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_RegisterRequest" name="Register Request">
+      <incoming>Flow_1</incoming>
+      <incoming>Flow_ReviewToRegister</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <task id="Task_ReviewComments" name="Review Comments for Change Request">
+      <incoming>Flow_ChangeToEmployee</incoming>
+      <outgoing>Flow_ReviewToRegister</outgoing>
+    </task>
+
+    <!-- Supervisor -->
+    <task id="Task_ReceiveRequest" name="Receive Request">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <task id="Task_EvaluateRequest" name="Evaluate Request">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_SupervisorDecision" name="Decision?">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_Approved</outgoing>
+      <outgoing>Flow_ChangeRequested</outgoing>
+      <outgoing>Flow_Rejected</outgoing>
+    </exclusiveGateway>
+
+    <!-- System notifications -->
+    <task id="Task_SendApprovalNotification" name="Send Approval Notification">
+      <incoming>Flow_Approved</incoming>
+      <outgoing>Flow_ToPurchasing</outgoing>
+    </task>
+
+    <task id="Task_SendChangeNotification" name="Send Change Request Notification">
+      <incoming>Flow_ChangeRequested</incoming>
+      <outgoing>Flow_ChangeToEmployee</outgoing>
+    </task>
+
+    <task id="Task_SendRejectionNotification" name="Send Rejection Notification">
+      <incoming>Flow_Rejected</incoming>
+      <outgoing>Flow_ToRejectedEnd</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Rejected" name="Request Rejected">
+      <incoming>Flow_ToRejectedEnd</incoming>
+    </endEvent>
+
+    <!-- Purchasing Department -->
+    <subProcess id="SubProcess_MakeQuotations" name="Make Quotations">
+      <incoming>Flow_ToPurchasing</incoming>
+      <outgoing>Flow_5</outgoing>
+      <startEvent id="SubStart_1" name="Start Quotation Process">
+        <outgoing>SubFlow_1</outgoing>
+      </startEvent>
+      <task id="SubTask_RequestQuotes" name="Request Quotes from Vendors">
+        <incoming>SubFlow_1</incoming>
+        <outgoing>SubFlow_2</outgoing>
+      </task>
+      <task id="SubTask_CompareQuotes" name="Compare and Consolidate Quotes">
+        <incoming>SubFlow_2</incoming>
+        <outgoing>SubFlow_3</outgoing>
+      </task>
+      <endEvent id="SubEnd_1" name="Quotations Ready">
+        <incoming>SubFlow_3</incoming>
+      </endEvent>
+      <sequenceFlow id="SubFlow_1" sourceRef="SubStart_1" targetRef="SubTask_RequestQuotes"/>
+      <sequenceFlow id="SubFlow_2" sourceRef="SubTask_RequestQuotes" targetRef="SubTask_CompareQuotes"/>
+      <sequenceFlow id="SubFlow_3" sourceRef="SubTask_CompareQuotes" targetRef="SubEnd_1"/>
+    </subProcess>
+
+    <task id="Task_SelectVendor" name="Select Vendor">
+      <incoming>Flow_5</incoming>
+      <incoming>Flow_VendorInvalid</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_VendorValid" name="Vendor Valid in System?">
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_VendorInvalid</outgoing>
+      <outgoing>Flow_VendorValid</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_ConfirmVendor" name="Confirm Vendor">
+      <incoming>Flow_VendorValid</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+
+    <!-- System - Purchase Order -->
+    <task id="Task_GeneratePurchaseOrder" name="Generate Purchase Order">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <task id="Task_SendPurchaseOrder" name="Send Purchase Order">
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_9</outgoing>
+    </task>
+
+    <task id="Task_WaitForDeliveryAndInvoice" name="Wait for Product Delivery and Invoice">
+      <incoming>Flow_9</incoming>
+      <outgoing>Flow_10</outgoing>
+    </task>
+
+    <task id="Task_SendCompletionNotification" name="Send Completion Notification">
+      <incoming>Flow_10</incoming>
+      <outgoing>Flow_11</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Completed" name="Process Completed">
+      <incoming>Flow_11</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_SubmitRequest" targetRef="Task_RegisterRequest"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_RegisterRequest" targetRef="Task_ReceiveRequest"/>
+    <sequenceFlow id="Flow_3" sourceRef="Task_ReceiveRequest" targetRef="Task_EvaluateRequest"/>
+    <sequenceFlow id="Flow_4" sourceRef="Task_EvaluateRequest" targetRef="Gateway_SupervisorDecision"/>
+
+    <sequenceFlow id="Flow_Approved" name="Approved" sourceRef="Gateway_SupervisorDecision" targetRef="Task_SendApprovalNotification"/>
+    <sequenceFlow id="Flow_ChangeRequested" name="Change Requested" sourceRef="Gateway_SupervisorDecision" targetRef="Task_SendChangeNotification"/>
+    <sequenceFlow id="Flow_Rejected" name="Rejected" sourceRef="Gateway_SupervisorDecision" targetRef="Task_SendRejectionNotification"/>
+
+    <sequenceFlow id="Flow_ChangeToEmployee" sourceRef="Task_SendChangeNotification" targetRef="Task_ReviewComments"/>
+    <sequenceFlow id="Flow_ReviewToRegister" sourceRef="Task_ReviewComments" targetRef="Task_RegisterRequest"/>
+
+    <sequenceFlow id="Flow_ToRejectedEnd" sourceRef="Task_SendRejectionNotification" targetRef="EndEvent_Rejected"/>
+
+    <sequenceFlow id="Flow_ToPurchasing" sourceRef="Task_SendApprovalNotification" targetRef="SubProcess_MakeQuotations"/>
+    <sequenceFlow id="Flow_5" sourceRef="SubProcess_MakeQuotations" targetRef="Task_SelectVendor"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_SelectVendor" targetRef="Gateway_VendorValid"/>
+
+    <sequenceFlow id="Flow_VendorInvalid" name="No" sourceRef="Gateway_VendorValid" targetRef="Task_SelectVendor"/>
+    <sequenceFlow id="Flow_VendorValid" name="Yes" sourceRef="Gateway_VendorValid" targetRef="Task_ConfirmVendor"/>
+
+    <sequenceFlow id="Flow_7" sourceRef="Task_ConfirmVendor" targetRef="Task_GeneratePurchaseOrder"/>
+    <sequenceFlow id="Flow_8" sourceRef="Task_GeneratePurchaseOrder" targetRef="Task_SendPurchaseOrder"/>
+    <sequenceFlow id="Flow_9" sourceRef="Task_SendPurchaseOrder" targetRef="Task_WaitForDeliveryAndInvoice"/>
+    <sequenceFlow id="Flow_10" sourceRef="Task_WaitForDeliveryAndInvoice" targetRef="Task_SendCompletionNotification"/>
+    <sequenceFlow id="Flow_11" sourceRef="Task_SendCompletionNotification" targetRef="EndEvent_Completed"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_OfficeSupplyRequest">
+
+      <bpmndi:BPMNShape id="Shape_StartEvent_SubmitRequest" bpmnElement="StartEvent_SubmitRequest">
+        <omgdc:Bounds x="80" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_RegisterRequest" bpmnElement="Task_RegisterRequest">
+        <omgdc:Bounds x="160" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ReviewComments" bpmnElement="Task_ReviewComments">
+        <omgdc:Bounds x="330" y="60" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ReceiveRequest" bpmnElement="Task_ReceiveRequest">
+        <omgdc:Bounds x="330" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_EvaluateRequest" bpmnElement="Task_EvaluateRequest">
+        <omgdc:Bounds x="470" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_SupervisorDecision" bpmnElement="Gateway_SupervisorDecision" isMarkerVisible="true">
+        <omgdc:Bounds x="615" y="193" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_SendApprovalNotification" bpmnElement="Task_SendApprovalNotification">
+        <omgdc:Bounds x="720" y="340" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_SendChangeNotification" bpmnElement="Task_SendChangeNotification">
+        <omgdc:Bounds x="720" y="80" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_SendRejectionNotification" bpmnElement="Task_SendRejectionNotification">
+        <omgdc:Bounds x="720" y="480" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_Rejected" bpmnElement="EndEvent_Rejected">
+        <omgdc:Bounds x="880" y="502" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_SubProcess_MakeQuotations" bpmnElement="SubProcess_MakeQuotations" isExpanded="true">
+        <omgdc:Bounds x="900" y="320" width="300" height="120"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_SubStart_1" bpmnElement="SubStart_1">
+        <omgdc:Bounds x="920" y="362" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_SubTask_RequestQuotes" bpmnElement="SubTask_RequestQuotes">
+        <omgdc:Bounds x="980" y="350" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_SubTask_CompareQuotes" bpmnElement="SubTask_CompareQuotes">
+        <omgdc:Bounds x="1100" y="350" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_SubEnd_1" bpmnElement="SubEnd_1">
+        <omgdc:Bounds x="1150" y="362" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_SelectVendor" bpmnElement="Task_SelectVendor">
+        <omgdc:Bounds x="1240" y="340" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_VendorValid" bpmnElement="Gateway_VendorValid" isMarkerVisible="true">
+        <omgdc:Bounds x="1390" y="355" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ConfirmVendor" bpmnElement="Task_ConfirmVendor">
+        <omgdc:Bounds x="1480" y="340" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_GeneratePurchaseOrder" bpmnElement="Task_GeneratePurchaseOrder">
+        <omgdc:Bounds x="1620" y="500" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_SendPurchaseOrder" bpmnElement="Task_SendPurchaseOrder">
+        <omgdc:Bounds x="1760" y="500" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_WaitForDeliveryAndInvoice" bpmnElement="Task_WaitForDeliveryAndInvoice">
+        <omgdc:Bounds x="1900" y="500" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_SendCompletionNotification" bpmnElement="Task_SendCompletionNotification">
+        <omgdc:Bounds x="2040" y="500" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_Completed" bpmnElement="EndEvent_Completed">
+        <omgdc:Bounds x="2190" y="522" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Edge_Flow_1" bpmnElement="Flow_1">
+        <omgdi:waypoint x="116" y="218"/>
+        <omgdi:waypoint x="160" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_2" bpmnElement="Flow_2">
+        <omgdi:waypoint x="260" y="218"/>
+        <omgdi:waypoint x="330" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_3" bpmnElement="Flow_3">
+        <omgdi:waypoint x="430" y="218"/>
+        <omgdi:waypoint x="470" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_4" bpmnElement="Flow_4">
+        <omgdi:waypoint x="570" y="218"/>
+        <omgdi:waypoint x="615" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Approved" bpmnElement="Flow_Approved">
+        <omgdi:waypoint x="640" y="243"/>
+        <omgdi:waypoint x="640" y="380"/>
+        <omgdi:waypoint x="720" y="380"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_ChangeRequested" bpmnElement="Flow_ChangeRequested">
+        <omgdi:waypoint x="640" y="193"/>
+        <omgdi:waypoint x="640" y="120"/>
+        <omgdi:waypoint x="720" y="120"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Rejected" bpmnElement="Flow_Rejected">
+        <omgdi:waypoint x="640" y="243"/>
+        <omgdi:waypoint x="640" y="520"/>
+        <omgdi:waypoint x="720" y="520"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_ChangeToEmployee" bpmnElement="Flow_ChangeToEmployee">
+        <omgdi:waypoint x="720" y="120"/>
+        <omgdi:waypoint x="430" y="100"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_ReviewToRegister" bpmnElement="Flow_ReviewToRegister">
+        <omgdi:waypoint x="330" y="100"/>
+        <omgdi:waypoint x="210" y="178"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_ToRejectedEnd" bpmnElement="Flow_ToRejectedEnd">
+        <omgdi:waypoint x="820" y="520"/>
+        <omgdi:waypoint x="880" y="520"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_ToPurchasing" bpmnElement="Flow_ToPurchasing">
+        <omgdi:waypoint x="820" y="380"/>
+        <omgdi:waypoint x="900" y="380"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_5" bpmnElement="Flow_5">
+        <omgdi:waypoint x="1200" y="380"/>
+        <omgdi:waypoint x="1240" y="380"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_6" bpmnElement="Flow_6">
+        <omgdi:waypoint x="1340" y="380"/>
+        <omgdi:waypoint x="1390" y="380"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_VendorInvalid" bpmnElement="Flow_VendorInvalid">
+        <omgdi:waypoint x="1415" y="355"/>
+        <omgdi:waypoint x="1415" y="300"/>
+        <omgdi:waypoint x="1290" y="300"/>
+        <omgdi:waypoint x="1290" y="340"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_VendorValid" bpmnElement="Flow_VendorValid">
+        <omgdi:waypoint x="1440" y="380"/>
+        <omgdi:waypoint x="1480" y="380"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_7" bpmnElement="Flow_7">
+        <omgdi:waypoint x="1580" y="400"/>
+        <omgdi:waypoint x="1600" y="400"/>
+        <omgdi:waypoint x="1600" y="540"/>
+        <omgdi:waypoint x="1620" y="540"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_8" bpmnElement="Flow_8">
+        <omgdi:waypoint x="1720" y="540"/>
+        <omgdi:waypoint x="1760" y="540"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_9" bpmnElement="Flow_9">
+        <omgdi:waypoint x="1860" y="540"/>
+        <omgdi:waypoint x="1900" y="540"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_10" bpmnElement="Flow_10">
+        <omgdi:waypoint x="2000" y="540"/>
+        <omgdi:waypoint x="2040" y="540"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_11" bpmnElement="Flow_11">
+        <omgdi:waypoint x="2140" y="540"/>
+        <omgdi:waypoint x="2190" y="540"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

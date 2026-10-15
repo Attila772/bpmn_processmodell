@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mspn_part" name="MSPN" processRef="pool_mspn_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_mspo_part" name="MSPO" processRef="pool_mspo_proc" />
+    <bpmn:participant id="pool_mpo_part" name="MPO" processRef="pool_mpo_proc" />
+    <bpmn:participant id="pool_sp_part" name="SP" processRef="pool_sp_proc" />
+    <bpmn:messageFlow id="mf_registration" sourceRef="evt_send_reg" targetRef="evt_rec_reg" name="Measurement Registration Application" />
+    <bpmn:messageFlow id="mf_inform_mspo" sourceRef="evt_send_mspo" targetRef="evt_rec_mspo" name="Assignment Notice MSPO" />
+    <bpmn:messageFlow id="mf_inform_mpo" sourceRef="evt_send_mpo" targetRef="evt_rec_mpo" name="Assignment Notice MPO" />
+    <bpmn:messageFlow id="mf_inform_sp" sourceRef="evt_send_sp" targetRef="evt_rec_sp" name="Assignment Notice SP" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mspn_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_application" name="Application of the MSPN" dataObjectRef="doc_application_do" />
+    <bpmn:dataObject id="doc_application_do" />
+    <bpmn:startEvent id="evt_start_mspn" name="Measurement Registration Needed">
+      <bpmn:outgoing>seq_mspn_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_send_reg" name="Measurement Registration Sent">
+      <bpmn:incoming>seq_mspn_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_reg_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_register" name="Register measurement at GO">
+      <bpmn:incoming>seq_mspn_1</bpmn:incoming>
+      <bpmn:outgoing>seq_mspn_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_register_doa0">
+        <bpmn:targetRef>doc_application</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="seq_mspn_1" sourceRef="evt_start_mspn" targetRef="task_register" />
+    <bpmn:sequenceFlow id="seq_mspn_2" sourceRef="task_register" targetRef="evt_send_reg" />
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_application_p1" name="Application of the MSPN" dataObjectRef="doc_application_p1_do" />
+    <bpmn:dataObject id="doc_application_p1_do" />
+    <bpmn:startEvent id="evt_rec_reg" name="Measurement Registration Received">
+      <bpmn:outgoing>seq_go_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_rec_reg_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_rejected" name="Application Rejected">
+      <bpmn:incoming>seq_go_reject_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_send_mspo" name="Inform MSPO Sent">
+      <bpmn:incoming>seq_go_5</bpmn:incoming>
+      <bpmn:outgoing>seq_go_6</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_send_mspo_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_send_mpo" name="Inform MPO Sent">
+      <bpmn:incoming>seq_go_7</bpmn:incoming>
+      <bpmn:outgoing>seq_go_8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_send_mpo_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="evt_send_sp" name="Inform SP Sent">
+      <bpmn:incoming>seq_go_9</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_sp_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_examine" name="Examine application of MSPN">
+      <bpmn:incoming>seq_go_1</bpmn:incoming>
+      <bpmn:outgoing>seq_go_2</bpmn:outgoing>
+      <bpmn:property id="task_examine_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_examine_dia0">
+        <bpmn:sourceRef>doc_application_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_examine_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_reject" name="Reject application of MSPN">
+      <bpmn:incoming>seq_to_reject</bpmn:incoming>
+      <bpmn:outgoing>seq_go_reject_end</bpmn:outgoing>
+      <bpmn:property id="task_reject_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_reject_dia0">
+        <bpmn:sourceRef>doc_application_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_reject_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_confirm" name="Confirm application of MSPN">
+      <bpmn:incoming>seq_to_confirm</bpmn:incoming>
+      <bpmn:outgoing>seq_go_3</bpmn:outgoing>
+      <bpmn:property id="task_confirm_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_confirm_dia0">
+        <bpmn:sourceRef>doc_application_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_confirm_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_assign" name="Assign MSPN">
+      <bpmn:incoming>seq_go_3</bpmn:incoming>
+      <bpmn:outgoing>seq_go_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_inform_mspo" name="Inform MSPO about assignment">
+      <bpmn:incoming>seq_go_4</bpmn:incoming>
+      <bpmn:outgoing>seq_go_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_inform_mpo" name="Inform MPO about assignment">
+      <bpmn:incoming>seq_go_6</bpmn:incoming>
+      <bpmn:outgoing>seq_go_7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_inform_sp" name="Inform SP about assignment">
+      <bpmn:incoming>seq_go_8</bpmn:incoming>
+      <bpmn:outgoing>seq_go_9</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_decision" name="Application Status?" isMarkerVisible="true">
+      <bpmn:incoming>seq_go_2</bpmn:incoming>
+      <bpmn:outgoing>seq_to_reject</bpmn:outgoing>
+      <bpmn:outgoing>seq_to_confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="seq_go_1" sourceRef="evt_rec_reg" targetRef="task_examine" />
+    <bpmn:sequenceFlow id="seq_go_2" sourceRef="task_examine" targetRef="gw_decision" />
+    <bpmn:sequenceFlow id="seq_to_reject" sourceRef="gw_decision" targetRef="task_reject" name="Rejected" />
+    <bpmn:sequenceFlow id="seq_go_reject_end" sourceRef="task_reject" targetRef="evt_end_rejected" />
+    <bpmn:sequenceFlow id="seq_to_confirm" sourceRef="gw_decision" targetRef="task_confirm" name="Confirmed" />
+    <bpmn:sequenceFlow id="seq_go_3" sourceRef="task_confirm" targetRef="task_assign" />
+    <bpmn:sequenceFlow id="seq_go_4" sourceRef="task_assign" targetRef="task_inform_mspo" />
+    <bpmn:sequenceFlow id="seq_go_5" sourceRef="task_inform_mspo" targetRef="evt_send_mspo" />
+    <bpmn:sequenceFlow id="seq_go_6" sourceRef="evt_send_mspo" targetRef="task_inform_mpo" />
+    <bpmn:sequenceFlow id="seq_go_7" sourceRef="task_inform_mpo" targetRef="evt_send_mpo" />
+    <bpmn:sequenceFlow id="seq_go_8" sourceRef="evt_send_mpo" targetRef="task_inform_sp" />
+    <bpmn:sequenceFlow id="seq_go_9" sourceRef="task_inform_sp" targetRef="evt_send_sp" />
+  </bpmn:process>
+  <bpmn:process id="pool_mspo_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_rec_mspo" name="Assignment Notice Received by MSPO">
+      <bpmn:outgoing>seq_mspo_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_rec_mspo_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mspo" name="MSPO Informed">
+      <bpmn:incoming>seq_mspo_1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="seq_mspo_1" sourceRef="evt_rec_mspo" targetRef="evt_end_mspo" />
+  </bpmn:process>
+  <bpmn:process id="pool_mpo_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_rec_mpo" name="Assignment Notice Received by MPO">
+      <bpmn:outgoing>seq_mpo_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_rec_mpo_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mpo" name="MPO Informed">
+      <bpmn:incoming>seq_mpo_1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="seq_mpo_1" sourceRef="evt_rec_mpo" targetRef="evt_end_mpo" />
+  </bpmn:process>
+  <bpmn:process id="pool_sp_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_rec_sp" name="Assignment Notice Received by SP">
+      <bpmn:outgoing>seq_sp_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_rec_sp_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_sp" name="SP Informed">
+      <bpmn:incoming>seq_sp_1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="seq_sp_1" sourceRef="evt_rec_sp" targetRef="evt_end_sp" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mspn_part_di" bpmnElement="pool_mspn_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="2280" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mspo_part_di" bpmnElement="pool_mspo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="835" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpo_part_di" bpmnElement="pool_mpo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1170" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_sp_part_di" bpmnElement="pool_sp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1505" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpo_di" bpmnElement="evt_end_mpo">
+        <dc:Bounds x="350" y="1230" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mspo_di" bpmnElement="evt_end_mspo">
+        <dc:Bounds x="350" y="895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_rejected_di" bpmnElement="evt_end_rejected">
+        <dc:Bounds x="920" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_sp_di" bpmnElement="evt_end_sp">
+        <dc:Bounds x="350" y="1565" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_rec_mpo_di" bpmnElement="evt_rec_mpo">
+        <dc:Bounds x="160" y="1230" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_rec_mspo_di" bpmnElement="evt_rec_mspo">
+        <dc:Bounds x="160" y="895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_rec_reg_di" bpmnElement="evt_rec_reg">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_rec_sp_di" bpmnElement="evt_rec_sp">
+        <dc:Bounds x="160" y="1565" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_mpo_di" bpmnElement="evt_send_mpo">
+        <dc:Bounds x="1680" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_mspo_di" bpmnElement="evt_send_mspo">
+        <dc:Bounds x="1300" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_reg_di" bpmnElement="evt_send_reg">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_sp_di" bpmnElement="evt_send_sp">
+        <dc:Bounds x="2060" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mspn_di" bpmnElement="evt_start_mspn">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_decision_di" bpmnElement="gw_decision">
+        <dc:Bounds x="540" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assign_di" bpmnElement="task_assign">
+        <dc:Bounds x="920" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_confirm_di" bpmnElement="task_confirm">
+        <dc:Bounds x="730" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_di" bpmnElement="task_examine">
+        <dc:Bounds x="350" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mpo_di" bpmnElement="task_inform_mpo">
+        <dc:Bounds x="1490" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mspo_di" bpmnElement="task_inform_mspo">
+        <dc:Bounds x="1110" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_sp_di" bpmnElement="task_inform_sp">
+        <dc:Bounds x="1870" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_register_di" bpmnElement="task_register">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reject_di" bpmnElement="task_reject">
+        <dc:Bounds x="730" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_application_di" bpmnElement="doc_application">
+        <dc:Bounds x="370" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_application_p1_di" bpmnElement="doc_application_p1">
+        <dc:Bounds x="623" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="seq_mspn_1_di" bpmnElement="seq_mspn_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_mspn_2_di" bpmnElement="seq_mspn_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_1_di" bpmnElement="seq_go_1">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_2_di" bpmnElement="seq_go_2">
+        <di:waypoint x="400" y="475" />
+        <di:waypoint x="565" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_to_reject_di" bpmnElement="seq_to_reject">
+        <di:waypoint x="565" y="460" />
+        <di:waypoint x="780" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_reject_end_di" bpmnElement="seq_go_reject_end">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="938" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_to_confirm_di" bpmnElement="seq_to_confirm">
+        <di:waypoint x="565" y="460" />
+        <di:waypoint x="780" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_3_di" bpmnElement="seq_go_3">
+        <di:waypoint x="780" y="475" />
+        <di:waypoint x="970" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_4_di" bpmnElement="seq_go_4">
+        <di:waypoint x="970" y="600" />
+        <di:waypoint x="1160" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_5_di" bpmnElement="seq_go_5">
+        <di:waypoint x="1160" y="475" />
+        <di:waypoint x="1318" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_6_di" bpmnElement="seq_go_6">
+        <di:waypoint x="1318" y="453" />
+        <di:waypoint x="1540" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_7_di" bpmnElement="seq_go_7">
+        <di:waypoint x="1540" y="475" />
+        <di:waypoint x="1698" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_8_di" bpmnElement="seq_go_8">
+        <di:waypoint x="1698" y="453" />
+        <di:waypoint x="1920" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_go_9_di" bpmnElement="seq_go_9">
+        <di:waypoint x="1920" y="475" />
+        <di:waypoint x="2078" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_mspo_1_di" bpmnElement="seq_mspo_1">
+        <di:waypoint x="178" y="913" />
+        <di:waypoint x="368" y="913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_mpo_1_di" bpmnElement="seq_mpo_1">
+        <di:waypoint x="178" y="1248" />
+        <di:waypoint x="368" y="1248" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_sp_1_di" bpmnElement="seq_sp_1">
+        <di:waypoint x="178" y="1583" />
+        <di:waypoint x="368" y="1583" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_registration_di" bpmnElement="mf_registration">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_inform_mspo_di" bpmnElement="mf_inform_mspo">
+        <di:waypoint x="1318" y="453" />
+        <di:waypoint x="178" y="913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_inform_mpo_di" bpmnElement="mf_inform_mpo">
+        <di:waypoint x="1698" y="453" />
+        <di:waypoint x="178" y="1248" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_inform_sp_di" bpmnElement="mf_inform_sp">
+        <di:waypoint x="2078" y="453" />
+        <di:waypoint x="178" y="1583" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_doa0_di" bpmnElement="task_register_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_dia0_di" bpmnElement="task_examine_dia0">
+        <di:waypoint x="641" y="725" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reject_dia0_di" bpmnElement="task_reject_dia0">
+        <di:waypoint x="641" y="725" />
+        <di:waypoint x="780" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_confirm_dia0_di" bpmnElement="task_confirm_dia0">
+        <di:waypoint x="641" y="725" />
+        <di:waypoint x="780" y="475" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

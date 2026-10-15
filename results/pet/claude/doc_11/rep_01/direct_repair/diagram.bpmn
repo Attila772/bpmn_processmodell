@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             id="Definitions_1"
+             targetNamespace="http://teleco.example.com/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_Customer" name="Customer" processRef="Process_Customer"/>
+    <participant id="Participant_CS" name="TELECO Customer Service" processRef="Process_CS"/>
+    <participant id="Participant_SM" name="Service Management" processRef="Process_SM"/>
+    <participant id="Participant_RP" name="Resource Provisioning" processRef="Process_RP"/>
+    <participant id="Participant_BC" name="Billing &amp; Collections" processRef="Process_BC"/>
+
+    <messageFlow id="mf1" sourceRef="task_cust_send" targetRef="start_cs"/>
+    <messageFlow id="mf2" sourceRef="task_send_detailed_report" targetRef="start_sm"/>
+    <messageFlow id="mf3" sourceRef="task_send_to_rp" targetRef="start_rp"/>
+    <messageFlow id="mf4" sourceRef="task_send_status_report" targetRef="catch_status_report"/>
+    <messageFlow id="mf5" sourceRef="task_send_actual_performance" targetRef="catch_perf"/>
+    <messageFlow id="mf6" sourceRef="task_send_resolution_report" targetRef="catch_resolution"/>
+    <messageFlow id="mf7" sourceRef="task_send_restoration_request" targetRef="catch_restoration_request"/>
+    <messageFlow id="mf8" sourceRef="task_send_troubleshooting_report" targetRef="catch_troubleshooting_report"/>
+    <messageFlow id="mf9" sourceRef="task_send_customer_report" targetRef="catch_cust_report"/>
+    <messageFlow id="mf10" sourceRef="task_report_rebate" targetRef="start_bc"/>
+  </collaboration>
+
+  <!-- ================= CUSTOMER PROCESS ================= -->
+  <process id="Process_Customer" name="Customer" isExecutable="false">
+    <startEvent id="start_cust" name="Customer perceives degraded service">
+      <outgoing>sf1</outgoing>
+    </startEvent>
+
+    <sendTask id="task_cust_send" name="Send list of problem parameters to Customer Service">
+      <incoming>sf1</incoming>
+      <outgoing>sf2</outgoing>
+    </sendTask>
+
+    <intermediateCatchEvent id="catch_cust_report" name="Receive report on service performance and problem resolution">
+      <incoming>sf2</incoming>
+      <outgoing>sf3</outgoing>
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+
+    <endEvent id="end_cust" name="Process ends">
+      <incoming>sf3</incoming>
+    </endEvent>
+
+    <sequenceFlow id="sf1" sourceRef="start_cust" targetRef="task_cust_send"/>
+    <sequenceFlow id="sf2" sourceRef="task_cust_send" targetRef="catch_cust_report"/>
+    <sequenceFlow id="sf3" sourceRef="catch_cust_report" targetRef="end_cust"/>
+  </process>
+
+  <!-- ================= CUSTOMER SERVICE PROCESS ================= -->
+  <process id="Process_CS" name="Customer Service" isExecutable="false">
+
+    <startEvent id="start_cs" name="Receive list of problem parameters">
+      <outgoing>sf_cs1</outgoing>
+      <messageEventDefinition/>
+    </startEvent>
+
+    <task id="task_enter_report" name="Enter problem report into system T">
+      <incoming>sf_cs1</incoming>
+      <outgoing>sf_cs2</outgoing>
+    </task>
+
+    <task id="task_compare_sla" name="Compare problem report to SLA (identify extent/details of degradation)">
+      <incoming>sf_cs2</incoming>
+      <outgoing>sf_cs3</outgoing>
+    </task>
+
+    <task id="task_determine_measures" name="Determine necessary counter measures and priorities">
+      <incoming>sf_cs3</incoming>
+      <incoming>sf_cs9</incoming>
+      <outgoing>sf_cs4</outgoing>
+    </task>
+
+    <serviceTask id="task_determine_significance" name="Determine customer significance (electronic service)">
+      <incoming>sf_cs4</incoming>
+      <outgoing>sf_cs5</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="gw_premium" name="Premium customer?">
+      <incoming>sf_cs5</incoming>
+      <outgoing>sf_cs6</outgoing>
+      <outgoing>sf_cs8</outgoing>
+    </exclusiveGateway>
+
+    <callActivity id="call_fix" name="Extra Problem Fix Process">
+      <incoming>sf_cs6</incoming>
+      <outgoing>sf_cs7</outgoing>
+    </callActivity>
+
+    <exclusiveGateway id="gw_premium_merge" name="Merge premium path">
+      <incoming>sf_cs7</incoming>
+      <incoming>sf_cs8</incoming>
+      <outgoing>sf_cs10</outgoing>
+    </exclusiveGateway>
+
+    <exclusiveGateway id="gw_significance" name="Significance affects measures?">
+      <incoming>sf_cs10</incoming>
+      <outgoing>sf_cs9</outgoing>
+      <outgoing>sf_cs11</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_create_detailed_report" name="Create detailed problem report">
+      <incoming>sf_cs11</incoming>
+      <outgoing>sf_cs12</outgoing>
+    </task>
+
+    <sendTask id="task_send_detailed_report" name="Send detailed problem report to Service Management">
+      <incoming>sf_cs12</incoming>
+      <outgoing>sf_cs13</outgoing>
+    </sendTask>
+
+    <eventBasedGateway id="gw_wait_response" name="Wait for response">
+      <incoming>sf_cs13</incoming>
+      <outgoing>sf_cs14</outgoing>
+      <outgoing>sf_cs15</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="catch_perf" name="Receive actual service performance">
+      <incoming>sf_cs14</incoming>
+      <outgoing>sf_cs16</outgoing>
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="catch_resolution" name="Receive problem resolution report">
+      <incoming>sf_cs15</incoming>
+      <outgoing>sf_cs17</outgoing>
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="gw_merge_response" name="Merge response">
+      <incoming>sf_cs16</incoming>
+      <incoming>sf_cs17</incoming>
+      <outgoing>sf_cs18</outgoing>
+    </exclusiveGateway>
+
+    <parallelGateway id="gw_split" name="Split parallel activities">
+      <incoming>sf_cs18</incoming>
+      <outgoing>sf_cs19</outgoing>
+      <outgoing>sf_cs20</outgoing>
+    </parallelGateway>
+
+    <task id="task_create_customer_report" name="Create report detailing service performance and resolution">
+      <incoming>sf_cs19</incoming>
+      <outgoing>sf_cs21</outgoing>
+    </task>
+
+    <sendTask id="task_send_customer_report" name="Send report to customer">
+      <incoming>sf_cs21</incoming>
+      <outgoing>sf_cs22</outgoing>
+    </sendTask>
+
+    <sendTask id="task_report_rebate" name="Report SLA violation rebate to Billing and Collections">
+      <incoming>sf_cs20</incoming>
+      <outgoing>sf_cs23</outgoing>
+    </sendTask>
+
+    <parallelGateway id="gw_join" name="Join parallel activities">
+      <incoming>sf_cs22</incoming>
+      <incoming>sf_cs23</incoming>
+      <outgoing>sf_cs24</outgoing>
+    </parallelGateway>
+
+    <endEvent id="end_cs" name="Process ends within Customer Service">
+      <incoming>sf_cs24</incoming>
+    </endEvent>
+
+    <sequenceFlow id="sf_cs1" sourceRef="start_cs" targetRef="task_enter_report"/>
+    <sequenceFlow id="sf_cs2" sourceRef="task_enter_report" targetRef="task_compare_sla"/>
+    <sequenceFlow id="sf_cs3" sourceRef="task_compare_sla" targetRef="task_determine_measures"/>
+    <sequenceFlow id="sf_cs4" sourceRef="task_determine_measures" targetRef="task_determine_significance"/>
+    <sequenceFlow id="sf_cs5" sourceRef="task_determine_significance" targetRef="gw_premium"/>
+    <sequenceFlow id="sf_cs6" name="Premium" sourceRef="gw_premium" targetRef="call_fix"/>
+    <sequenceFlow id="sf_cs8" name="Not premium" sourceRef="gw_premium" targetRef="gw_premium_merge"/>
+    <sequenceFlow id="sf_cs7" sourceRef="call_fix" targetRef="gw_premium_merge"/>
+    <sequenceFlow id="sf_cs10" sourceRef="gw_premium_merge" targetRef="gw_significance"/>
+    <sequenceFlow id="sf_cs9" name="Re-prioritize" sourceRef="gw_significance" targetRef="task_determine_measures"/>
+    <sequenceFlow id="sf_cs11" name="Continue" sourceRef="gw_significance" targetRef="task_create_detailed_report"/>
+    <sequenceFlow id="sf_cs12" sourceRef="task_create_detailed_report" targetRef="task_send_detailed_report"/>
+    <sequenceFlow id="sf_cs13" sourceRef="task_send_detailed_report" targetRef="gw_wait_response"/>
+    <sequenceFlow id="sf_cs14" sourceRef="gw_wait_response" targetRef="catch_perf"/>
+    <sequenceFlow id="sf_cs15" sourceRef="gw_wait_response" targetRef="catch_resolution"/>
+    <sequenceFlow id="sf_cs16" sourceRef="catch_perf" targetRef="gw_merge_response"/>
+    <sequenceFlow id="sf_cs17" sourceRef="catch_resolution" targetRef="gw_merge_response"/>
+    <sequenceFlow id="sf_cs18" sourceRef="gw_merge_response" targetRef="gw_split"/>
+    <sequenceFlow id="sf_cs19" sourceRef="gw_split" targetRef="task_create_customer_report"/>
+    <sequenceFlow id="sf_cs20" sourceRef="gw_split" targetRef="task_report_rebate"/>
+    <sequenceFlow id="sf_cs21" sourceRef="task_create_customer_report" targetRef="task_send_customer_report"/>
+    <sequenceFlow id="sf_cs22" sourceRef="task_send_customer_report" targetRef="gw_join"/>
+    <sequenceFlow id="sf_cs23" sourceRef="task_report_rebate" targetRef="gw_join"/>
+    <sequenceFlow id="sf_cs24" sourceRef="gw_join" targetRef="end_cs"/>
+  </process>
+
+  <!-- ================= SERVICE MANAGEMENT PROCESS ================= -->
+  <process id="Process_SM" name="Service Management" isExecutable="false">
+
+    <startEvent id="start_sm" name="Receive detailed problem report">
+      <outgoing>sf_sm1</outgoing>
+      <messageEventDefinition/>
+    </startEvent>
+
+    <exclusiveGateway id="gw_analyzable" name="Analyzable by Service Management?">
+      <incoming>sf_sm1</incoming>
+      <outgoing>sf_sm2</outgoing>
+      <outgoing>sf_sm3</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_perform_analysis" name="Perform analysis">
+      <incoming>sf_sm2</incoming>
+      <outgoing>sf_sm4</outgoing>
+    </task>
+
+    <task id="task_create_trouble_report_sm" name="Create trouble report (type of problem)">
+      <incoming>sf_sm4</incoming>
+      <outgoing>sf_sm5</outgoing>
+    </task>
+
+    <sendTask id="task_send_to_rp" name="Send detailed problem report to Resource Provisioning">
+      <incoming>sf_sm3</incoming>
+      <outgoing>sf_sm6</outgoing>
+    </sendTask>
+
+    <intermediateCatchEvent id="catch_status_report" name="Receive status report">
+      <incoming>sf_sm6</incoming>
+      <outgoing>sf_sm7</outgoing>
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="gw_merge_sm" name="Merge analysis paths">
+      <incoming>sf_sm5</incoming>
+      <incoming>sf_sm7</incoming>
+      <outgoing>sf_sm8</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_prepare_final_status_report" name="Prepare final status report">
+      <incoming>sf_sm8</incoming>
+      <outgoing>sf_sm9</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_countermeasures" name="Required counter measures?">
+      <incoming>sf_sm9</incoming>
+      <outgoing>sf_sm10</outgoing>
+      <outgoing>sf_sm11</outgoing>
+      <outgoing>sf_sm12</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="task_send_actual_performance" name="Send actual service performance to Customer Service">
+      <incoming>sf_sm10</incoming>
+      <outgoing>sf_sm13</outgoing>
+    </sendTask>
+
+    <endEvent id="end_sm1" name="Process ends">
+      <incoming>sf_sm13</incoming>
+    </endEvent>
+
+    <task id="task_corrective_action_sm" name="Undertake minor corrective actions">
+      <incoming>sf_sm11</incoming>
+      <outgoing>sf_sm14</outgoing>
+    </task>
+
+    <task id="task_create_restoration_request" name="Create request for automatic resource restoration">
+      <incoming>sf_sm12</incoming>
+      <outgoing>sf_sm15</outgoing>
+    </task>
+
+    <sendTask id="task_send_restoration_request" name="Send restoration request to Resource Provisioning">
+      <incoming>sf_sm15</incoming>
+      <outgoing>sf_sm16</outgoing>
+    </sendTask>
+
+    <intermediateCatchEvent id="catch_troubleshooting_report" name="Receive trouble-shooting report">
+      <incoming>sf_sm16</incoming>
+      <outgoing>sf_sm17</outgoing>
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="gw_merge_resolution" name="Merge resolution paths">
+      <incoming>sf_sm14</incoming>
+      <incoming>sf_sm17</incoming>
+      <outgoing>sf_sm18</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_create_resolution_report" name="Create problem resolution report">
+      <incoming>sf_sm18</incoming>
+      <outgoing>sf_sm19</outgoing>
+    </task>
+
+    <sendTask id="task_send_resolution_report" name="Send problem resolution report to Customer Service">
+      <incoming>sf_sm19</incoming>
+      <outgoing>sf_sm20</outgoing>
+    </sendTask>
+
+    <endEvent id="end_sm2" name="Process ends">
+      <incoming>sf_sm20</incoming>
+    </endEvent>
+
+    <sequenceFlow id="sf_sm1" sourceRef="start_sm" targetRef="gw_analyzable"/>
+    <sequenceFlow id="sf_sm2" name="Analyzable" sourceRef="gw_analyzable" targetRef="task_perform_analysis"/>
+    <sequenceFlow id="sf_sm3" name="Not analyzable" sourceRef="gw_analyzable" targetRef="task_send_to_rp"/>
+    <sequenceFlow id="sf_sm4" sourceRef="task_perform_analysis" targetRef="task_create_trouble_report_sm"/>
+    <sequenceFlow id="sf_sm5" sourceRef="task_create_trouble_report_sm" targetRef="gw_merge_sm"/>
+    <sequenceFlow id="sf_sm6" sourceRef="task_send_to_rp" targetRef="catch_status_report"/>
+    <sequenceFlow id="sf_sm7" sourceRef="catch_status_report" targetRef="gw_merge_sm"/>
+    <sequenceFlow id="sf_sm8" sourceRef="gw_merge_sm" targetRef="task_prepare_final_status_report"/>
+    <sequenceFlow id="sf_sm9" sourceRef="task_prepare_final_status_report" targetRef="gw_countermeasures"/>
+    <sequenceFlow id="sf_sm10" name="No problem detected" sourceRef="gw_countermeasures" targetRef="task_send_actual_performance"/>
+    <sequenceFlow id="sf_sm11" name="Minor corrective action" sourceRef="gw_countermeasures" targetRef="task_corrective_action_sm"/>
+    <sequenceFlow id="sf_sm12" name="Automatic resource restoration" sourceRef="gw_countermeasures" targetRef="task_create_restoration_request"/>
+    <sequenceFlow id="sf_sm13" sourceRef="task_send_actual_performance" targetRef="end_sm1"/>
+    <sequenceFlow id="sf_sm14" sourceRef="task_corrective_action_sm" targetRef="gw_merge_resolution"/>
+    <sequenceFlow id="sf_sm15" sourceRef="task_create_restoration_request" targetRef="task_send_restoration_request"/>
+    <sequenceFlow id="sf_sm16" sourceRef="task_send_restoration_request" targetRef="catch_troubleshooting_report"/>
+    <sequenceFlow id="sf_sm17" sourceRef="catch_troubleshooting_report" targetRef="gw_merge_resolution"/>
+    <sequenceFlow id="sf_sm18" sourceRef="gw_merge_resolution" targetRef="task_create_resolution_report"/>
+    <sequenceFlow id="sf_sm19" sourceRef="task_create_resolution_report" targetRef="task_send_resolution_report"/>
+    <sequenceFlow id="sf_sm20" sourceRef="task_send_resolution_report" targetRef="end_sm2"/>
+  </process>
+
+  <!-- ================= RESOURCE PROVISIONING PROCESS ================= -->
+  <process id="Process_RP" name="Resource Provisioning" isExecutable="false">
+
+    <startEvent id="start_rp" name="Receive detailed problem report">
+      <outgoing>sf_rp1</outgoing>
+      <messageEventDefinition/>
+    </startEvent>
+
+    <exclusiveGateway id="gw_problem" name="Possible problem detected?">
+      <incoming>sf_rp1</incoming>
+      <outgoing>sf_rp2</outgoing>
+      <outgoing>sf_rp3</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_create_normal_notification" name="Create notification about normal service execution">
+      <incoming>sf_rp2</incoming>
+      <outgoing>sf_rp4</outgoing>
+    </task>
+
+    <task id="task_analyze_problem_rp" name="Analyze problem">
+      <incoming>sf_rp3</incoming>
+      <outgoing>sf_rp5</outgoing>
+    </task>
+
+    <task id="task_create_trouble_report_rp" name="Create trouble report">
+      <incoming>sf_rp5</incoming>
+      <outgoing>sf_rp6</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_merge_rp" name="Merge problem check paths">
+      <incoming>sf_rp4</incoming>
+      <incoming>sf_rp6</incoming>
+      <outgoing>sf_rp7</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_create_status_report" name="Include report in status report">
+      <incoming>sf_rp7</incoming>
+      <outgoing>sf_rp8</outgoing>
+    </task>
+
+    <sendTask id="task_send_status_report" name="Send status report to Service Management">
+      <incoming>sf_rp8</incoming>
+      <outgoing>sf_rp9</outgoing>
+    </sendTask>
+
+    <eventBasedGateway id="gw_wait_restoration" name="Wait for restoration request">
+      <incoming>sf_rp9</incoming>
+      <outgoing>sf_rp10</outgoing>
+      <outgoing>sf_rp11</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="catch_restoration_request" name="Receive restoration request">
+      <incoming>sf_rp10</incoming>
+      <outgoing>sf_rp12</outgoing>
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="catch_timer_2days" name="2 days elapsed">
+      <incoming>sf_rp11</incoming>
+      <outgoing>sf_rp13</outgoing>
+      <timerEventDefinition>
+        <timeDuration>P2D</timeDuration>
+      </timerEventDefinition>
+    </intermediateCatchEvent>
+
+    <endEvent id="end_rp_timeout" name="Process terminated (no restoration request in time)">
+      <incoming>sf_rp13</incoming>
+      <terminateEventDefinition/>
+    </endEvent>
+
+    <task id="task_track_errors" name="Track all possible errors">
+      <incoming>sf_rp12</incoming>
+      <outgoing>sf_rp14</outgoing>
+    </task>
+
+    <task id="task_corrective_actions_rp" name="Undertake necessary corrective actions">
+      <incoming>sf_rp14</incoming>
+      <outgoing>sf_rp15</outgoing>
+    </task>
+
+    <task id="task_create_troubleshooting_report" name="Create trouble-shooting report">
+      <incoming>sf_rp15</incoming>
+      <outgoing>sf_rp16</outgoing>
+    </task>
+
+    <sendTask id="task_send_troubleshooting_report" name="Send trouble-shooting report to Service Management">
+      <incoming>sf_rp16</incoming>
+      <outgoing>sf_rp17</outgoing>
+    </sendTask>
+
+    <endEvent id="end_rp2" name="Process ends">
+      <incoming>sf_rp17</incoming>
+    </endEvent>
+
+    <sequenceFlow id="sf_rp1" sourceRef="start_rp" targetRef="gw_problem"/>
+    <sequenceFlow id="sf_rp2" name="No problem" sourceRef="gw_problem" targetRef="task_create_normal_notification"/>
+    <sequenceFlow id="sf_rp3" name="Problem detected" sourceRef="gw_problem" targetRef="task_analyze_problem_rp"/>
+    <sequenceFlow id="sf_rp4" sourceRef="task_create_normal_notification" targetRef="gw_merge_rp"/>
+    <sequenceFlow id="sf_rp5" sourceRef="task_analyze_problem_rp" targetRef="task_create_trouble_report_rp"/>
+    <sequenceFlow id="sf_rp6" sourceRef="task_create_trouble_report_rp" targetRef="gw_merge_rp"/>
+    <sequenceFlow id="sf_rp7" sourceRef="gw_merge_rp" targetRef="task_create_status_report"/>
+    <sequenceFlow id="sf_rp8" sourceRef="task_create_status_report" targetRef="task_send_status_report"/>
+    <sequenceFlow id="sf_rp9" sourceRef="task_send_status_report" targetRef="gw_wait_restoration"/>
+    <sequenceFlow id="sf_rp10" sourceRef="gw_wait_restoration" targetRef="catch_restoration_request"/>
+    <sequenceFlow id="sf_rp11" sourceRef="gw_wait_restoration" targetRef="catch_timer_2days"/>
+    <sequenceFlow id="sf_rp12" sourceRef="catch_restoration_request" targetRef="task_track_errors"/>
+    <sequenceFlow id="sf_rp13" sourceRef="catch_timer_2days" targetRef="end_rp_timeout"/>
+    <sequenceFlow id="sf_rp14" sourceRef="task_track_errors" targetRef="task_corrective_actions_rp"/>
+    <sequenceFlow id="sf_rp15" sourceRef="task_corrective_actions_rp" targetRef="task_create_troubleshooting_report"/>
+    <sequenceFlow id="sf_rp16" sourceRef="task_create_troubleshooting_report" targetRef="task_send_troubleshooting_report"/>
+    <sequenceFlow id="sf_rp17" sourceRef="task_send_troubleshooting_report" targetRef="end_rp2"/>
+  </process>
+
+  <!-- ================= BILLING & COLLECTIONS PROCESS ================= -->
+  <process id="Process_BC" name="Billing &amp; Collections" isExecutable="false">
+
+    <startEvent id="start_bc" name="Receive SLA violation rebate report">
+      <outgoing>sf_bc1</outgoing>
+      <messageEventDefinition/>
+    </startEvent>
+
+    <task id="task_adjust_billing" name="Adjust billing">
+      <incoming>sf_bc1</incoming>
+      <outgoing>sf_bc2</outgoing>
+    </task>
+
+    <endEvent id="end_bc" name="Process ends">
+      <incoming>sf_bc2</incoming>
+    </endEvent>
+
+    <sequenceFlow id="sf_bc1" sourceRef="start_bc" targetRef="task_adjust_billing"/>
+    <sequenceFlow id="sf_bc2" sourceRef="task_adjust_billing" targetRef="end_bc"/>
+  </process>
+
+</definitions>

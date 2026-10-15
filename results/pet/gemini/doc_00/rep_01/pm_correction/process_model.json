@@ -1,0 +1,262 @@
+{
+  "name": "Dismissal Process",
+  "resources": [
+    {
+      "name": "MPON",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "MPOO",
+      "capacity": 1,
+      "resource_type": "department"
+    }
+  ],
+  "events": [
+    {
+      "id": "event_start_mpon",
+      "name": "Dismissal Needed",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "event_end_mpon_sent",
+      "name": "Dismissal Sent to MPOO",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Dismissal Notification"
+    },
+    {
+      "id": "event_start_mpoo_received",
+      "name": "Dismissal Received from MPON",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Dismissal Notification"
+    },
+    {
+      "id": "event_end_mpoo_opposed",
+      "name": "Dismissal Opposed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "event_end_mpoo_confirmed",
+      "name": "Dismissal Confirmed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_send_dismissal",
+      "name": "Send dismissal to MPOO",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "MPON",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_dismissal"
+      ]
+    },
+    {
+      "id": "task_review_dismissal",
+      "name": "Review dismissal",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "MPOO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_dismissal"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_oppose_dismissal",
+      "name": "Oppose dismissal",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "MPOO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_dismissal"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_confirm_dismissal",
+      "name": "Confirm dismissal",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "MPOO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_dismissal"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gateway_decision",
+      "name": "Decision on Dismissal",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "seq_gateway_to_oppose",
+          "condition": "Oppose"
+        },
+        {
+          "flow_id": "seq_gateway_to_confirm",
+          "condition": "Confirm"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "seq_start_to_send",
+      "source_id": "event_start_mpon",
+      "target_id": "task_send_dismissal",
+      "condition_name": null
+    },
+    {
+      "id": "seq_send_to_end_mpon",
+      "source_id": "task_send_dismissal",
+      "target_id": "event_end_mpon_sent",
+      "condition_name": null
+    },
+    {
+      "id": "seq_start_to_review",
+      "source_id": "event_start_mpoo_received",
+      "target_id": "task_review_dismissal",
+      "condition_name": null
+    },
+    {
+      "id": "seq_review_to_gateway",
+      "source_id": "task_review_dismissal",
+      "target_id": "gateway_decision",
+      "condition_name": null
+    },
+    {
+      "id": "seq_gateway_to_oppose",
+      "source_id": "gateway_decision",
+      "target_id": "task_oppose_dismissal",
+      "condition_name": "Oppose"
+    },
+    {
+      "id": "seq_gateway_to_confirm",
+      "source_id": "gateway_decision",
+      "target_id": "task_confirm_dismissal",
+      "condition_name": "Confirm"
+    },
+    {
+      "id": "seq_oppose_to_end",
+      "source_id": "task_oppose_dismissal",
+      "target_id": "event_end_mpoo_opposed",
+      "condition_name": null
+    },
+    {
+      "id": "seq_confirm_to_end",
+      "source_id": "task_confirm_dismissal",
+      "target_id": "event_end_mpoo_confirmed",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_mpon",
+      "name": "MPON",
+      "element_ids": [
+        "event_start_mpon",
+        "task_send_dismissal",
+        "event_end_mpon_sent"
+      ]
+    },
+    {
+      "id": "pool_mpoo",
+      "name": "MPOO",
+      "element_ids": [
+        "event_start_mpoo_received",
+        "task_review_dismissal",
+        "gateway_decision",
+        "task_oppose_dismissal",
+        "task_confirm_dismissal",
+        "event_end_mpoo_opposed",
+        "event_end_mpoo_confirmed"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_dismissal",
+      "source_id": "event_end_mpon_sent",
+      "target_id": "event_start_mpoo_received",
+      "name": "Dismissal Notification"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_dismissal",
+      "name": "Dismissal"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

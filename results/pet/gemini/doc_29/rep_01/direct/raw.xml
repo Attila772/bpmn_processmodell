@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://www.bpmn.org/process"
+             exporter="Camunda Modeler"
+             exporterVersion="5.0.0">
+
+  <process id="MortgageApplicationProcess" name="Mortgage Application Process" isExecutable="true">
+    
+    <!-- Start Event -->
+    <startEvent id="startEvent_1" name="Offer Ready to Send">
+      <outgoing>flow_start_to_sendOffer</outgoing>
+    </startEvent>
+
+    <!-- Task: Send Mortgage Offer -->
+    <sendTask id="task_sendMortgageOffer" name="Send Mortgage Offer to Customer">
+      <incoming>flow_start_to_sendOffer</incoming>
+      <outgoing>flow_sendOffer_to_eventBasedGateway</outgoing>
+    </sendTask>
+
+    <!-- Event-Based Gateway: Wait for Reply or Timeout -->
+    <eventBasedGateway id="gateway_eventBased" name="Wait for Customer Response">
+      <incoming>flow_sendOffer_to_eventBasedGateway</incoming>
+      <outgoing>flow_gateway_to_declineMessage</outgoing>
+      <outgoing>flow_gateway_to_acceptMessage</outgoing>
+      <outgoing>flow_gateway_to_timer</outgoing>
+    </eventBasedGateway>
+
+    <!-- Catch Event: Customer Declines -->
+    <intermediateCatchEvent id="event_offerDeclined" name="Offer Declined (Call/Write)">
+      <incoming>flow_gateway_to_declineMessage</incoming>
+      <outgoing>flow_decline_to_updateCaseDeclined</outgoing>
+      <messageEventDefinition id="MessageEventDef_Decline" />
+    </intermediateCatchEvent>
+
+    <!-- Catch Event: Customer Accepts / Sends Documents -->
+    <intermediateCatchEvent id="event_offerAccepted" name="Offer Documents Received">
+      <incoming>flow_gateway_to_acceptMessage</incoming>
+      <outgoing>flow_accept_to_checkDocs</outgoing>
+      <messageEventDefinition id="MessageEventDef_Accept" />
+    </intermediateCatchEvent>
+
+    <!-- Catch Event: 2 Weeks Timeout -->
+    <intermediateCatchEvent id="event_twoWeeksTimeout" name="2 Weeks Timeout">
+      <incoming>flow_gateway_to_timer</incoming>
+      <outgoing>flow_timer_to_updateCaseTimeout</outgoing>
+      <timerEventDefinition id="TimerEventDef_2Weeks">
+        <timeDuration xsi:type="tFormalExpression">P14D</timeDuration>
+      </timerEventDefinition>
+    </intermediateCatchEvent>
+
+    <!-- Task: Check Prerequisite Documents -->
+    <userTask id="task_checkPrerequisiteDocs" name="Check Prerequisite Documents">
+      <incoming>flow_accept_to_checkDocs</incoming>
+      <outgoing>flow_checkDocs_to_docsCompleteGateway</outgoing>
+    </userTask>
+
+    <!-- Exclusive Gateway: Are all documents provided? -->
+    <exclusiveGateway id="gateway_docsComplete" name="All prerequisite docs provided?">
+      <incoming>flow_checkDocs_to_docsCompleteGateway</incoming>
+      <outgoing>flow_docsComplete_yes</outgoing>
+      <outgoing>flow_docsComplete_no</outgoing>
+    </exclusiveGateway>
+
+    <!-- Task: Move Case to Administration -->
+    <userTask id="task_moveCaseToAdmin" name="Move Case to Administration for Completion">
+      <incoming>flow_docsComplete_yes</incoming>
+      <outgoing>flow_admin_to_endCompleted</outgoing>
+    </userTask>
+
+    <!-- End Event: Completed -->
+    <endEvent id="endEvent_completed" name="Case Completed">
+      <incoming>flow_admin_to_endCompleted</incoming>
+    </endEvent>
+
+    <!-- Task: Request Outstanding Documents -->
+    <sendTask id="task_requestOutstandingDocs" name="Request Outstanding Documents from Customer">
+      <incoming>flow_docsComplete_no</incoming>
+      <outgoing>flow_requestDocs_to_eventBasedGateway</outgoing>
+    </sendTask>
+
+    <!-- Task: Update Case Details (Declined) -->
+    <userTask id="task_updateCaseDeclined" name="Update Case Details (Declined)">
+      <incoming>flow_decline_to_updateCaseDeclined</incoming>
+      <outgoing>flow_updateDeclined_to_archive</outgoing>
+    </userTask>
+
+    <!-- Task: Update Case Details (No Response) -->
+    <userTask id="task_updateCaseTimeout" name="Update Case Details (No Response)">
+      <incoming>flow_timer_to_updateCaseTimeout</incoming>
+      <outgoing>flow_updateTimeout_to_archive</outgoing>
+    </userTask>
+
+    <!-- Exclusive Gateway: Merge Cancellation Paths -->
+    <exclusiveGateway id="gateway_mergeCancellation" name="Merge Cancellation">
+      <incoming>flow_updateDeclined_to_archive</incoming>
+      <incoming>flow_updateTimeout_to_archive</incoming>
+      <outgoing>flow_merge_to_archive</outgoing>
+    </exclusiveGateway>
+
+    <!-- Task: Archive Work -->
+    <userTask id="task_archiveWork" name="Archive Work">
+      <incoming>flow_merge_to_archive</incoming>
+      <outgoing>flow_archive_to_endCancelled</outgoing>
+    </userTask>
+
+    <!-- End Event: Cancelled -->
+    <endEvent id="endEvent_cancelled" name="Case Cancelled">
+      <incoming>flow_archive_to_endCancelled</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="flow_start_to_sendOffer" sourceRef="startEvent_1" targetRef="task_sendMortgageOffer" />
+    <sequenceFlow id="flow_sendOffer_to_eventBasedGateway" sourceRef="task_sendMortgageOffer" targetRef="gateway_eventBased" />
+    
+    <sequenceFlow id="flow_gateway_to_declineMessage" sourceRef="gateway_eventBased" targetRef="event_offerDeclined" />
+    <sequenceFlow id="flow_gateway_to_acceptMessage" sourceRef="gateway_eventBased" targetRef="event_offerAccepted" />
+    <sequenceFlow id="flow_gateway_to_timer" sourceRef="gateway_eventBased" targetRef="event_twoWeeksTimeout" />
+
+    <sequenceFlow id="flow_decline_to_updateCaseDeclined" sourceRef="event_offerDeclined" targetRef="task_updateCaseDeclined" />
+    <sequenceFlow id="flow_timer_to_updateCaseTimeout" sourceRef="event_twoWeeksTimeout" targetRef="task_updateCaseTimeout" />
+
+    <sequenceFlow id="flow_accept_to_checkDocs" sourceRef="event_offerAccepted" targetRef="task_checkPrerequisiteDocs" />
+    <sequenceFlow id="flow_checkDocs_to_docsCompleteGateway" sourceRef="task_checkPrerequisiteDocs" targetRef="gateway_docsComplete" />
+
+    <sequenceFlow id="flow_docsComplete_yes" name="Yes" sourceRef="gateway_docsComplete" targetRef="task_moveCaseToAdmin" />
+    <sequenceFlow id="flow_docsComplete_no" name="No" sourceRef="gateway_docsComplete" targetRef="task_requestOutstandingDocs" />
+
+    <sequenceFlow id="flow_admin_to_endCompleted" sourceRef="task_moveCaseToAdmin" targetRef="endEvent_completed" />
+
+    <!-- Loop back after requesting documents -->
+    <sequenceFlow id="flow_requestDocs_to_eventBasedGateway" sourceRef="task_requestOutstandingDocs" targetRef="gateway_eventBased" />
+
+    <sequenceFlow id="flow_updateDeclined_to_archive" sourceRef="task_updateCaseDeclined" targetRef="gateway_mergeCancellation" />
+    <sequenceFlow id="flow_updateTimeout_to_archive" sourceRef="task_updateCaseTimeout" targetRef="gateway_mergeCancellation" />
+    <sequenceFlow id="flow_merge_to_archive" sourceRef="gateway_mergeCancellation" targetRef="task_archiveWork" />
+    <sequenceFlow id="flow_archive_to_endCancelled" sourceRef="task_archiveWork" targetRef="endEvent_cancelled" />
+
+  </process>
+
+  <!-- BPMN Diagram Layout -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="MortgageApplicationProcess">
+      
+      <!-- Shapes -->
+      <bpmndi:BPMNShape id="startEvent_1_di" bpmnElement="startEvent_1">
+        <omgdc:Bounds x="152" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="135" y="255" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_sendMortgageOffer_di" bpmnElement="task_sendMortgageOffer">
+        <omgdc:Bounds x="240" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_eventBased_di" bpmnElement="gateway_eventBased" isMarkerVisible="true">
+        <omgdc:Bounds x="395" y="205" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="382" y="166" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="event_offerDeclined_di" bpmnElement="event_offerDeclined">
+        <omgdc:Bounds x="502" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="485" y="145" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="event_offerAccepted_di" bpmnElement="event_offerAccepted">
+        <omgdc:Bounds x="502" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="480" y="255" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="event_twoWeeksTimeout_di" bpmnElement="event_twoWeeksTimeout">
+        <omgdc:Bounds x="502" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="480" y="365" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_checkPrerequisiteDocs_di" bpmnElement="task_checkPrerequisiteDocs">
+        <omgdc:Bounds x="590" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_docsComplete_di" bpmnElement="gateway_docsComplete" isMarkerVisible="true">
+        <omgdc:Bounds x="745" y="205" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="731" y="166" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_moveCaseToAdmin_di" bpmnElement="task_moveCaseToAdmin">
+        <omgdc:Bounds x="860" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="endEvent_completed_di" bpmnElement="endEvent_completed">
+        <omgdc:Bounds x="1022" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1000" y="255" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_requestOutstandingDocs_di" bpmnElement="task_requestOutstandingDocs">
+        <omgdc:Bounds x="720" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_updateCaseDeclined_di" bpmnElement="task_updateCaseDeclined">
+        <omgdc:Bounds x="590" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_updateCaseTimeout_di" bpmnElement="task_updateCaseTimeout">
+        <omgdc:Bounds x="590" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_mergeCancellation_di" bpmnElement="gateway_mergeCancellation" isMarkerVisible="true">
+        <omgdc:Bounds x="865" y="445" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_archiveWork_di" bpmnElement="task_archiveWork">
+        <omgdc:Bounds x="960" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="endEvent_cancelled_di" bpmnElement="endEvent_cancelled">
+        <omgdc:Bounds x="1112" y="452" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1092" y="495" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="flow_start_to_sendOffer_di" bpmnElement="flow_start_to_sendOffer">
+        <omgdi:waypoint x="188" y="230" />
+        <omgdi:waypoint x="240" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_sendOffer_to_eventBasedGateway_di" bpmnElement="flow_sendOffer_to_eventBasedGateway">
+        <omgdi:waypoint x="340" y="230" />
+        <omgdi:waypoint x="395" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_gateway_to_declineMessage_di" bpmnElement="flow_gateway_to_declineMessage">
+        <omgdi:waypoint x="420" y="205" />
+        <omgdi:waypoint x="420" y="120" />
+        <omgdi:waypoint x="502" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_gateway_to_acceptMessage_di" bpmnElement="flow_gateway_to_acceptMessage">
+        <omgdi:waypoint x="445" y="230" />
+        <omgdi:waypoint x="502" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_gateway_to_timer_di" bpmnElement="flow_gateway_to_timer">
+        <omgdi:waypoint x="420" y="255" />
+        <omgdi:waypoint x="420" y="340" />
+        <omgdi:waypoint x="502" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_decline_to_updateCaseDeclined_di" bpmnElement="flow_decline_to_updateCaseDeclined">
+        <omgdi:waypoint x="538" y="120" />
+        <omgdi:waypoint x="590" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_timer_to_updateCaseTimeout_di" bpmnElement="flow_timer_to_updateCaseTimeout">
+        <omgdi:waypoint x="538" y="340" />
+        <omgdi:waypoint x="564" y="340" />
+        <omgdi:waypoint x="564" y="470" />
+        <omgdi:waypoint x="590" y="470" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_accept_to_checkDocs_di" bpmnElement="flow_accept_to_checkDocs">
+        <omgdi:waypoint x="538" y="230" />
+        <omgdi:waypoint x="590" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_checkDocs_to_docsCompleteGateway_di" bpmnElement="flow_checkDocs_to_docsCompleteGateway">
+        <omgdi:waypoint x="690" y="230" />
+        <omgdi:waypoint x="745" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_docsComplete_yes_di" bpmnElement="flow_docsComplete_yes">
+        <omgdi:waypoint x="795" y="230" />
+        <omgdi:waypoint x="860" y="230" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="819" y="212" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_docsComplete_no_di" bpmnElement="flow_docsComplete_no">
+        <omgdi:waypoint x="770" y="255" />
+        <omgdi:waypoint x="770" y="320" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="778" y="285" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_admin_to_endCompleted_di" bpmnElement="flow_admin_to_endCompleted">
+        <omgdi:waypoint x="960" y="230" />
+        <omgdi:waypoint x="1022" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_requestDocs_to_eventBasedGateway_di" bpmnElement="flow_requestDocs_to_eventBasedGateway">
+        <omgdi:waypoint x="720" y="360" />
+        <omgdi:waypoint x="420" y="360" />
+        <omgdi:waypoint x="420" y="255" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_updateDeclined_to_archive_di" bpmnElement="flow_updateDeclined_to_archive">
+        <omgdi:waypoint x="690" y="120" />
+        <omgdi:waypoint x="890" y="120" />
+        <omgdi:waypoint x="890" y="445" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_updateTimeout_to_archive_di" bpmnElement="flow_updateTimeout_to_archive">
+        <omgdi:waypoint x="690" y="470" />
+        <omgdi:waypoint x="865" y="470" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_merge_to_archive_di" bpmnElement="flow_merge_to_archive">
+        <omgdi:waypoint x="915" y="470" />
+        <omgdi:waypoint x="960" y="470" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="flow_archive_to_endCancelled_di" bpmnElement="flow_archive_to_endCancelled">
+        <omgdi:waypoint x="1060" y="470" />
+        <omgdi:waypoint x="1112" y="470" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

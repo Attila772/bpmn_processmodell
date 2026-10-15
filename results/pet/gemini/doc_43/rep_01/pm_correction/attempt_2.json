@@ -1,0 +1,279 @@
+{
+  "name": "Expense Reimbursement Process",
+  "resources": [
+    {
+      "name": "Employee",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Supervisor",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Treasurer",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Payment System",
+      "capacity": 1,
+      "resource_type": "system"
+    }
+  ],
+  "events": [
+    {
+      "id": "event_start",
+      "name": "Expense Report Submitted",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "event_end",
+      "name": "Reimbursement Process Ended",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_submit_report",
+      "name": "Submit Expense Report",
+      "bpmn_type": "userTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_expense_report",
+        "data_receipts"
+      ]
+    },
+    {
+      "id": "task_review_report",
+      "name": "Review Expense Report",
+      "bpmn_type": "userTask",
+      "resource_name": "Supervisor",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_edit_report",
+      "name": "Edit Expense Report",
+      "bpmn_type": "userTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report"
+      ],
+      "output_data_ids": [
+        "data_expense_report"
+      ]
+    },
+    {
+      "id": "task_check_receipts",
+      "name": "Check Receipts and Match Items",
+      "bpmn_type": "userTask",
+      "resource_name": "Treasurer",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report",
+        "data_receipts"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_process_payment",
+      "name": "Process Payment automatically",
+      "bpmn_type": "serviceTask",
+      "resource_name": "Payment System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_supervisor_approval",
+      "name": "Supervisor Approval?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_sup_approved",
+          "condition": "Approved"
+        },
+        {
+          "flow_id": "flow_sup_rejected",
+          "condition": "Rejected"
+        }
+      ]
+    },
+    {
+      "id": "gw_treasurer_check",
+      "name": "Receipts Valid?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_tre_accepted",
+          "condition": "Receipts match and present"
+        },
+        {
+          "flow_id": "flow_tre_rejected",
+          "condition": "Receipts missing or mismatch"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_to_submit",
+      "source_id": "event_start",
+      "target_id": "task_submit_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_submit_to_review",
+      "source_id": "task_submit_report",
+      "target_id": "task_review_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_review_to_gw_sup",
+      "source_id": "task_review_report",
+      "target_id": "gw_supervisor_approval",
+      "condition_name": null
+    },
+    {
+      "id": "flow_sup_rejected",
+      "source_id": "gw_supervisor_approval",
+      "target_id": "task_edit_report",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_edit_to_review",
+      "source_id": "task_edit_report",
+      "target_id": "task_review_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_sup_approved",
+      "source_id": "gw_supervisor_approval",
+      "target_id": "task_check_receipts",
+      "condition_name": "Approved"
+    },
+    {
+      "id": "flow_check_to_gw_tre",
+      "source_id": "task_check_receipts",
+      "target_id": "gw_treasurer_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_tre_rejected",
+      "source_id": "gw_treasurer_check",
+      "target_id": "task_edit_report",
+      "condition_name": "Receipts missing or mismatch"
+    },
+    {
+      "id": "flow_tre_accepted",
+      "source_id": "gw_treasurer_check",
+      "target_id": "task_process_payment",
+      "condition_name": "Receipts match and present"
+    },
+    {
+      "id": "flow_payment_to_end",
+      "source_id": "task_process_payment",
+      "target_id": "event_end",
+      "condition_name": null
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [
+    {
+      "id": "data_expense_report",
+      "name": "Expense Report"
+    },
+    {
+      "id": "data_receipts",
+      "name": "Receipts"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

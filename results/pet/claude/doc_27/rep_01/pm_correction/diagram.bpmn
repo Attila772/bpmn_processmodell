@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mpo_part" name="MPO" processRef="pool_mpo_proc" />
+    <bpmn:participant id="pool_fault_detector_part" name="Fault Detector" processRef="pool_fault_detector_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_msp_part" name="MSP" processRef="pool_msp_proc" />
+    <bpmn:messageFlow id="mf_report" sourceRef="msg_start_report_sent" targetRef="start_report" name="Failure Report" />
+    <bpmn:messageFlow id="mf_confirm_go" sourceRef="msg_end_to_go" targetRef="msg_start_go_confirm" name="Failure Confirmed" />
+    <bpmn:messageFlow id="mf_confirm_msp" sourceRef="msg_end_to_msp" targetRef="msg_start_msp_confirm" name="Failure Confirmed" />
+    <bpmn:messageFlow id="mf_results" sourceRef="task_share_results" targetRef="msg_end_results_shared_target" name="Repair Results" />
+    <bpmn:messageFlow id="mf_resolution_go" sourceRef="msg_end_to_go2" targetRef="msg_start_go_resolution" name="Interference Resolved" />
+    <bpmn:messageFlow id="mf_resolution_msp" sourceRef="msg_end_to_msp2" targetRef="msg_start_msp_resolution" name="Interference Resolved" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mpo_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_failure_report" name="Failure Report" dataObjectRef="data_failure_report_do" />
+    <bpmn:dataObject id="data_failure_report_do" />
+    <bpmn:dataObjectReference id="data_repair_results" name="Repair Results" dataObjectRef="data_repair_results_do" />
+    <bpmn:dataObject id="data_repair_results_do" />
+    <bpmn:startEvent id="start_report" name="Failure reported by Fault Detector">
+      <bpmn:outgoing>flow_start_report_to_examine</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_report_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="start_suspicion" name="MPO has suspicion of own fault">
+      <bpmn:outgoing>flow_start_suspicion_to_examine</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_reject" name="Failure rejected">
+      <bpmn:incoming>flow_gw_to_reject</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_process" name="Process completed">
+      <bpmn:incoming>flow_inform_msp_res_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="msg_end_to_go" name="Inform GO about confirmation">
+      <bpmn:incoming>flow_inform_go_to_msg_go</bpmn:incoming>
+      <bpmn:messageEventDefinition id="msg_end_to_go_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="msg_end_to_msp" name="Inform MSP about confirmation">
+      <bpmn:incoming>flow_inform_go_to_msg_msp</bpmn:incoming>
+      <bpmn:messageEventDefinition id="msg_end_to_msp_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="msg_end_to_go2" name="Inform GO about resolution">
+      <bpmn:incoming>flow_inform_go_res_to_msg_go2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="msg_end_to_go2_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="msg_end_to_msp2" name="Inform MSP about resolution">
+      <bpmn:incoming>flow_inform_msp_res_to_msg_msp2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="msg_end_to_msp2_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_examine" name="Examine the failure">
+      <bpmn:incoming>flow_start_report_to_examine</bpmn:incoming>
+      <bpmn:incoming>flow_start_suspicion_to_examine</bpmn:incoming>
+      <bpmn:outgoing>flow_examine_to_gw</bpmn:outgoing>
+      <bpmn:property id="task_examine_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_examine_dia0">
+        <bpmn:sourceRef>data_failure_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_examine_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:task id="task_inform_go_confirm" name="Inform GO about confirmed failure">
+      <bpmn:incoming>flow_gw_to_inform_go</bpmn:incoming>
+      <bpmn:outgoing>flow_inform_go_to_msg_go</bpmn:outgoing>
+      <bpmn:outgoing>flow_inform_go_to_msg_msp</bpmn:outgoing>
+      <bpmn:outgoing>flow_inform_go_to_fix</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:manualTask id="task_fix_fault" name="Fix the fault at the measuring device">
+      <bpmn:incoming>flow_inform_go_to_fix</bpmn:incoming>
+      <bpmn:outgoing>flow_fix_to_share</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_fix_fault_doa0">
+        <bpmn:targetRef>data_repair_results</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:task id="task_share_results" name="Share repair results with Fault Detector">
+      <bpmn:incoming>flow_fix_to_share</bpmn:incoming>
+      <bpmn:outgoing>flow_share_to_inform_go_res</bpmn:outgoing>
+      <bpmn:property id="task_share_results_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_share_results_dia0">
+        <bpmn:sourceRef>data_repair_results</bpmn:sourceRef>
+        <bpmn:targetRef>task_share_results_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_inform_go_resolution" name="Inform GO about resolution of interference">
+      <bpmn:incoming>flow_share_to_inform_go_res</bpmn:incoming>
+      <bpmn:outgoing>flow_inform_go_res_to_msg_go2</bpmn:outgoing>
+      <bpmn:outgoing>flow_inform_go_res_to_inform_msp_res</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_inform_msp_resolution" name="Inform MSP about resolution of interference">
+      <bpmn:incoming>flow_inform_go_res_to_inform_msp_res</bpmn:incoming>
+      <bpmn:outgoing>flow_inform_msp_res_to_msg_msp2</bpmn:outgoing>
+      <bpmn:outgoing>flow_inform_msp_res_to_end</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_reject_confirm" name="Failure confirmed?" isMarkerVisible="true">
+      <bpmn:incoming>flow_examine_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_gw_to_reject</bpmn:outgoing>
+      <bpmn:outgoing>flow_gw_to_inform_go</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_report_to_examine" sourceRef="start_report" targetRef="task_examine" />
+    <bpmn:sequenceFlow id="flow_start_suspicion_to_examine" sourceRef="start_suspicion" targetRef="task_examine" />
+    <bpmn:sequenceFlow id="flow_examine_to_gw" sourceRef="task_examine" targetRef="gw_reject_confirm" />
+    <bpmn:sequenceFlow id="flow_gw_to_reject" sourceRef="gw_reject_confirm" targetRef="end_reject" name="rejected" />
+    <bpmn:sequenceFlow id="flow_gw_to_inform_go" sourceRef="gw_reject_confirm" targetRef="task_inform_go_confirm" name="confirmed" />
+    <bpmn:sequenceFlow id="flow_inform_go_to_msg_go" sourceRef="task_inform_go_confirm" targetRef="msg_end_to_go" />
+    <bpmn:sequenceFlow id="flow_inform_go_to_msg_msp" sourceRef="task_inform_go_confirm" targetRef="msg_end_to_msp" />
+    <bpmn:sequenceFlow id="flow_inform_go_to_fix" sourceRef="task_inform_go_confirm" targetRef="task_fix_fault" />
+    <bpmn:sequenceFlow id="flow_fix_to_share" sourceRef="task_fix_fault" targetRef="task_share_results" />
+    <bpmn:sequenceFlow id="flow_share_to_inform_go_res" sourceRef="task_share_results" targetRef="task_inform_go_resolution" />
+    <bpmn:sequenceFlow id="flow_inform_go_res_to_msg_go2" sourceRef="task_inform_go_resolution" targetRef="msg_end_to_go2" />
+    <bpmn:sequenceFlow id="flow_inform_go_res_to_inform_msp_res" sourceRef="task_inform_go_resolution" targetRef="task_inform_msp_resolution" />
+    <bpmn:sequenceFlow id="flow_inform_msp_res_to_msg_msp2" sourceRef="task_inform_msp_resolution" targetRef="msg_end_to_msp2" />
+    <bpmn:sequenceFlow id="flow_inform_msp_res_to_end" sourceRef="task_inform_msp_resolution" targetRef="end_process" />
+  </bpmn:process>
+  <bpmn:process id="pool_fault_detector_proc" isExecutable="false">
+    <bpmn:startEvent id="msg_start_report_sent" name="Fault Detector reports failure">
+      <bpmn:messageEventDefinition id="msg_start_report_sent_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="msg_end_results_shared_target" name="Fault Detector receives repair results">
+      <bpmn:messageEventDefinition id="msg_end_results_shared_target_msgdef" />
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:endEvent id="msg_start_go_confirm" name="GO receives confirmation">
+      <bpmn:messageEventDefinition id="msg_start_go_confirm_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="msg_start_go_resolution" name="GO receives resolution info">
+      <bpmn:messageEventDefinition id="msg_start_go_resolution_msgdef" />
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmn:process id="pool_msp_proc" isExecutable="false">
+    <bpmn:endEvent id="msg_start_msp_confirm" name="MSP receives confirmation">
+      <bpmn:messageEventDefinition id="msg_start_msp_confirm_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="msg_start_msp_resolution" name="MSP receives resolution info">
+      <bpmn:messageEventDefinition id="msg_start_msp_resolution_msgdef" />
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mpo_part_di" bpmnElement="pool_mpo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1900" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_fault_detector_part_di" bpmnElement="pool_fault_detector_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="700" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1085" width="700" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_msp_part_di" bpmnElement="pool_msp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1545" width="700" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_process_di" bpmnElement="end_process">
+        <dc:Bounds x="1680" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_reject_di" bpmnElement="end_reject">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_reject_confirm_di" bpmnElement="gw_reject_confirm">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_results_shared_target_di" bpmnElement="msg_end_results_shared_target">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_to_go_di" bpmnElement="msg_end_to_go">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_to_go2_di" bpmnElement="msg_end_to_go2">
+        <dc:Bounds x="1490" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_to_msp_di" bpmnElement="msg_end_to_msp">
+        <dc:Bounds x="920" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_to_msp2_di" bpmnElement="msg_end_to_msp2">
+        <dc:Bounds x="1680" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_start_go_confirm_di" bpmnElement="msg_start_go_confirm">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_start_go_resolution_di" bpmnElement="msg_start_go_resolution">
+        <dc:Bounds x="160" y="1270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_start_msp_confirm_di" bpmnElement="msg_start_msp_confirm">
+        <dc:Bounds x="160" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_start_msp_resolution_di" bpmnElement="msg_start_msp_resolution">
+        <dc:Bounds x="160" y="1730" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_start_report_sent_di" bpmnElement="msg_start_report_sent">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_report_di" bpmnElement="start_report">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_suspicion_di" bpmnElement="start_suspicion">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_di" bpmnElement="task_examine">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_fix_fault_di" bpmnElement="task_fix_fault">
+        <dc:Bounds x="920" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_go_confirm_di" bpmnElement="task_inform_go_confirm">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_go_resolution_di" bpmnElement="task_inform_go_resolution">
+        <dc:Bounds x="1300" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_msp_resolution_di" bpmnElement="task_inform_msp_resolution">
+        <dc:Bounds x="1490" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_share_results_di" bpmnElement="task_share_results">
+        <dc:Bounds x="1110" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_failure_report_di" bpmnElement="data_failure_report">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_repair_results_di" bpmnElement="data_repair_results">
+        <dc:Bounds x="1035" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_report_to_examine_di" bpmnElement="flow_start_report_to_examine">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_suspicion_to_examine_di" bpmnElement="flow_start_suspicion_to_examine">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_examine_to_gw_di" bpmnElement="flow_examine_to_gw">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gw_to_reject_di" bpmnElement="flow_gw_to_reject">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gw_to_inform_go_di" bpmnElement="flow_gw_to_inform_go">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_go_to_msg_go_di" bpmnElement="flow_inform_go_to_msg_go">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_go_to_msg_msp_di" bpmnElement="flow_inform_go_to_msg_msp">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="938" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_go_to_fix_di" bpmnElement="flow_inform_go_to_fix">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="970" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_fix_to_share_di" bpmnElement="flow_fix_to_share">
+        <di:waypoint x="970" y="390" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_share_to_inform_go_res_di" bpmnElement="flow_share_to_inform_go_res">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_go_res_to_msg_go2_di" bpmnElement="flow_inform_go_res_to_msg_go2">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1508" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_go_res_to_inform_msp_res_di" bpmnElement="flow_inform_go_res_to_inform_msp_res">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1540" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_msp_res_to_msg_msp2_di" bpmnElement="flow_inform_msp_res_to_msg_msp2">
+        <di:waypoint x="1540" y="265" />
+        <di:waypoint x="1698" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inform_msp_res_to_end_di" bpmnElement="flow_inform_msp_res_to_end">
+        <di:waypoint x="1540" y="265" />
+        <di:waypoint x="1698" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_report_di" bpmnElement="mf_report">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_confirm_go_di" bpmnElement="mf_confirm_go">
+        <di:waypoint x="938" y="118" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_confirm_msp_di" bpmnElement="mf_confirm_msp">
+        <di:waypoint x="938" y="243" />
+        <di:waypoint x="178" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_results_di" bpmnElement="mf_results">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_resolution_go_di" bpmnElement="mf_resolution_go">
+        <di:waypoint x="1508" y="118" />
+        <di:waypoint x="178" y="1288" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_resolution_msp_di" bpmnElement="mf_resolution_msp">
+        <di:waypoint x="1698" y="243" />
+        <di:waypoint x="178" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_dia0_di" bpmnElement="task_examine_dia0">
+        <di:waypoint x="388" y="515" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_fix_fault_doa0_di" bpmnElement="task_fix_fault_doa0">
+        <di:waypoint x="970" y="390" />
+        <di:waypoint x="1053" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_share_results_dia0_di" bpmnElement="task_share_results_dia0">
+        <di:waypoint x="1053" y="515" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

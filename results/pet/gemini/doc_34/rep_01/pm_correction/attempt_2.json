@@ -1,0 +1,338 @@
+{
+  "name": "Expense Report Processing",
+  "resources": [
+    {
+      "name": "Supervisor",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Expense Approval System",
+      "capacity": 1,
+      "resource_type": "system"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_event_1",
+      "name": "Expense Report Received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Expense Report"
+    },
+    {
+      "id": "end_event_approved",
+      "name": "Reimbursement Completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_event_rejected",
+      "name": "Expense Report Rejected",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_event_cancelled",
+      "name": "Process Cancelled",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_check_account",
+      "name": "Check and Create Account if Needed",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Expense Approval System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_review_amount",
+      "name": "Review Report for Automatic Approval",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Expense Approval System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_supervisor_approval",
+      "name": "Supervisor Approval",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Supervisor",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_send_rejection_email",
+      "name": "Send Rejection Notice Email",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Expense Approval System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_rejection_notice"
+      ]
+    },
+    {
+      "id": "task_process_reimbursement",
+      "name": "Process Reimbursement to Direct Deposit Bank Account",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Expense Approval System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_send_cancellation_email",
+      "name": "Send Email Cancellation Notice",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Expense Approval System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_cancellation_notice"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gateway_amount_check",
+      "name": "Amount < $200?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_auto_approved",
+          "condition": "Under $200"
+        },
+        {
+          "flow_id": "flow_needs_supervisor",
+          "condition": "Equal to or over $200"
+        }
+      ]
+    },
+    {
+      "id": "gateway_supervisor_decision",
+      "name": "Supervisor Decision",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_approved_by_sup",
+          "condition": "Approved"
+        },
+        {
+          "flow_id": "flow_rejected_by_sup",
+          "condition": "Rejected"
+        },
+        {
+          "flow_id": "flow_cancelled_30_days",
+          "condition": "Not finished within 30 days"
+        }
+      ]
+    },
+    {
+      "id": "gateway_merge_approval",
+      "name": "Merge Approved",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "start_event_1",
+      "target_id": "task_check_account",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_check_account",
+      "target_id": "task_review_amount",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "task_review_amount",
+      "target_id": "gateway_amount_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_auto_approved",
+      "source_id": "gateway_amount_check",
+      "target_id": "gateway_merge_approval",
+      "condition_name": "Under $200"
+    },
+    {
+      "id": "flow_needs_supervisor",
+      "source_id": "gateway_amount_check",
+      "target_id": "task_supervisor_approval",
+      "condition_name": "Equal to or over $200"
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_supervisor_approval",
+      "target_id": "gateway_supervisor_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_approved_by_sup",
+      "source_id": "gateway_supervisor_decision",
+      "target_id": "gateway_merge_approval",
+      "condition_name": "Approved"
+    },
+    {
+      "id": "flow_rejected_by_sup",
+      "source_id": "gateway_supervisor_decision",
+      "target_id": "task_send_rejection_email",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_cancelled_30_days",
+      "source_id": "gateway_supervisor_decision",
+      "target_id": "task_send_cancellation_email",
+      "condition_name": "Not finished within 30 days"
+    },
+    {
+      "id": "flow_5",
+      "source_id": "task_send_rejection_email",
+      "target_id": "end_event_rejected",
+      "condition_name": null
+    },
+    {
+      "id": "flow_cancellation_to_end",
+      "source_id": "task_send_cancellation_email",
+      "target_id": "end_event_cancelled",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "gateway_merge_approval",
+      "target_id": "task_process_reimbursement",
+      "condition_name": null
+    },
+    {
+      "id": "flow_7",
+      "source_id": "task_process_reimbursement",
+      "target_id": "end_event_approved",
+      "condition_name": null
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [
+    {
+      "id": "data_expense_report",
+      "name": "Expense Report"
+    },
+    {
+      "id": "data_rejection_notice",
+      "name": "Rejection Notice Email"
+    },
+    {
+      "id": "data_approval_in_progress_notice",
+      "name": "Approval in Progress Email"
+    },
+    {
+      "id": "data_cancellation_notice",
+      "name": "Email Cancellation Notice"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

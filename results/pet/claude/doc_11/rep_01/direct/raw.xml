@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://teleco.example/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Customer" name="Customer" processRef="Process_Customer"/>
+    <bpmn:participant id="Participant_CS" name="Customer Service" processRef="Process_CS"/>
+    <bpmn:participant id="Participant_SM" name="Service Management" processRef="Process_SM"/>
+    <bpmn:participant id="Participant_RP" name="Resource Provisioning" processRef="Process_RP"/>
+    <bpmn:participant id="Participant_BC" name="Billing &amp; Collections" processRef="Process_BC"/>
+
+    <!-- Message Flows -->
+    <bpmn:messageFlow id="MF1" sourceRef="ST_SendList" targetRef="SE_CS_Start"/>
+    <bpmn:messageFlow id="MF2" sourceRef="T6" targetRef="SE_SM_Start"/>
+    <bpmn:messageFlow id="MF3" sourceRef="SM_T0" targetRef="SE_RP_Start"/>
+    <bpmn:messageFlow id="MF4" sourceRef="RP_T5" targetRef="SE_SM_Start2"/>
+    <bpmn:messageFlow id="MF5" sourceRef="SM_T9" targetRef="ICE_Msg"/>
+    <bpmn:messageFlow id="MF6" sourceRef="RP_T9" targetRef="SE_SM_Start3"/>
+    <bpmn:messageFlow id="MF7" sourceRef="SM_T4" targetRef="SE_CS_Start2"/>
+    <bpmn:messageFlow id="MF8" sourceRef="SM_T7" targetRef="SE_CS_Start3"/>
+    <bpmn:messageFlow id="MF9" sourceRef="Tc" targetRef="SE_BC_Start"/>
+    <bpmn:messageFlow id="MF10" sourceRef="Tb" targetRef="IntermediateCatchEvent_ReceiveReport"/>
+  </bpmn:collaboration>
+
+  <!-- ================= CUSTOMER ================= -->
+  <bpmn:process id="Process_Customer" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_1" name="Customer perceives service degradation">
+      <bpmn:outgoing>Flow_C1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="ST_SendList" name="Send list of problem parameters to Customer Service">
+      <bpmn:incoming>Flow_C1</bpmn:incoming>
+      <bpmn:outgoing>Flow_C2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_ReceiveReport" name="Receive service performance &amp; problem resolution report">
+      <bpmn:incoming>Flow_C2</bpmn:incoming>
+      <bpmn:outgoing>Flow_C3</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="EndEvent_CustomerEnd" name="Customer process ends">
+      <bpmn:incoming>Flow_C3</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_C1" sourceRef="StartEvent_1" targetRef="ST_SendList"/>
+    <bpmn:sequenceFlow id="Flow_C2" sourceRef="ST_SendList" targetRef="IntermediateCatchEvent_ReceiveReport"/>
+    <bpmn:sequenceFlow id="Flow_C3" sourceRef="IntermediateCatchEvent_ReceiveReport" targetRef="EndEvent_CustomerEnd"/>
+  </bpmn:process>
+
+  <!-- ================= CUSTOMER SERVICE ================= -->
+  <bpmn:process id="Process_CS" isExecutable="false">
+
+    <!-- Part 1: Intake and detailed problem report -->
+    <bpmn:startEvent id="SE_CS_Start" name="Receive list of problem parameters">
+      <bpmn:outgoing>F1</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:task id="T1" name="Enter problem report into system T">
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="T2" name="Compare problem report to customer SLA">
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="T3" name="Determine necessary counter measures and priorities">
+      <bpmn:incoming>F3</bpmn:incoming>
+      <bpmn:incoming>F_LoopBack</bpmn:incoming>
+      <bpmn:outgoing>F4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:serviceTask id="T4" name="Determine customer significance (electronic service)">
+      <bpmn:incoming>F4</bpmn:incoming>
+      <bpmn:outgoing>F5</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="G1" name="Premium customer?">
+      <bpmn:incoming>F5</bpmn:incoming>
+      <bpmn:outgoing>F6_yes</bpmn:outgoing>
+      <bpmn:outgoing>F6_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:callActivity id="CA1" name="Extra Problem Fix Process (external)">
+      <bpmn:incoming>F6_yes</bpmn:incoming>
+      <bpmn:outgoing>F7</bpmn:outgoing>
+    </bpmn:callActivity>
+
+    <bpmn:exclusiveGateway id="G1_merge">
+      <bpmn:incoming>F6_no</bpmn:incoming>
+      <bpmn:incoming>F7</bpmn:incoming>
+      <bpmn:outgoing>F8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:exclusiveGateway id="G2" name="Significance affects counter measures?">
+      <bpmn:incoming>F8</bpmn:incoming>
+      <bpmn:outgoing>F_LoopBack</bpmn:outgoing>
+      <bpmn:outgoing>F9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="T5" name="Create detailed problem report (contract commitment + prioritized actions)">
+      <bpmn:incoming>F9</bpmn:incoming>
+      <bpmn:outgoing>F10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="T6" name="Send detailed problem report to Service Management">
+      <bpmn:incoming>F10</bpmn:incoming>
+      <bpmn:outgoing>F11</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EE_CS_PartOne" name="Detailed problem report sent">
+      <bpmn:incoming>F11</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F1" sourceRef="SE_CS_Start" targetRef="T1"/>
+    <bpmn:sequenceFlow id="F2" sourceRef="T1" targetRef="T2"/>
+    <bpmn:sequenceFlow id="F3" sourceRef="T2" targetRef="T3"/>
+    <bpmn:sequenceFlow id="F4" sourceRef="T3" targetRef="T4"/>
+    <bpmn:sequenceFlow id="F5" sourceRef="T4" targetRef="G1"/>
+    <bpmn:sequenceFlow id="F6_yes" name="Yes" sourceRef="G1" targetRef="CA1"/>
+    <bpmn:sequenceFlow id="F6_no" name="No" sourceRef="G1" targetRef="G1_merge"/>
+    <bpmn:sequenceFlow id="F7" sourceRef="CA1" targetRef="G1_merge"/>
+    <bpmn:sequenceFlow id="F8" sourceRef="G1_merge" targetRef="G2"/>
+    <bpmn:sequenceFlow id="F_LoopBack" name="Yes" sourceRef="G2" targetRef="T3"/>
+    <bpmn:sequenceFlow id="F9" name="No" sourceRef="G2" targetRef="T5"/>
+    <bpmn:sequenceFlow id="F10" sourceRef="T5" targetRef="T6"/>
+    <bpmn:sequenceFlow id="F11" sourceRef="T6" targetRef="EE_CS_PartOne"/>
+
+    <!-- Part 2: Receiving results and notifying customer / billing -->
+    <bpmn:startEvent id="SE_CS_Start2" name="Receive actual service performance">
+      <bpmn:outgoing>F20</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:startEvent id="SE_CS_Start3" name="Receive problem resolution report">
+      <bpmn:outgoing>F21</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:exclusiveGateway id="G3" name="Merge">
+      <bpmn:incoming>F20</bpmn:incoming>
+      <bpmn:incoming>F21</bpmn:incoming>
+      <bpmn:outgoing>F22</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:parallelGateway id="G4" name="Split">
+      <bpmn:incoming>F22</bpmn:incoming>
+      <bpmn:outgoing>F23</bpmn:outgoing>
+      <bpmn:outgoing>F24</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:task id="Ta" name="Create report for customer (performance &amp; resolution)">
+      <bpmn:incoming>F23</bpmn:incoming>
+      <bpmn:outgoing>F25</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Tb" name="Send report to customer">
+      <bpmn:incoming>F25</bpmn:incoming>
+      <bpmn:outgoing>F26</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Tc" name="Report SLA violation rebate to Billing &amp; Collections">
+      <bpmn:incoming>F24</bpmn:incoming>
+      <bpmn:outgoing>F27</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:parallelGateway id="G5" name="Join">
+      <bpmn:incoming>F26</bpmn:incoming>
+      <bpmn:incoming>F27</bpmn:incoming>
+      <bpmn:outgoing>F28</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:endEvent id="EE_CS_End2" name="Customer Service process ends">
+      <bpmn:incoming>F28</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F20" sourceRef="SE_CS_Start2" targetRef="G3"/>
+    <bpmn:sequenceFlow id="F21" sourceRef="SE_CS_Start3" targetRef="G3"/>
+    <bpmn:sequenceFlow id="F22" sourceRef="G3" targetRef="G4"/>
+    <bpmn:sequenceFlow id="F23" sourceRef="G4" targetRef="Ta"/>
+    <bpmn:sequenceFlow id="F24" sourceRef="G4" targetRef="Tc"/>
+    <bpmn:sequenceFlow id="F25" sourceRef="Ta" targetRef="Tb"/>
+    <bpmn:sequenceFlow id="F26" sourceRef="Tb" targetRef="G5"/>
+    <bpmn:sequenceFlow id="F27" sourceRef="Tc" targetRef="G5"/>
+    <bpmn:sequenceFlow id="F28" sourceRef="G5" targetRef="EE_CS_End2"/>
+
+  </bpmn:process>
+
+  <!-- ================= SERVICE MANAGEMENT ================= -->
+  <bpmn:process id="Process_SM" isExecutable="false">
+
+    <bpmn:startEvent id="SE_SM_Start" name="Receive detailed problem report">
+      <bpmn:outgoing>S1</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:exclusiveGateway id="G_SM1" name="Analyzable by Service Management?">
+      <bpmn:incoming>S1</bpmn:incoming>
+      <bpmn:outgoing>S2_yes</bpmn:outgoing>
+      <bpmn:outgoing>S2_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="SM_T1" name="Perform analysis">
+      <bpmn:incoming>S2_yes</bpmn:incoming>
+      <bpmn:outgoing>S3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SM_T2" name="Create trouble report (problem type)">
+      <bpmn:incoming>S3</bpmn:incoming>
+      <bpmn:outgoing>S4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SM_T0" name="Send detailed problem report to Resource Provisioning">
+      <bpmn:incoming>S2_no</bpmn:incoming>
+      <bpmn:outgoing>S5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="SM_End_SendRP" name="Sent to Resource Provisioning">
+      <bpmn:incoming>S5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:startEvent id="SE_SM_Start2" name="Receive status report from Resource Provisioning">
+      <bpmn:outgoing>S6</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:exclusiveGateway id="G_SM_merge" name="Merge">
+      <bpmn:incoming>S4</bpmn:incoming>
+      <bpmn:incoming>S6</bpmn:incoming>
+      <bpmn:outgoing>S7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="SM_T3" name="Prepare final status report">
+      <bpmn:incoming>S7</bpmn:incoming>
+      <bpmn:outgoing>S8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="G_SM2" name="Counter measures required?">
+      <bpmn:incoming>S8</bpmn:incoming>
+      <bpmn:outgoing>S9_none</bpmn:outgoing>
+      <bpmn:outgoing>S9_minor</bpmn:outgoing>
+      <bpmn:outgoing>S9_restore</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Branch: no problem -->
+    <bpmn:task id="SM_T4" name="Send actual service performance to Customer Service">
+      <bpmn:incoming>S9_none</bpmn:incoming>
+      <bpmn:outgoing>S10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="SM_End1" name="End - no problem">
+      <bpmn:incoming>S10</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Branch: minor corrective actions -->
+    <bpmn:task id="SM_T5" name="Undertake corrective actions">
+      <bpmn:incoming>S9_minor</bpmn:incoming>
+      <bpmn:outgoing>S11</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="G_SM3" name="Merge resolution input">
+      <bpmn:incoming>S11</bpmn:incoming>
+      <bpmn:incoming>S14</bpmn:incoming>
+      <bpmn:outgoing>S12</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="SM_T6" name="Create problem resolution report">
+      <bpmn:incoming>S12</bpmn:incoming>
+      <bpmn:outgoing>S13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SM_T7" name="Send problem resolution report to Customer Service">
+      <bpmn:incoming>S13</bpmn:incoming>
+      <bpmn:outgoing>S13b</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="SM_End2" name="End - resolution sent">
+      <bpmn:incoming>S13b</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Branch: automatic resource restoration -->
+    <bpmn:task id="SM_T8" name="Create request for automatic resource restoration">
+      <bpmn:incoming>S9_restore</bpmn:incoming>
+      <bpmn:outgoing>S15</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SM_T9" name="Send restoration request to Resource Provisioning">
+      <bpmn:incoming>S15</bpmn:incoming>
+      <bpmn:outgoing>S16</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="SM_End3" name="End - restoration requested">
+      <bpmn:incoming>S16</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:startEvent id="SE_SM_Start3" name="Receive trouble-shooting report from Resource Provisioning">
+      <bpmn:outgoing>S14</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:sequenceFlow id="S1" sourceRef="SE_SM_Start" targetRef="G_SM1"/>
+    <bpmn:sequenceFlow id="S2_yes" name="Yes" sourceRef="G_SM1" targetRef="SM_T1"/>
+    <bpmn:sequenceFlow id="S2_no" name="No" sourceRef="G_SM1" targetRef="SM_T0"/>
+    <bpmn:sequenceFlow id="S3" sourceRef="SM_T1" targetRef="SM_T2"/>
+    <bpmn:sequenceFlow id="S4" sourceRef="SM_T2" targetRef="G_SM_merge"/>
+    <bpmn:sequenceFlow id="S5" sourceRef="SM_T0" targetRef="SM_End_SendRP"/>
+    <bpmn:sequenceFlow id="S6" sourceRef="SE_SM_Start2" targetRef="G_SM_merge"/>
+    <bpmn:sequenceFlow id="S7" sourceRef="G_SM_merge" targetRef="SM_T3"/>
+    <bpmn:sequenceFlow id="S8" sourceRef="SM_T3" targetRef="G_SM2"/>
+    <bpmn:sequenceFlow id="S9_none" name="No problem" sourceRef="G_SM2" targetRef="SM_T4"/>
+    <bpmn:sequenceFlow id="S9_minor" name="Minor corrective actions" sourceRef="G_SM2" targetRef="SM_T5"/>
+    <bpmn:sequenceFlow id="S9_restore" name="Automatic resource restoration" sourceRef="G_SM2" targetRef="SM_T8"/>
+    <bpmn:sequenceFlow id="S10" sourceRef="SM_T4" targetRef="SM_End1"/>
+    <bpmn:sequenceFlow id="S11" sourceRef="SM_T5" targetRef="G_SM3"/>
+    <bpmn:sequenceFlow id="S14" sourceRef="SE_SM_Start3" targetRef="G_SM3"/>
+    <bpmn:sequenceFlow id="S12" sourceRef="G_SM3" targetRef="SM_T6"/>
+    <bpmn:sequenceFlow id="S13" sourceRef="SM_T6" targetRef="SM_T7"/>
+    <bpmn:sequenceFlow id="S13b" sourceRef="SM_T7" targetRef="SM_End2"/>
+    <bpmn:sequenceFlow id="S15" sourceRef="SM_T8" targetRef="SM_T9"/>
+    <bpmn:sequenceFlow id="S16" sourceRef="SM_T9" targetRef="SM_End3"/>
+
+  </bpmn:process>
+
+  <!-- ================= RESOURCE PROVISIONING ================= -->
+  <bpmn:process id="Process_RP" isExecutable="false">
+
+    <bpmn:startEvent id="SE_RP_Start" name="Receive detailed problem report">
+      <bpmn:outgoing>R1</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:exclusiveGateway id="G_RP1" name="Problem detected?">
+      <bpmn:incoming>R1</bpmn:incoming>
+      <bpmn:outgoing>R2_yes</bpmn:outgoing>
+      <bpmn:outgoing>R2_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="RP_T1" name="Create notification of normal service execution">
+      <bpmn:incoming>R2_no</bpmn:incoming>
+      <bpmn:outgoing>R3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="RP_T2" name="Analyze problem">
+      <bpmn:incoming>R2_yes</bpmn:incoming>
+      <bpmn:outgoing>R4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="RP_T3" name="Create trouble report">
+      <bpmn:incoming>R4</bpmn:incoming>
+      <bpmn:outgoing>R5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="G_RP_merge" name="Merge">
+      <bpmn:incoming>R3</bpmn:incoming>
+      <bpmn:incoming>R5</bpmn:incoming>
+      <bpmn:outgoing>R6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="RP_T4" name="Include in status report">
+      <bpmn:incoming>R6</bpmn:incoming>
+      <bpmn:outgoing>R7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="RP_T5" name="Send status report to Service Management">
+      <bpmn:incoming>R7</bpmn:incoming>
+      <bpmn:outgoing>R8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="RP_End1" name="End - status report sent">
+      <bpmn:incoming>R8</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Second flow: waiting for restoration request -->
+    <bpmn:startEvent id="SE_RP_Start2" name="Start - wait for restoration request">
+      <bpmn:outgoing>R20</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:eventBasedGateway id="EBG1" name="Wait for request or timeout">
+      <bpmn:incoming>R20</bpmn:incoming>
+      <bpmn:outgo

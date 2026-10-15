@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Customer" name="Customer" />
+    <bpmn:participant id="Participant_Insurer" name="Car Insurer" processRef="Process_CarInsurer" />
+    <bpmn:messageFlow id="MF_SubmitClaim" name="Claim Documentation" sourceRef="Participant_Customer" targetRef="StartEvent_ClaimSubmitted" />
+    <bpmn:messageFlow id="MF_SendLetter" name="Outcome Letter" sourceRef="Task_SendLetter" targetRef="Participant_Customer" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_CarInsurer" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Notification" name="Notification Department">
+        <bpmn:flowNodeRef>StartEvent_ClaimSubmitted</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CheckCompleteness</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RegisterClaim</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Handling" name="Handling Department">
+        <bpmn:flowNodeRef>Task_CheckInsurance</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PerformAssessment</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_AssessmentOutcome</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PhoneGarage</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SchedulePayment</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RejectClaim</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_MergePaths</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendLetter</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_ProcessCompleted</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_ClaimSubmitted" name="Claim Submitted">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_CheckCompleteness" name="Check Documents for Completeness">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_RegisterClaim" name="Register Claim">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CheckInsurance" name="Check Insurance">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_PerformAssessment" name="Perform Assessment">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_AssessmentOutcome" name="Assessment Positive?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_Positive</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Negative</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_PhoneGarage" name="Phone Garage to Authorise Repairs">
+      <bpmn:incoming>Flow_Positive</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SchedulePayment" name="Schedule Payment">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_RejectClaim" name="Reject Claim">
+      <bpmn:incoming>Flow_Negative</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_MergePaths">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_SendLetter" name="Send Letter to Customer">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_ProcessCompleted" name="Process Completed">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_ClaimSubmitted" targetRef="Task_CheckCompleteness" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CheckCompleteness" targetRef="Task_RegisterClaim" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_RegisterClaim" targetRef="Task_CheckInsurance" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_CheckInsurance" targetRef="Task_PerformAssessment" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_PerformAssessment" targetRef="Gateway_AssessmentOutcome" />
+    <bpmn:sequenceFlow id="Flow_Positive" name="Yes" sourceRef="Gateway_AssessmentOutcome" targetRef="Task_PhoneGarage" />
+    <bpmn:sequenceFlow id="Flow_Negative" name="No" sourceRef="Gateway_AssessmentOutcome" targetRef="Task_RejectClaim" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_PhoneGarage" targetRef="Task_SchedulePayment" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_SchedulePayment" targetRef="Gateway_MergePaths" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_RejectClaim" targetRef="Gateway_MergePaths" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Gateway_MergePaths" targetRef="Task_SendLetter" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_SendLetter" targetRef="EndEvent_ProcessCompleted" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_Customer_di" bpmnElement="Participant_Customer" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1380" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Participant_Insurer_di" bpmnElement="Participant_Insurer" isHorizontal="true">
+        <dc:Bounds x="160" y="190" width="1380" height="420" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Notification_di" bpmnElement="Lane_Notification" isHorizontal="true">
+        <dc:Bounds x="190" y="190" width="1350" height="150" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Handling_di" bpmnElement="Lane_Handling" isHorizontal="true">
+        <dc:Bounds x="190" y="340" width="1350" height="270" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_ClaimSubmitted_di" bpmnElement="StartEvent_ClaimSubmitted">
+        <dc:Bounds x="242" y="247" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="220" y="290" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckCompleteness_di" bpmnElement="Task_CheckCompleteness">
+        <dc:Bounds x="330" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RegisterClaim_di" bpmnElement="Task_RegisterClaim">
+        <dc:Bounds x="480" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckInsurance_di" bpmnElement="Task_CheckInsurance">
+        <dc:Bounds x="480" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PerformAssessment_di" bpmnElement="Task_PerformAssessment">
+        <dc:Bounds x="630" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_AssessmentOutcome_di" bpmnElement="Gateway_AssessmentOutcome" isMarkerVisible="true">
+        <dc:Bounds x="785" y="435" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="779" y="405" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PhoneGarage_di" bpmnElement="Task_PhoneGarage">
+        <dc:Bounds x="895" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SchedulePayment_di" bpmnElement="Task_SchedulePayment">
+        <dc:Bounds x="1045" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RejectClaim_di" bpmnElement="Task_RejectClaim">
+        <dc:Bounds x="895" y="490" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MergePaths_di" bpmnElement="Gateway_MergePaths" isMarkerVisible="true">
+        <dc:Bounds x="1195" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendLetter_di" bpmnElement="Task_SendLetter">
+        <dc:Bounds x="1290" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_ProcessCompleted_di" bpmnElement="EndEvent_ProcessCompleted">
+        <dc:Bounds x="1442" y="442" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1433" y="485" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="278" y="265" />
+        <di:waypoint x="330" y="265" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="430" y="265" />
+        <di:waypoint x="480" y="265" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="530" y="305" />
+        <di:waypoint x="530" y="420" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="580" y="460" />
+        <di:waypoint x="630" y="460" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="730" y="460" />
+        <di:waypoint x="785" y="460" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Positive_di" bpmnElement="Flow_Positive">
+        <di:waypoint x="810" y="435" />
+        <di:waypoint x="810" y="410" />
+        <di:waypoint x="895" y="410" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="816" y="420" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Negative_di" bpmnElement="Flow_Negative">
+        <di:waypoint x="810" y="485" />
+        <di:waypoint x="810" y="530" />
+        <di:waypoint x="895" y="530" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="818" y="505" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="995" y="410" />
+        <di:waypoint x="1045" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1145" y="410" />
+        <di:waypoint x="1220" y="410" />
+        <di:waypoint x="1220" y="435" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="995" y="530" />
+        <di:waypoint x="1220" y="530" />
+        <di:waypoint x="1220" y="485" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1245" y="460" />
+        <di:waypoint x="1290" y="460" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1390" y="460" />
+        <di:waypoint x="1442" y="460" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MF_SubmitClaim_di" bpmnElement="MF_SubmitClaim">
+        <di:waypoint x="260" y="140" />
+        <di:waypoint x="260" y="247" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="270" y="156" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MF_SendLetter_di" bpmnElement="MF_SendLetter">
+        <di:waypoint x="1340" y="420" />
+        <di:waypoint x="1340" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1351" y="156" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

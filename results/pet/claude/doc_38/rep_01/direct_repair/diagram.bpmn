@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_LoanApproval"
+             targetNamespace="http://example.com/bpmn/loanapproval">
+
+  <process id="LoanApprovalProcess" name="Loan Approval Process" isExecutable="true">
+
+    <startEvent id="StartEvent_1" name="Customer Loan Request Received">
+      <outgoing>Flow_Start_To_RiskAssessment</outgoing>
+    </startEvent>
+
+    <serviceTask id="Task_RiskAssessment" name="Invoke Risk Assessment Web Service">
+      <incoming>Flow_Start_To_RiskAssessment</incoming>
+      <outgoing>Flow_RiskAssessment_To_Gateway</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="Gateway_RiskDecision" name="Risk Assessment Result?">
+      <incoming>Flow_RiskAssessment_To_Gateway</incoming>
+      <outgoing>Flow_To_Approve</outgoing>
+      <outgoing>Flow_To_Deny</outgoing>
+      <outgoing>Flow_To_Approver</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_ApproveLoan" name="Approve Loan">
+      <incoming>Flow_To_Approve</incoming>
+      <outgoing>Flow_Approve_To_NotifyGateway</outgoing>
+    </task>
+
+    <task id="Task_DenyLoan" name="Deny Loan">
+      <incoming>Flow_To_Deny</incoming>
+      <outgoing>Flow_Deny_To_NotifyGateway</outgoing>
+    </task>
+
+    <serviceTask id="Task_ApproverService" name="Invoke Approver Web Service">
+      <incoming>Flow_To_Approver</incoming>
+      <outgoing>Flow_Approver_To_Gateway2</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="Gateway_ApproverDecision" name="Approver Decision?">
+      <incoming>Flow_Approver_To_Gateway2</incoming>
+      <outgoing>Flow_ApproverApprove_To_NotifyGateway</outgoing>
+      <outgoing>Flow_ApproverDeny_To_NotifyGateway</outgoing>
+    </exclusiveGateway>
+
+    <exclusiveGateway id="Gateway_Merge_Notify" name="Merge Before Notification">
+      <incoming>Flow_Approve_To_NotifyGateway</incoming>
+      <incoming>Flow_Deny_To_NotifyGateway</incoming>
+      <incoming>Flow_ApproverApprove_To_NotifyGateway</incoming>
+      <incoming>Flow_ApproverDeny_To_NotifyGateway</incoming>
+      <outgoing>Flow_Merge_To_Notify</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_NotifyCustomer" name="Notify Customer of Decision">
+      <incoming>Flow_Merge_To_Notify</incoming>
+      <outgoing>Flow_Notify_To_End</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_1" name="Process Complete">
+      <incoming>Flow_Notify_To_End</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_Start_To_RiskAssessment" sourceRef="StartEvent_1" targetRef="Task_RiskAssessment" />
+    <sequenceFlow id="Flow_RiskAssessment_To_Gateway" sourceRef="Task_RiskAssessment" targetRef="Gateway_RiskDecision" />
+
+    <sequenceFlow id="Flow_To_Approve" sourceRef="Gateway_RiskDecision" targetRef="Task_ApproveLoan" name="Small Loan &amp; Low Risk">
+      <conditionExpression xsi:type="tFormalExpression">loanAmount &lt; 10000 AND riskLevel == 'LOW'</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_To_Deny" sourceRef="Gateway_RiskDecision" targetRef="Task_DenyLoan" name="High Risk">
+      <conditionExpression xsi:type="tFormalExpression">riskLevel == 'HIGH'</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_To_Approver" sourceRef="Gateway_RiskDecision" targetRef="Task_ApproverService" name="Further Review or Amount &gt;= $10,000">
+      <conditionExpression xsi:type="tFormalExpression">riskLevel == 'REVIEW' OR loanAmount &gt;= 10000</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_Approve_To_NotifyGateway" sourceRef="Task_ApproveLoan" targetRef="Gateway_Merge_Notify" />
+    <sequenceFlow id="Flow_Deny_To_NotifyGateway" sourceRef="Task_DenyLoan" targetRef="Gateway_Merge_Notify" />
+
+    <sequenceFlow id="Flow_Approver_To_Gateway2" sourceRef="Task_ApproverService" targetRef="Gateway_ApproverDecision" />
+
+    <sequenceFlow id="Flow_ApproverApprove_To_NotifyGateway" sourceRef="Gateway_ApproverDecision" targetRef="Gateway_Merge_Notify" name="Approved">
+      <conditionExpression xsi:type="tFormalExpression">approverDecision == 'APPROVED'</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_ApproverDeny_To_NotifyGateway" sourceRef="Gateway_ApproverDecision" targetRef="Gateway_Merge_Notify" name="Denied">
+      <conditionExpression xsi:type="tFormalExpression">approverDecision == 'DENIED'</conditionExpression>
+    </sequenceFlow>
+
+    <sequenceFlow id="Flow_Merge_To_Notify" sourceRef="Gateway_Merge_Notify" targetRef="Task_NotifyCustomer" />
+    <sequenceFlow id="Flow_Notify_To_End" sourceRef="Task_NotifyCustomer" targetRef="EndEvent_1" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="LoanApprovalProcess">
+
+      <bpmndi:BPMNShape id="Shape_StartEvent_1" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="50" y="200" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_RiskAssessment" bpmnElement="Task_RiskAssessment">
+        <omgdc:Bounds x="130" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_RiskDecision" bpmnElement="Gateway_RiskDecision" isMarkerVisible="true">
+        <omgdc:Bounds x="280" y="193" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ApproveLoan" bpmnElement="Task_ApproveLoan">
+        <omgdc:Bounds x="400" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_DenyLoan" bpmnElement="Task_DenyLoan">
+        <omgdc:Bounds x="400" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ApproverService" bpmnElement="Task_ApproverService">
+        <omgdc:Bounds x="400" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_ApproverDecision" bpmnElement="Gateway_ApproverDecision" isMarkerVisible="true">
+        <omgdc:Bounds x="560" y="205" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_Merge_Notify" bpmnElement="Gateway_Merge_Notify" isMarkerVisible="true">
+        <omgdc:Bounds x="680" y="193" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_NotifyCustomer" bpmnElement="Task_NotifyCustomer">
+        <omgdc:Bounds x="780" y="178" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_1" bpmnElement="EndEvent_1">
+        <omgdc:Bounds x="930" y="200" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Start_To_RiskAssessment" bpmnElement="Flow_Start_To_RiskAssessment">
+        <omgdi:waypoint x="86" y="218" />
+        <omgdi:waypoint x="130" y="218" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_RiskAssessment_To_Gateway" bpmnElement="Flow_RiskAssessment_To_Gateway">
+        <omgdi:waypoint x="230" y="218" />
+        <omgdi:waypoint x="280" y="218" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_To_Approve" bpmnElement="Flow_To_Approve">
+        <omgdi:waypoint x="305" y="193" />
+        <omgdi:waypoint x="305" y="120" />
+        <omgdi:waypoint x="400" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_To_Deny" bpmnElement="Flow_To_Deny">
+        <omgdi:waypoint x="305" y="243" />
+        <omgdi:waypoint x="305" y="360" />
+        <omgdi:waypoint x="400" y="360" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_To_Approver" bpmnElement="Flow_To_Approver">
+        <omgdi:waypoint x="330" y="218" />
+        <omgdi:waypoint x="365" y="218" />
+        <omgdi:waypoint x="365" y="230" />
+        <omgdi:waypoint x="400" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Approve_To_NotifyGateway" bpmnElement="Flow_Approve_To_NotifyGateway">
+        <omgdi:waypoint x="500" y="120" />
+        <omgdi:waypoint x="705" y="120" />
+        <omgdi:waypoint x="705" y="193" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Deny_To_NotifyGateway" bpmnElement="Flow_Deny_To_NotifyGateway">
+        <omgdi:waypoint x="500" y="360" />
+        <omgdi:waypoint x="705" y="360" />
+        <omgdi:waypoint x="705" y="243" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Approver_To_Gateway2" bpmnElement="Flow_Approver_To_Gateway2">
+        <omgdi:waypoint x="500" y="230" />
+        <omgdi:waypoint x="560" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_ApproverApprove_To_NotifyGateway" bpmnElement="Flow_ApproverApprove_To_NotifyGateway">
+        <omgdi:waypoint x="610" y="220" />
+        <omgdi:waypoint x="680" y="210" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_ApproverDeny_To_NotifyGateway" bpmnElement="Flow_ApproverDeny_To_NotifyGateway">
+        <omgdi:waypoint x="610" y="240" />
+        <omgdi:waypoint x="680" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Merge_To_Notify" bpmnElement="Flow_Merge_To_Notify">
+        <omgdi:waypoint x="730" y="218" />
+        <omgdi:waypoint x="780" y="218" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Notify_To_End" bpmnElement="Flow_Notify_To_End">
+        <omgdi:waypoint x="880" y="218" />
+        <omgdi:waypoint x="930" y="218" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

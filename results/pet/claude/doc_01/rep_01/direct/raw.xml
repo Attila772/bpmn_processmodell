@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_EC" name="EC" processRef="Process_EC"/>
+    <participant id="Participant_INQ" name="INQ" processRef="Process_INQ"/>
+    <participant id="Participant_IP" name="IP" processRef="Process_IP"/>
+
+    <messageFlow id="MessageFlow_1" name="Master data change info"
+                 sourceRef="Task_EC_Inform" targetRef="StartEvent_INQ"/>
+    <messageFlow id="MessageFlow_2" name="Notification of change"
+                 sourceRef="Task_INQ_Notify" targetRef="StartEvent_IP"/>
+    <messageFlow id="MessageFlow_3" name="Confirmation"
+                 sourceRef="Task_IP_Confirm" targetRef="IntermediateCatchEvent_INQ"/>
+    <messageFlow id="MessageFlow_4" name="Rejection"
+                 sourceRef="Task_IP_Reject" targetRef="IntermediateCatchEvent_INQ"/>
+  </collaboration>
+
+  <!-- ================= EC Process ================= -->
+  <process id="Process_EC" name="EC Process" isExecutable="false">
+    <startEvent id="StartEvent_EC" name="Master data changed">
+      <outgoing>Flow_EC_1</outgoing>
+    </startEvent>
+
+    <task id="Task_EC_Inform" name="Inform INQ about master data change">
+      <incoming>Flow_EC_1</incoming>
+      <outgoing>Flow_EC_2</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_EC" name="EC informed INQ">
+      <incoming>Flow_EC_2</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_EC_1" sourceRef="StartEvent_EC" targetRef="Task_EC_Inform"/>
+    <sequenceFlow id="Flow_EC_2" sourceRef="Task_EC_Inform" targetRef="EndEvent_EC"/>
+  </process>
+
+  <!-- ================= INQ Process ================= -->
+  <process id="Process_INQ" name="INQ Process" isExecutable="false">
+    <startEvent id="StartEvent_INQ" name="Master data change received">
+      <messageEventDefinition id="MessageEventDefinition_1"/>
+      <outgoing>Flow_INQ_1</outgoing>
+    </startEvent>
+
+    <task id="Task_INQ_Notify" name="Notify IP of the change">
+      <incoming>Flow_INQ_1</incoming>
+      <outgoing>Flow_INQ_2</outgoing>
+    </task>
+
+    <intermediateCatchEvent id="IntermediateCatchEvent_INQ" name="Receive IP decision">
+      <incoming>Flow_INQ_2</incoming>
+      <outgoing>Flow_INQ_3</outgoing>
+      <messageEventDefinition id="MessageEventDefinition_2"/>
+    </intermediateCatchEvent>
+
+    <endEvent id="EndEvent_INQ" name="Process completed">
+      <incoming>Flow_INQ_3</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_INQ_1" sourceRef="StartEvent_INQ" targetRef="Task_INQ_Notify"/>
+    <sequenceFlow id="Flow_INQ_2" sourceRef="Task_INQ_Notify" targetRef="IntermediateCatchEvent_INQ"/>
+    <sequenceFlow id="Flow_INQ_3" sourceRef="IntermediateCatchEvent_INQ" targetRef="EndEvent_INQ"/>
+  </process>
+
+  <!-- ================= IP Process ================= -->
+  <process id="Process_IP" name="IP Process" isExecutable="false">
+    <startEvent id="StartEvent_IP" name="Change notification received">
+      <messageEventDefinition id="MessageEventDefinition_3"/>
+      <outgoing>Flow_IP_1</outgoing>
+    </startEvent>
+
+    <task id="Task_IP_Check" name="Check whether master data can be changed at desired time">
+      <incoming>Flow_IP_1</incoming>
+      <outgoing>Flow_IP_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_IP_Decision" name="Change possible?">
+      <incoming>Flow_IP_2</incoming>
+      <outgoing>Flow_IP_3</outgoing>
+      <outgoing>Flow_IP_4</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_IP_Confirm" name="Confirm the changes of the INQ">
+      <incoming>Flow_IP_3</incoming>
+      <outgoing>Flow_IP_5</outgoing>
+    </task>
+
+    <task id="Task_IP_Reject" name="Reject the changes of the INQ">
+      <incoming>Flow_IP_4</incoming>
+      <outgoing>Flow_IP_6</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_IP_Confirm" name="Changes confirmed">
+      <incoming>Flow_IP_5</incoming>
+    </endEvent>
+
+    <endEvent id="EndEvent_IP_Reject" name="Changes rejected">
+      <incoming>Flow_IP_6</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_IP_1" sourceRef="StartEvent_IP" targetRef="Task_IP_Check"/>
+    <sequenceFlow id="Flow_IP_2" sourceRef="Task_IP_Check" targetRef="Gateway_IP_Decision"/>
+    <sequenceFlow id="Flow_IP_3" name="Yes" sourceRef="Gateway_IP_Decision" targetRef="Task_IP_Confirm"/>
+    <sequenceFlow id="Flow_IP_4" name="No" sourceRef="Gateway_IP_Decision" targetRef="Task_IP_Reject"/>
+    <sequenceFlow id="Flow_IP_5" sourceRef="Task_IP_Confirm" targetRef="EndEvent_IP_Confirm"/>
+    <sequenceFlow id="Flow_IP_6" sourceRef="Task_IP_Reject" targetRef="EndEvent_IP_Reject"/>
+  </process>
+
+  <!-- ================= Diagram ================= -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <!-- EC Pool -->
+      <bpmndi:BPMNShape id="Participant_EC_di" bpmnElement="Participant_EC" isHorizontal="true">
+        <omgdc:Bounds x="100" y="60" width="500" height="150"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_EC_di" bpmnElement="StartEvent_EC">
+        <omgdc:Bounds x="150" y="120" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EC_Inform_di" bpmnElement="Task_EC_Inform">
+        <omgdc:Bounds x="240" y="98" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_EC_di" bpmnElement="EndEvent_EC">
+        <omgdc:Bounds x="420" y="120" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- INQ Pool -->
+      <bpmndi:BPMNShape id="Participant_INQ_di" bpmnElement="Participant_INQ" isHorizontal="true">
+        <omgdc:Bounds x="100" y="260" width="600" height="150"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_INQ_di" bpmnElement="StartEvent_INQ">
+        <omgdc:Bounds x="150" y="320" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_INQ_Notify_di" bpmnElement="Task_INQ_Notify">
+        <omgdc:Bounds x="240" y="298" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="IntermediateCatchEvent_INQ_di" bpmnElement="IntermediateCatchEvent_INQ">
+        <omgdc:Bounds x="420" y="320" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_INQ_di" bpmnElement="EndEvent_INQ">
+        <omgdc:Bounds x="520" y="320" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- IP Pool -->
+      <bpmndi:BPMNShape id="Participant_IP_di" bpmnElement="Participant_IP" isHorizontal="true">
+        <omgdc:Bounds x="100" y="460" width="700" height="200"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_IP_di" bpmnElement="StartEvent_IP">
+        <omgdc:Bounds x="150" y="540" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IP_Check_di" bpmnElement="Task_IP_Check">
+        <omgdc:Bounds x="240" y="518" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_IP_Decision_di" bpmnElement="Gateway_IP_Decision" isMarkerVisible="true">
+        <omgdc:Bounds x="410" y="533" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IP_Confirm_di" bpmnElement="Task_IP_Confirm">
+        <omgdc:Bounds x="520" y="478" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IP_Reject_di" bpmnElement="Task_IP_Reject">
+        <omgdc:Bounds x="520" y="590" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_IP_Confirm_di" bpmnElement="EndEvent_IP_Confirm">
+        <omgdc:Bounds x="690" y="500" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_IP_Reject_di" bpmnElement="EndEvent_IP_Reject">
+        <omgdc:Bounds x="690" y="612" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_EC_1_di" bpmnElement="Flow_EC_1">
+        <omgdi:waypoint x="186" y="138"/>
+        <omgdi:waypoint x="240" y="138"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EC_2_di" bpmnElement="Flow_EC_2">
+        <omgdi:waypoint x="360" y="138"/>
+        <omgdi:waypoint x="420" y="138"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_INQ_1_di" bpmnElement="Flow_INQ_1">
+        <omgdi:waypoint x="186" y="338"/>
+        <omgdi:waypoint x="240" y="338"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_INQ_2_di" bpmnElement="Flow_INQ_2">
+        <omgdi:waypoint x="360" y="338"/>
+        <omgdi:waypoint x="420" y="338"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_INQ_3_di" bpmnElement="Flow_INQ_3">
+        <omgdi:waypoint x="456" y="338"/>
+        <omgdi:waypoint x="520" y="338"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_IP_1_di" bpmnElement="Flow_IP_1">
+        <omgdi:waypoint x="186" y="558"/>
+        <omgdi:waypoint x="240" y="558"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_2_di" bpmnElement="Flow_IP_2">
+        <omgdi:waypoint x="360" y="558"/>
+        <omgdi:waypoint x="410" y="558"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_3_di" bpmnElement="Flow_IP_3">
+        <omgdi:waypoint x="450" y="543"/>
+        <omgdi:waypoint x="520" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_4_di" bpmnElement="Flow_IP_4">
+        <omgdi:waypoint x="450" y="573"/>
+        <omgdi:waypoint x="520" y="630"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_5_di" bpmnElement="Flow_IP_5">
+        <omgdi:waypoint x="640" y="518"/>
+        <omgdi:waypoint x="690" y="518"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_6_di" bpmnElement="Flow_IP_6">
+        <omgdi:waypoint x="640" y="630"/>
+        <omgdi:waypoint x="690" y="630"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Message Flow Edges -->
+      <bpmndi:BPMNEdge id="MessageFlow_1_di" bpmnElement="MessageFlow_1">
+        <omgdi:waypoint x="300" y="178"/>
+        <omgdi:waypoint x="300" y="320"/>
+        <omgdi:waypoint x="168" y="320"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_2_di" bpmnElement="MessageFlow_2">
+        <omgdi:waypoint x="300" y="378"/>
+        <omgdi:waypoint x="300" y="540"/>
+        <omgdi:waypoint x="168" y="540"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_3_di" bpmnElement="MessageFlow_3">
+        <omgdi:waypoint x="580" y="478"/>
+        <omgdi:waypoint x="580" y="420"/>
+        <omgdi:waypoint x="438" y="356"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_4_di" bpmnElement="MessageFlow_4">
+        <omgdi:waypoint x="580" y="590"/>
+        <omgdi:waypoint x="580" y="420"/>
+        <omgdi:waypoint x="438" y="356"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

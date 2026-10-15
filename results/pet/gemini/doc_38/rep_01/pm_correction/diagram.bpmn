@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="data_loan_request" name="Customer Loan Request" dataObjectRef="data_loan_request_do" />
+    <bpmn:dataObject id="data_loan_request_do" />
+    <bpmn:dataObjectReference id="data_risk_assessment_result" name="Risk Assessment Result" dataObjectRef="data_risk_assessment_result_do" />
+    <bpmn:dataObject id="data_risk_assessment_result_do" />
+    <bpmn:dataObjectReference id="data_approval_decision" name="Approval Decision" dataObjectRef="data_approval_decision_do" />
+    <bpmn:dataObject id="data_approval_decision_do" />
+    <bpmn:startEvent id="start_1" name="Customer Request Received">
+      <bpmn:outgoing>sf_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_1_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_approved" name="Loan Approved">
+      <bpmn:incoming>sf_3</bpmn:incoming>
+      <bpmn:incoming>sf_7</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_approved_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_denied" name="Loan Denied">
+      <bpmn:incoming>sf_4</bpmn:incoming>
+      <bpmn:incoming>sf_8</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_denied_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_risk_assessment" name="Assess Request via Risk Assessment Web Service">
+      <bpmn:incoming>sf_1</bpmn:incoming>
+      <bpmn:outgoing>sf_2</bpmn:outgoing>
+      <bpmn:property id="task_risk_assessment_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_risk_assessment_dia0">
+        <bpmn:sourceRef>data_loan_request</bpmn:sourceRef>
+        <bpmn:targetRef>task_risk_assessment_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_risk_assessment_doa0">
+        <bpmn:targetRef>data_risk_assessment_result</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_approver_service" name="Process Request via Approver Web Service">
+      <bpmn:incoming>sf_5</bpmn:incoming>
+      <bpmn:outgoing>sf_6</bpmn:outgoing>
+      <bpmn:property id="task_approver_service_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_approver_service_dia0">
+        <bpmn:sourceRef>data_loan_request</bpmn:sourceRef>
+        <bpmn:targetRef>task_approver_service_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_approver_service_dia1">
+        <bpmn:sourceRef>data_risk_assessment_result</bpmn:sourceRef>
+        <bpmn:targetRef>task_approver_service_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_approver_service_doa0">
+        <bpmn:targetRef>data_approval_decision</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_risk_check" name="Check Risk and Amount" isMarkerVisible="true">
+      <bpmn:incoming>sf_2</bpmn:incoming>
+      <bpmn:outgoing>sf_3</bpmn:outgoing>
+      <bpmn:outgoing>sf_4</bpmn:outgoing>
+      <bpmn:outgoing>sf_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_approver_result" name="Approver Decision" isMarkerVisible="true">
+      <bpmn:incoming>sf_6</bpmn:incoming>
+      <bpmn:outgoing>sf_7</bpmn:outgoing>
+      <bpmn:outgoing>sf_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_1" sourceRef="start_1" targetRef="task_risk_assessment" />
+    <bpmn:sequenceFlow id="sf_2" sourceRef="task_risk_assessment" targetRef="gw_risk_check" />
+    <bpmn:sequenceFlow id="sf_3" sourceRef="gw_risk_check" targetRef="end_approved" name="Small loan and low risk" />
+    <bpmn:sequenceFlow id="sf_4" sourceRef="gw_risk_check" targetRef="end_denied" name="High risk" />
+    <bpmn:sequenceFlow id="sf_5" sourceRef="gw_risk_check" targetRef="task_approver_service" name="Needs further review or loan &gt;= $10,000" />
+    <bpmn:sequenceFlow id="sf_6" sourceRef="task_approver_service" targetRef="gw_approver_result" />
+    <bpmn:sequenceFlow id="sf_7" sourceRef="gw_approver_result" targetRef="end_approved" name="Approved" />
+    <bpmn:sequenceFlow id="sf_8" sourceRef="gw_approver_result" targetRef="end_denied" name="Denied" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="end_approved_di" bpmnElement="end_approved">
+        <dc:Bounds x="1110" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_denied_di" bpmnElement="end_denied">
+        <dc:Bounds x="1110" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_approver_result_di" bpmnElement="gw_approver_result">
+        <dc:Bounds x="920" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_risk_check_di" bpmnElement="gw_risk_check">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_1_di" bpmnElement="start_1">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_approver_service_di" bpmnElement="task_approver_service">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_risk_assessment_di" bpmnElement="task_risk_assessment">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_loan_request_di" bpmnElement="data_loan_request">
+        <dc:Bounds x="560" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_risk_assessment_result_di" bpmnElement="data_risk_assessment_result">
+        <dc:Bounds x="560" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_approval_decision_di" bpmnElement="data_approval_decision">
+        <dc:Bounds x="750" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_1_di" bpmnElement="sf_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_2_di" bpmnElement="sf_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_3_di" bpmnElement="sf_3">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_4_di" bpmnElement="sf_4">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="1128" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_5_di" bpmnElement="sf_5">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_6_di" bpmnElement="sf_6">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_7_di" bpmnElement="sf_7">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_8_di" bpmnElement="sf_8">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1128" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_risk_assessment_dia0_di" bpmnElement="task_risk_assessment_dia0">
+        <di:waypoint x="578" y="390" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_risk_assessment_doa0_di" bpmnElement="task_risk_assessment_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="578" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_approver_service_dia0_di" bpmnElement="task_approver_service_dia0">
+        <di:waypoint x="578" y="390" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_approver_service_dia1_di" bpmnElement="task_approver_service_dia1">
+        <di:waypoint x="578" y="390" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_approver_service_doa0_di" bpmnElement="task_approver_service_doa0">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="768" y="390" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_msp_part" name="MSP" processRef="pool_msp_proc" />
+    <bpmn:participant id="pool_sp_part" name="SP" processRef="pool_sp_proc" />
+    <bpmn:messageFlow id="msg_request" sourceRef="end_go_request_sent" targetRef="start_msp_receive_request" name="Measurement Request" />
+    <bpmn:messageFlow id="msg_deny" sourceRef="end_msp_deny" targetRef="start_go_receive_failure" name="Request Denied" />
+    <bpmn:messageFlow id="msg_values" sourceRef="end_msp_transmit_values" targetRef="start_go_receive_values" name="Measured Values" />
+    <bpmn:messageFlow id="msg_changed" sourceRef="end_go_send_changed" targetRef="start_msp_receive_changed" name="Changed Values" />
+    <bpmn:messageFlow id="msg_ack" sourceRef="end_msp_acknowledge" targetRef="start_go_receive_ack" name="Acknowledgement" />
+    <bpmn:messageFlow id="msg_readings" sourceRef="end_go_transmit_readings" targetRef="start_sp_receive_readings" name="Readings" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:startEvent id="start_go" name="Start Measurement Request">
+      <bpmn:outgoing>flow_start_to_request</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_go_request_sent" name="Request Sent to MSP">
+      <bpmn:incoming>flow_request_to_end_msg</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_go_request_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="start_go_receive_failure" name="Receive Failure Notification">
+      <bpmn:outgoing>flow_start_go_fail_to_merge</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_go_receive_failure_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="start_go_receive_values" name="Receive Measured Values">
+      <bpmn:outgoing>flow_start_go_vals_to_process</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_go_receive_values_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_go_send_changed" name="Send Changed Values">
+      <bpmn:incoming>flow_process_to_send_changed</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_go_send_changed_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="start_go_receive_ack" name="Receive Acknowledgement">
+      <bpmn:outgoing>flow_start_go_ack_to_transmit</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_go_receive_ack_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_go_transmit_readings" name="Transmit Readings to SP">
+      <bpmn:incoming>flow_start_go_ack_to_transmit</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_go_transmit_readings_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_go_request" name="Request measurements">
+      <bpmn:incoming>flow_start_to_request</bpmn:incoming>
+      <bpmn:outgoing>flow_request_to_end_msg</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_go_process_values" name="Process measured values">
+      <bpmn:incoming>flow_start_go_vals_to_process</bpmn:incoming>
+      <bpmn:outgoing>flow_process_to_send_changed</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_go_merge" name="Merge Paths" isMarkerVisible="true">
+      <bpmn:incoming>flow_start_go_fail_to_merge</bpmn:incoming>
+      <bpmn:outgoing>flow_merge_to_end</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_to_request" sourceRef="start_go" targetRef="task_go_request" />
+    <bpmn:sequenceFlow id="flow_request_to_end_msg" sourceRef="task_go_request" targetRef="end_go_request_sent" />
+    <bpmn:sequenceFlow id="flow_start_go_fail_to_merge" sourceRef="start_go_receive_failure" targetRef="gw_go_merge" />
+    <bpmn:sequenceFlow id="flow_start_go_vals_to_process" sourceRef="start_go_receive_values" targetRef="task_go_process_values" />
+    <bpmn:sequenceFlow id="flow_process_to_send_changed" sourceRef="task_go_process_values" targetRef="end_go_send_changed" />
+    <bpmn:sequenceFlow id="flow_start_go_ack_to_transmit" sourceRef="start_go_receive_ack" targetRef="end_go_transmit_readings" />
+  </bpmn:process>
+  <bpmn:process id="pool_msp_proc" isExecutable="false">
+    <bpmn:startEvent id="start_msp_receive_request" name="Receive Measurement Request">
+      <bpmn:outgoing>flow_start_msp_to_check</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_msp_receive_request_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_msp_deny" name="Deny Request">
+      <bpmn:incoming>flow_msp_deny</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_msp_deny_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_msp_transmit_values" name="Transmit Measured Values">
+      <bpmn:incoming>flow_measure_to_transmit</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_msp_transmit_values_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="start_msp_receive_changed" name="Receive Changed Values">
+      <bpmn:outgoing>flow_start_msp_changed_to_handle</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_msp_receive_changed_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_msp_acknowledge" name="Acknowledge Receipt">
+      <bpmn:incoming>flow_handle_to_ack</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_msp_acknowledge_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_msp_check" name="Check received request">
+      <bpmn:incoming>flow_start_msp_to_check</bpmn:incoming>
+      <bpmn:outgoing>flow_check_to_gw</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_msp_perform_measurement" name="Perform measurement">
+      <bpmn:incoming>flow_msp_measure</bpmn:incoming>
+      <bpmn:outgoing>flow_measure_to_transmit</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_msp_handle_changed" name="Handle changed values">
+      <bpmn:incoming>flow_start_msp_changed_to_handle</bpmn:incoming>
+      <bpmn:outgoing>flow_handle_to_ack</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_msp_decision" name="Decision: Deny or Perform?" isMarkerVisible="true">
+      <bpmn:incoming>flow_check_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_msp_deny</bpmn:outgoing>
+      <bpmn:outgoing>flow_msp_measure</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_msp_to_check" sourceRef="start_msp_receive_request" targetRef="task_msp_check" />
+    <bpmn:sequenceFlow id="flow_check_to_gw" sourceRef="task_msp_check" targetRef="gw_msp_decision" />
+    <bpmn:sequenceFlow id="flow_msp_deny" sourceRef="gw_msp_decision" targetRef="end_msp_deny" name="Deny request" />
+    <bpmn:sequenceFlow id="flow_msp_measure" sourceRef="gw_msp_decision" targetRef="task_msp_perform_measurement" name="Perform measurement" />
+    <bpmn:sequenceFlow id="flow_measure_to_transmit" sourceRef="task_msp_perform_measurement" targetRef="end_msp_transmit_values" />
+    <bpmn:sequenceFlow id="flow_start_msp_changed_to_handle" sourceRef="start_msp_receive_changed" targetRef="task_msp_handle_changed" />
+    <bpmn:sequenceFlow id="flow_handle_to_ack" sourceRef="task_msp_handle_changed" targetRef="end_msp_acknowledge" />
+  </bpmn:process>
+  <bpmn:process id="pool_sp_proc" isExecutable="false">
+    <bpmn:startEvent id="start_sp_receive_readings" name="Receive Readings">
+      <bpmn:outgoing>flow_start_sp_to_store</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_sp_receive_readings_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_process" name="Process End">
+      <bpmn:incoming>flow_store_to_end</bpmn:incoming>
+      <bpmn:incoming>flow_merge_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_sp_store_readings" name="Store readings">
+      <bpmn:incoming>flow_start_sp_to_store</bpmn:incoming>
+      <bpmn:outgoing>flow_store_to_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="flow_start_sp_to_store" sourceRef="start_sp_receive_readings" targetRef="task_sp_store_readings" />
+    <bpmn:sequenceFlow id="flow_store_to_end" sourceRef="task_sp_store_readings" targetRef="end_process" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_msp_part_di" bpmnElement="pool_msp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="750" width="1140" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_sp_part_di" bpmnElement="pool_sp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1210" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_go_request_sent_di" bpmnElement="end_go_request_sent">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_go_send_changed_di" bpmnElement="end_go_send_changed">
+        <dc:Bounds x="540" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_go_transmit_readings_di" bpmnElement="end_go_transmit_readings">
+        <dc:Bounds x="350" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_msp_acknowledge_di" bpmnElement="end_msp_acknowledge">
+        <dc:Bounds x="540" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_msp_deny_di" bpmnElement="end_msp_deny">
+        <dc:Bounds x="730" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_msp_transmit_values_di" bpmnElement="end_msp_transmit_values">
+        <dc:Bounds x="920" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_process_di" bpmnElement="end_process">
+        <dc:Bounds x="540" y="1270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_merge_di" bpmnElement="gw_go_merge">
+        <dc:Bounds x="350" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_msp_decision_di" bpmnElement="gw_msp_decision">
+        <dc:Bounds x="540" y="935" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_go_di" bpmnElement="start_go">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_go_receive_ack_di" bpmnElement="start_go_receive_ack">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_go_receive_failure_di" bpmnElement="start_go_receive_failure">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_go_receive_values_di" bpmnElement="start_go_receive_values">
+        <dc:Bounds x="160" y="475" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_msp_receive_changed_di" bpmnElement="start_msp_receive_changed">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_msp_receive_request_di" bpmnElement="start_msp_receive_request">
+        <dc:Bounds x="160" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_sp_receive_readings_di" bpmnElement="start_sp_receive_readings">
+        <dc:Bounds x="160" y="1270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_process_values_di" bpmnElement="task_go_process_values">
+        <dc:Bounds x="350" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_request_di" bpmnElement="task_go_request">
+        <dc:Bounds x="350" y="475" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_msp_check_di" bpmnElement="task_msp_check">
+        <dc:Bounds x="350" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_msp_handle_changed_di" bpmnElement="task_msp_handle_changed">
+        <dc:Bounds x="350" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_msp_perform_measurement_di" bpmnElement="task_msp_perform_measurement">
+        <dc:Bounds x="730" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_sp_store_readings_di" bpmnElement="task_sp_store_readings">
+        <dc:Bounds x="350" y="1270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_request_di" bpmnElement="flow_start_to_request">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_request_to_end_msg_di" bpmnElement="flow_request_to_end_msg">
+        <di:waypoint x="400" y="515" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_msp_to_check_di" bpmnElement="flow_start_msp_to_check">
+        <di:waypoint x="178" y="953" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_check_to_gw_di" bpmnElement="flow_check_to_gw">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="565" y="960" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msp_deny_di" bpmnElement="flow_msp_deny">
+        <di:waypoint x="565" y="960" />
+        <di:waypoint x="748" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msp_measure_di" bpmnElement="flow_msp_measure">
+        <di:waypoint x="565" y="960" />
+        <di:waypoint x="780" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_measure_to_transmit_di" bpmnElement="flow_measure_to_transmit">
+        <di:waypoint x="780" y="975" />
+        <di:waypoint x="938" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_go_fail_to_merge_di" bpmnElement="flow_start_go_fail_to_merge">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="375" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_go_vals_to_process_di" bpmnElement="flow_start_go_vals_to_process">
+        <di:waypoint x="178" y="493" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_process_to_send_changed_di" bpmnElement="flow_process_to_send_changed">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="558" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_msp_changed_to_handle_di" bpmnElement="flow_start_msp_changed_to_handle">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_handle_to_ack_di" bpmnElement="flow_handle_to_ack">
+        <di:waypoint x="400" y="975" />
+        <di:waypoint x="558" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_go_ack_to_transmit_di" bpmnElement="flow_start_go_ack_to_transmit">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="368" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_sp_to_store_di" bpmnElement="flow_start_sp_to_store">
+        <di:waypoint x="178" y="1288" />
+        <di:waypoint x="400" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_store_to_end_di" bpmnElement="flow_store_to_end">
+        <di:waypoint x="400" y="1310" />
+        <di:waypoint x="558" y="1288" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_merge_to_end_di" bpmnElement="flow_merge_to_end">
+        <di:waypoint x="375" y="250" />
+        <di:waypoint x="558" y="1288" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_request_di" bpmnElement="msg_request">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_deny_di" bpmnElement="msg_deny">
+        <di:waypoint x="748" y="828" />
+        <di:waypoint x="178" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_values_di" bpmnElement="msg_values">
+        <di:waypoint x="938" y="828" />
+        <di:waypoint x="178" y="493" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_changed_di" bpmnElement="msg_changed">
+        <di:waypoint x="558" y="243" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_ack_di" bpmnElement="msg_ack">
+        <di:waypoint x="558" y="828" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_readings_di" bpmnElement="msg_readings">
+        <di:waypoint x="368" y="118" />
+        <di:waypoint x="178" y="1288" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="EquipmentChangeProcess" name="Equipment Change Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Process Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="EndEvent_1" name="Process End">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Step 1: MPON notifies MPOO -->
+    <bpmn:task id="Task_MPON_Notifies_MPOO" name="MPON notifies MPOO about equipment change intentions">
+      <bpmn:extensionElements>
+        <bpmndi:bpmndi xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI">
+          <bpmndi:BPMNShape bpmnElement="Task_MPON_Notifies_MPOO" id="BPMNShape_Task_MPON_Notifies_MPOO">
+            <omgdc:Bounds x="152" y="102" width="100" height="80" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"/>
+          </bpmndi:BPMNShape>
+        </bpmndi:bpmndi>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Step 2: MPOO Decision -->
+    <bpmn:exclusiveGateway id="Gateway_MPOO_Decision" name="MPOO Self-Dismounting Decision">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3_SelfDismount</bpmn:outgoing>
+      <bpmn:outgoing>Flow_3_NoSelfDismount</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Branch A: Self Dismounting Announced -->
+    <bpmn:task id="Task_MPOO_Announces_SelfDismount" name="MPOO announces self dismounting to MPON">
+      <bpmn:incoming>Flow_3_SelfDismount</bpmn:incoming>
+      <bpmn:outgoing>Flow_4_Converge</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Branch B: No Self Dismounting Notified -->
+    <bpmn:task id="Task_MPOO_Notifies_NoSelfDismount" name="MPOO notifies MPON about no self-dismounting">
+      <bpmn:incoming>Flow_3_NoSelfDismount</bpmn:incoming>
+      <bpmn:outgoing>Flow_4_Converge</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Convergence Point -->
+    <bpmn:sequenceFlow id="Flow_3_SelfDismount" sourceRef="Gateway_MPOO_Decision" targetRef="Task_MPOO_Announces_SelfDismount">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Self Dismounting</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_3_NoSelfDismount" sourceRef="Gateway_MPOO_Decision" targetRef="Task_MPOO_Notifies_NoSelfDismount">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">No Self Dismounting</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_4_Converge" sourceRef="Task_MPOO_Announces_SelfDismount" targetRef="Gateway_FinalReading_Performer"/>
+    <bpmn:sequenceFlow id="Flow_4_Converge_B" sourceRef="Task_MPOO_Notifies_NoSelfDismount" targetRef="Gateway_FinalReading_Performer"/>
+
+    <!-- Step 3: Final Reading Performer Decision -->
+    <bpmn:exclusiveGateway id="Gateway_FinalReading_Performer" name="Who performs final reading?">
+      <bpmn:incoming>Flow_4_Converge</bpmn:incoming>
+      <bpmn:incoming>Flow_4_Converge_B</bpmn:incoming>
+      <bpmn:outgoing>Flow_5_MPON_Reads</bpmn:outgoing>
+      <bpmn:outgoing>Flow_5_MPOO_Reads</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_MPON_FinalReading" name="MPON performs final reading">
+      <bpmn:incoming>Flow_5_MPON_Reads</bpmn:incoming>
+      <bpmn:outgoing>Flow_6_Converge_Dismount</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MPOO_FinalReading" name="MPOO performs final reading">
+      <bpmn:incoming>Flow_5_MPOO_Reads</bpmn:incoming>
+      <bpmn:outgoing>Flow_6_Converge_Dismount</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_5_MPON_Reads" sourceRef="Gateway_FinalReading_Performer" targetRef="Task_MPON_FinalReading">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">MPON</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5_MPOO_Reads" sourceRef="Gateway_FinalReading_Performer" targetRef="Task_MPOO_FinalReading">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">MPOO</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Step 4: Dismount Old Equipment Performer Decision -->
+    <bpmn:exclusiveGateway id="Gateway_Dismount_Performer" name="Who dismounts old equipment?">
+      <bpmn:incoming>Flow_6_Converge_Dismount</bpmn:incoming>
+      <bpmn:outgoing>Flow_7_MPON_Dismounts</bpmn:outgoing>
+      <bpmn:outgoing>Flow_7_MPOO_Dismounts</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_MPON_Dismounts_Old" name="MPON dismounts old equipment">
+      <bpmn:incoming>Flow_7_MPON_Dismounts</bpmn:incoming>
+      <bpmn:outgoing>Flow_8_To_MountNew</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MPOO_Dismounts_Old" name="MPOO dismounts old equipment">
+      <bpmn:incoming>Flow_7_MPOO_Dismounts</bpmn:incoming>
+      <bpmn:outgoing>Flow_8_To_MountNew</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_6_Converge_Dismount" sourceRef="Task_MPON_FinalReading" targetRef="Gateway_Dismount_Performer"/>
+    <bpmn:sequenceFlow id="Flow_6_Converge_Dismount_B" sourceRef="Task_MPOO_FinalReading" targetRef="Gateway_Dismount_Performer"/>
+    
+    <bpmn:sequenceFlow id="Flow_7_MPON_Dismounts" sourceRef="Gateway_Dismount_Performer" targetRef="Task_MPON_Dismounts_Old">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">MPON</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_7_MPOO_Dismounts" sourceRef="Gateway_Dismount_Performer" targetRef="Task_MPOO_Dismounts_Old">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">MPOO</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Step 5: MPON Mounts New Device -->
+    <bpmn:task id="Task_MPON_Mounts_New" name="MPON mounts the new device">
+      <bpmn:incoming>Flow_8_To_MountNew</bpmn:incoming>
+      <bpmn:outgoing>Flow_9_To_ReadMeter</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_8_To_MountNew" sourceRef="Task_MPON_Dismounts_Old" targetRef="Task_MPON_Mounts_New"/>
+    <bpmn:sequenceFlow id="Flow_8_To_MountNew_B" sourceRef="Task_MPOO_Dismounts_Old" targetRef="Task_MPON_Mounts_New"/>
+
+    <!-- Step 6: MPON Reads Meter Count -->
+    <bpmn:task id="Task_MPON_Reads_Meter" name="MPON reads meter count from installed meter">
+      <bpmn:incoming>Flow_9_To_ReadMeter</bpmn:incoming>
+      <bpmn:outgoing>Flow_10_To_SendFinalReading</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_9_To_ReadMeter" sourceRef="Task_MPON_Mounts_New" targetRef="Task_MPON_Reads_Meter"/>
+
+    <!-- Step 7: MPON Sends Final Reading to GO -->
+    <bpmn:task id="Task_MPON_Sends_FinalReading_GO" name="MPON sends values of final reading to GO">
+      <bpmn:incoming>Flow_10_To_SendFinalReading</bpmn:incoming>
+      <bpmn:outgoing>Flow_11_To_TellGO_DeviceChanges</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_10_To_SendFinalReading" sourceRef="Task_MPON_Reads_Meter" targetRef="Task_MPON_Sends_FinalReading_GO"/>
+
+    <!-- Step 8: MPON Tells GO about Device Changes, Master Data, Meter Count at Installation -->
+    <bpmn:task id="Task_MPON_Tells_GO_Details" name="MPON tells GO about device changes, master data and meter count at installation">
+      <bpmn:incoming>Flow_11_To_TellGO_DeviceChanges</bpmn:incoming>
+      <bpmn:outgoing>Flow_12_To_GoNotifyMSP</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_11_To_TellGO_DeviceChanges" sourceRef="Task_MPON_Sends_FinalReading_GO" targetRef="Task_MPON_Tells_GO_Details"/>
+
+    <!-- Step 9: GO Notifies MSP -->
+    <bpmn:task id="Task_GO_Notifies_MSP" name="GO notifies MSP about device changes, master data, meter count at dismounting, and meter count at installation">
+      <bpmn:incoming>Flow_12_To_GoNotifyMSP</bpmn:incoming>
+      <bpmn:outgoing>Flow_13_To_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_12_To_GoNotifyMSP" sourceRef="Task_MPON_Tells_GO_Details" targetRef="Task_GO_Notifies_MSP"/>
+    <bpmn:sequenceFlow id="Flow_13_To_End" sourceRef="Task_GO_Notifies_MSP" targetRef="EndEvent_1"/>
+
+    <!-- Initial Flow -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_MPON_Notifies_MPOO"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_MPON_Notifies_MPOO" targetRef="Gateway_MPOO_Decision"/>
+
+  </bpmn:process>
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_MPON" name="MPON" processRef="EquipmentChangeProcess"/>
+  </bpmn:collaboration>
+</bpmn:definitions>

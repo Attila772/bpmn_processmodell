@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="data_unprocessed_files" name="Unprocessed Files" dataObjectRef="data_unprocessed_files_do" />
+    <bpmn:dataObject id="data_unprocessed_files_do" />
+    <bpmn:dataObjectReference id="data_files" name="Court Files" dataObjectRef="data_files_do" />
+    <bpmn:dataObject id="data_files_do" />
+    <bpmn:dataObjectReference id="data_lawlist" name="Judge's Lawlist" dataObjectRef="data_lawlist_do" />
+    <bpmn:dataObject id="data_lawlist_do" />
+    <bpmn:startEvent id="event_start" name="Morning begins">
+      <bpmn:outgoing>flow_start_check</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end" name="Directions hearings conducted">
+      <bpmn:incoming>flow_hearing_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_check_files" name="Check unprocessed files for court hearing">
+      <bpmn:incoming>flow_start_check</bpmn:incoming>
+      <bpmn:outgoing>flow_check_gw</bpmn:outgoing>
+      <bpmn:property id="task_check_files_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_files_dia0">
+        <bpmn:sourceRef>data_unprocessed_files</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_files_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_search_files" name="Initiate search for missing files">
+      <bpmn:incoming>flow_to_search</bpmn:incoming>
+      <bpmn:outgoing>flow_search_split</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_search_files_doa0">
+        <bpmn:targetRef>data_files</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_track_files" name="Physically track files to intended location">
+      <bpmn:incoming>flow_to_track</bpmn:incoming>
+      <bpmn:outgoing>flow_track_split</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_track_files_doa0">
+        <bpmn:targetRef>data_files</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_hand_to_associate" name="Hand files to the Associate">
+      <bpmn:incoming>flow_split_hand</bpmn:incoming>
+      <bpmn:outgoing>flow_hand_join</bpmn:outgoing>
+      <bpmn:property id="task_hand_to_associate_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_hand_to_associate_dia0">
+        <bpmn:sourceRef>data_files</bpmn:sourceRef>
+        <bpmn:targetRef>task_hand_to_associate_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_distribute_lawlist" name="Distribute Judge's Lawlist to relevant people">
+      <bpmn:incoming>flow_split_lawlist</bpmn:incoming>
+      <bpmn:outgoing>flow_lawlist_join</bpmn:outgoing>
+      <bpmn:property id="task_distribute_lawlist_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_distribute_lawlist_dia0">
+        <bpmn:sourceRef>data_lawlist</bpmn:sourceRef>
+        <bpmn:targetRef>task_distribute_lawlist_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:task id="task_conduct_hearings" name="Conduct directions hearings">
+      <bpmn:incoming>flow_join_hearing</bpmn:incoming>
+      <bpmn:outgoing>flow_hearing_end</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_missing_files" name="Files missing?" isMarkerVisible="true">
+      <bpmn:incoming>flow_check_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_to_search</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_track</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_parallel_split" name="Files ready">
+      <bpmn:incoming>flow_search_split</bpmn:incoming>
+      <bpmn:incoming>flow_track_split</bpmn:incoming>
+      <bpmn:outgoing>flow_split_hand</bpmn:outgoing>
+      <bpmn:outgoing>flow_split_lawlist</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_parallel_join" name="Join before hearing">
+      <bpmn:incoming>flow_hand_join</bpmn:incoming>
+      <bpmn:incoming>flow_lawlist_join</bpmn:incoming>
+      <bpmn:outgoing>flow_join_hearing</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="flow_start_check" sourceRef="event_start" targetRef="task_check_files" />
+    <bpmn:sequenceFlow id="flow_check_gw" sourceRef="task_check_files" targetRef="gw_missing_files" />
+    <bpmn:sequenceFlow id="flow_to_search" sourceRef="gw_missing_files" targetRef="task_search_files" name="missing" />
+    <bpmn:sequenceFlow id="flow_to_track" sourceRef="gw_missing_files" targetRef="task_track_files" name="not missing" />
+    <bpmn:sequenceFlow id="flow_search_split" sourceRef="task_search_files" targetRef="gw_parallel_split" />
+    <bpmn:sequenceFlow id="flow_track_split" sourceRef="task_track_files" targetRef="gw_parallel_split" />
+    <bpmn:sequenceFlow id="flow_split_hand" sourceRef="gw_parallel_split" targetRef="task_hand_to_associate" />
+    <bpmn:sequenceFlow id="flow_split_lawlist" sourceRef="gw_parallel_split" targetRef="task_distribute_lawlist" />
+    <bpmn:sequenceFlow id="flow_hand_join" sourceRef="task_hand_to_associate" targetRef="gw_parallel_join" />
+    <bpmn:sequenceFlow id="flow_lawlist_join" sourceRef="task_distribute_lawlist" targetRef="gw_parallel_join" />
+    <bpmn:sequenceFlow id="flow_join_hearing" sourceRef="gw_parallel_join" targetRef="task_conduct_hearings" />
+    <bpmn:sequenceFlow id="flow_hearing_end" sourceRef="task_conduct_hearings" targetRef="event_end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="event_end_di" bpmnElement="event_end">
+        <dc:Bounds x="1680" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_di" bpmnElement="event_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_missing_files_di" bpmnElement="gw_missing_files">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_parallel_join_di" bpmnElement="gw_parallel_join">
+        <dc:Bounds x="1300" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_parallel_split_di" bpmnElement="gw_parallel_split">
+        <dc:Bounds x="920" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_files_di" bpmnElement="task_check_files">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_conduct_hearings_di" bpmnElement="task_conduct_hearings">
+        <dc:Bounds x="1490" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_distribute_lawlist_di" bpmnElement="task_distribute_lawlist">
+        <dc:Bounds x="1110" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_hand_to_associate_di" bpmnElement="task_hand_to_associate">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_search_files_di" bpmnElement="task_search_files">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_track_files_di" bpmnElement="task_track_files">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_unprocessed_files_di" bpmnElement="data_unprocessed_files">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_files_di" bpmnElement="data_files">
+        <dc:Bounds x="876" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_lawlist_di" bpmnElement="data_lawlist">
+        <dc:Bounds x="1130" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_check_di" bpmnElement="flow_start_check">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_check_gw_di" bpmnElement="flow_check_gw">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_search_di" bpmnElement="flow_to_search">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_track_di" bpmnElement="flow_to_track">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_search_split_di" bpmnElement="flow_search_split">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_track_split_di" bpmnElement="flow_track_split">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_split_hand_di" bpmnElement="flow_split_hand">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_split_lawlist_di" bpmnElement="flow_split_lawlist">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hand_join_di" bpmnElement="flow_hand_join">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_lawlist_join_di" bpmnElement="flow_lawlist_join">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_join_hearing_di" bpmnElement="flow_join_hearing">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hearing_end_di" bpmnElement="flow_hearing_end">
+        <di:waypoint x="1540" y="140" />
+        <di:waypoint x="1698" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_files_dia0_di" bpmnElement="task_check_files_dia0">
+        <di:waypoint x="388" y="390" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_search_files_doa0_di" bpmnElement="task_search_files_doa0">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="894" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_track_files_doa0_di" bpmnElement="task_track_files_doa0">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="894" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_hand_to_associate_dia0_di" bpmnElement="task_hand_to_associate_dia0">
+        <di:waypoint x="894" y="390" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_distribute_lawlist_dia0_di" bpmnElement="task_distribute_lawlist_dia0">
+        <di:waypoint x="1148" y="390" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

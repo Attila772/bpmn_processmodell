@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_hr_part" name="HR Clerk" processRef="pool_hr_proc" />
+    <bpmn:participant id="pool_department_part" name="Department" processRef="pool_department_proc" />
+    <bpmn:messageFlow id="msg_flow_vacancy_report" sourceRef="pool_department" targetRef="evt_start_vacancy_reported" name="Vacancy Report" />
+    <bpmn:messageFlow id="msg_flow_clarification_req" sourceRef="evt_msg_request_clarification" targetRef="pool_department" name="Clarification Request" />
+    <bpmn:messageFlow id="msg_flow_clarification_resp" sourceRef="pool_department" targetRef="evt_msg_receive_clarification" name="Clarification Response" />
+    <bpmn:messageFlow id="msg_flow_desc_submission" sourceRef="evt_msg_send_desc_for_approval" targetRef="pool_department" name="Job Description for Approval" />
+    <bpmn:messageFlow id="msg_flow_approval_decision" sourceRef="pool_department" targetRef="evt_msg_receive_approval_decision" name="Approval Decision" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_hr_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_job_description" name="Job Description" dataObjectRef="data_job_description_do" />
+    <bpmn:dataObject id="data_job_description_do" />
+    <bpmn:startEvent id="evt_start_vacancy_reported" name="Vacancy Reported">
+      <bpmn:outgoing>flow_start_to_create</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_vacancy_reported_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_job_posted" name="Job Posted">
+      <bpmn:incoming>flow_post_job_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_send_desc_for_approval" name="Send Job Description for Approval">
+      <bpmn:incoming>flow_confusion_no</bpmn:incoming>
+      <bpmn:incoming>flow_correct_to_send_approval</bpmn:incoming>
+      <bpmn:outgoing>flow_send_approval_to_receive_decision</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_send_desc_for_approval_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_receive_approval_decision" name="Receive Approval Decision">
+      <bpmn:incoming>flow_send_approval_to_receive_decision</bpmn:incoming>
+      <bpmn:outgoing>flow_receive_decision_to_approval_check</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_receive_approval_decision_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_request_clarification" name="Request Clarification from Department">
+      <bpmn:incoming>flow_confusion_yes</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_request_clarification_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_receive_clarification" name="Receive Clarification">
+      <bpmn:outgoing>flow_receive_clarification_to_correct</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_receive_clarification_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:userTask id="task_create_job_description" name="Create Job Description">
+      <bpmn:incoming>flow_start_to_create</bpmn:incoming>
+      <bpmn:outgoing>flow_create_to_confusion_check</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_create_job_description_doa0">
+        <bpmn:targetRef>data_job_description</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_correct_job_description" name="Correct Job Description">
+      <bpmn:incoming>flow_receive_clarification_to_correct</bpmn:incoming>
+      <bpmn:incoming>flow_approved_no</bpmn:incoming>
+      <bpmn:outgoing>flow_correct_to_send_approval</bpmn:outgoing>
+      <bpmn:property id="task_correct_job_description_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_correct_job_description_dia0">
+        <bpmn:sourceRef>data_job_description</bpmn:sourceRef>
+        <bpmn:targetRef>task_correct_job_description_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_correct_job_description_doa0">
+        <bpmn:targetRef>data_job_description</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_post_job" name="Post the Job">
+      <bpmn:incoming>flow_approved_yes</bpmn:incoming>
+      <bpmn:outgoing>flow_post_job_to_end</bpmn:outgoing>
+      <bpmn:property id="task_post_job_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_post_job_dia0">
+        <bpmn:sourceRef>data_job_description</bpmn:sourceRef>
+        <bpmn:targetRef>task_post_job_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_confusion_check" name="Is there confusion in the message?" isMarkerVisible="true">
+      <bpmn:incoming>flow_create_to_confusion_check</bpmn:incoming>
+      <bpmn:outgoing>flow_confusion_yes</bpmn:outgoing>
+      <bpmn:outgoing>flow_confusion_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_approval_check" name="Is the description approved?" isMarkerVisible="true">
+      <bpmn:incoming>flow_receive_decision_to_approval_check</bpmn:incoming>
+      <bpmn:outgoing>flow_approved_yes</bpmn:outgoing>
+      <bpmn:outgoing>flow_approved_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_to_create" sourceRef="evt_start_vacancy_reported" targetRef="task_create_job_description" />
+    <bpmn:sequenceFlow id="flow_create_to_confusion_check" sourceRef="task_create_job_description" targetRef="gw_confusion_check" />
+    <bpmn:sequenceFlow id="flow_confusion_yes" sourceRef="gw_confusion_check" targetRef="evt_msg_request_clarification" name="Yes" />
+    <bpmn:sequenceFlow id="flow_confusion_no" sourceRef="gw_confusion_check" targetRef="evt_msg_send_desc_for_approval" name="No" />
+    <bpmn:sequenceFlow id="flow_receive_clarification_to_correct" sourceRef="evt_msg_receive_clarification" targetRef="task_correct_job_description" />
+    <bpmn:sequenceFlow id="flow_correct_to_send_approval" sourceRef="task_correct_job_description" targetRef="evt_msg_send_desc_for_approval" />
+    <bpmn:sequenceFlow id="flow_send_approval_to_receive_decision" sourceRef="evt_msg_send_desc_for_approval" targetRef="evt_msg_receive_approval_decision" />
+    <bpmn:sequenceFlow id="flow_receive_decision_to_approval_check" sourceRef="evt_msg_receive_approval_decision" targetRef="gw_approval_check" />
+    <bpmn:sequenceFlow id="flow_approved_yes" sourceRef="gw_approval_check" targetRef="task_post_job" name="Approved" />
+    <bpmn:sequenceFlow id="flow_approved_no" sourceRef="gw_approval_check" targetRef="task_correct_job_description" name="Rejected" />
+    <bpmn:sequenceFlow id="flow_post_job_to_end" sourceRef="task_post_job" targetRef="evt_end_job_posted" />
+  </bpmn:process>
+  <bpmn:process id="pool_department_proc" isExecutable="false">
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_hr_part_di" bpmnElement="pool_hr_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1520" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_department_part_di" bpmnElement="pool_department_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="700" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_job_posted_di" bpmnElement="evt_end_job_posted">
+        <dc:Bounds x="1300" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_receive_approval_decision_di" bpmnElement="evt_msg_receive_approval_decision">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_receive_clarification_di" bpmnElement="evt_msg_receive_clarification">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_request_clarification_di" bpmnElement="evt_msg_request_clarification">
+        <dc:Bounds x="730" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_send_desc_for_approval_di" bpmnElement="evt_msg_send_desc_for_approval">
+        <dc:Bounds x="730" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_vacancy_reported_di" bpmnElement="evt_start_vacancy_reported">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_approval_check_di" bpmnElement="gw_approval_check">
+        <dc:Bounds x="920" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_confusion_check_di" bpmnElement="gw_confusion_check">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_correct_job_description_di" bpmnElement="task_correct_job_description">
+        <dc:Bounds x="1110" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_job_description_di" bpmnElement="task_create_job_description">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_post_job_di" bpmnElement="task_post_job">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_job_description_di" bpmnElement="data_job_description">
+        <dc:Bounds x="876" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_create_di" bpmnElement="flow_start_to_create">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_create_to_confusion_check_di" bpmnElement="flow_create_to_confusion_check">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confusion_yes_di" bpmnElement="flow_confusion_yes">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="748" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confusion_no_di" bpmnElement="flow_confusion_no">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="748" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_receive_clarification_to_correct_di" bpmnElement="flow_receive_clarification_to_correct">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_correct_to_send_approval_di" bpmnElement="flow_correct_to_send_approval">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="748" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_send_approval_to_receive_decision_di" bpmnElement="flow_send_approval_to_receive_decision">
+        <di:waypoint x="748" y="368" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_receive_decision_to_approval_check_di" bpmnElement="flow_receive_decision_to_approval_check">
+        <di:waypoint x="748" y="118" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_approved_yes_di" bpmnElement="flow_approved_yes">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_approved_no_di" bpmnElement="flow_approved_no">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_post_job_to_end_di" bpmnElement="flow_post_job_to_end">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1318" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_vacancy_report_di" bpmnElement="msg_flow_vacancy_report">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_clarification_req_di" bpmnElement="msg_flow_clarification_req">
+        <di:waypoint x="748" y="243" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_clarification_resp_di" bpmnElement="msg_flow_clarification_resp">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_desc_submission_di" bpmnElement="msg_flow_desc_submission">
+        <di:waypoint x="748" y="368" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_approval_decision_di" bpmnElement="msg_flow_approval_decision">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_job_description_doa0_di" bpmnElement="task_create_job_description_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="894" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_correct_job_description_dia0_di" bpmnElement="task_correct_job_description_dia0">
+        <di:waypoint x="894" y="515" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_correct_job_description_doa0_di" bpmnElement="task_correct_job_description_doa0">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="894" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_post_job_dia0_di" bpmnElement="task_post_job_dia0">
+        <di:waypoint x="894" y="515" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

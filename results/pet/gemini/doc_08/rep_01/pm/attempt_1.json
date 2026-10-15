@@ -1,0 +1,452 @@
+{
+  "name": "Database Backup and Account Defaulter Management Process",
+  "resources": [
+    {
+      "name": "System Administrator / Analyst",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Supervisor",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start",
+      "name": "Weekday Morning Start",
+      "event_position": "start",
+      "trigger_type": "timer",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_normal",
+      "name": "Process Completed Successfully",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_alert_230",
+      "name": "Send Alert to Supervisor (2:30 PM Timeout)",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Alert: 2:30 PM deadline missed"
+    },
+    {
+      "id": "evt_alert_400",
+      "name": "Send Message to Supervisor (4:00 PM Timeout)",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Alert: 4:00 PM deadline missed"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_backup_db",
+      "name": "Back up database",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_check_defaulter_table",
+      "name": "Check Account Defaulter table for new records",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "ds_account_defaulter_table"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_check_crm_1",
+      "name": "Check CRM system for new returns",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "ds_crm"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_register_accounts",
+      "name": "Register all defaulting accounts and customers",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "System Administrator / Analyst",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "ds_account_defaulter_table"
+      ]
+    },
+    {
+      "id": "task_produce_send_table",
+      "name": "Produce table of defaulting accounts and send to account management",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "System Administrator / Analyst",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "do_defaulter_report"
+      ]
+    },
+    {
+      "id": "task_check_crm_2",
+      "name": "Check CRM system for new returns after report completion",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "ds_crm"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_reconcile",
+      "name": "Reconcile with existing Account Defaulters table",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "System Administrator / Analyst",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "ds_crm"
+      ],
+      "output_data_ids": [
+        "ds_account_defaulter_table"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_new_records_exist",
+      "name": "New records found?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "sf_rec_no",
+          "condition": "No new records"
+        },
+        {
+          "flow_id": "sf_rec_yes",
+          "condition": "New records exist"
+        }
+      ]
+    },
+    {
+      "id": "gw_new_returns_1",
+      "name": "New returns exist?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "sf_ret1_yes",
+          "condition": "New returns exist"
+        },
+        {
+          "flow_id": "sf_ret1_no",
+          "condition": "No new returns"
+        }
+      ]
+    },
+    {
+      "id": "gw_client_advised",
+      "name": "Client codes previously advised?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "sf_adv_no",
+          "condition": "Not previously advised"
+        },
+        {
+          "flow_id": "sf_adv_yes",
+          "condition": "Previously advised"
+        }
+      ]
+    },
+    {
+      "id": "gw_timer_230",
+      "name": "Completed by 2:30 PM?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "sf_230_yes",
+          "condition": "Completed before 2:30 PM"
+        },
+        {
+          "flow_id": "sf_230_no",
+          "condition": "Not completed by 2:30 PM"
+        }
+      ]
+    },
+    {
+      "id": "gw_new_returns_2",
+      "name": "New returns filed?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "sf_ret2_yes",
+          "condition": "New returns filed"
+        },
+        {
+          "flow_id": "sf_ret2_no",
+          "condition": "No new returns filed"
+        }
+      ]
+    },
+    {
+      "id": "gw_timer_400",
+      "name": "Completed by 4:00 PM?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "sf_400_yes",
+          "condition": "Completed before 4:00 PM"
+        },
+        {
+          "flow_id": "sf_400_no",
+          "condition": "Not completed by 4:00 PM"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "sf_1",
+      "source_id": "evt_start",
+      "target_id": "task_backup_db",
+      "condition_name": null
+    },
+    {
+      "id": "sf_2",
+      "source_id": "task_backup_db",
+      "target_id": "task_check_defaulter_table",
+      "condition_name": null
+    },
+    {
+      "id": "sf_3",
+      "source_id": "task_check_defaulter_table",
+      "target_id": "gw_new_records_exist",
+      "condition_name": null
+    },
+    {
+      "id": "sf_rec_no",
+      "source_id": "gw_new_records_exist",
+      "target_id": "task_check_crm_1",
+      "condition_name": "No new records"
+    },
+    {
+      "id": "sf_rec_yes",
+      "source_id": "gw_new_records_exist",
+      "target_id": "evt_end_normal",
+      "condition_name": "New records exist"
+    },
+    {
+      "id": "sf_4",
+      "source_id": "task_check_crm_1",
+      "target_id": "gw_new_returns_1",
+      "condition_name": null
+    },
+    {
+      "id": "sf_ret1_yes",
+      "source_id": "gw_new_returns_1",
+      "target_id": "task_register_accounts",
+      "condition_name": "New returns exist"
+    },
+    {
+      "id": "sf_ret1_no",
+      "source_id": "gw_new_returns_1",
+      "target_id": "evt_end_normal",
+      "condition_name": "No new returns"
+    },
+    {
+      "id": "sf_5",
+      "source_id": "task_register_accounts",
+      "target_id": "gw_client_advised",
+      "condition_name": null
+    },
+    {
+      "id": "sf_adv_no",
+      "source_id": "gw_client_advised",
+      "target_id": "task_produce_send_table",
+      "condition_name": "Not previously advised"
+    },
+    {
+      "id": "sf_adv_yes",
+      "source_id": "gw_client_advised",
+      "target_id": "gw_timer_230",
+      "condition_name": "Previously advised"
+    },
+    {
+      "id": "sf_6",
+      "source_id": "task_produce_send_table",
+      "target_id": "gw_timer_230",
+      "condition_name": null
+    },
+    {
+      "id": "sf_230_no",
+      "source_id": "gw_timer_230",
+      "target_id": "evt_alert_230",
+      "condition_name": "Not completed by 2:30 PM"
+    },
+    {
+      "id": "sf_230_yes",
+      "source_id": "gw_timer_230",
+      "target_id": "task_check_crm_2",
+      "condition_name": "Completed before 2:30 PM"
+    },
+    {
+      "id": "sf_7",
+      "source_id": "task_check_crm_2",
+      "target_id": "gw_new_returns_2",
+      "condition_name": null
+    },
+    {
+      "id": "sf_ret2_yes",
+      "source_id": "gw_new_returns_2",
+      "target_id": "task_reconcile",
+      "condition_name": "New returns filed"
+    },
+    {
+      "id": "sf_ret2_no",
+      "source_id": "gw_new_returns_2",
+      "target_id": "evt_end_normal",
+      "condition_name": "No new returns filed"
+    },
+    {
+      "id": "sf_8",
+      "source_id": "task_reconcile",
+      "target_id": "gw_timer_400",
+      "condition_name": null
+    },
+    {
+      "id": "sf_400_no",
+      "source_id": "gw_timer_400",
+      "target_id": "evt_alert_400",
+      "condition_name": "Not completed by 4:00 PM"
+    },
+    {
+      "id": "sf_400_yes",
+      "source_id": "gw_timer_400",
+      "target_id": "evt_end_normal",
+      "condition_name": "Completed before 4:00 PM"
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [
+    {
+      "id": "do_defaulter_report",
+      "name": "Table of Defaulting Accounts Report"
+    }
+  ],
+  "data_stores": [
+    {
+      "id": "ds_account_defaulter_table",
+      "name": "Account Defaulter Table"
+    },
+    {
+      "id": "ds_crm",
+      "name": "CRM System"
+    }
+  ],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

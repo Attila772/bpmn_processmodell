@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="PowerSupplierSwitchProcess" name="Power Supplier Switch Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_SwitchRequest" name="Switch-over Request Received">
+      <bpmn:outgoing>Flow_ReceiveData</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_ReceiveData" sourceRef="StartEvent_SwitchRequest" targetRef="Task_ReceiveCustomerData" />
+    
+    <bpmn:task id="Task_ReceiveCustomerData" name="Receive Customer Data">
+      <bpmn:incoming>Flow_ReceiveData</bpmn:incoming>
+      <bpmn:outgoing>Flow_EnterCRM</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_EnterCRM" sourceRef="Task_ReceiveCustomerData" targetRef="Task_EnterCRM" />
+
+    <bpmn:task id="Task_EnterCRM" name="Enter Customer Data into CRM">
+      <bpmn:incoming>Flow_EnterCRM</bpmn:incoming>
+      <bpmn:outgoing>Flow_CompareData</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_CompareData" sourceRef="Task_EnterCRM" targetRef="Task_CompareAndCheckData" />
+
+    <bpmn:task id="Task_CompareAndCheckData" name="Compare with Internal DB &amp; Check Completeness/Plausibility">
+      <bpmn:incoming>Flow_CompareData</bpmn:incoming>
+      <bpmn:outgoing>Flow_ErrorCheck</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ErrorCheck" sourceRef="Task_CompareAndCheckData" targetRef="Gateway_ErrorsExist" />
+
+    <bpmn:exclusiveGateway id="Gateway_ErrorsExist" name="Errors Exist?">
+      <bpmn:incoming>Flow_ErrorCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_CorrectErrors</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoErrors</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_CorrectErrors" name="Yes" sourceRef="Gateway_ErrorsExist" targetRef="Task_CorrectErrors" />
+    <bpmn:sequenceFlow id="Flow_NoErrors" name="No" sourceRef="Gateway_ErrorsExist" targetRef="Gateway_CustomerExists" />
+
+    <bpmn:task id="Task_CorrectErrors" name="Correct Errors based on Error List">
+      <bpmn:incoming>Flow_CorrectErrors</bpmn:incoming>
+      <bpmn:outgoing>Flow_Recheck</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_Recheck" sourceRef="Task_CorrectErrors" targetRef="Task_CompareAndCheckData" />
+
+    <bpmn:exclusiveGateway id="Gateway_CustomerExists" name="Customer Exists in DB?">
+      <bpmn:incoming>Flow_NoErrors</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreateNewCustomer</bpmn:outgoing>
+      <bpmn:outgoing>Flow_UseExistingCustomer</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_CreateNewCustomer" name="No (Create New)" sourceRef="Gateway_CustomerExists" targetRef="Task_CreateNewCustomerObject" />
+    <bpmn:sequenceFlow id="Flow_UseExistingCustomer" name="Yes (Use Existing)" sourceRef="Gateway_CustomerExists" targetRef="Task_PrepareContractDocuments" />
+
+    <bpmn:task id="Task_CreateNewCustomerObject" name="Create New Customer Object">
+      <bpmn:incoming>Flow_CreateNewCustomer</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPrepareDocs</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ToPrepareDocs" sourceRef="Task_CreateNewCustomerObject" targetRef="Task_PrepareContractDocuments" />
+
+    <bpmn:task id="Task_PrepareContractDocuments" name="Prepare Contract Documents">
+      <bpmn:incoming>Flow_UseExistingCustomer</bpmn:incoming>
+      <bpmn:incoming>Flow_ToPrepareDocs</bpmn:incoming>
+      <bpmn:incoming>Flow_RegenerateDocs</bpmn:incoming>
+      <bpmn:outgoing>Flow_AutoCheckCIS</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_AutoCheckCIS" sourceRef="Task_PrepareContractDocuments" targetRef="Task_AutomatedCheckCIS" />
+
+    <bpmn:task id="Task_AutomatedCheckCIS" name="Automated Check of Contract Documents in CIS">
+      <bpmn:incoming>Flow_AutoCheckCIS</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckResult</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_CheckResult" sourceRef="Task_AutomatedCheckCIS" targetRef="Gateway_DocGenerationSuccess" />
+
+    <bpmn:exclusiveGateway id="Gateway_DocGenerationSuccess" name="Successful Generation?">
+      <bpmn:incoming>Flow_CheckResult</bpmn:incoming>
+      <bpmn:outgoing>Flow_AnalyzeIssues</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SendConfirmation</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_AnalyzeIssues" name="Negative Response" sourceRef="Gateway_DocGenerationSuccess" targetRef="Task_AnalyzeAndResolveIssues" />
+    <bpmn:sequenceFlow id="Flow_SendConfirmation" name="Positive Response" sourceRef="Gateway_DocGenerationSuccess" targetRef="Task_SendConfirmationToCustomer" />
+
+    <bpmn:task id="Task_AnalyzeAndResolveIssues" name="Analyze and Resolve Issues">
+      <bpmn:incoming>Flow_AnalyzeIssues</bpmn:incoming>
+      <bpmn:outgoing>Flow_RegenerateDocs</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_RegenerateDocs" sourceRef="Task_AnalyzeAndResolveIssues" targetRef="Task_PrepareContractDocuments" />
+
+    <bpmn:task id="Task_SendConfirmationToCustomer" name="Send Confirmation Document to Customer">
+      <bpmn:incoming>Flow_SendConfirmation</bpmn:incoming>
+      <bpmn:outgoing>Flow_RequestGridOperator</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_RequestGridOperator" sourceRef="Task_SendConfirmationToCustomer" targetRef="Task_RequestGridOperator" />
+
+    <bpmn:task id="Task_RequestGridOperator" name="Send Request to Grid Operator (via CIS)">
+      <bpmn:incoming>Flow_RequestGridOperator</bpmn:incoming>
+      <bpmn:outgoing>Flow_GridResponse</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_GridResponse" sourceRef="Task_RequestGridOperator" targetRef="Gateway_SupplierConcurrence" />
+
+    <bpmn:exclusiveGateway id="Gateway_SupplierConcurrence" name="Supplier Concurrence?">
+      <bpmn:incoming>Flow_GridResponse</bpmn:incoming>
+      <bpmn:outgoing>Flow_ConflictResolution</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoObjections</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_ConflictResolution" name="Yes (Conflict)" sourceRef="Gateway_SupplierConcurrence" targetRef="Task_GridOperatorConflictHandling" />
+    <bpmn:sequenceFlow id="Flow_NoObjections" name="No Objections" sourceRef="Gateway_SupplierConcurrence" targetRef="Task_CreateCISContract" />
+
+    <bpmn:task id="Task_GridOperatorConflictHandling" name="Grid Operator Handles Conflict &amp; Terminates Old Agreement">
+      <bpmn:incoming>Flow_ConflictResolution</bpmn:incoming>
+      <bpmn:outgoing>Flow_BackToNoObjections</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_BackToNoObjections" sourceRef="Task_GridOperatorConflictHandling" targetRef="Task_CreateCISContract" />
+
+    <bpmn:task id="Task_CreateCISContract" name="Create CIS Contract">
+      <bpmn:incoming>Flow_NoObjections</bpmn:incoming>
+      <bpmn:incoming>Flow_BackToNoObjections</bpmn:incoming>
+      <bpmn:outgoing>Flow_CustomerDecision</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_CustomerDecision" sourceRef="Task_CreateCISContract" targetRef="Gateway_CustomerAcceptance" />
+
+    <bpmn:exclusiveGateway id="Gateway_CustomerAcceptance" name="Customer Decision / Timeout">
+      <bpmn:incoming>Flow_CustomerDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Withdrawal</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Confirmation</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Withdrawal" name="Withdrawal (or >7 days no response treated as end for this branch logic, but spec says process ends on withdrawal)" sourceRef="Gateway_CustomerAcceptance" targetRef="EndEvent_ProcessEndWithdrawal" />
+    <bpmn:sequenceFlow id="Flow_Confirmation" name="Confirmation (or Auto-Accept after 7 days)" sourceRef="Gateway_CustomerAcceptance" targetRef="Task_WaitForSwitchDate" />
+
+    <bpmn:endEvent id="EndEvent_ProcessEndWithdrawal" name="Process Ends (Withdrawal)">
+      <bpmn:incoming>Flow_Withdrawal</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:intermediateCatchEvent id="Task_WaitForSwitchDate" name="Wait for Switch Date / Meter Data">
+      <bpmn:incoming>Flow_Confirmation</bpmn:incoming>
+      <bpmn:outgoing>Flow_MeterDataReceived</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_MeterData" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_MeterDataReceived" sourceRef="Task_WaitForSwitchDate" targetRef="Task_ImportMeterData" />
+
+    <bpmn:task id="Task_ImportMeterData" name="Import Meter Data to Systems">
+      <bpmn:incoming>Flow_MeterDataReceived</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndProcess</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_EndProcess" sourceRef="Task_ImportMeterData" targetRef="EndEvent_ProcessEndSuccess" />
+
+    <bpmn:endEvent id="EndEvent_ProcessEndSuccess" name="Process Ends (New Customer Won)">
+      <bpmn:incoming>Flow_EndProcess</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  
+  <bpmn:message id="Message_MeterData" name="Meter Data Message" />
+</bpmn:definitions>

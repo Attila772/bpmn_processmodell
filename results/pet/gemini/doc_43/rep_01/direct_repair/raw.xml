@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_ExpenseReimbursement"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:collaboration id="Collaboration_ExpenseProcess">
+    <bpmn:participant id="Participant_ExpenseReimbursement" name="Expense Reimbursement Process" processRef="Process_ExpenseReimbursement" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_ExpenseReimbursement" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Process">
+      <bpmn:lane id="Lane_Employee" name="Employee">
+        <bpmn:flowNodeRef>StartEvent_ExpenseIncurred</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SubmitExpenseReport</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EditExpenseReport</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Supervisor" name="Supervisor">
+        <bpmn:flowNodeRef>Task_ReviewExpenseRules</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReviewExpenseReport</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_SupervisorApproval</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Treasurer" name="Treasurer">
+        <bpmn:flowNodeRef>Task_VerifyReceipts</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ReceiptsValid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AcceptExpensesForProcessing</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_AutomatedSystem" name="Automated System">
+        <bpmn:flowNodeRef>Task_LinkToPaymentSystem</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CatchEvent_PaymentConfirmation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_ProcessCompleted</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Employee Lane Nodes -->
+    <bpmn:startEvent id="StartEvent_ExpenseIncurred" name="Product/Service Purchased">
+      <bpmn:outgoing>Flow_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_SubmitExpenseReport" name="Submit Expense Report and Receipts">
+      <bpmn:incoming>Flow_01</bpmn:incoming>
+      <bpmn:outgoing>Flow_02</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_EditExpenseReport" name="Edit Expense Report">
+      <bpmn:incoming>Flow_06</bpmn:incoming>
+      <bpmn:incoming>Flow_09</bpmn:incoming>
+      <bpmn:outgoing>Flow_03</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Supervisor Lane Nodes -->
+    <bpmn:businessRuleTask id="Task_ReviewExpenseRules" name="Automated Expense Rules Check">
+      <bpmn:incoming>Flow_02</bpmn:incoming>
+      <bpmn:incoming>Flow_03</bpmn:incoming>
+      <bpmn:outgoing>Flow_04</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+
+    <bpmn:userTask id="Task_ReviewExpenseReport" name="Review Expense Report">
+      <bpmn:incoming>Flow_04</bpmn:incoming>
+      <bpmn:outgoing>Flow_05</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_SupervisorApproval" name="Approved by Supervisor?">
+      <bpmn:incoming>Flow_05</bpmn:incoming>
+      <bpmn:outgoing>Flow_06</bpmn:outgoing>
+      <bpmn:outgoing>Flow_07</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Treasurer Lane Nodes -->
+    <bpmn:userTask id="Task_VerifyReceipts" name="Verify Receipts and Report Items">
+      <bpmn:incoming>Flow_07</bpmn:incoming>
+      <bpmn:outgoing>Flow_08</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_ReceiptsValid" name="Receipts Valid &#38; Complete?">
+      <bpmn:incoming>Flow_08</bpmn:incoming>
+      <bpmn:outgoing>Flow_09</bpmn:outgoing>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_AcceptExpensesForProcessing" name="Accept Expenses for Processing">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Automated System Lane Nodes -->
+    <bpmn:serviceTask id="Task_LinkToPaymentSystem" name="Link to Payment System">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:intermediateCatchEvent id="CatchEvent_PaymentConfirmation" name="Payment Confirmation Received">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_PaymentConfirmation" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="EndEvent_ProcessCompleted" name="Expense Process Completed">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="StartEvent_ExpenseIncurred" targetRef="Task_SubmitExpenseReport" />
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_SubmitExpenseReport" targetRef="Task_ReviewExpenseRules" />
+    <bpmn:sequenceFlow id="Flow_03" sourceRef="Task_EditExpenseReport" targetRef="Task_ReviewExpenseRules" />
+    <bpmn:sequenceFlow id="Flow_04" sourceRef="Task_ReviewExpenseRules" targetRef="Task_ReviewExpenseReport" />
+    <bpmn:sequenceFlow id="Flow_05" sourceRef="Task_ReviewExpenseReport" targetRef="Gateway_SupervisorApproval" />
+    <bpmn:sequenceFlow id="Flow_06" name="No" sourceRef="Gateway_SupervisorApproval" targetRef="Task_EditExpenseReport" />
+    <bpmn:sequenceFlow id="Flow_07" name="Yes" sourceRef="Gateway_SupervisorApproval" targetRef="Task_VerifyReceipts" />
+    <bpmn:sequenceFlow id="Flow_08" sourceRef="Task_VerifyReceipts" targetRef="Gateway_ReceiptsValid" />
+    <bpmn:sequenceFlow id="Flow_09" name="No" sourceRef="Gateway_ReceiptsValid" targetRef="Task_EditExpenseReport" />
+    <bpmn:sequenceFlow id="Flow_10" name="Yes" sourceRef="Gateway_ReceiptsValid" targetRef="Task_AcceptExpensesForProcessing" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_AcceptExpensesForProcessing" targetRef="Task_LinkToPaymentSystem" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_LinkToPaymentSystem" targetRef="CatchEvent_PaymentConfirmation" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="CatchEvent_PaymentConfirmation" targetRef="EndEvent_ProcessCompleted" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_ExpenseProcess">
+    <bpmndi:BPMNPlane id="BPMNPlane_ExpenseProcess" bpmnElement="Collaboration_ExpenseProcess">
+      <bpmndi:BPMNShape id="Participant_ExpenseReimbursement_di" bpmnElement="Participant_ExpenseReimbursement" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1440" height="700" />
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="Lane_Employee_di" bpmnElement="Lane_Employee" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1410" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Supervisor_di" bpmnElement="Lane_Supervisor" isHorizontal="true">
+        <dc:Bounds x="190" y="250" width="1410" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Treasurer_di" bpmnElement="Lane_Treasurer" isHorizontal="true">
+        <dc:Bounds x="190" y="430" width="1410" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_AutomatedSystem_di" bpmnElement="Lane_AutomatedSystem" isHorizontal="true">
+        <dc:Bounds x="190" y="610" width="1410" height="170" />
+      </bpmndi:BPMNShape>
+
+      <!-- Employee Nodes -->
+      <bpmndi:BPMNShape id="StartEvent_ExpenseIncurred_di" bpmnElement="StartEvent_ExpenseIncurred">
+        <dc:Bounds x="242" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="221" y="185" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SubmitExpenseReport_di" bpmnElement="Task_SubmitExpenseReport">
+        <dc:Bounds x="330" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EditExpenseReport_di" bpmnElement="Task_EditExpenseReport">
+        <dc:Bounds x="780" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Supervisor Nodes -->
+      <bpmndi:BPMNShape id="Task_ReviewExpenseRules_di" bpmnElement="Task_ReviewExpenseRules">
+        <dc:Bounds x="330" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReviewExpenseReport_di" bpmnElement="Task_ReviewExpenseReport">
+        <dc:Bounds x="480" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_SupervisorApproval_di" bpmnElement="Gateway_SupervisorApproval" isMarkerVisible="true">
+        <dc:Bounds x="635" y="315" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="628" y="372" width="65" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Treasurer Nodes -->
+      <bpmndi:BPMNShape id="Task_VerifyReceipts_di" bpmnElement="Task_VerifyReceipts">
+        <dc:Bounds x="780" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ReceiptsValid_di" bpmnElement="Gateway_ReceiptsValid" isMarkerVisible="true">
+        <dc:Bounds x="935" y="495" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="923" y="552" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AcceptExpensesForProcessing_di" bpmnElement="Task_AcceptExpensesForProcessing">
+        <dc:Bounds x="1050" y="480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Automated System Nodes -->
+      <bpmndi:BPMNShape id="Task_LinkToPaymentSystem_di" bpmnElement="Task_LinkToPaymentSystem">
+        <dc:Bounds x="1050" y="655" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CatchEvent_PaymentConfirmation_di" bpmnElement="CatchEvent_PaymentConfirmation">
+        <dc:Bounds x="1222" y="677" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1207" y="720" width="67" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_ProcessCompleted_di" bpmnElement="EndEvent_ProcessCompleted">
+        <dc:Bounds x="1332" y="677" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1308" y="720" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_01_di" bpmnElement="Flow_01">
+        <di:waypoint x="278" y="160" />
+        <di:waypoint x="330" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_02_di" bpmnElement="Flow_02">
+        <di:waypoint x="380" y="200" />
+        <di:waypoint x="380" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_03_di" bpmnElement="Flow_03">
+        <di:waypoint x="830" y="120" />
+        <di:waypoint x="830" y="90" />
+        <di:waypoint x="380" y="90" />
+        <di:waypoint x="380" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_04_di" bpmnElement="Flow_04">
+        <di:waypoint x="430" y="340" />
+        <di:waypoint x="480" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05_di" bpmnElement="Flow_05">
+        <di:waypoint x="580" y="340" />
+        <di:waypoint x="635" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06_di" bpmnElement="Flow_06">
+        <di:waypoint x="660" y="315" />
+        <di:waypoint x="660" y="160" />
+        <di:waypoint x="780" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="668" y="235" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07_di" bpmnElement="Flow_07">
+        <di:waypoint x="685" y="340" />
+        <di:waypoint x="730" y="340" />
+        <di:waypoint x="730" y="520" />
+        <di:waypoint x="780" y="520" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="736" y="427" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_08_di" bpmnElement="Flow_08">
+        <di:waypoint x="880" y="520" />
+        <di:waypoint x="935" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09_di" bpmnElement="Flow_09">
+        <di:waypoint x="960" y="495" />
+        <di:waypoint x="960" y="160" />
+        <di:waypoint x="880" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="968" y="325" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="985" y="520" />
+        <di:waypoint x="1050" y="520" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1009" y="502" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1100" y="560" />
+        <di:waypoint x="1100" y="655" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1150" y="695" />
+        <di:waypoint x="1222" y="695" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1258" y="695" />
+        <di:waypoint x="1332" y="695" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

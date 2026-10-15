@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="data_expense_report" name="Expense Report" dataObjectRef="data_expense_report_do" />
+    <bpmn:dataObject id="data_expense_report_do" />
+    <bpmn:startEvent id="evt_start" name="Expense Report Received">
+      <bpmn:outgoing>flow_start_to_check</bpmn:outgoing>
+      <bpmn:outgoing>flow_start_to_timer_7</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_rejection_notice_sent" name="Rejection Notice Sent">
+      <bpmn:incoming>flow_rejection_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_reimbursement_completed" name="Reimbursement Completed">
+      <bpmn:incoming>flow_reimbursement_to_end</bpmn:incoming>
+      <bpmn:incoming>flow_progress_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_process_stopped" name="Process Stopped / Cancellation Notice Sent">
+      <bpmn:incoming>flow_cancellation_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_timer_7_days" name="7 Days Elapsed">
+      <bpmn:incoming>flow_start_to_timer_7</bpmn:incoming>
+      <bpmn:outgoing>flow_timer_7_to_gw</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="evt_timer_7_days_timerdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_timer_30_days" name="30 Days Elapsed">
+      <bpmn:incoming>flow_continue_processing</bpmn:incoming>
+      <bpmn:outgoing>flow_timer_30_to_gw</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="evt_timer_30_days_timerdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:serviceTask id="task_check_account" name="Check if Account Exists">
+      <bpmn:incoming>flow_start_to_check</bpmn:incoming>
+      <bpmn:outgoing>flow_check_to_gw_account</bpmn:outgoing>
+      <bpmn:property id="task_check_account_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_account_dia0">
+        <bpmn:sourceRef>data_expense_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_account_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_create_account" name="Create New Account">
+      <bpmn:incoming>flow_to_create_account</bpmn:incoming>
+      <bpmn:outgoing>flow_create_to_review</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_review_report" name="Review Expense Report">
+      <bpmn:incoming>flow_create_to_review</bpmn:incoming>
+      <bpmn:incoming>flow_to_review</bpmn:incoming>
+      <bpmn:outgoing>flow_review_to_gw_amount</bpmn:outgoing>
+      <bpmn:property id="task_review_report_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_review_report_dia0">
+        <bpmn:sourceRef>data_expense_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_report_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_auto_approve" name="Automatic Approval">
+      <bpmn:incoming>flow_to_auto_approve</bpmn:incoming>
+      <bpmn:outgoing>flow_auto_to_merge</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="task_supervisor_approval" name="Supervisor Approval">
+      <bpmn:incoming>flow_to_supervisor</bpmn:incoming>
+      <bpmn:outgoing>flow_supervisor_to_gw_decision</bpmn:outgoing>
+      <bpmn:property id="task_supervisor_approval_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_supervisor_approval_dia0">
+        <bpmn:sourceRef>data_expense_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_supervisor_approval_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_send_rejection_email" name="Send Rejection Notice Email">
+      <bpmn:incoming>flow_to_rejection</bpmn:incoming>
+      <bpmn:outgoing>flow_rejection_to_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_process_reimbursement" name="Process Direct Deposit Reimbursement">
+      <bpmn:incoming>flow_merge_to_reimbursement_task</bpmn:incoming>
+      <bpmn:incoming>flow_continue_processing_2</bpmn:incoming>
+      <bpmn:outgoing>flow_reimbursement_to_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_send_progress_email" name="Send Approval in Progress Email">
+      <bpmn:incoming>flow_to_progress_email</bpmn:incoming>
+      <bpmn:outgoing>flow_progress_to_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_send_cancellation_email" name="Send Cancellation Notice Email">
+      <bpmn:incoming>flow_to_cancellation</bpmn:incoming>
+      <bpmn:outgoing>flow_cancellation_to_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_account_exists" name="Account Exists?" isMarkerVisible="true">
+      <bpmn:incoming>flow_check_to_gw_account</bpmn:incoming>
+      <bpmn:outgoing>flow_to_create_account</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_review</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_amount_check" name="Amount &lt; $200?" isMarkerVisible="true">
+      <bpmn:incoming>flow_review_to_gw_amount</bpmn:incoming>
+      <bpmn:outgoing>flow_to_auto_approve</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_supervisor</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_supervisor_decision" name="Supervisor Decision" isMarkerVisible="true">
+      <bpmn:incoming>flow_supervisor_to_gw_decision</bpmn:incoming>
+      <bpmn:outgoing>flow_to_reimbursement</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_rejection</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_merge_approval_paths" name="Merge Approval Paths">
+      <bpmn:incoming>flow_auto_to_merge</bpmn:incoming>
+      <bpmn:incoming>flow_to_reimbursement</bpmn:incoming>
+      <bpmn:outgoing>flow_merge_to_reimbursement_task</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:exclusiveGateway id="gw_timer_7_days_check" name="Timer 7 Days Triggered?" isMarkerVisible="true">
+      <bpmn:incoming>flow_timer_7_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_to_progress_email</bpmn:outgoing>
+      <bpmn:outgoing>flow_continue_processing</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_timer_30_days_check" name="Timer 30 Days Triggered?" isMarkerVisible="true">
+      <bpmn:incoming>flow_timer_30_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_to_cancellation</bpmn:outgoing>
+      <bpmn:outgoing>flow_continue_processing_2</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_to_check" sourceRef="evt_start" targetRef="task_check_account" />
+    <bpmn:sequenceFlow id="flow_check_to_gw_account" sourceRef="task_check_account" targetRef="gw_account_exists" />
+    <bpmn:sequenceFlow id="flow_to_create_account" sourceRef="gw_account_exists" targetRef="task_create_account" name="No" />
+    <bpmn:sequenceFlow id="flow_create_to_review" sourceRef="task_create_account" targetRef="task_review_report" />
+    <bpmn:sequenceFlow id="flow_to_review" sourceRef="gw_account_exists" targetRef="task_review_report" name="Yes" />
+    <bpmn:sequenceFlow id="flow_review_to_gw_amount" sourceRef="task_review_report" targetRef="gw_amount_check" />
+    <bpmn:sequenceFlow id="flow_to_auto_approve" sourceRef="gw_amount_check" targetRef="task_auto_approve" name="Yes" />
+    <bpmn:sequenceFlow id="flow_to_supervisor" sourceRef="gw_amount_check" targetRef="task_supervisor_approval" name="No" />
+    <bpmn:sequenceFlow id="flow_auto_to_merge" sourceRef="task_auto_approve" targetRef="gw_merge_approval_paths" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_gw_decision" sourceRef="task_supervisor_approval" targetRef="gw_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_to_reimbursement" sourceRef="gw_supervisor_decision" targetRef="gw_merge_approval_paths" name="Approved" />
+    <bpmn:sequenceFlow id="flow_to_rejection" sourceRef="gw_supervisor_decision" targetRef="task_send_rejection_email" name="Rejected" />
+    <bpmn:sequenceFlow id="flow_rejection_to_end" sourceRef="task_send_rejection_email" targetRef="evt_rejection_notice_sent" />
+    <bpmn:sequenceFlow id="flow_merge_to_reimbursement_task" sourceRef="gw_merge_approval_paths" targetRef="task_process_reimbursement" />
+    <bpmn:sequenceFlow id="flow_reimbursement_to_end" sourceRef="task_process_reimbursement" targetRef="evt_reimbursement_completed" />
+    <bpmn:sequenceFlow id="flow_start_to_timer_7" sourceRef="evt_start" targetRef="evt_timer_7_days" />
+    <bpmn:sequenceFlow id="flow_timer_7_to_gw" sourceRef="evt_timer_7_days" targetRef="gw_timer_7_days_check" />
+    <bpmn:sequenceFlow id="flow_to_progress_email" sourceRef="gw_timer_7_days_check" targetRef="task_send_progress_email" name="Yes" />
+    <bpmn:sequenceFlow id="flow_progress_to_end" sourceRef="task_send_progress_email" targetRef="evt_reimbursement_completed" />
+    <bpmn:sequenceFlow id="flow_continue_processing" sourceRef="gw_timer_7_days_check" targetRef="evt_timer_30_days" name="No" />
+    <bpmn:sequenceFlow id="flow_timer_30_to_gw" sourceRef="evt_timer_30_days" targetRef="gw_timer_30_days_check" />
+    <bpmn:sequenceFlow id="flow_to_cancellation" sourceRef="gw_timer_30_days_check" targetRef="task_send_cancellation_email" name="Yes" />
+    <bpmn:sequenceFlow id="flow_cancellation_to_end" sourceRef="task_send_cancellation_email" targetRef="evt_process_stopped" />
+    <bpmn:sequenceFlow id="flow_continue_processing_2" sourceRef="gw_timer_30_days_check" targetRef="task_process_reimbursement" name="No" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="evt_process_stopped_di" bpmnElement="evt_process_stopped">
+        <dc:Bounds x="1300" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_reimbursement_completed_di" bpmnElement="evt_reimbursement_completed">
+        <dc:Bounds x="1300" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_rejection_notice_sent_di" bpmnElement="evt_rejection_notice_sent">
+        <dc:Bounds x="1870" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_di" bpmnElement="evt_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_timer_30_days_di" bpmnElement="evt_timer_30_days">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_timer_7_days_di" bpmnElement="evt_timer_7_days">
+        <dc:Bounds x="350" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_account_exists_di" bpmnElement="gw_account_exists">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_amount_check_di" bpmnElement="gw_amount_check">
+        <dc:Bounds x="1110" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_merge_approval_paths_di" bpmnElement="gw_merge_approval_paths">
+        <dc:Bounds x="1680" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_supervisor_decision_di" bpmnElement="gw_supervisor_decision">
+        <dc:Bounds x="1490" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_timer_30_days_check_di" bpmnElement="gw_timer_30_days_check">
+        <dc:Bounds x="920" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_timer_7_days_check_di" bpmnElement="gw_timer_7_days_check">
+        <dc:Bounds x="540" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_auto_approve_di" bpmnElement="task_auto_approve">
+        <dc:Bounds x="1300" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_account_di" bpmnElement="task_check_account">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_account_di" bpmnElement="task_create_account">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_process_reimbursement_di" bpmnElement="task_process_reimbursement">
+        <dc:Bounds x="1680" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_report_di" bpmnElement="task_review_report">
+        <dc:Bounds x="920" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_cancellation_email_di" bpmnElement="task_send_cancellation_email">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_progress_email_di" bpmnElement="task_send_progress_email">
+        <dc:Bounds x="730" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_rejection_email_di" bpmnElement="task_send_rejection_email">
+        <dc:Bounds x="1680" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_supervisor_approval_di" bpmnElement="task_supervisor_approval">
+        <dc:Bounds x="1300" y="475" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_expense_report_di" bpmnElement="data_expense_report">
+        <dc:Bounds x="876" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_check_di" bpmnElement="flow_start_to_check">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_check_to_gw_account_di" bpmnElement="flow_check_to_gw_account">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_create_account_di" bpmnElement="flow_to_create_account">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_create_to_review_di" bpmnElement="flow_create_to_review">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="970" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_review_di" bpmnElement="flow_to_review">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="970" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_review_to_gw_amount_di" bpmnElement="flow_review_to_gw_amount">
+        <di:waypoint x="970" y="265" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_auto_approve_di" bpmnElement="flow_to_auto_approve">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_supervisor_di" bpmnElement="flow_to_supervisor">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_auto_to_merge_di" bpmnElement="flow_auto_to_merge">
+        <di:waypoint x="1350" y="390" />
+        <di:waypoint x="1705" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_to_gw_decision_di" bpmnElement="flow_supervisor_to_gw_decision">
+        <di:waypoint x="1350" y="515" />
+        <di:waypoint x="1515" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_reimbursement_di" bpmnElement="flow_to_reimbursement">
+        <di:waypoint x="1515" y="125" />
+        <di:waypoint x="1705" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_rejection_di" bpmnElement="flow_to_rejection">
+        <di:waypoint x="1515" y="125" />
+        <di:waypoint x="1730" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_rejection_to_end_di" bpmnElement="flow_rejection_to_end">
+        <di:waypoint x="1730" y="390" />
+        <di:waypoint x="1888" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_merge_to_reimbursement_task_di" bpmnElement="flow_merge_to_reimbursement_task">
+        <di:waypoint x="1705" y="125" />
+        <di:waypoint x="1730" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reimbursement_to_end_di" bpmnElement="flow_reimbursement_to_end">
+        <di:waypoint x="1730" y="265" />
+        <di:waypoint x="1318" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_to_timer_7_di" bpmnElement="flow_start_to_timer_7">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="368" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_timer_7_to_gw_di" bpmnElement="flow_timer_7_to_gw">
+        <di:waypoint x="368" y="118" />
+        <di:waypoint x="565" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_progress_email_di" bpmnElement="flow_to_progress_email">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="780" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_progress_to_end_di" bpmnElement="flow_progress_to_end">
+        <di:waypoint x="780" y="390" />
+        <di:waypoint x="1318" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_continue_processing_di" bpmnElement="flow_continue_processing">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_timer_30_to_gw_di" bpmnElement="flow_timer_30_to_gw">
+        <di:waypoint x="748" y="118" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_cancellation_di" bpmnElement="flow_to_cancellation">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cancellation_to_end_di" bpmnElement="flow_cancellation_to_end">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1318" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_continue_processing_2_di" bpmnElement="flow_continue_processing_2">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1730" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_account_dia0_di" bpmnElement="task_check_account_dia0">
+        <di:waypoint x="894" y="640" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_report_dia0_di" bpmnElement="task_review_report_dia0">
+        <di:waypoint x="894" y="640" />
+        <di:waypoint x="970" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_supervisor_approval_dia0_di" bpmnElement="task_supervisor_approval_dia0">
+        <di:waypoint x="894" y="640" />
+        <di:waypoint x="1350" y="515" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

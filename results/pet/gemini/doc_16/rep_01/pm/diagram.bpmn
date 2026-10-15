@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_manager_part" name="Manager" processRef="pool_manager_proc" />
+    <bpmn:participant id="pool_sales_assistant_part" name="Sales Assistant" processRef="pool_sales_assistant_proc" />
+    <bpmn:messageFlow id="msg_flow_mgr_to_sa" sourceRef="msg_end_mgr_to_sa" targetRef="msg_start_sa" name="Instruct to Call Leads" />
+    <bpmn:messageFlow id="msg_flow_sa_to_mgr" sourceRef="msg_end_sa_to_mgr" targetRef="msg_start_mgr_receive_note" name="Interested Customer Note" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_manager_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_open_leads" name="Open Leads List" dataObjectRef="data_open_leads_do" />
+    <bpmn:dataObject id="data_open_leads_do" />
+    <bpmn:dataObjectReference id="data_top_five_leads" name="Top Five Leads List" dataObjectRef="data_top_five_leads_do" />
+    <bpmn:dataObject id="data_top_five_leads_do" />
+    <bpmn:dataObjectReference id="data_interest_note" name="Interest Note" dataObjectRef="data_interest_note_do" />
+    <bpmn:dataObject id="data_interest_note_do" />
+    <bpmn:startEvent id="start_event" name="Process Started">
+      <bpmn:outgoing>flow_mgr_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_event_mgr" name="Lead Processing Finished">
+      <bpmn:incoming>flow_mgr_7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="msg_end_mgr_to_sa" name="Send Call Request">
+      <bpmn:incoming>flow_mgr_4</bpmn:incoming>
+      <bpmn:outgoing>flow_mgr_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_end_mgr_to_sa_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_start_mgr_receive_note" name="Receive Interest Note">
+      <bpmn:incoming>flow_mgr_5</bpmn:incoming>
+      <bpmn:outgoing>flow_mgr_6</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_start_mgr_receive_note_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:userTask id="task_check_leads" name="Check open leads">
+      <bpmn:incoming>flow_mgr_1</bpmn:incoming>
+      <bpmn:outgoing>flow_mgr_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_check_leads_doa0">
+        <bpmn:targetRef>data_open_leads</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_select_top_five" name="Select top five leads">
+      <bpmn:incoming>flow_mgr_2</bpmn:incoming>
+      <bpmn:outgoing>flow_mgr_3</bpmn:outgoing>
+      <bpmn:property id="task_select_top_five_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_select_top_five_dia0">
+        <bpmn:sourceRef>data_open_leads</bpmn:sourceRef>
+        <bpmn:targetRef>task_select_top_five_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_select_top_five_doa0">
+        <bpmn:targetRef>data_top_five_leads</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:task id="task_tell_assistant" name="Tell Sales Assistant to call leads">
+      <bpmn:incoming>flow_mgr_3</bpmn:incoming>
+      <bpmn:outgoing>flow_mgr_4</bpmn:outgoing>
+      <bpmn:property id="task_tell_assistant_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_tell_assistant_dia0">
+        <bpmn:sourceRef>data_top_five_leads</bpmn:sourceRef>
+        <bpmn:targetRef>task_tell_assistant_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:userTask id="task_process_lead" name="Process the lead">
+      <bpmn:incoming>flow_mgr_6</bpmn:incoming>
+      <bpmn:outgoing>flow_mgr_7</bpmn:outgoing>
+      <bpmn:property id="task_process_lead_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_process_lead_dia0">
+        <bpmn:sourceRef>data_interest_note</bpmn:sourceRef>
+        <bpmn:targetRef>task_process_lead_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_mgr_1" sourceRef="start_event" targetRef="task_check_leads" />
+    <bpmn:sequenceFlow id="flow_mgr_2" sourceRef="task_check_leads" targetRef="task_select_top_five" />
+    <bpmn:sequenceFlow id="flow_mgr_3" sourceRef="task_select_top_five" targetRef="task_tell_assistant" />
+    <bpmn:sequenceFlow id="flow_mgr_4" sourceRef="task_tell_assistant" targetRef="msg_end_mgr_to_sa" />
+    <bpmn:sequenceFlow id="flow_mgr_5" sourceRef="msg_end_mgr_to_sa" targetRef="msg_start_mgr_receive_note" />
+    <bpmn:sequenceFlow id="flow_mgr_6" sourceRef="msg_start_mgr_receive_note" targetRef="task_process_lead" />
+    <bpmn:sequenceFlow id="flow_mgr_7" sourceRef="task_process_lead" targetRef="end_event_mgr" />
+  </bpmn:process>
+  <bpmn:process id="pool_sales_assistant_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_interest_note_p1" name="Interest Note" dataObjectRef="data_interest_note_p1_do" />
+    <bpmn:dataObject id="data_interest_note_p1_do" />
+    <bpmn:startEvent id="msg_start_sa" name="Receive Call Request">
+      <bpmn:outgoing>flow_sa_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_start_sa_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="msg_end_sa_to_mgr" name="Send Interest Note">
+      <bpmn:incoming>flow_sa_3</bpmn:incoming>
+      <bpmn:outgoing>flow_sa_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_end_sa_to_mgr_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end_event_sa" name="Calling Completed">
+      <bpmn:incoming>flow_sa_4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_call_customer" name="Call contact person of customer">
+      <bpmn:incoming>flow_sa_1</bpmn:incoming>
+      <bpmn:incoming>flow_no_interested</bpmn:incoming>
+      <bpmn:outgoing>flow_sa_2</bpmn:outgoing>
+      <bpmn:standardLoopCharacteristics />
+    </bpmn:manualTask>
+    <bpmn:task id="task_send_note" name="Send note to Manager">
+      <bpmn:incoming>flow_yes_interested</bpmn:incoming>
+      <bpmn:outgoing>flow_sa_3</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_note_doa0">
+        <bpmn:targetRef>data_interest_note_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_interested" name="Is customer interested?" isMarkerVisible="true">
+      <bpmn:incoming>flow_sa_2</bpmn:incoming>
+      <bpmn:outgoing>flow_yes_interested</bpmn:outgoing>
+      <bpmn:outgoing>flow_no_interested</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_sa_1" sourceRef="msg_start_sa" targetRef="task_call_customer" />
+    <bpmn:sequenceFlow id="flow_sa_2" sourceRef="task_call_customer" targetRef="gw_interested" />
+    <bpmn:sequenceFlow id="flow_yes_interested" sourceRef="gw_interested" targetRef="task_send_note" name="Interested" />
+    <bpmn:sequenceFlow id="flow_sa_3" sourceRef="task_send_note" targetRef="msg_end_sa_to_mgr" />
+    <bpmn:sequenceFlow id="flow_sa_4" sourceRef="msg_end_sa_to_mgr" targetRef="end_event_sa" />
+    <bpmn:sequenceFlow id="flow_no_interested" sourceRef="gw_interested" targetRef="task_call_customer" name="Not interested / Next customer" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_manager_part_di" bpmnElement="pool_manager_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1710" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_sales_assistant_part_di" bpmnElement="pool_sales_assistant_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="1330" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_event_mgr_di" bpmnElement="end_event_mgr">
+        <dc:Bounds x="1490" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_event_sa_di" bpmnElement="end_event_sa">
+        <dc:Bounds x="1110" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_interested_di" bpmnElement="gw_interested">
+        <dc:Bounds x="540" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_mgr_to_sa_di" bpmnElement="msg_end_mgr_to_sa">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_sa_to_mgr_di" bpmnElement="msg_end_sa_to_mgr">
+        <dc:Bounds x="920" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_start_mgr_receive_note_di" bpmnElement="msg_start_mgr_receive_note">
+        <dc:Bounds x="1110" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_start_sa_di" bpmnElement="msg_start_sa">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_event_di" bpmnElement="start_event">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_call_customer_di" bpmnElement="task_call_customer">
+        <dc:Bounds x="730" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_leads_di" bpmnElement="task_check_leads">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_process_lead_di" bpmnElement="task_process_lead">
+        <dc:Bounds x="1300" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_select_top_five_di" bpmnElement="task_select_top_five">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_note_di" bpmnElement="task_send_note">
+        <dc:Bounds x="730" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_tell_assistant_di" bpmnElement="task_tell_assistant">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_open_leads_di" bpmnElement="data_open_leads">
+        <dc:Bounds x="465" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_top_five_leads_di" bpmnElement="data_top_five_leads">
+        <dc:Bounds x="655" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_interest_note_di" bpmnElement="data_interest_note">
+        <dc:Bounds x="1320" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_interest_note_p1_di" bpmnElement="data_interest_note_p1">
+        <dc:Bounds x="750" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_mgr_1_di" bpmnElement="flow_mgr_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mgr_2_di" bpmnElement="flow_mgr_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mgr_3_di" bpmnElement="flow_mgr_3">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mgr_4_di" bpmnElement="flow_mgr_4">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mgr_5_di" bpmnElement="flow_mgr_5">
+        <di:waypoint x="938" y="118" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mgr_6_di" bpmnElement="flow_mgr_6">
+        <di:waypoint x="1128" y="118" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mgr_7_di" bpmnElement="flow_mgr_7">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1508" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sa_1_di" bpmnElement="flow_sa_1">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="780" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sa_2_di" bpmnElement="flow_sa_2">
+        <di:waypoint x="780" y="475" />
+        <di:waypoint x="565" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_yes_interested_di" bpmnElement="flow_yes_interested">
+        <di:waypoint x="565" y="460" />
+        <di:waypoint x="780" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sa_3_di" bpmnElement="flow_sa_3">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="938" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sa_4_di" bpmnElement="flow_sa_4">
+        <di:waypoint x="938" y="453" />
+        <di:waypoint x="1128" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_no_interested_di" bpmnElement="flow_no_interested">
+        <di:waypoint x="565" y="460" />
+        <di:waypoint x="780" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mgr_to_sa_di" bpmnElement="msg_flow_mgr_to_sa">
+        <di:waypoint x="938" y="118" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_sa_to_mgr_di" bpmnElement="msg_flow_sa_to_mgr">
+        <di:waypoint x="938" y="453" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_leads_doa0_di" bpmnElement="task_check_leads_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="483" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_select_top_five_dia0_di" bpmnElement="task_select_top_five_dia0">
+        <di:waypoint x="483" y="265" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_select_top_five_doa0_di" bpmnElement="task_select_top_five_doa0">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="673" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_tell_assistant_dia0_di" bpmnElement="task_tell_assistant_dia0">
+        <di:waypoint x="673" y="265" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_process_lead_dia0_di" bpmnElement="task_process_lead_dia0">
+        <di:waypoint x="1338" y="265" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_note_doa0_di" bpmnElement="task_send_note_doa0">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="768" y="725" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

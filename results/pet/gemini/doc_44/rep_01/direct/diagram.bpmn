@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="definitions_bike_manufacturing"
+             targetNamespace="http://www.bpmn.org/example/bike">
+
+  <collaboration id="collaboration_1">
+    <participant id="participant_company" name="Bicycle Manufacturing Company" processRef="process_bike_manufacturing" />
+  </collaboration>
+
+  <process id="process_bike_manufacturing" isExecutable="true">
+    <laneSet id="laneSet_1">
+      <lane id="lane_sales" name="Sales Department">
+        <flowNodeRef>start_order_received</flowNodeRef>
+        <flowNodeRef>task_review_order</flowNodeRef>
+        <flowNodeRef>gateway_order_accepted</flowNodeRef>
+        <flowNodeRef>end_order_rejected</flowNodeRef>
+        <flowNodeRef>task_ship_bicycle</flowNodeRef>
+        <flowNodeRef>end_order_fulfilled</flowNodeRef>
+      </lane>
+      <lane id="lane_storehouse" name="Storehouse">
+        <flowNodeRef>sub_process_parts</flowNodeRef>
+      </lane>
+      <lane id="lane_engineering" name="Engineering Department">
+        <flowNodeRef>task_prepare_assembly</flowNodeRef>
+        <flowNodeRef>gateway_parallel_join</flowNodeRef>
+        <flowNodeRef>task_assemble_bicycle</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Nodes in Sales -->
+    <startEvent id="start_order_received" name="Order Received">
+      <outgoing>seq_1</outgoing>
+    </startEvent>
+
+    <userTask id="task_review_order" name="Review Order">
+      <incoming>seq_1</incoming>
+      <outgoing>seq_2</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gateway_order_accepted" name="Order Accepted?">
+      <incoming>seq_2</incoming>
+      <outgoing>seq_order_rejected</outgoing>
+      <outgoing>seq_order_accepted</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="end_order_rejected" name="Order Rejected">
+      <incoming>seq_order_rejected</incoming>
+    </endEvent>
+
+    <!-- Parallel Split Gateway -->
+    <parallelGateway id="gateway_parallel_split">
+      <incoming>seq_order_accepted</incoming>
+      <outgoing>seq_to_storehouse</outgoing>
+      <outgoing>seq_to_engineering</outgoing>
+    </parallelGateway>
+
+    <!-- Sub-Process in Storehouse -->
+    <subProcess id="sub_process_parts" name="Process Part List Item">
+      <incoming>seq_to_storehouse</incoming>
+      <outgoing>seq_storehouse_done</outgoing>
+
+      <multiInstanceLoopCharacteristics isSequential="false" />
+
+      <startEvent id="sub_start">
+        <outgoing>sub_seq_1</outgoing>
+      </startEvent>
+
+      <serviceTask id="task_check_availability" name="Check Part Quantity">
+        <incoming>sub_seq_1</incoming>
+        <outgoing>sub_seq_2</outgoing>
+      </serviceTask>
+
+      <exclusiveGateway id="gateway_part_available" name="Part Available?">
+        <incoming>sub_seq_2</incoming>
+        <outgoing>sub_seq_yes</outgoing>
+        <outgoing>sub_seq_no</outgoing>
+      </exclusiveGateway>
+
+      <serviceTask id="task_reserve_part" name="Reserve Part">
+        <incoming>sub_seq_yes</incoming>
+        <outgoing>sub_seq_3</outgoing>
+      </serviceTask>
+
+      <serviceTask id="task_backorder_part" name="Back-order Part">
+        <incoming>sub_seq_no</incoming>
+        <outgoing>sub_seq_4</outgoing>
+      </serviceTask>
+
+      <exclusiveGateway id="gateway_part_processed">
+        <incoming>sub_seq_3</incoming>
+        <incoming>sub_seq_4</incoming>
+        <outgoing>sub_seq_5</outgoing>
+      </exclusiveGateway>
+
+      <endEvent id="sub_end">
+        <incoming>sub_seq_5</incoming>
+      </endEvent>
+
+      <sequenceFlow id="sub_seq_1" sourceRef="sub_start" targetRef="task_check_availability" />
+      <sequenceFlow id="sub_seq_2" sourceRef="task_check_availability" targetRef="gateway_part_available" />
+      <sequenceFlow id="sub_seq_yes" name="Yes" sourceRef="gateway_part_available" targetRef="task_reserve_part" />
+      <sequenceFlow id="sub_seq_no" name="No" sourceRef="gateway_part_available" targetRef="task_backorder_part" />
+      <sequenceFlow id="sub_seq_3" sourceRef="task_reserve_part" targetRef="gateway_part_processed" />
+      <sequenceFlow id="sub_seq_4" sourceRef="task_backorder_part" targetRef="gateway_part_processed" />
+      <sequenceFlow id="sub_seq_5" sourceRef="gateway_part_processed" targetRef="sub_end" />
+    </subProcess>
+
+    <!-- Nodes in Engineering -->
+    <userTask id="task_prepare_assembly" name="Prepare Assembling">
+      <incoming>seq_to_engineering</incoming>
+      <outgoing>seq_engineering_done</outgoing>
+    </userTask>
+
+    <parallelGateway id="gateway_parallel_join">
+      <incoming>seq_storehouse_done</incoming>
+      <incoming>seq_engineering_done</incoming>
+      <outgoing>seq_ready_for_assembly</outgoing>
+    </parallelGateway>
+
+    <userTask id="task_assemble_bicycle" name="Assemble Bicycle">
+      <incoming>seq_ready_for_assembly</incoming>
+      <outgoing>seq_assembly_done</outgoing>
+    </userTask>
+
+    <userTask id="task_ship_bicycle" name="Ship Bicycle">
+      <incoming>seq_assembly_done</incoming>
+      <outgoing>seq_shipped</outgoing>
+    </userTask>
+
+    <endEvent id="end_order_fulfilled" name="Order Fulfilled">
+      <incoming>seq_shipped</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="seq_1" sourceRef="start_order_received" targetRef="task_review_order" />
+    <sequenceFlow id="seq_2" sourceRef="task_review_order" targetRef="gateway_order_accepted" />
+    <sequenceFlow id="seq_order_rejected" name="No" sourceRef="gateway_order_accepted" targetRef="end_order_rejected" />
+    <sequenceFlow id="seq_order_accepted" name="Yes" sourceRef="gateway_order_accepted" targetRef="gateway_parallel_split" />
+    <sequenceFlow id="seq_to_storehouse" sourceRef="gateway_parallel_split" targetRef="sub_process_parts" />
+    <sequenceFlow id="seq_to_engineering" sourceRef="gateway_parallel_split" targetRef="task_prepare_assembly" />
+    <sequenceFlow id="seq_storehouse_done" sourceRef="sub_process_parts" targetRef="gateway_parallel_join" />
+    <sequenceFlow id="seq_engineering_done" sourceRef="task_prepare_assembly" targetRef="gateway_parallel_join" />
+    <sequenceFlow id="seq_ready_for_assembly" sourceRef="gateway_parallel_join" targetRef="task_assemble_bicycle" />
+    <sequenceFlow id="seq_assembly_done" sourceRef="task_assemble_bicycle" targetRef="task_ship_bicycle" />
+    <sequenceFlow id="seq_shipped" sourceRef="task_ship_bicycle" targetRef="end_order_fulfilled" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="collaboration_1">
+      <bpmndi:BPMNShape id="participant_company_di" bpmnElement="participant_company" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1380" height="710" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="lane_sales_di" bpmnElement="lane_sales" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1350" height="230" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_storehouse_di" bpmnElement="lane_storehouse" isHorizontal="true">
+        <dc:Bounds x="190" y="310" width="1350" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_engineering_di" bpmnElement="lane_engineering" isHorizontal="true">
+        <dc:Bounds x="190" y="570" width="1350" height="220" />
+      </bpmndi:BPMNShape>
+
+      <!-- Sales Elements -->
+      <bpmndi:BPMNShape id="start_order_received_di" bpmnElement="start_order_received">
+        <dc:Bounds x="232" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="213" y="215" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_review_order_di" bpmnElement="task_review_order">
+        <dc:Bounds x="310" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_order_accepted_di" bpmnElement="gateway_order_accepted" isMarkerVisible="true">
+        <dc:Bounds x="455" y="165" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="440" y="141" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="end_order_rejected_di" bpmnElement="end_order_rejected">
+        <dc:Bounds x="562" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="544" y="215" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_parallel_split_di" bpmnElement="gateway_parallel_split">
+        <dc:Bounds x="455" y="240" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_ship_bicycle_di" bpmnElement="task_ship_bicycle">
+        <dc:Bounds x="1310" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="end_order_fulfilled_di" bpmnElement="end_order_fulfilled">
+        <dc:Bounds x="1462" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1446" y="215" width="69" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Storehouse Elements (SubProcess) -->
+      <bpmndi:BPMNShape id="sub_process_parts_di" bpmnElement="sub_process_parts" isExpanded="true">
+        <dc:Bounds x="550" y="330" width="530" height="220" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="sub_start_di" bpmnElement="sub_start">
+        <dc:Bounds x="572" y="422" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_check_availability_di" bpmnElement="task_check_availability">
+        <dc:Bounds x="630" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_part_available_di" bpmnElement="gateway_part_available" isMarkerVisible="true">
+        <dc:Bounds x="755" y="415" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="744" y="391" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_reserve_part_di" bpmnElement="task_reserve_part">
+        <dc:Bounds x="830" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_backorder_part_di" bpmnElement="task_backorder_part">
+        <dc:Bounds x="830" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_part_processed_di" bpmnElement="gateway_part_processed" isMarkerVisible="true">
+        <dc:Bounds x="955" y="415" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="sub_end_di" bpmnElement="sub_end">
+        <dc:Bounds x="1022" y="422" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Engineering Elements -->
+      <bpmndi:BPMNShape id="task_prepare_assembly_di" bpmnElement="task_prepare_assembly">
+        <dc:Bounds x="550" y="640" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_parallel_join_di" bpmnElement="gateway_parallel_join">
+        <dc:Bounds x="1125" y="655" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_assemble_bicycle_di" bpmnElement="task_assemble_bicycle">
+        <dc:Bounds x="1200" y="640" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Flow Connectors -->
+      <bpmndi:BPMNEdge id="seq_1_di" bpmnElement="seq_1">
+        <di:waypoint x="268" y="190" />
+        <di:waypoint x="310" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_2_di" bpmnElement="seq_2">
+        <di:waypoint x="410" y="190" />
+        <di:waypoint x="455" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_order_rejected_di" bpmnElement="seq_order_rejected">
+        <di:waypoint x="505" y="190" />
+        <di:waypoint x="562" y="190" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="526" y="172" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_order_accepted_di" bpmnElement="seq_order_accepted">
+        <di:waypoint x="480" y="215" />
+        <di:waypoint x="480" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="486" y="220" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_to_storehouse_di" bpmnElement="seq_to_storehouse">
+        <di:waypoint x="480" y="290" />
+        <di:waypoint x="480" y="440" />
+        <di:waypoint x="550" y="440" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_to_engineering_di" bpmnElement="seq_to_engineering">
+        <di:waypoint x="480" y="290" />
+        <di:waypoint x="480" y="680" />
+        <di:waypoint x="550" y="680" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_storehouse_done_di" bpmnElement="seq_storehouse_done">
+        <di:waypoint x="1080" y="440" />
+        <di:waypoint x="1150" y="440" />
+        <di:waypoint x="1150" y="655" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_engineering_done_di" bpmnElement="seq_engineering_done">
+        <di:waypoint x="650" y="680" />
+        <di:waypoint x="1125" y="680" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_ready_for_assembly_di" bpmnElement="seq_ready_for_assembly">
+        <di:waypoint x="1175" y="680" />
+        <di:waypoint x="1200" y="680" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_assembly_done_di" bpmnElement="seq_assembly_done">
+        <di:waypoint x="1250" y="640" />
+        <di:waypoint x="1250" y="190" />
+        <di:waypoint x="1310" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_shipped_di" bpmnElement="seq_shipped">
+        <di:waypoint x="1410" y="190" />
+        <di:waypoint x="1462" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <!-- SubProcess Inner Flows -->
+      <bpmndi:BPMNEdge id="sub_seq_1_di" bpmnElement="sub_seq_1">
+        <di:waypoint x="608" y="440" />
+        <di:waypoint x="630" y="440" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="sub_seq_2_di" bpmnElement="sub_seq_2">
+        <di:waypoint x="730" y="440" />
+        <di:waypoint x="755" y="440" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="sub_seq_yes_di" bpmnElement="sub_seq_yes">
+        <di:waypoint x="780" y="415" />
+        <di:waypoint x="780" y="390" />
+        <di:waypoint x="830" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="786" y="400" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="sub_seq_no_di" bpmnElement="sub_seq_no">
+        <di:waypoint x="780" y="465" />
+        <di:waypoint x="780" y="490" />
+        <di:waypoint x="830" y="490" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="788" y="473" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="sub_seq_3_di" bpmnElement="sub_seq_3">
+        <di:waypoint x="930" y="390" />
+        <di:waypoint x="980" y="390" />
+        <di:waypoint x="980" y="415" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="sub_seq_4_di" bpmnElement="sub_seq_4">
+        <di:waypoint x="930" y="490" />
+        <di:waypoint x="980" y="490" />
+        <di:waypoint x="980" y="465" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="sub_seq_5_di" bpmnElement="sub_seq_5">
+        <di:waypoint x="1005" y="440" />
+        <di:waypoint x="1022" y="440" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

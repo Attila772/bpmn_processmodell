@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_acme_invoice_process" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="InvoiceProcessingProcess" name="ACME AG Invoice Processing" isExecutable="false">
+    <bpmn:startEvent id="Start_ReceiveInvoice" name="Receive Invoice (Paper/Fax)">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_VisualInspection" name="Visual Inspection &amp; Forward to Accounting">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CreateInstance" name="Identify Supplier &amp; Create Instance in ACME Financial Accounting">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CheckItemsAndDocket" name="Check Items, Note Cost Centers &amp; Create Docket">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sendTask id="Task_SendToFirstManager" name="Send Copy &amp; Docket to First Cost Center Manager">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="Gateway_ManagerReviewDecision" name="Manager Review Decision" gatewayDirection="Unspecified">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_Accurate</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ManagerMarkAccurate" name="Mark Position as Accurate (AP) on Docket">
+      <bpmn:incoming>Flow_Accurate</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReturnToMail</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_ManagerReject" name="Reject AP with Note &amp; Statement">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendBackToAccounting</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sendTask id="Task_ReturnCopyToInternalMail" name="Return Copy to Internal Mail">
+      <bpmn:incoming>Flow_ReturnToMail</bpmn:incoming>
+      <bpmn:outgoing>Flow_InternalMailRouting</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="Gateway_AllItemsChecked" name="All Items Marked Correct?" gatewayDirection="Unspecified">
+      <bpmn:incoming>Flow_InternalMailRouting</bpmn:incoming>
+      <bpmn:outgoing>Flow_NextManager</bpmn:outgoing>
+      <bpmn:outgoing>Flow_BackToAccountingComplete</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="Task_PassToNextManager" name="Pass to Next Cost Center Manager">
+      <bpmn:incoming>Flow_NextManager</bpmn:incoming>
+      <bpmn:outgoing>Flow_LoopBackToReview</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:receiveTask id="Task_AccountingClarification" name="Clarify with Vendor / Consult Managers">
+      <bpmn:incoming>Flow_SendBackToAccounting</bpmn:incoming>
+      <bpmn:outgoing>Flow_ResendToManagers</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:sendTask id="Task_ResendToManagers" name="Resend Copy to Cost Center Managers">
+      <bpmn:incoming>Flow_ResendToManagers</bpmn:incoming>
+      <bpmn:outgoing>Flow_LoopBackToReview</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_ReceiveInvoice" targetRef="Task_VisualInspection" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_VisualInspection" targetRef="Task_CreateInstance" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CreateInstance" targetRef="Task_CheckItemsAndDocket" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_CheckItemsAndDocket" targetRef="Task_SendToFirstManager" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_SendToFirstManager" targetRef="Gateway_ManagerReviewDecision" />
+    <bpmn:sequenceFlow id="Flow_Accurate" name="Accurate" sourceRef="Gateway_ManagerReviewDecision" targetRef="Task_ManagerMarkAccurate" />
+    <bpmn:sequenceFlow id="Flow_Rejected" name="Inconsistencies" sourceRef="Gateway_ManagerReviewDecision" targetRef="Task_ManagerReject" />
+    <bpmn:sequenceFlow id="Flow_ReturnToMail" sourceRef="Task_ManagerMarkAccurate" targetRef="Task_ReturnCopyToInternalMail" />
+    <bpmn:sequenceFlow id="Flow_SendBackToAccounting" sourceRef="Task_ManagerReject" targetRef="Task_AccountingClarification" />
+    <bpmn:sequenceFlow id="Flow_InternalMailRouting" sourceRef="Task_ReturnCopyToInternalMail" targetRef="Gateway_AllItemsChecked" />
+    <bpmn:sequenceFlow id="Flow_NextManager" name="More Items Pending" sourceRef="Gateway_AllItemsChecked" targetRef="Task_PassToNextManager" />
+    <bpmn:sequenceFlow id="Flow_BackToAccountingComplete" name="All Items AP" sourceRef="Gateway_AllItemsChecked" targetRef="Task_CommercialAuditPrep" />
+    <bpmn:sequenceFlow id="Flow_LoopBackToReview" sourceRef="Task_PassToNextManager" targetRef="Gateway_ManagerReviewDecision" />
+    <bpmn:sequenceFlow id="Flow_ResendToManagers" sourceRef="Task_AccountingClarification" targetRef="Task_ResendToManagers" />
+    <bpmn:sequenceFlow id="Flow_LoopBackToReviewFromResend" sourceRef="Task_ResendToManagers" targetRef="Gateway_ManagerReviewDecision" />
+    
+    <!-- Commercial Audit Phase -->
+    <bpmn:task id="Task_CommercialAuditPrep" name="Forward to Commercial Manager">
+      <bpmn:incoming>Flow_BackToAccountingComplete</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCommercialAudit</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CommercialAudit" name="Commercial Audit">
+      <bpmn:incoming>Flow_ToCommercialAudit</bpmn:incoming>
+      <bpmn:outgoing>Flow_AuditResult</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_AuditResult" name="Audit Result" gatewayDirection="Unspecified">
+      <bpmn:incoming>Flow_AuditResult</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Complaint</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ResolveComplaint" name="Resolve Complaint with Supplier">
+      <bpmn:incoming>Flow_Complaint</bpmn:incoming>
+      <bpmn:outgoing>Flow_RetryAudit</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ToCommercialAudit" sourceRef="Task_CommercialAuditPrep" targetRef="Task_CommercialAudit" />
+    <bpmn:sequenceFlow id="Flow_AuditResult" sourceRef="Task_CommercialAudit" targetRef="Gateway_AuditResult" />
+    <bpmn:sequenceFlow id="Flow_Approved" name="Approved" sourceRef="Gateway_AuditResult" targetRef="Gateway_AmountCheck" />
+    <bpmn:sequenceFlow id="Flow_Complaint" name="Complaint" sourceRef="Gateway_AuditResult" targetRef="Task_ResolveComplaint" />
+    <bpmn:sequenceFlow id="Flow_RetryAudit" sourceRef="Task_ResolveComplaint" targetRef="Task_CommercialAudit" />
+
+    <!-- Board Check Phase -->
+    <bpmn:exclusiveGateway id="Gateway_AmountCheck" name="Amount > EUR 20?" gatewayDirection="Unspecified">
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_BoardCheck</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SkipBoard</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_BoardCheck" name="Board Check (4-eyes principle)">
+      <bpmn:incoming>Flow_BoardCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_BoardDone</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_BoardCheck" name="Yes" sourceRef="Gateway_AmountCheck" targetRef="Task_BoardCheck" />
+    <bpmn:sequenceFlow id="Flow_SkipBoard" name="No" sourceRef="Gateway_AmountCheck" targetRef="Task_PaymentInstructions" />
+    <bpmn:sequenceFlow id="Flow_BoardDone" sourceRef="Task_BoardCheck" targetRef="Task_PaymentInstructions" />
+
+    <!-- Finalization -->
+    <bpmn:task id="Task_PaymentInstructions" name="Give Payment Instructions">
+      <bpmn:incoming>Flow_SkipBoard</bpmn:incoming>
+      <bpmn:incoming>Flow_BoardDone</bpmn:incoming>
+      <bpmn:outgoing>Flow_CloseInstance</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CloseInstance" name="Close Instance in ACME Financial Accounting">
+      <bpmn:incoming>Flow_CloseInstance</bpmn:incoming>
+      <bpmn:outgoing>Flow_End</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="End_ProcessComplete" name="Process Complete">
+      <bpmn:incoming>Flow_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_CloseInstance" sourceRef="Task_PaymentInstructions" targetRef="Task_CloseInstance" />
+    <bpmn:sequenceFlow id="Flow_End" sourceRef="Task_CloseInstance" targetRef="End_ProcessComplete" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="InvoiceProcessingProcess">
+      <bpmndi:BPMNShape id="Start_ReceiveInvoice_di" bpmnElement="Start_ReceiveInvoice">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_VisualInspection_di" bpmnElement="Task_VisualInspection">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CreateInstance_di" bpmnElement="Task_CreateInstance">
+        <dc:Bounds x="390" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckItemsAndDocket_di" bpmnElement="Task_CheckItemsAndDocket">
+        <dc:Bounds x="540" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendToFirstManager_di" bpmnElement="Task_SendToFirstManager">
+        <dc:Bounds x="690" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ManagerReviewDecision_di" bpmnElement="Gateway_ManagerReviewDecision" isMarkerVisible="true">
+        <dc:Bounds x="842" y="92" width="50" height="50" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ManagerMarkAccurate_di" bpmnElement="Task_ManagerMarkAccurate">
+        <dc:Bounds x="950" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ManagerReject_di" bpmnElement="Task_ManagerReject">
+        <dc:Bounds x="840" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReturnCopyToInternalMail_di" bpmnElement="Task_ReturnCopyToInternalMail">
+        <dc:Bounds x="1100" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_AllItemsChecked_di" bpmnElement="Gateway_AllItemsChecked" isMarkerVisible="true">
+        <dc:Bounds x="1252" y="92" width="50" height="50" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PassToNextManager_di" bpmnElement="Task_PassToNextManager">
+        <dc:Bounds x="1350" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AccountingClarification_di" bpmnElement="Task_AccountingClarification">
+        <dc:Bounds x="690" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ResendToManagers_di" bpmnElement="Task_ResendToManagers">
+        <dc:Bounds x="540" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CommercialAuditPrep_di" bpmnElement="Task_CommercialAuditPrep">
+        <dc:Bounds x="1250" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CommercialAudit_di" bpmnElement="Task_CommercialAudit">
+        <dc:Bounds x="1400" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_AuditResult_di" bpmnElement="Gateway_AuditResult" isMarkerVisible="true">
+        <dc:Bounds x="1552" y="212" width="50" height="50" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ResolveComplaint_di" bpmnElement="Task_ResolveComplaint">
+        <dc:Bounds x="1700" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_AmountCheck_di" bpmnElement="Gateway_AmountCheck" isMarkerVisible="true">
+        <dc:Bounds x="1602" y="102" width="50" height="50" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_BoardCheck_di" bpmnElement="Task_BoardCheck">
+        <dc:Bounds x="1700" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PaymentInstructions_di" bpmnElement="Task_PaymentInstructions">
+        <dc:Bounds x="1850" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CloseInstance_di" bpmnElement="Task_CloseInstance">
+        <dc:Bounds x="2000" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_ProcessComplete_di" bpmnElement="End_ProcessComplete">
+        <dc:Bounds x="2152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="390" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="490" y="120" />
+        <di:waypoint x="540" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="640" y="120" />
+        <di:waypoint x="690" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="790" y="120" />
+        <di:waypoint x="842" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Accurate_di" bpmnElement="Flow_Accurate">
+        <di:waypoint x="892" y="117" />
+        <di:waypoint x="950" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="867" y="142" />
+        <di:waypoint x="867" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ReturnToMail_di" bpmnElement="Flow_ReturnToMail">
+        <di:waypoint x="1050" y="120" />
+        <di:waypoint x="1100" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SendBackToAccounting_di" bpmnElement="Flow_SendBackToAccounting">
+        <di:waypoint x="840" y="240" />
+        <di:waypoint x="790" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_InternalMailRouting_di" bpmnElement="Flow_InternalMailRouting">
+        <di:waypoint x="1200" y="120" />
+        <di:waypoint x="1252" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NextManager_di" bpmnElement="Flow_NextManager">
+        <di:waypoint x="1302" y="117" />
+        <di:waypoint x="1350" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BackToAccountingComplete_di" bpmnElement="Flow_BackToAccountingComplete">
+        <di:waypoint x="1277" y="142" />
+        <di:waypoint x="1277" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_LoopBackToReview_di" bpmnElement="Flow_LoopBackToReview">
+        <di:waypoint x="1450" y="120" />
+        <di:waypoint x="1500" y="120" />
+        <di:waypoint x="1500" y="117" />
+        <di:waypoint x="892" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ResendToManagers_di" bpmnElement="Flow_ResendToManagers">
+        <di:waypoint x="690" y="240" />
+        <di:waypoint x="590" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_LoopBackToReviewFromResend_di" bpmnElement="Flow_LoopBackToReviewFromResend">
+        <di:waypoint x="540" y="240" />
+        <di:waypoint x="500" y="240" />
+        <di:waypoint x="500" y="117" />
+        <di:waypoint x="842" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToCommercialAudit_di" bpmnElement="Flow_ToCommercialAudit">
+        <di:waypoint x="1350" y="240" />
+        <di:waypoint x="1400" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AuditResult_di" bpmnElement="Flow_AuditResult">
+        <di:waypoint x="1500" y="240" />
+        <di:waypoint x="1552" y="237" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="1577" y="212" />
+        <di:waypoint x="1577" y="152" />
+        <di:waypoint x="1602" y="152" />
+        <di:waypoint x="1602" y="127" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Complaint_di" bpmnElement="Flow_Complaint">
+        <di:waypoint x="1602" y="237" />
+        <di:waypoint x="1700" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RetryAudit_di" bpmnElement="Flow_RetryAudit">
+        <di:waypoint x="1800" y="240" />
+        <di:waypoint x="1500" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BoardCheck_di" bpmnElement="Flow_BoardCheck">
+        <di:waypoint x="1652" y="127" />
+        <di:waypoint x="1700" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SkipBoard_di" bpmnElement="Flow_SkipBoard">
+        <di:waypoint x="1627" y="102" />
+        <di:waypoint x="1627" y="120" />
+        <di:waypoint x="1850" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BoardDone_di" bpmnElement="Flow_BoardDone">
+        <di:waypoint x="1800" y="120" />
+        <di:waypoint x="1850" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CloseInstance_di" bpmnElement="Flow_CloseInstance">
+        <di:waypoint x="1950" y="120" />
+        <di:waypoint x="2000" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_End_di" bpmnElement="Flow_End">
+        <di:waypoint x="2100" y="120" />
+        <di:waypoint x="2152" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,179 @@
+{
+  "name": "Loan Approval Process",
+  "resources": [
+    {
+      "name": "Risk Assessment Web Service",
+      "capacity": 1,
+      "resource_type": "system"
+    },
+    {
+      "name": "Approver Web Service",
+      "capacity": 1,
+      "resource_type": "system"
+    }
+  ],
+  "events": [
+    {
+      "id": "start1",
+      "name": "Customer loan request received",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_approved",
+      "name": "Loan approved - customer notified",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_denied",
+      "name": "Loan denied - customer notified",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_assess",
+      "name": "Assess risk (Risk Assessment Web service)",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Risk Assessment Web Service",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_loan_request"
+      ],
+      "output_data_ids": [
+        "data_risk_assessment"
+      ]
+    },
+    {
+      "id": "task_approve_service",
+      "name": "Evaluate request (Approver Web service)",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Approver Web Service",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_loan_request",
+        "data_risk_assessment"
+      ],
+      "output_data_ids": [
+        "data_decision"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_risk",
+      "name": "Risk and amount check",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_small_low",
+          "condition": "loan small and customer low risk"
+        },
+        {
+          "flow_id": "flow_high_risk",
+          "condition": "customer high risk"
+        },
+        {
+          "flow_id": "flow_review_or_large",
+          "condition": "needs further review or amount >= $10,000"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow1",
+      "source_id": "start1",
+      "target_id": "task_assess",
+      "condition_name": null
+    },
+    {
+      "id": "flow2",
+      "source_id": "task_assess",
+      "target_id": "gw_risk",
+      "condition_name": null
+    },
+    {
+      "id": "flow_small_low",
+      "source_id": "gw_risk",
+      "target_id": "end_approved",
+      "condition_name": "loan small and customer low risk"
+    },
+    {
+      "id": "flow_high_risk",
+      "source_id": "gw_risk",
+      "target_id": "end_denied",
+      "condition_name": "customer high risk"
+    },
+    {
+      "id": "flow_review_or_large",
+      "source_id": "gw_risk",
+      "target_id": "task_approve_service",
+      "condition_name": "needs further review or amount >= $10,000"
+    },
+    {
+      "id": "flow3",
+      "source_id": "task_approve_service",
+      "target_id": "end_approved",
+      "condition_name": null
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [
+    {
+      "id": "data_loan_request",
+      "name": "Customer loan request"
+    },
+    {
+      "id": "data_risk_assessment",
+      "name": "Risk assessment result"
+    },
+    {
+      "id": "data_decision",
+      "name": "Approval decision"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

@@ -1,0 +1,554 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn">
+
+  <bpmn:process id="Process_DailyDefaulterCheck" name="Daily Defaulter Check Process" isExecutable="true">
+
+    <!-- Start Event: Weekday Morning -->
+    <bpmn:startEvent id="StartEvent_WeekdayMorning" name="Every weekday morning">
+      <bpmn:outgoing>SequenceFlow_01</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_WeekdayMorning">
+        <bpmn:timeCycle xsi:type="bpmn:tFormalExpression">R5/P1D</bpmn:timeCycle>
+      </bpmn:timerEventDefinition>
+    </bpmn:startEvent>
+
+    <!-- Task: Backup Database -->
+    <bpmn:serviceTask id="Task_BackupDatabase" name="Backup Database">
+      <bpmn:incoming>SequenceFlow_01</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Task: Check Account Defaulter Table -->
+    <bpmn:serviceTask id="Task_CheckDefaulterTable" name="Check Account Defaulter table for new records">
+      <bpmn:incoming">SequenceFlow_02</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_03</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Gateway: New Defaulter Records? -->
+    <bpmn:exclusiveGateway id="Gateway_NewRecords" name="New records found?">
+      <bpmn:incoming">SequenceFlow_03</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_NoNewRecords</bpmn:outgoing>
+      <bpmn:outgoing">SequenceFlow_NewRecordsExist</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Task: Check CRM for New Returns (Initial) -->
+    <bpmn:serviceTask id="Task_CheckCRM_Initial" name="Check CRM system for new returns">
+      <bpmn:incoming">SequenceFlow_NoNewRecords</bpmn:incoming>
+      <bpmn:incoming">SequenceFlow_NewRecordsExist</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_04</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Gateway: New Returns Exist? -->
+    <bpmn:exclusiveGateway id="Gateway_NewReturnsExist" name="New returns exist?">
+      <bpmn:incoming">SequenceFlow_04</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_ReturnsExist</bpmn:outgoing>
+      <bpmn:outgoing">SequenceFlow_NoReturns</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- End Event: No Returns -->
+    <bpmn:endEvent id="EndEvent_NoReturns" name="Process ended (No new returns)">
+      <bpmn:incoming">SequenceFlow_NoReturns</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Subprocess: Phase 1 Processing (Deadline 2:30 PM) -->
+    <bpmn:subProcess id="SubProcess_Phase1" name="Phase 1: Registration and Reporting">
+      <bpmn:incoming">SequenceFlow_ReturnsExist</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_Phase1Complete</bpmn:outgoing>
+
+      <bpmn:startEvent id="StartEvent_Sub1">
+        <bpmn:outgoing">SubFlow_01</bpmn:outgoing>
+      </bpmn:startEvent>
+
+      <bpmn:serviceTask id="Task_RegisterAccounts" name="Register all defaulting accounts and customers">
+        <bpmn:incoming">SubFlow_01</bpmn:incoming>
+        <bpmn:outgoing">SubFlow_02</bpmn:outgoing>
+      </bpmn:serviceTask>
+
+      <bpmn:exclusiveGateway id="Gateway_Advised" name="Client codes previously advised?">
+        <bpmn:incoming">SubFlow_02</bpmn:incoming>
+        <bpmn:outgoing">SubFlow_NotAdvised</bpmn:outgoing>
+        <bpmn:outgoing">SubFlow_Advised</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:serviceTask id="Task_ProduceTable" name="Produce table of defaulting accounts">
+        <bpmn:incoming">SubFlow_NotAdvised</bpmn:incoming>
+        <bpmn:outgoing">SubFlow_03</bpmn:outgoing>
+      </bpmn:serviceTask>
+
+      <bpmn:sendTask id="Task_SendToAccountManagement" name="Send table to Account Management">
+        <bpmn:incoming">SubFlow_03</bpmn:incoming>
+        <bpmn:outgoing">SubFlow_04</bpmn:outgoing>
+      </bpmn:sendTask>
+
+      <bpmn:exclusiveGateway id="Gateway_MergePhase1" name="Phase 1 Merge">
+        <bpmn:incoming">SubFlow_04</bpmn:incoming>
+        <bpmn:incoming">SubFlow_Advised</bpmn:incoming>
+        <bpmn:outgoing">SubFlow_05</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:endEvent id="EndEvent_Sub1">
+        <bpmn:incoming">SubFlow_05</bpmn:incoming>
+      </bpmn:endEvent>
+
+      <!-- Subprocess Sequence Flows -->
+      <bpmn:sequenceFlow id="SubFlow_01" sourceRef="StartEvent_Sub1" targetRef="Task_RegisterAccounts" />
+      <bpmn:sequenceFlow id="SubFlow_02" sourceRef="Task_RegisterAccounts" targetRef="Gateway_Advised" />
+      <bpmn:sequenceFlow id="SubFlow_NotAdvised" name="No" sourceRef="Gateway_Advised" targetRef="Task_ProduceTable" />
+      <bpmn:sequenceFlow id="SubFlow_Advised" name="Yes" sourceRef="Gateway_Advised" targetRef="Gateway_MergePhase1" />
+      <bpmn:sequenceFlow id="SubFlow_03" sourceRef="Task_ProduceTable" targetRef="Task_SendToAccountManagement" />
+      <bpmn:sequenceFlow id="SubFlow_04" sourceRef="Task_SendToAccountManagement" targetRef="Gateway_MergePhase1" />
+      <bpmn:sequenceFlow id="SubFlow_05" sourceRef="Gateway_MergePhase1" targetRef="EndEvent_Sub1" />
+    </bpmn:subProcess>
+
+    <!-- Boundary Timer Event: 2:30 PM -->
+    <bpmn:boundaryEvent id="BoundaryTimer_230PM" name="2:30 PM Deadline" cancelActivity="false" attachedToRef="SubProcess_Phase1">
+      <bpmn:outgoing">SequenceFlow_230PMAlert</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_230PM">
+        <bpmn:timeDate xsi:type="bpmn:tFormalExpression">14:30:00</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <!-- Send Task: Alert Supervisor at 2:30 PM -->
+    <bpmn:sendTask id="Task_AlertSupervisor230" name="Send alert to Supervisor (2:30 PM)">
+      <bpmn:incoming">SequenceFlow_230PMAlert</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_Alert230End</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_Alert230" name="Supervisor alerted (2:30 PM)">
+      <bpmn:incoming">SequenceFlow_Alert230End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Subprocess: Phase 2 Reconciliation (Deadline 4:00 PM) -->
+    <bpmn:subProcess id="SubProcess_Phase2" name="Phase 2: CRM Recheck and Reconciliation">
+      <bpmn:incoming">SequenceFlow_Phase1Complete</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_Phase2Complete</bpmn:outgoing>
+
+      <bpmn:startEvent id="StartEvent_Sub2">
+        <bpmn:outgoing">SubFlow2_01</bpmn:outgoing>
+      </bpmn:startEvent>
+
+      <bpmn:serviceTask id="Task_CheckCRM_Phase2" name="Check CRM system for new returns">
+        <bpmn:incoming">SubFlow2_01</bpmn:incoming>
+        <bpmn:outgoing">SubFlow2_02</bpmn:outgoing>
+      </bpmn:serviceTask>
+
+      <bpmn:exclusiveGateway id="Gateway_Phase2NewReturns" name="New returns filed?">
+        <bpmn:incoming">SubFlow2_02</bpmn:incoming>
+        <bpmn:outgoing">SubFlow2_ReturnsFiled</bpmn:outgoing>
+        <bpmn:outgoing">SubFlow2_NoReturnsFiled</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:serviceTask id="Task_Reconcile" name="Reconcile with existing Account Defaulters table">
+        <bpmn:incoming">SubFlow2_ReturnsFiled</bpmn:incoming>
+        <bpmn:outgoing">SubFlow2_03</bpmn:outgoing>
+      </bpmn:serviceTask>
+
+      <bpmn:exclusiveGateway id="Gateway_MergePhase2" name="Phase 2 Merge">
+        <bpmn:incoming">SubFlow2_03</bpmn:incoming>
+        <bpmn:incoming">SubFlow2_NoReturnsFiled</bpmn:incoming>
+        <bpmn:outgoing">SubFlow2_04</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+
+      <bpmn:endEvent id="EndEvent_Sub2">
+        <bpmn:incoming">SubFlow2_04</bpmn:incoming>
+      </bpmn:endEvent>
+
+      <!-- Subprocess 2 Sequence Flows -->
+      <bpmn:sequenceFlow id="SubFlow2_01" sourceRef="StartEvent_Sub2" targetRef="Task_CheckCRM_Phase2" />
+      <bpmn:sequenceFlow id="SubFlow2_02" sourceRef="Task_CheckCRM_Phase2" targetRef="Gateway_Phase2NewReturns" />
+      <bpmn:sequenceFlow id="SubFlow2_ReturnsFiled" name="Yes" sourceRef="Gateway_Phase2NewReturns" targetRef="Task_Reconcile" />
+      <bpmn:sequenceFlow id="SubFlow2_NoReturnsFiled" name="No" sourceRef="Gateway_Phase2NewReturns" targetRef="Gateway_MergePhase2" />
+      <bpmn:sequenceFlow id="SubFlow2_03" sourceRef="Task_Reconcile" targetRef="Gateway_MergePhase2" />
+      <bpmn:sequenceFlow id="SubFlow2_04" sourceRef="Gateway_MergePhase2" targetRef="EndEvent_Sub2" />
+    </bpmn:subProcess>
+
+    <!-- Boundary Timer Event: 4:00 PM -->
+    <bpmn:boundaryEvent id="BoundaryTimer_400PM" name="4:00 PM Deadline" cancelActivity="false" attachedToRef="SubProcess_Phase2">
+      <bpmn:outgoing">SequenceFlow_400PMAlert</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_400PM">
+        <bpmn:timeDate xsi:type="bpmn:tFormalExpression">16:00:00</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <!-- Send Task: Alert Supervisor at 4:00 PM -->
+    <bpmn:sendTask id="Task_AlertSupervisor400" name="Send message to Supervisor (4:00 PM)">
+      <bpmn:incoming">SequenceFlow_400PMAlert</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_Alert400End</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_Alert400" name="Supervisor alerted (4:00 PM)">
+      <bpmn:incoming">SequenceFlow_Alert400End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Process Normal Completion End Event -->
+    <bpmn:endEvent id="EndEvent_ProcessCompleted" name="Process completed successfully">
+      <bpmn:incoming">SequenceFlow_Phase2Complete</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Top-Level Sequence Flows -->
+    <bpmn:sequenceFlow id="SequenceFlow_01" sourceRef="StartEvent_WeekdayMorning" targetRef="Task_BackupDatabase" />
+    <bpmn:sequenceFlow id="SequenceFlow_02" sourceRef="Task_BackupDatabase" targetRef="Task_CheckDefaulterTable" />
+    <bpmn:sequenceFlow id="SequenceFlow_03" sourceRef="Task_CheckDefaulterTable" targetRef="Gateway_NewRecords" />
+    <bpmn:sequenceFlow id="SequenceFlow_NoNewRecords" name="No" sourceRef="Gateway_NewRecords" targetRef="Task_CheckCRM_Initial" />
+    <bpmn:sequenceFlow id="SequenceFlow_NewRecordsExist" name="Yes" sourceRef="Gateway_NewRecords" targetRef="Task_CheckCRM_Initial" />
+    <bpmn:sequenceFlow id="SequenceFlow_04" sourceRef="Task_CheckCRM_Initial" targetRef="Gateway_NewReturnsExist" />
+    <bpmn:sequenceFlow id="SequenceFlow_ReturnsExist" name="Yes" sourceRef="Gateway_NewReturnsExist" targetRef="SubProcess_Phase1" />
+    <bpmn:sequenceFlow id="SequenceFlow_NoReturns" name="No" sourceRef="Gateway_NewReturnsExist" targetRef="EndEvent_NoReturns" />
+    <bpmn:sequenceFlow id="SequenceFlow_Phase1Complete" sourceRef="SubProcess_Phase1" targetRef="SubProcess_Phase2" />
+    <bpmn:sequenceFlow id="SequenceFlow_230PMAlert" sourceRef="BoundaryTimer_230PM" targetRef="Task_AlertSupervisor230" />
+    <bpmn:sequenceFlow id="SequenceFlow_Alert230End" sourceRef="Task_AlertSupervisor230" targetRef="EndEvent_Alert230" />
+    <bpmn:sequenceFlow id="SequenceFlow_Phase2Complete" sourceRef="SubProcess_Phase2" targetRef="EndEvent_ProcessCompleted" />
+    <bpmn:sequenceFlow id="SequenceFlow_400PMAlert" sourceRef="BoundaryTimer_400PM" targetRef="Task_AlertSupervisor400" />
+    <bpmn:sequenceFlow id="SequenceFlow_Alert400End" sourceRef="Task_AlertSupervisor400" targetRef="EndEvent_Alert400" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_DailyDefaulterCheck">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_WeekdayMorning_di" bpmnElement="StartEvent_WeekdayMorning">
+        <dc:Bounds x="152" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="134" y="255" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task: Backup Database -->
+      <bpmndi:BPMNShape id="Task_BackupDatabase_di" bpmnElement="Task_BackupDatabase">
+        <dc:Bounds x="240" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Task: Check Defaulter Table -->
+      <bpmndi:BPMNShape id="Task_CheckDefaulterTable_di" bpmnElement="Task_CheckDefaulterTable">
+        <dc:Bounds x="390" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: New Records? -->
+      <bpmndi:BPMNShape id="Gateway_NewRecords_di" bpmnElement="Gateway_NewRecords" isMarkerVisible="true">
+        <dc:Bounds x="545" y="205" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="537" y="175" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task: Check CRM Initial -->
+      <bpmndi:BPMNShape id="Task_CheckCRM_Initial_di" bpmnElement="Task_CheckCRM_Initial">
+        <dc:Bounds x="650" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: New Returns Exist? -->
+      <bpmndi:BPMNShape id="Gateway_NewReturnsExist_di" bpmnElement="Gateway_NewReturnsExist" isMarkerVisible="true">
+        <dc:Bounds x="805" y="205" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="798" y="168" width="64" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- End Event: No Returns -->
+      <bpmndi:BPMNShape id="EndEvent_NoReturns_di" bpmnElement="EndEvent_NoReturns">
+        <dc:Bounds x="812" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="793" y="365" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Subprocess: Phase 1 -->
+      <bpmndi:BPMNShape id="SubProcess_Phase1_di" bpmnElement="SubProcess_Phase1" isExpanded="true">
+        <dc:Bounds x="910" y="110" width="670" height="240" />
+      </bpmndi:BPMNShape>
+
+      <!-- Subprocess Phase 1 Internal Elements -->
+      <bpmndi:BPMNShape id="StartEvent_Sub1_di" bpmnElement="StartEvent_Sub1">
+        <dc:Bounds x="932" y="202" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RegisterAccounts_di" bpmnElement="Task_RegisterAccounts">
+        <dc:Bounds x="1000" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Advised_di" bpmnElement="Gateway_Advised" isMarkerVisible="true">
+        <dc:Bounds x="1135" y="195" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1116" y="156" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProduceTable_di" bpmnElement="Task_ProduceTable">
+        <dc:Bounds x="1220" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendToAccountManagement_di" bpmnElement="Task_SendToAccountManagement">
+        <dc:Bounds x="1360" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MergePhase1_di" bpmnElement="Gateway_MergePhase1" isMarkerVisible="true">
+        <dc:Bounds x="1485" y="195" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Sub1_di" bpmnElement="EndEvent_Sub1">
+        <dc:Bounds x="1562" y="202" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Boundary Timer 2:30 PM -->
+      <bpmndi:BPMNShape id="BoundaryTimer_230PM_di" bpmnElement="BoundaryTimer_230PM">
+        <dc:Bounds x="1562" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1538" y="375" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task Alert Supervisor 2:30 PM -->
+      <bpmndi:BPMNShape id="Task_AlertSupervisor230_di" bpmnElement="Task_AlertSupervisor230">
+        <dc:Bounds x="1650" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Alert230_di" bpmnElement="EndEvent_Alert230">
+        <dc:Bounds x="1792" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1767" y="375" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Subprocess: Phase 2 -->
+      <bpmndi:BPMNShape id="SubProcess_Phase2_di" bpmnElement="SubProcess_Phase2" isExpanded="true">
+        <dc:Bounds x="1630" y="110" width="530" height="240" />
+      </bpmndi:BPMNShape>
+
+      <!-- Subprocess Phase 2 Internal Elements -->
+      <bpmndi:BPMNShape id="StartEvent_Sub2_di" bpmnElement="StartEvent_Sub2">
+        <dc:Bounds x="1652" y="202" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckCRM_Phase2_di" bpmnElement="Task_CheckCRM_Phase2">
+        <dc:Bounds x="1720" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Phase2NewReturns_di" bpmnElement="Gateway_Phase2NewReturns" isMarkerVisible="true">
+        <dc:Bounds x="1855" y="195" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1836" y="165" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Reconcile_di" bpmnElement="Task_Reconcile">
+        <dc:Bounds x="1940" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MergePhase2_di" bpmnElement="Gateway_MergePhase2" isMarkerVisible="true">
+        <dc:Bounds x="2065" y="195" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Sub2_di" bpmnElement="EndEvent_Sub2">
+        <dc:Bounds x="2102" y="202" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Boundary Timer 4:00 PM -->
+      <bpmndi:BPMNShape id="BoundaryTimer_400PM_di" bpmnElement="BoundaryTimer_400PM">
+        <dc:Bounds x="2142" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2118" y="375" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task Alert Supervisor 4:00 PM -->
+      <bpmndi:BPMNShape id="Task_AlertSupervisor400_di" bpmnElement="Task_AlertSupervisor400">
+        <dc:Bounds x="2220" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Alert400_di" bpmnElement="EndEvent_Alert400">
+        <dc:Bounds x="2362" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2337" y="375" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Process End Event -->
+      <bpmndi:BPMNShape id="EndEvent_ProcessCompleted_di" bpmnElement="EndEvent_ProcessCompleted">
+        <dc:Bounds x="2222" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2208" y="255" width="64" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Diagram Connectors -->
+      <bpmndi:BPMNEdge id="SequenceFlow_01_di" bpmnElement="SequenceFlow_01">
+        <di:waypoint x="188" y="230" />
+        <di:waypoint x="240" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_02_di" bpmnElement="SequenceFlow_02">
+        <di:waypoint x="340" y="230" />
+        <di:waypoint x="390" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_03_di" bpmnElement="SequenceFlow_03">
+        <di:waypoint x="490" y="230" />
+        <di:waypoint x="545" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_NoNewRecords_di" bpmnElement="SequenceFlow_NoNewRecords">
+        <di:waypoint x="595" y="230" />
+        <di:waypoint x="650" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="615" y="212" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_NewRecordsExist_di" bpmnElement="SequenceFlow_NewRecordsExist">
+        <di:waypoint x="570" y="255" />
+        <di:waypoint x="570" y="290" />
+        <di:waypoint x="700" y="290" />
+        <di:waypoint x="700" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="626" y="272" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_04_di" bpmnElement="SequenceFlow_04">
+        <di:waypoint x="750" y="230" />
+        <di:waypoint x="805" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ReturnsExist_di" bpmnElement="SequenceFlow_ReturnsExist">
+        <di:waypoint x="855" y="230" />
+        <di:waypoint x="910" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="874" y="212" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_NoReturns_di" bpmnElement="SequenceFlow_NoReturns">
+        <di:waypoint x="830" y="255" />
+        <di:waypoint x="830" y="322" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="838" y="286" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <!-- SubProcess 1 Edges -->
+      <bpmndi:BPMNEdge id="SubFlow_01_di" bpmnElement="SubFlow_01">
+        <di:waypoint x="968" y="220" />
+        <di:waypoint x="1000" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow_02_di" bpmnElement="SubFlow_02">
+        <di:waypoint x="1100" y="220" />
+        <di:waypoint x="1135" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow_NotAdvised_di" bpmnElement="SubFlow_NotAdvised">
+        <di:waypoint x="1185" y="220" />
+        <di:waypoint x="1220" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1195" y="202" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow_Advised_di" bpmnElement="SubFlow_Advised">
+        <di:waypoint x="1160" y="245" />
+        <di:waypoint x="1160" y="290" />
+        <di:waypoint x="1510" y="290" />
+        <di:waypoint x="1510" y="245" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1326" y="272" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow_03_di" bpmnElement="SubFlow_03">
+        <di:waypoint x="1320" y="220" />
+        <di:waypoint x="1360" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow_04_di" bpmnElement="SubFlow_04">
+        <di:waypoint x="1460" y="220" />
+        <di:waypoint x="1485" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow_05_di" bpmnElement="SubFlow_05">
+        <di:waypoint x="1535" y="220" />
+        <di:waypoint x="1562" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Top Level Phase 1 Connections -->
+      <bpmndi:BPMNEdge id="SequenceFlow_Phase1Complete_di" bpmnElement="SequenceFlow_Phase1Complete">
+        <di:waypoint x="1580" y="230" />
+        <di:waypoint x="1630" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_230PMAlert_di" bpmnElement="SequenceFlow_230PMAlert">
+        <di:waypoint x="1580" y="368" />
+        <di:waypoint x="1580" y="380" />
+        <di:waypoint x="1650" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Alert230End_di" bpmnElement="SequenceFlow_Alert230End">
+        <di:waypoint x="1750" y="350" />
+        <di:waypoint x="1792" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <!-- SubProcess 2 Edges -->
+      <bpmndi:BPMNEdge id="SubFlow2_01_di" bpmnElement="SubFlow2_01">
+        <di:waypoint x="1688" y="220" />
+        <di:waypoint x="1720" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow2_02_di" bpmnElement="SubFlow2_02">
+        <di:waypoint x="1820" y="220" />
+        <di:waypoint x="1855" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow2_ReturnsFiled_di" bpmnElement="SubFlow2_ReturnsFiled">
+        <di:waypoint x="1905" y="220" />
+        <di:waypoint x="1940" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1914" y="202" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow2_NoReturnsFiled_di" bpmnElement="SubFlow2_NoReturnsFiled">
+        <di:waypoint x="1880" y="245" />
+        <di:waypoint x="1880" y="290" />
+        <di:waypoint x="2090" y="290" />
+        <di:waypoint x="2090" y="245" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1978" y="272" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow2_03_di" bpmnElement="SubFlow2_03">
+        <di:waypoint x="2040" y="220" />
+        <di:waypoint x="2065" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SubFlow2_04_di" bpmnElement="SubFlow2_04">
+        <di:waypoint x="2090" y="220" />
+        <di:waypoint x="2102" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Top Level Phase 2 Connections -->
+      <bpmndi:BPMNEdge id="SequenceFlow_Phase2Complete_di" bpmnElement="SequenceFlow_Phase2Complete">
+        <di:waypoint x="2160" y="230" />
+        <di:waypoint x="2222" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_400PMAlert_di" bpmnElement="SequenceFlow_400PMAlert">
+        <di:waypoint x="2160" y="368" />
+        <di:waypoint x="2160" y="380" />
+        <di:waypoint x="2220" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Alert400End_di" bpmnElement="SequenceFlow_Alert400End">
+        <di:waypoint x="2320" y="350" />
+        <di:waypoint x="2362" y="350" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

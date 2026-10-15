@@ -1,0 +1,384 @@
+{
+  "name": "Car Insurance Claim Processing",
+  "resources": [
+    {
+      "name": "Notification Department",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "Handling Department",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "Garage",
+      "capacity": 1,
+      "resource_type": "external_party"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_claim",
+      "name": "Customer submits claim with documentation",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Claim Submission"
+    },
+    {
+      "id": "evt_end_notification",
+      "name": "Claim registered and passed to handling",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Registered Claim Handover"
+    },
+    {
+      "id": "evt_start_handling",
+      "name": "Receive registered claim",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Registered Claim Handover"
+    },
+    {
+      "id": "evt_end_process",
+      "name": "Process complete (Letter sent)",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_check_docs",
+      "name": "Check documents upon completeness",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Notification Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_claim_docs"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_register_claim",
+      "name": "Register the claim",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Notification Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_registered_claim"
+      ]
+    },
+    {
+      "id": "task_check_insurance",
+      "name": "Check the insurance",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Handling Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_registered_claim"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_assess",
+      "name": "Perform assessment",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Handling Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_assessment_result"
+      ]
+    },
+    {
+      "id": "task_phone_garage",
+      "name": "Phone garage to authorise repairs",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Handling Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_assessment_result"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_schedule_payment",
+      "name": "Schedule payment",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Handling Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_send_letter",
+      "name": "Send letter to customer",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Handling Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_assessment_result"
+      ],
+      "output_data_ids": [
+        "data_customer_letter"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_assessment_decision",
+      "name": "Assessment Outcome Decision",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_positive",
+          "condition": "Assessment is positive"
+        },
+        {
+          "flow_id": "flow_negative",
+          "condition": "Assessment is negative"
+        }
+      ]
+    },
+    {
+      "id": "gw_merge_outcome",
+      "name": "Merge Outcomes",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start_claim",
+      "target_id": "task_check_docs",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_check_docs",
+      "target_id": "task_register_claim",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "task_register_claim",
+      "target_id": "evt_end_notification",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "evt_start_handling",
+      "target_id": "task_check_insurance",
+      "condition_name": null
+    },
+    {
+      "id": "flow_5",
+      "source_id": "task_check_insurance",
+      "target_id": "task_assess",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "task_assess",
+      "target_id": "gw_assessment_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_positive",
+      "source_id": "gw_assessment_decision",
+      "target_id": "task_phone_garage",
+      "condition_name": "Assessment is positive"
+    },
+    {
+      "id": "flow_neg_to_reject",
+      "source_id": "gw_assessment_decision",
+      "target_id": "gw_merge_outcome",
+      "condition_name": "Assessment is negative"
+    },
+    {
+      "id": "flow_pos_step1",
+      "source_id": "task_phone_garage",
+      "target_id": "task_schedule_payment",
+      "condition_name": null
+    },
+    {
+      "id": "flow_pos_step2",
+      "source_id": "task_schedule_payment",
+      "target_id": "gw_merge_outcome",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_letter",
+      "source_id": "gw_merge_outcome",
+      "target_id": "task_send_letter",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_end",
+      "source_id": "task_send_letter",
+      "target_id": "evt_end_process",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_notification",
+      "name": "Notification Department",
+      "element_ids": [
+        "evt_start_claim",
+        "task_check_docs",
+        "task_register_claim",
+        "evt_end_notification",
+        "flow_1",
+        "flow_2",
+        "flow_3"
+      ]
+    },
+    {
+      "id": "pool_handling",
+      "name": "Handling Department",
+      "element_ids": [
+        "evt_start_handling",
+        "task_check_insurance",
+        "task_assess",
+        "gw_assessment_decision",
+        "task_phone_garage",
+        "task_schedule_payment",
+        "gw_merge_outcome",
+        "task_send_letter",
+        "evt_end_process",
+        "flow_4",
+        "flow_5",
+        "flow_6",
+        "flow_positive",
+        "flow_neg_to_reject",
+        "flow_pos_step1",
+        "flow_pos_step2",
+        "flow_to_letter",
+        "flow_to_end"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_handover",
+      "source_id": "evt_end_notification",
+      "target_id": "evt_start_handling",
+      "name": "Registered Claim Handover"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_claim_docs",
+      "name": "Relevant Documentation"
+    },
+    {
+      "id": "data_registered_claim",
+      "name": "Registered Claim Record"
+    },
+    {
+      "id": "data_assessment_result",
+      "name": "Assessment Result"
+    },
+    {
+      "id": "data_customer_letter",
+      "name": "Customer Notification Letter"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

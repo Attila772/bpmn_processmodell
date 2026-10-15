@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_organization_part" name="Organization / Claims Department" processRef="pool_organization_proc" />
+    <bpmn:participant id="pool_claimant_part" name="Claimant" processRef="pool_claimant_proc" />
+    <bpmn:messageFlow id="mf_send_forms" sourceRef="event_forms_sent" targetRef="event_claimant_start" name="Relevant forms" />
+    <bpmn:messageFlow id="mf_return_forms" sourceRef="task_return_forms" targetRef="event_forms_received" name="Completed forms" />
+    <bpmn:messageFlow id="mf_inform_update" sourceRef="event_update_req_sent" targetRef="task_update_forms" name="Update request" />
+    <bpmn:messageFlow id="mf_send_updated_forms" sourceRef="event_updated_forms_sent" targetRef="event_forms_received" name="Updated forms" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_organization_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_forms" name="Claim Forms" dataObjectRef="data_forms_do" />
+    <bpmn:dataObject id="data_forms_do" />
+    <bpmn:dataStoreReference id="store_claims_system" name="Claims Management System" />
+    <bpmn:startEvent id="event_claim_received" name="Claim received">
+      <bpmn:outgoing>sf_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_claim_received_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_forms_sent" name="Forms sent">
+      <bpmn:incoming>sf_7</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_forms_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="event_forms_received" name="Forms received">
+      <bpmn:outgoing>sf_8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_forms_received_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_claim_registered_end" name="Claim registered end">
+      <bpmn:incoming>sf_10</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_rejection_sent" name="Rejection sent">
+      <bpmn:incoming>sf_3</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_rejection_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_update_req_sent" name="Update request sent">
+      <bpmn:incoming>sf_11</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_update_req_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_check_insurance" name="Check whether claimant is insured">
+      <bpmn:incoming>sf_1</bpmn:incoming>
+      <bpmn:outgoing>sf_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_inform_rejection" name="Inform claimant of claim rejection">
+      <bpmn:incoming>sf_insured_no</bpmn:incoming>
+      <bpmn:outgoing>sf_3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_evaluate_severity" name="Evaluate severity of the claim">
+      <bpmn:incoming>sf_insured_yes</bpmn:incoming>
+      <bpmn:outgoing>sf_4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_send_simple_forms" name="Send simple claim forms">
+      <bpmn:incoming>sf_severity_simple</bpmn:incoming>
+      <bpmn:outgoing>sf_5</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_simple_forms_doa0">
+        <bpmn:targetRef>data_forms</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_send_complex_forms" name="Send complex claim forms">
+      <bpmn:incoming>sf_severity_complex</bpmn:incoming>
+      <bpmn:outgoing>sf_6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_complex_forms_doa0">
+        <bpmn:targetRef>data_forms</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_check_completeness" name="Check forms for completeness">
+      <bpmn:incoming>sf_8</bpmn:incoming>
+      <bpmn:outgoing>sf_9</bpmn:outgoing>
+      <bpmn:property id="task_check_completeness_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_completeness_dia0">
+        <bpmn:sourceRef>data_forms</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_completeness_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_register_claim" name="Register claim in Claims Management system">
+      <bpmn:incoming>sf_complete_yes</bpmn:incoming>
+      <bpmn:outgoing>sf_10</bpmn:outgoing>
+      <bpmn:property id="task_register_claim_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_register_claim_dia0">
+        <bpmn:sourceRef>data_forms</bpmn:sourceRef>
+        <bpmn:targetRef>task_register_claim_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_register_claim_doa0">
+        <bpmn:targetRef>store_claims_system</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_inform_update" name="Inform claimant to update forms">
+      <bpmn:incoming>sf_complete_no</bpmn:incoming>
+      <bpmn:outgoing>sf_11</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_insured" name="Claimant insured?" isMarkerVisible="true">
+      <bpmn:incoming>sf_2</bpmn:incoming>
+      <bpmn:outgoing>sf_insured_no</bpmn:outgoing>
+      <bpmn:outgoing>sf_insured_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_severity" name="Claim severity?" isMarkerVisible="true">
+      <bpmn:incoming>sf_4</bpmn:incoming>
+      <bpmn:outgoing>sf_severity_simple</bpmn:outgoing>
+      <bpmn:outgoing>sf_severity_complex</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_join_forms" name="Merge forms sending" isMarkerVisible="true">
+      <bpmn:incoming>sf_5</bpmn:incoming>
+      <bpmn:incoming>sf_6</bpmn:incoming>
+      <bpmn:outgoing>sf_7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_complete" name="Forms complete?" isMarkerVisible="true">
+      <bpmn:incoming>sf_9</bpmn:incoming>
+      <bpmn:outgoing>sf_complete_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_complete_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_1" sourceRef="event_claim_received" targetRef="task_check_insurance" />
+    <bpmn:sequenceFlow id="sf_2" sourceRef="task_check_insurance" targetRef="gw_insured" />
+    <bpmn:sequenceFlow id="sf_insured_no" sourceRef="gw_insured" targetRef="task_inform_rejection" name="Not insured" />
+    <bpmn:sequenceFlow id="sf_3" sourceRef="task_inform_rejection" targetRef="event_rejection_sent" />
+    <bpmn:sequenceFlow id="sf_insured_yes" sourceRef="gw_insured" targetRef="task_evaluate_severity" name="Insured" />
+    <bpmn:sequenceFlow id="sf_4" sourceRef="task_evaluate_severity" targetRef="gw_severity" />
+    <bpmn:sequenceFlow id="sf_severity_simple" sourceRef="gw_severity" targetRef="task_send_simple_forms" name="Simple claim" />
+    <bpmn:sequenceFlow id="sf_severity_complex" sourceRef="gw_severity" targetRef="task_send_complex_forms" name="Complex claim" />
+    <bpmn:sequenceFlow id="sf_5" sourceRef="task_send_simple_forms" targetRef="gw_join_forms" />
+    <bpmn:sequenceFlow id="sf_6" sourceRef="task_send_complex_forms" targetRef="gw_join_forms" />
+    <bpmn:sequenceFlow id="sf_7" sourceRef="gw_join_forms" targetRef="event_forms_sent" />
+    <bpmn:sequenceFlow id="sf_8" sourceRef="event_forms_received" targetRef="task_check_completeness" />
+    <bpmn:sequenceFlow id="sf_9" sourceRef="task_check_completeness" targetRef="gw_complete" />
+    <bpmn:sequenceFlow id="sf_complete_yes" sourceRef="gw_complete" targetRef="task_register_claim" name="Complete" />
+    <bpmn:sequenceFlow id="sf_10" sourceRef="task_register_claim" targetRef="event_claim_registered_end" />
+    <bpmn:sequenceFlow id="sf_complete_no" sourceRef="gw_complete" targetRef="task_inform_update" name="Incomplete" />
+    <bpmn:sequenceFlow id="sf_11" sourceRef="task_inform_update" targetRef="event_update_req_sent" />
+  </bpmn:process>
+  <bpmn:process id="pool_claimant_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_forms_p1" name="Claim Forms" dataObjectRef="data_forms_p1_do" />
+    <bpmn:dataObject id="data_forms_p1_do" />
+    <bpmn:startEvent id="event_claimant_start" name="Start process">
+      <bpmn:outgoing>sf_c1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_updated_forms_sent" name="Updated forms sent">
+      <bpmn:incoming>sf_c3</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_updated_forms_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_return_forms" name="Complete and return forms">
+      <bpmn:incoming>sf_c1</bpmn:incoming>
+      <bpmn:outgoing>sf_c2</bpmn:outgoing>
+      <bpmn:property id="task_return_forms_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_return_forms_dia0">
+        <bpmn:sourceRef>data_forms_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_return_forms_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_return_forms_doa0">
+        <bpmn:targetRef>data_forms_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_update_forms" name="Update forms">
+      <bpmn:incoming>sf_c2</bpmn:incoming>
+      <bpmn:outgoing>sf_c3</bpmn:outgoing>
+      <bpmn:property id="task_update_forms_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_update_forms_dia0">
+        <bpmn:sourceRef>data_forms_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_update_forms_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_update_forms_doa0">
+        <bpmn:targetRef>data_forms_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="sf_c1" sourceRef="event_claimant_start" targetRef="task_return_forms" />
+    <bpmn:sequenceFlow id="sf_c2" sourceRef="task_return_forms" targetRef="task_update_forms" />
+    <bpmn:sequenceFlow id="sf_c3" sourceRef="task_update_forms" targetRef="event_updated_forms_sent" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_organization_part_di" bpmnElement="pool_organization_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1710" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_claimant_part_di" bpmnElement="pool_claimant_part" isHorizontal="true">
+        <dc:Bounds x="120" y="750" width="950" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_claim_received_di" bpmnElement="event_claim_received">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_claim_registered_end_di" bpmnElement="event_claim_registered_end">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_claimant_start_di" bpmnElement="event_claimant_start">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_forms_received_di" bpmnElement="event_forms_received">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_forms_sent_di" bpmnElement="event_forms_sent">
+        <dc:Bounds x="1490" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_rejection_sent_di" bpmnElement="event_rejection_sent">
+        <dc:Bounds x="920" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_update_req_sent_di" bpmnElement="event_update_req_sent">
+        <dc:Bounds x="920" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_updated_forms_sent_di" bpmnElement="event_updated_forms_sent">
+        <dc:Bounds x="730" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_complete_di" bpmnElement="gw_complete">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_insured_di" bpmnElement="gw_insured">
+        <dc:Bounds x="540" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_join_forms_di" bpmnElement="gw_join_forms">
+        <dc:Bounds x="1300" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_severity_di" bpmnElement="gw_severity">
+        <dc:Bounds x="920" y="475" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_completeness_di" bpmnElement="task_check_completeness">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_insurance_di" bpmnElement="task_check_insurance">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_evaluate_severity_di" bpmnElement="task_evaluate_severity">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_rejection_di" bpmnElement="task_inform_rejection">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_update_di" bpmnElement="task_inform_update">
+        <dc:Bounds x="730" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_register_claim_di" bpmnElement="task_register_claim">
+        <dc:Bounds x="730" y="475" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_return_forms_di" bpmnElement="task_return_forms">
+        <dc:Bounds x="350" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_complex_forms_di" bpmnElement="task_send_complex_forms">
+        <dc:Bounds x="1110" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_simple_forms_di" bpmnElement="task_send_simple_forms">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_update_forms_di" bpmnElement="task_update_forms">
+        <dc:Bounds x="540" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_forms_di" bpmnElement="data_forms">
+        <dc:Bounds x="845" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="store_claims_system_di" bpmnElement="store_claims_system">
+        <dc:Bounds x="750" y="615" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_forms_p1_di" bpmnElement="data_forms_p1">
+        <dc:Bounds x="465" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_1_di" bpmnElement="sf_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_2_di" bpmnElement="sf_2">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="565" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_insured_no_di" bpmnElement="sf_insured_no">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_3_di" bpmnElement="sf_3">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="938" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_insured_yes_di" bpmnElement="sf_insured_yes">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_4_di" bpmnElement="sf_4">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="945" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_severity_simple_di" bpmnElement="sf_severity_simple">
+        <di:waypoint x="945" y="500" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_severity_complex_di" bpmnElement="sf_severity_complex">
+        <di:waypoint x="945" y="500" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_5_di" bpmnElement="sf_5">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_6_di" bpmnElement="sf_6">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_7_di" bpmnElement="sf_7">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1508" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_8_di" bpmnElement="sf_8">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_9_di" bpmnElement="sf_9">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_complete_yes_di" bpmnElement="sf_complete_yes">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_10_di" bpmnElement="sf_10">
+        <di:waypoint x="780" y="515" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_complete_no_di" bpmnElement="sf_complete_no">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_11_di" bpmnElement="sf_11">
+        <di:waypoint x="780" y="390" />
+        <di:waypoint x="938" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_c1_di" bpmnElement="sf_c1">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_c2_di" bpmnElement="sf_c2">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="590" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_c3_di" bpmnElement="sf_c3">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="748" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_send_forms_di" bpmnElement="mf_send_forms">
+        <di:waypoint x="1508" y="118" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_return_forms_di" bpmnElement="mf_return_forms">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_inform_update_di" bpmnElement="mf_inform_update">
+        <di:waypoint x="938" y="368" />
+        <di:waypoint x="590" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_send_updated_forms_di" bpmnElement="mf_send_updated_forms">
+        <di:waypoint x="748" y="828" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_simple_forms_doa0_di" bpmnElement="task_send_simple_forms_doa0">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="863" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_complex_forms_doa0_di" bpmnElement="task_send_complex_forms_doa0">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="863" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_completeness_dia0_di" bpmnElement="task_check_completeness_dia0">
+        <di:waypoint x="863" y="640" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_claim_dia0_di" bpmnElement="task_register_claim_dia0">
+        <di:waypoint x="863" y="640" />
+        <di:waypoint x="780" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_claim_doa0_di" bpmnElement="task_register_claim_doa0">
+        <di:waypoint x="780" y="515" />
+        <di:waypoint x="775" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_return_forms_dia0_di" bpmnElement="task_return_forms_dia0">
+        <di:waypoint x="483" y="975" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_return_forms_doa0_di" bpmnElement="task_return_forms_doa0">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="483" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_forms_dia0_di" bpmnElement="task_update_forms_dia0">
+        <di:waypoint x="483" y="975" />
+        <di:waypoint x="590" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_forms_doa0_di" bpmnElement="task_update_forms_doa0">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="483" y="975" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

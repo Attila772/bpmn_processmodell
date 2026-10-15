@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   id="Definitions_1"
+                   targetNamespace="http://example.com/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1" name="Bill Examination Process">
+    <bpmn:participant id="Participant_MPOO" name="MPOO" processRef="Process_MPOO"/>
+    <bpmn:participant id="Participant_MSPO" name="MSPO" processRef="Process_MSPO"/>
+    <bpmn:participant id="Participant_GO" name="GO" processRef="Process_GO"/>
+    <bpmn:participant id="Participant_MPON" name="MPON" processRef="Process_MPON"/>
+
+    <bpmn:messageFlow id="MF_1" sourceRef="Task_MPOO_SendMPO" targetRef="StartEvent_GO_1"/>
+    <bpmn:messageFlow id="MF_2" sourceRef="Task_MSPO_SendMeasurement" targetRef="StartEvent_GO_1"/>
+    <bpmn:messageFlow id="MF_3" sourceRef="Task_MSPO_SendAdditional" targetRef="StartEvent_GO_1"/>
+    <bpmn:messageFlow id="MF_4" sourceRef="Task_MPOO_SendEquip" targetRef="StartEvent_GO_1"/>
+    <bpmn:messageFlow id="MF_5" sourceRef="Task_MPOO_SendEquip" targetRef="StartEvent_MPON_1"/>
+    <bpmn:messageFlow id="MF_6" sourceRef="Task_GO_Confirm" targetRef="Event_MPOO_ReceiveConfirmation"/>
+    <bpmn:messageFlow id="MF_7" sourceRef="Task_GO_Confirm" targetRef="Event_MSPO_ReceiveConfirmation"/>
+    <bpmn:messageFlow id="MF_8" sourceRef="Task_GO_Reject" targetRef="Event_MPOO_ReceiveConfirmation"/>
+    <bpmn:messageFlow id="MF_9" sourceRef="Task_GO_Reject" targetRef="Event_MSPO_ReceiveConfirmation"/>
+    <bpmn:messageFlow id="MF_10" sourceRef="Task_MPON_Confirm" targetRef="Event_MPOO_ReceiveConfirmation"/>
+    <bpmn:messageFlow id="MF_11" sourceRef="Task_MPON_Reject" targetRef="Event_MPOO_ReceiveConfirmation"/>
+  </bpmn:collaboration>
+
+  <!-- ================= MPOO PROCESS ================= -->
+  <bpmn:process id="Process_MPOO" name="MPOO Process" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_MPOO_1" name="Start">
+      <bpmn:outgoing>SF1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_MPOO_1" name="Which bill?">
+      <bpmn:incoming>SF1</bpmn:incoming>
+      <bpmn:outgoing>SF2</bpmn:outgoing>
+      <bpmn:outgoing>SF3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_MPOO_SendMPO" name="Send bill for temporary continuation of metering point operations">
+      <bpmn:incoming>SF2</bpmn:incoming>
+      <bpmn:outgoing>SF4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MPOO_SendEquip" name="Send bill for equipment acquisition">
+      <bpmn:incoming>SF3</bpmn:incoming>
+      <bpmn:outgoing>SF5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_MPOO_2" name="To GO or MPON?">
+      <bpmn:incoming>SF5</bpmn:incoming>
+      <bpmn:outgoing>SF6</bpmn:outgoing>
+      <bpmn:outgoing>SF7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:exclusiveGateway id="Gateway_MPOO_3" name="Merge">
+      <bpmn:incoming>SF4</bpmn:incoming>
+      <bpmn:incoming>SF6</bpmn:incoming>
+      <bpmn:incoming>SF7</bpmn:incoming>
+      <bpmn:outgoing>SF8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_MPOO_ReceiveConfirmation" name="Receive confirmation or rejection">
+      <bpmn:incoming>SF8</bpmn:incoming>
+      <bpmn:outgoing>SF9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_MPOO_1"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="EndEvent_MPOO_1" name="End">
+      <bpmn:incoming>SF9</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF1" sourceRef="StartEvent_MPOO_1" targetRef="Gateway_MPOO_1"/>
+    <bpmn:sequenceFlow id="SF2" name="Metering point operations continuation" sourceRef="Gateway_MPOO_1" targetRef="Task_MPOO_SendMPO"/>
+    <bpmn:sequenceFlow id="SF3" name="Equipment acquisition" sourceRef="Gateway_MPOO_1" targetRef="Task_MPOO_SendEquip"/>
+    <bpmn:sequenceFlow id="SF4" sourceRef="Task_MPOO_SendMPO" targetRef="Gateway_MPOO_3"/>
+    <bpmn:sequenceFlow id="SF5" sourceRef="Task_MPOO_SendEquip" targetRef="Gateway_MPOO_2"/>
+    <bpmn:sequenceFlow id="SF6" name="To GO" sourceRef="Gateway_MPOO_2" targetRef="Gateway_MPOO_3"/>
+    <bpmn:sequenceFlow id="SF7" name="To MPON" sourceRef="Gateway_MPOO_2" targetRef="Gateway_MPOO_3"/>
+    <bpmn:sequenceFlow id="SF8" sourceRef="Gateway_MPOO_3" targetRef="Event_MPOO_ReceiveConfirmation"/>
+    <bpmn:sequenceFlow id="SF9" sourceRef="Event_MPOO_ReceiveConfirmation" targetRef="EndEvent_MPOO_1"/>
+  </bpmn:process>
+
+  <!-- ================= MSPO PROCESS ================= -->
+  <bpmn:process id="Process_MSPO" name="MSPO Process" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_MSPO_1" name="Start">
+      <bpmn:outgoing>SF10</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_MSPO_1" name="Which bill?">
+      <bpmn:incoming>SF10</bpmn:incoming>
+      <bpmn:outgoing>SF11</bpmn:outgoing>
+      <bpmn:outgoing>SF12</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_MSPO_SendMeasurement" name="Send bill for temporary continuation of measurement">
+      <bpmn:incoming>SF11</bpmn:incoming>
+      <bpmn:outgoing>SF13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MSPO_SendAdditional" name="Send bill for additional readings">
+      <bpmn:incoming>SF12</bpmn:incoming>
+      <bpmn:outgoing>SF14</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_MSPO_2" name="Merge">
+      <bpmn:incoming>SF13</bpmn:incoming>
+      <bpmn:incoming>SF14</bpmn:incoming>
+      <bpmn:outgoing>SF15</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_MSPO_ReceiveConfirmation" name="Receive confirmation or rejection">
+      <bpmn:incoming>SF15</bpmn:incoming>
+      <bpmn:outgoing>SF16</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_MSPO_1"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="EndEvent_MSPO_1" name="End">
+      <bpmn:incoming>SF16</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF10" sourceRef="StartEvent_MSPO_1" targetRef="Gateway_MSPO_1"/>
+    <bpmn:sequenceFlow id="SF11" name="Temporary continuation of measurement" sourceRef="Gateway_MSPO_1" targetRef="Task_MSPO_SendMeasurement"/>
+    <bpmn:sequenceFlow id="SF12" name="Additional readings" sourceRef="Gateway_MSPO_1" targetRef="Task_MSPO_SendAdditional"/>
+    <bpmn:sequenceFlow id="SF13" sourceRef="Task_MSPO_SendMeasurement" targetRef="Gateway_MSPO_2"/>
+    <bpmn:sequenceFlow id="SF14" sourceRef="Task_MSPO_SendAdditional" targetRef="Gateway_MSPO_2"/>
+    <bpmn:sequenceFlow id="SF15" sourceRef="Gateway_MSPO_2" targetRef="Event_MSPO_ReceiveConfirmation"/>
+    <bpmn:sequenceFlow id="SF16" sourceRef="Event_MSPO_ReceiveConfirmation" targetRef="EndEvent_MSPO_1"/>
+  </bpmn:process>
+
+  <!-- ================= GO PROCESS ================= -->
+  <bpmn:process id="Process_GO" name="GO Process" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_GO_1" name="Receive bill">
+      <bpmn:outgoing>SF17</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_GO_Start"/>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_GO_Examine" name="Examine bill">
+      <bpmn:incoming>SF17</bpmn:incoming>
+      <bpmn:outgoing>SF18</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_GO_1" name="Invoice correct?">
+      <bpmn:incoming>SF18</bpmn:incoming>
+      <bpmn:outgoing>SF19</bpmn:outgoing>
+      <bpmn:outgoing>SF20</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_GO_Confirm" name="Confirm invoice with payment advice">
+      <bpmn:incoming>SF19</bpmn:incoming>
+      <bpmn:outgoing>SF21</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_GO_Reject" name="Reject invoice">
+      <bpmn:incoming>SF20</bpmn:incoming>
+      <bpmn:outgoing>SF22</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_GO_1" name="Confirmation sent">
+      <bpmn:incoming>SF21</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MED_GO_End1"/>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_GO_2" name="Rejection sent">
+      <bpmn:incoming>SF22</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MED_GO_End2"/>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF17" sourceRef="StartEvent_GO_1" targetRef="Task_GO_Examine"/>
+    <bpmn:sequenceFlow id="SF18" sourceRef="Task_GO_Examine" targetRef="Gateway_GO_1"/>
+    <bpmn:sequenceFlow id="SF19" name="Invoice correct" sourceRef="Gateway_GO_1" targetRef="Task_GO_Confirm"/>
+    <bpmn:sequenceFlow id="SF20" name="Invoice incorrect" sourceRef="Gateway_GO_1" targetRef="Task_GO_Reject"/>
+    <bpmn:sequenceFlow id="SF21" sourceRef="Task_GO_Confirm" targetRef="EndEvent_GO_1"/>
+    <bpmn:sequenceFlow id="SF22" sourceRef="Task_GO_Reject" targetRef="EndEvent_GO_2"/>
+  </bpmn:process>
+
+  <!-- ================= MPON PROCESS ================= -->
+  <bpmn:process id="Process_MPON" name="MPON Process" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_MPON_1" name="Receive bill">
+      <bpmn:outgoing>SF23</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_MPON_Start"/>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_MPON_Examine" name="Examine bill">
+      <bpmn:incoming>SF23</bpmn:incoming>
+      <bpmn:outgoing>SF24</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_MPON_1" name="Invoice correct?">
+      <bpmn:incoming>SF24</bpmn:incoming>
+      <bpmn:outgoing>SF25</bpmn:outgoing>
+      <bpmn:outgoing>SF26</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_MPON_Confirm" name="Confirm invoice with payment advice">
+      <bpmn:incoming>SF25</bpmn:incoming>
+      <bpmn:outgoing>SF27</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MPON_Reject" name="Reject invoice">
+      <bpmn:incoming>SF26</bpmn:incoming>
+      <bpmn:outgoing>SF28</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_MPON_1" name="Confirmation sent">
+      <bpmn:incoming>SF27</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MED_MPON_End1"/>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_MPON_2" name="Rejection sent">
+      <bpmn:incoming>SF28</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MED_MPON_End2"/>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF23" sourceRef="StartEvent_MPON_1" targetRef="Task_MPON_Examine"/>
+    <bpmn:sequenceFlow id="SF24" sourceRef="Task_MPON_Examine" targetRef="Gateway_MPON_1"/>
+    <bpmn:sequenceFlow id="SF25" name="Invoice correct" sourceRef="Gateway_MPON_1" targetRef="Task_MPON_Confirm"/>
+    <bpmn:sequenceFlow id="SF26" name="Invoice incorrect" sourceRef="Gateway_MPON_1" targetRef="Task_MPON_Reject"/>
+    <bpmn:sequenceFlow id="SF27" sourceRef="Task_MPON_Confirm" targetRef="EndEvent_MPON_1"/>
+    <bpmn:sequenceFlow id="SF28" sourceRef="Task_MPON_Reject" targetRef="EndEvent_MPON_2"/>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Shape_Participant_MPOO" bpmnElement="Participant_MPOO" isHorizontal="true">
+        <dc:Bounds x="40" y="40" width="1700" height="220"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Participant_MSPO" bpmnElement="Participant_MSPO" isHorizontal="true">
+        <dc:Bounds x="40" y="300" width="1700" height="220"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Participant_GO" bpmnElement="Participant_GO" isHorizontal="true">
+        <dc:Bounds x="40" y="560" width="1700" height="220"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Participant_MPON" bpmnElement="Participant_MPON" isHorizontal="true">
+        <dc:Bounds x="40" y="820" width="1700" height="220"/>
+      </bpmndi:BPMNShape>
+
+      <!-- MPOO shapes -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_MPOO_1" bpmnElement="StartEvent_MPOO_1">
+        <dc:Bounds x="100" y="120" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_MPOO_1" bpmnElement="Gateway_MPOO_1">
+        <dc:Bounds x="180" y="113" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_MPOO_SendMPO" bpmnElement="Task_MPOO_SendMPO">
+        <dc:Bounds x="280" y="60" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_MPOO_SendEquip" bpmnElement="Task_MPOO_SendEquip">
+        <dc:Bounds x="280" y="170" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_MPOO_2" bpmnElement="Gateway_MPOO_2">
+        <dc:Bounds x="460" y="185" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_MPOO_3" bpmnElement="Gateway_MPOO_3">
+        <dc:Bounds x="580" y="113" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Event_MPOO_ReceiveConfirmation" bpmnElement="Event_MPOO_ReceiveConfirmation">
+        <dc:Bounds x="680" y="120" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_MPOO_1" bpmnElement="EndEvent_MPOO_1">
+        <dc:Bounds x="760" y="120" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- MSPO shapes -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_MSPO_1" bpmnElement="StartEvent_MSPO_1">
+        <dc:Bounds x="100" y="380" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_MSPO_1" bpmnElement="Gateway_MSPO_1">
+        <dc:Bounds x="180" y="373" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_MSPO_SendMeasurement" bpmnElement="Task_MSPO_SendMeasurement">
+        <dc:Bounds x="280" y="320" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_MSPO_SendAdditional" bpmnElement="Task_MSPO_SendAdditional">
+        <dc:Bounds x="280" y="430" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_MSPO_2" bpmnElement="Gateway_MSPO_2">
+        <dc:Bounds x="460" y="373" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Event_MSPO_ReceiveConfirmation" bpmnElement="Event_MSPO_ReceiveConfirmation">
+        <dc:Bounds x="560" y="380" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_MSPO_1" bpmnElement="EndEvent_MSPO_1">
+        <dc:Bounds x="640" y="380" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- GO shapes -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_GO_1" bpmnElement="StartEvent_GO_1">
+        <dc:Bounds x="100" y="640" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_GO_Examine" bpmnElement="Task_GO_Examine">
+        <dc:Bounds x="180" y="620" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_GO_1" bpmnElement="Gateway_GO_1">
+        <dc:Bounds x="360" y="635" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_GO_Confirm" bpmnElement="Task_GO_Confirm">
+        <dc:Bounds x="460" y="580" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_GO_Reject" bpmnElement="Task_GO_Reject">
+        <dc:Bounds x="460" y="690" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_GO_1" bpmnElement="EndEvent_GO_1">
+        <dc:Bounds x="640" y="600" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_GO_2" bpmnElement="EndEvent_GO_2">
+        <dc:Bounds x="640" y="710" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- MPON shapes -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_MPON_1" bpmnElement="StartEvent_MPON_1">
+        <dc:Bounds x="100" y="900" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_MPON_Examine" bpmnElement="Task_MPON_Examine">
+        <dc:Bounds x="180" y="880" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_MPON_1" bpmnElement="Gateway_MPON_1">
+        <dc:Bounds x="360" y="895" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_MPON_Confirm" bpmnElement="Task_MPON_Confirm">
+        <dc:Bounds x="460" y="840" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_MPON_Reject" bpmnElement="Task_MPON_Reject">
+        <dc:Bounds x="460" y="950" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_MPON_1" bpmnElement="EndEvent_MPON_1">
+        <dc:Bounds x="640" y="860" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_MPON_2" bpmnElement="EndEvent_MPON_2">
+        <dc:Bounds x="640" y="970" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- MPOO edges -->
+      <bpmndi:BPMNEdge id="Edge_SF1" bpmnElement="SF1">
+        <di:waypoint x="136" y="138"/>
+        <di:waypoint x="180" y="138"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF2" bpmnElement="SF2">
+        <di:waypoint x="205" y="113"/>
+        <di:waypoint x="205" y="100"/>
+        <di:waypoint x="280" y="100"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF3" bpmnElement="SF3">
+        <di:waypoint x="205" y="163"/>
+        <di:waypoint x="205" y="210"/>
+        <di:waypoint x="280" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF4" bpmnElement="SF4">
+        <di:waypoint x="420" y="100"/>
+        <di:waypoint x="605" y="100"/>
+        <di:waypoint x="605" y="113"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF5" bpmnElement="SF5">
+        <di:waypoint x="420" y="210"/>
+        <di:waypoint x="485" y="210"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF6" bpmnElement="SF6">
+        <di:waypoint x="510" y="210"/>
+        <di:waypoint x="605" y="210"/>
+        <di:waypoint x="605" y="163"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF7" bpmnElement="SF7">
+        <di:waypoint x="485" y="185"/>
+        <di:waypoint x="485" y="138"/>
+        <di:waypoint x="580" y="138"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF8" bpmnElement="SF8">
+        <di:waypoint x="630" y="138"/>
+        <di:waypoint x="680" y="138"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF9" bpmnElement="SF9">
+        <di:waypoint x="716" y="138"/>
+        <di:waypoint x="760" y="138"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- MSPO edges -->
+      <bpmndi:BPMNEdge id="Edge_SF10" bpmnElement="SF10">
+        <di:waypoint x="136" y="398"/>
+        <di:waypoint x="180" y="398"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF11" bpmnElement="SF11">
+        <di:waypoint x="205" y="373"/>
+        <di:waypoint x="205" y="360"/>
+        <di:waypoint x="280" y="360"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF12" bpmnElement="SF12">
+        <di:waypoint x="205" y="423"/>
+        <di:waypoint x="205" y="470"/>
+        <di:waypoint x="280" y="470"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF13" bpmnElement="SF13">
+        <di:waypoint x="420" y="360"/>
+        <di:waypoint x="485" y="360"/>
+        <di:waypoint x="485" y="373"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF14" bpmnElement="SF14">
+        <di:waypoint x="420" y="470"/>
+        <di:waypoint x="485" y="470"/>
+        <di:waypoint x="485" y="423"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF15" bpmnElement="SF15">
+        <di:waypoint x="510" y="398"/>
+        <di:waypoint x="560" y="398"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF16" bpmnElement="SF16">
+        <di:waypoint x="596" y="398"/>
+        <di:waypoint x="640" y="398"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- GO edges -->
+      <bpmndi:BPMNEdge id="Edge_SF17" bpmnElement="SF17">
+        <di:waypoint x="136" y="658"/>
+        <di:waypoint x="180" y="660"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF18" bpmnElement="SF18">
+        <di:waypoint x="320" y="660"/>
+        <di:waypoint x="360" y="660"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF19" bpmnElement="SF19">
+        <di:waypoint x="385" y="635"/>
+        <di:waypoint x="385" y="620"/>
+        <di:waypoint x="460" y="620"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF20" bpmnElement="SF20">
+        <di:waypoint x="385" y="685"/>
+        <di:waypoint x="385" y="730"/>
+        <di:waypoint x="460" y="730"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF21" bpmnElement="SF21">
+        <di:waypoint x="600" y="620"/>
+        <di:waypoint x="640" y="618"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF22" bpmnElement="SF22">
+        <di:waypoint x="600" y="730"/>
+        <di:waypoint x="640" y="728"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- MPON edges -->
+      <bpmndi:BPMNEdge id="Edge_SF23" bpmnElement="SF23">
+        <di:waypoint x="136" y="918"/>
+        <di:waypoint x="180" y="920"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF24" bpmnElement="SF24">
+        <di:waypoint x="320" y="920"/>
+        <di:waypoint x="360" y="920"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF25" bpmnElement="SF25">
+        <di:waypoint x="385" y="895"/>
+        <di:waypoint x="385" y="880"/>
+        <di:waypoint x="460" y="880"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF26" bpmnElement="SF26">
+        <di:waypoint x="385" y="945"/>
+        <di:waypoint x="385" y="990"/>
+        <di:waypoint x="460" y="990"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF27" bpmnElement="SF27">
+        <di:waypoint x="600" y="880"/>
+        <di:waypoint x="640" y="878"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_SF28" bpmnElement="SF28">
+        <di:waypoint x="600" y="990"/>
+        <di:waypoint x="640" y="988"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Message flow edges -->
+      <bpmndi:BPMNEdge id="Edge_MF_1" bpmnElement="MF_1">
+        <di:waypoint x="350" y="140"/>
+        <di:waypoint x="118" y="640"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_2" bpmnElement="MF_2">
+        <di:waypoint x="350" y="400"/>
+        <di:waypoint x="118" y="640"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_3" bpmnElement="MF_3">
+        <di:waypoint x="350" y="470"/>
+        <di:waypoint x="118" y="640"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_4" bpmnElement="MF_4">
+        <di:waypoint x="350" y="210"/>
+        <di:waypoint x="118" y="640"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_5" bpmnElement="MF_5">
+        <di:waypoint x="350" y="210"/>
+        <di:waypoint x="118" y="900"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_6" bpmnElement="MF_6">
+        <di:waypoint x="530" y="580"/>
+        <di:waypoint x="698" y="156"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_7" bpmnElement="MF_7">
+        <di:waypoint x="530" y="580"/>
+        <di:waypoint x="578" y="416"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_8" bpmnElement="MF_8">
+        <di:waypoint x="530" y="690"/>
+        <di:waypoint x="698" y="156"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_9" bpmnElement="MF_9">
+        <di:waypoint x="530" y="690"/>
+        <di:waypoint x="578" y="416"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_10" bpmnElement="MF_10">
+        <di:waypoint x="530" y="840"/>
+        <di:waypoint x="698" y="156"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MF_11" bpmnElement="MF_11">
+        <di:waypoint x="530" y="950"/>
+        <di:waypoint x="698" y="156"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Pool_MSPN_part" name="MSPN" processRef="Pool_MSPN_proc" />
+    <bpmn:participant id="Pool_MSPO_part" name="MSPO" processRef="Pool_MSPO_proc" />
+    <bpmn:messageFlow id="MF_1" sourceRef="End_Send_MSPN" targetRef="Start_MSPO_Receive" name="Dismissal" />
+    <bpmn:messageFlow id="MF_2" sourceRef="End_Reject_MSPO" targetRef="End_Rejected_MSPN" name="Rejection" />
+    <bpmn:messageFlow id="MF_3" sourceRef="End_Confirm_MSPO" targetRef="End_Confirmed_MSPN" name="Confirmation" />
+  </bpmn:collaboration>
+  <bpmn:process id="Pool_MSPN_proc" isExecutable="false">
+    <bpmn:startEvent id="Start_MSPN" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="End_Send_MSPN" name="Dismissal gesendet">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:messageEventDefinition id="End_Send_MSPN_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_Rejected_MSPN" name="Ablehnung empfangen">
+      <bpmn:messageEventDefinition id="End_Rejected_MSPN_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_Confirmed_MSPN" name="Bestätigung empfangen">
+      <bpmn:messageEventDefinition id="End_Confirmed_MSPN_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_MSPN" targetRef="End_Send_MSPN" />
+  </bpmn:process>
+  <bpmn:process id="Pool_MSPO_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="Data_Dismissal" name="Dismissal" dataObjectRef="Data_Dismissal_do" />
+    <bpmn:dataObject id="Data_Dismissal_do" />
+    <bpmn:startEvent id="Start_MSPO_Receive" name="Dismissal empfangen">
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="Start_MSPO_Receive_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="End_Reject_MSPO" name="Dismissal abgelehnt">
+      <bpmn:incoming>Flow_Reject</bpmn:incoming>
+      <bpmn:messageEventDefinition id="End_Reject_MSPO_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_Confirm_MSPO" name="Dismissal bestätigt">
+      <bpmn:incoming>Flow_Confirm</bpmn:incoming>
+      <bpmn:messageEventDefinition id="End_Confirm_MSPO_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="Task_Review" name="Dismissal prüfen">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:property id="Task_Review_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="Task_Review_dia0">
+        <bpmn:sourceRef>Data_Dismissal</bpmn:sourceRef>
+        <bpmn:targetRef>Task_Review_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="Entscheidung" isMarkerVisible="true">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reject</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Start_MSPO_Receive" targetRef="Task_Review" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Review" targetRef="Gateway_Decision" />
+    <bpmn:sequenceFlow id="Flow_Reject" sourceRef="Gateway_Decision" targetRef="End_Reject_MSPO" name="rejected" />
+    <bpmn:sequenceFlow id="Flow_Confirm" sourceRef="Gateway_Decision" targetRef="End_Confirm_MSPO" name="confirmed" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Pool_MSPN_part_di" bpmnElement="Pool_MSPN_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="700" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pool_MSPO_part_di" bpmnElement="Pool_MSPO_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="950" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Confirm_MSPO_di" bpmnElement="End_Confirm_MSPO">
+        <dc:Bounds x="730" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Confirmed_MSPN_di" bpmnElement="End_Confirmed_MSPN">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Reject_MSPO_di" bpmnElement="End_Reject_MSPO">
+        <dc:Bounds x="730" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Rejected_MSPN_di" bpmnElement="End_Rejected_MSPN">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Send_MSPN_di" bpmnElement="End_Send_MSPN">
+        <dc:Bounds x="350" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision">
+        <dc:Bounds x="540" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_MSPN_di" bpmnElement="Start_MSPN">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_MSPO_Receive_di" bpmnElement="Start_MSPO_Receive">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Review_di" bpmnElement="Task_Review">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Data_Dismissal_di" bpmnElement="Data_Dismissal">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="368" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="565" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Reject_di" bpmnElement="Flow_Reject">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="748" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Confirm_di" bpmnElement="Flow_Confirm">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="748" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_1_di" bpmnElement="MF_1">
+        <di:waypoint x="368" y="118" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_2_di" bpmnElement="MF_2">
+        <di:waypoint x="748" y="828" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_3_di" bpmnElement="MF_3">
+        <di:waypoint x="748" y="703" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Task_Review_dia0_di" bpmnElement="Task_Review_dia0">
+        <di:waypoint x="388" y="975" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   id="Definitions_1"
+                   targetNamespace="http://example.com/bpmn/vacancy">
+
+  <bpmn:message id="Message_VacancyReport" name="Vacancy Report" />
+  <bpmn:message id="Message_ClarificationQuestion" name="Clarification Question" />
+  <bpmn:message id="Message_ClarificationAnswer" name="Clarification Answer" />
+  <bpmn:message id="Message_JobDescription" name="Job Description for Review" />
+  <bpmn:message id="Message_CorrectionRequest" name="Correction Request" />
+  <bpmn:message id="Message_Approval" name="Approval" />
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Head" name="Head of Functional Department" processRef="Process_Head" />
+    <bpmn:participant id="Participant_HR" name="Personnel Department" processRef="Process_HR" />
+
+    <bpmn:messageFlow id="MessageFlow_1" name="Vacancy Report" sourceRef="Task_ReportVacancy" targetRef="StartEvent_HR" />
+    <bpmn:messageFlow id="MessageFlow_2" name="Clarification Question" sourceRef="Task_AskClarification" targetRef="Event_ClarificationQuestion" />
+    <bpmn:messageFlow id="MessageFlow_3" name="Clarification Answer" sourceRef="Task_ProvideClarification" targetRef="Task_GetClarificationAnswer" />
+    <bpmn:messageFlow id="MessageFlow_4" name="Job Description" sourceRef="Task_SendJobDescription" targetRef="Event_JobDescriptionReceived" />
+    <bpmn:messageFlow id="MessageFlow_5" name="Correction Request" sourceRef="Task_RequestCorrections" targetRef="Event_CorrectionRequest" />
+    <bpmn:messageFlow id="MessageFlow_6" name="Approval" sourceRef="Task_ApproveJobDescription" targetRef="Event_Approval" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_Head" name="Head of Functional Department" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Head" name="Personnel requirement detected">
+      <bpmn:outgoing>SF1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sendTask id="Task_ReportVacancy" name="Report vacancy to Personnel Department" messageRef="Message_VacancyReport">
+      <bpmn:incoming>SF1</bpmn:incoming>
+      <bpmn:outgoing>SF2</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:eventBasedGateway id="Gateway_WaitHead" name="Wait for HR">
+      <bpmn:incoming>SF2</bpmn:incoming>
+      <bpmn:incoming>SF6</bpmn:incoming>
+      <bpmn:incoming>SF12</bpmn:incoming>
+      <bpmn:outgoing>SF3</bpmn:outgoing>
+      <bpmn:outgoing>SF4</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_ClarificationQuestion" name="Clarification question received">
+      <bpmn:incoming>SF3</bpmn:incoming>
+      <bpmn:outgoing>SF5</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_ClarificationQuestion" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="Event_JobDescriptionReceived" name="Job description received">
+      <bpmn:incoming>SF4</bpmn:incoming>
+      <bpmn:outgoing>SF7</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_JobDescription" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:sendTask id="Task_ProvideClarification" name="Provide clarification" messageRef="Message_ClarificationAnswer">
+      <bpmn:incoming>SF5</bpmn:incoming>
+      <bpmn:outgoing>SF6</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:task id="Task_ReviewJobDescription" name="Review job description">
+      <bpmn:incoming>SF7</bpmn:incoming>
+      <bpmn:outgoing>SF8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_ApproveOrCorrect" name="Corrections needed?">
+      <bpmn:incoming>SF8</bpmn:incoming>
+      <bpmn:outgoing>SF9</bpmn:outgoing>
+      <bpmn:outgoing>SF10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sendTask id="Task_ApproveJobDescription" name="Approve job description" messageRef="Message_Approval">
+      <bpmn:incoming>SF9</bpmn:incoming>
+      <bpmn:outgoing>SF11</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="Task_RequestCorrections" name="Request corrections" messageRef="Message_CorrectionRequest">
+      <bpmn:incoming>SF10</bpmn:incoming>
+      <bpmn:outgoing>SF12</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_Head" name="Job description approved">
+      <bpmn:incoming>SF11</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF1" sourceRef="StartEvent_Head" targetRef="Task_ReportVacancy" />
+    <bpmn:sequenceFlow id="SF2" sourceRef="Task_ReportVacancy" targetRef="Gateway_WaitHead" />
+    <bpmn:sequenceFlow id="SF3" sourceRef="Gateway_WaitHead" targetRef="Event_ClarificationQuestion" />
+    <bpmn:sequenceFlow id="SF4" sourceRef="Gateway_WaitHead" targetRef="Event_JobDescriptionReceived" />
+    <bpmn:sequenceFlow id="SF5" sourceRef="Event_ClarificationQuestion" targetRef="Task_ProvideClarification" />
+    <bpmn:sequenceFlow id="SF6" sourceRef="Task_ProvideClarification" targetRef="Gateway_WaitHead" />
+    <bpmn:sequenceFlow id="SF7" sourceRef="Event_JobDescriptionReceived" targetRef="Task_ReviewJobDescription" />
+    <bpmn:sequenceFlow id="SF8" sourceRef="Task_ReviewJobDescription" targetRef="Gateway_ApproveOrCorrect" />
+    <bpmn:sequenceFlow id="SF9" name="Approved" sourceRef="Gateway_ApproveOrCorrect" targetRef="Task_ApproveJobDescription">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">jobDescriptionApproved == true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SF10" name="Corrections needed" sourceRef="Gateway_ApproveOrCorrect" targetRef="Task_RequestCorrections">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">jobDescriptionApproved == false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SF11" sourceRef="Task_ApproveJobDescription" targetRef="EndEvent_Head" />
+    <bpmn:sequenceFlow id="SF12" sourceRef="Task_RequestCorrections" targetRef="Gateway_WaitHead" />
+  </bpmn:process>
+
+  <bpmn:process id="Process_HR" name="Personnel Department" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_HR" name="Vacancy report received">
+      <bpmn:outgoing>SF_HR1</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_VacancyReport" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_AnalyzeRequirement" name="Analyze personnel requirement">
+      <bpmn:incoming>SF_HR1</bpmn:incoming>
+      <bpmn:outgoing>SF_HR2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_NeedClarification" name="Questions about tasks/requirements?">
+      <bpmn:incoming>SF_HR2</bpmn:incoming>
+      <bpmn:outgoing>SF_HR3</bpmn:outgoing>
+      <bpmn:outgoing>SF_HR4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sendTask id="Task_AskClarification" name="Ask clarification question" messageRef="Message_ClarificationQuestion">
+      <bpmn:incoming>SF_HR3</bpmn:incoming>
+      <bpmn:outgoing>SF_HR5</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:receiveTask id="Task_GetClarificationAnswer" name="Receive clarification answer" messageRef="Message_ClarificationAnswer">
+      <bpmn:incoming>SF_HR5</bpmn:incoming>
+      <bpmn:outgoing>SF_HR6</bpmn:outgoing>
+    </bpmn:receiveTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MergeHR" name="Merge">
+      <bpmn:incoming>SF_HR4</bpmn:incoming>
+      <bpmn:incoming>SF_HR6</bpmn:incoming>
+      <bpmn:outgoing>SF_HR7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CreateJobDescription" name="Create job description">
+      <bpmn:incoming>SF_HR7</bpmn:incoming>
+      <bpmn:outgoing>SF_HR8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sendTask id="Task_SendJobDescription" name="Send job description for review" messageRef="Message_JobDescription">
+      <bpmn:incoming>SF_HR8</bpmn:incoming>
+      <bpmn:incoming>SF_HR13</bpmn:incoming>
+      <bpmn:outgoing>SF_HR9</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:eventBasedGateway id="Gateway_WaitHR" name="Wait for Head's decision">
+      <bpmn:incoming>SF_HR9</bpmn:incoming>
+      <bpmn:outgoing>SF_HR10</bpmn:outgoing>
+      <bpmn:outgoing>SF_HR11</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_CorrectionRequest" name="Correction request received">
+      <bpmn:incoming>SF_HR10</bpmn:incoming>
+      <bpmn:outgoing>SF_HR12</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_CorrectionRequest" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="Event_Approval" name="Approval received">
+      <bpmn:incoming>SF_HR11</bpmn:incoming>
+      <bpmn:outgoing>SF_HR14</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_Approval" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_ReviseJobDescription" name="Revise job description">
+      <bpmn:incoming>SF_HR12</bpmn:incoming>
+      <bpmn:outgoing>SF_HR13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_HR" name="Job description advertized">
+      <bpmn:incoming>SF_HR14</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF_HR1" sourceRef="StartEvent_HR" targetRef="Task_AnalyzeRequirement" />
+    <bpmn:sequenceFlow id="SF_HR2" sourceRef="Task_AnalyzeRequirement" targetRef="Gateway_NeedClarification" />
+    <bpmn:sequenceFlow id="SF_HR3" name="Yes" sourceRef="Gateway_NeedClarification" targetRef="Task_AskClarification">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">clarificationNeeded == true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SF_HR4" name="No" sourceRef="Gateway_NeedClarification" targetRef="Gateway_MergeHR">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">clarificationNeeded == false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SF_HR5" sourceRef="Task_AskClarification" targetRef="Task_GetClarificationAnswer" />
+    <bpmn:sequenceFlow id="SF_HR6" sourceRef="Task_GetClarificationAnswer" targetRef="Gateway_MergeHR" />
+    <bpmn:sequenceFlow id="SF_HR7" sourceRef="Gateway_MergeHR" targetRef="Task_CreateJobDescription" />
+    <bpmn:sequenceFlow id="SF_HR8" sourceRef="Task_CreateJobDescription" targetRef="Task_SendJobDescription" />
+    <bpmn:sequenceFlow id="SF_HR9" sourceRef="Task_SendJobDescription" targetRef="Gateway_WaitHR" />
+    <bpmn:sequenceFlow id="SF_HR10" sourceRef="Gateway_WaitHR" targetRef="Event_CorrectionRequest" />
+    <bpmn:sequenceFlow id="SF_HR11" sourceRef="Gateway_WaitHR" targetRef="Event_Approval" />
+    <bpmn:sequenceFlow id="SF_HR12" sourceRef="Event_CorrectionRequest" targetRef="Task_ReviseJobDescription" />
+    <bpmn:sequenceFlow id="SF_HR13" sourceRef="Task_ReviseJobDescription" targetRef="Task_SendJobDescription" />
+    <bpmn:sequenceFlow id="SF_HR14" sourceRef="Event_Approval" targetRef="EndEvent_HR" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Shape_Participant_Head" bpmnElement="Participant_Head" isHorizontal="true">
+        <dc:Bounds x="0" y="0" width="980" height="420" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Participant_HR" bpmnElement="Participant_HR" isHorizontal="true">
+        <dc:Bounds x="0" y="450" width="1350" height="420" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id

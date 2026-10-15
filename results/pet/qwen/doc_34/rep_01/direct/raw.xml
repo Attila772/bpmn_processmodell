@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_ExpenseProcess" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="ExpenseReportProcess" name="Expense Report Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_Received" name="Expense Report Received">
+      <bpmn:outgoing>Flow_ReceiveToCheck</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_CheckAccount" name="Employee Has Account?">
+      <bpmn:incoming>Flow_ReceiveToCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoAccount</bpmn:outgoing>
+      <bpmn:outgoing>Flow_HasAccount</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_CreateAccount" name="Create New Account">
+      <bpmn:incoming>Flow_NoAccount</bpmn:incoming>
+      <bpmn:outgoing>Flow_AccountCreated</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_CheckAmount" name="Check Amount">
+      <bpmn:incoming>Flow_AccountCreated</bpmn:incoming>
+      <bpmn:incoming>Flow_HasAccount</bpmn:incoming>
+      <bpmn:outgoing>Flow_AutoApprove</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SupervisorApproval</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_AutoApprove" name="Automatic Approval">
+      <bpmn:incoming>Flow_AutoApprove</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToReimburse</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="Task_SupervisorApproval" name="Supervisor Approval">
+      <bpmn:incoming>Flow_SupervisorApproval</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:intermediateCatchEvent id="Timer_7Days" name="7 Days Elapsed">
+      <bpmn:incoming>Flow_SupervisorApproval</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendProgressEmail</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration>PT7D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_SendProgressEmail" name="Send 'Approval in Progress' Email">
+      <bpmn:incoming>Flow_SendProgressEmail</bpmn:incoming>
+      <bpmn:outgoing>Flow_BackToApproval</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Timer_30Days" name="30 Days Elapsed">
+      <bpmn:incoming>Flow_SupervisorApproval</bpmn:incoming>
+      <bpmn:outgoing>Flow_CancelProcess</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration>PT30D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_SendCancellationEmail" name="Send Cancellation Notice Email">
+      <bpmn:incoming>Flow_CancelProcess</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndCancelled</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Cancelled" name="Process Cancelled">
+      <bpmn:incoming>Flow_EndCancelled</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_SendRejectionEmail" name="Send Rejection Notice Email">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndRejected</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Rejected">
+      <bpmn:incoming>Flow_EndRejected</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_ProcessReimbursement" name="Process Direct Deposit Reimbursement">
+      <bpmn:incoming>Flow_ToReimburse</bpmn:incoming>
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndCompleted</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Completed" name="Reimbursement Completed">
+      <bpmn:incoming>Flow_EndCompleted</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ReceiveToCheck" sourceRef="StartEvent_Received" targetRef="Gateway_CheckAccount" />
+    <bpmn:sequenceFlow id="Flow_NoAccount" name="No" sourceRef="Gateway_CheckAccount" targetRef="Task_CreateAccount">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${!hasAccount}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_HasAccount" name="Yes" sourceRef="Gateway_CheckAccount" targetRef="Gateway_CheckAmount">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${hasAccount}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AccountCreated" sourceRef="Task_CreateAccount" targetRef="Gateway_CheckAmount" />
+    <bpmn:sequenceFlow id="Flow_AutoApprove" name="&lt; $200" sourceRef="Gateway_CheckAmount" targetRef="Task_AutoApprove">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${amount &lt; 200}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SupervisorApproval" name="&gt;= $200" sourceRef="Gateway_CheckAmount" targetRef="Task_SupervisorApproval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${amount &gt;= 200}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ToReimburse" sourceRef="Task_AutoApprove" targetRef="Task_ProcessReimbursement" />
+    <bpmn:sequenceFlow id="Flow_Approved" name="Approved" sourceRef="Task_SupervisorApproval" targetRef="Task_ProcessReimbursement">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${decision == 'approved'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Rejected" name="Rejected" sourceRef="Task_SupervisorApproval" targetRef="Task_SendRejectionEmail">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${decision == 'rejected'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SendProgressEmail" sourceRef="Timer_7Days" targetRef="Task_SendProgressEmail" />
+    <bpmn:sequenceFlow id="Flow_BackToApproval" sourceRef="Task_SendProgressEmail" targetRef="Task_SupervisorApproval" />
+    <bpmn:sequenceFlow id="Flow_CancelProcess" sourceRef="Timer_30Days" targetRef="Task_SendCancellationEmail" />
+    <bpmn:sequenceFlow id="Flow_EndCancelled" sourceRef="Task_SendCancellationEmail" targetRef="EndEvent_Cancelled" />
+    <bpmn:sequenceFlow id="Flow_EndRejected" sourceRef="Task_SendRejectionEmail" targetRef="EndEvent_Rejected" />
+    <bpmn:sequenceFlow id="Flow_EndCompleted" sourceRef="Task_ProcessReimbursement" targetRef="EndEvent_Completed" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ExpenseReportProcess">
+      <bpmndi:BPMNShape id="StartEvent_Received_di" bpmnElement="StartEvent_Received">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CheckAccount_di" bpmnElement="Gateway_CheckAccount" isMarkerVisible="true">
+        <dc:Bounds x="231" y="90" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="231" y="145" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CreateAccount_di" bpmnElement="Task_CreateAccount">
+        <dc:Bounds x="320" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CheckAmount_di" bpmnElement="Gateway_CheckAmount" isMarkerVisible="true">
+        <dc:Bounds x="451" y="90" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="451" y="145" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AutoApprove_di" bpmnElement="Task_AutoApprove">
+        <dc:Bounds x="560" y="50" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SupervisorApproval_di" bpmnElement="Task_SupervisorApproval">
+        <dc:Bounds x="560" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Timer_7Days_di" bpmnElement="Timer_7Days">
+        <dc:Bounds x="712" y="162" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendProgressEmail_di" bpmnElement="Task_SendProgressEmail">
+        <dc:Bounds x="790" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Timer_30Days_di" bpmnElement="Timer_30Days">
+        <dc:Bounds x="712" y="242" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendCancellationEmail_di" bpmnElement="Task_SendCancellationEmail">
+        <dc:Bounds x="790" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Cancelled_di" bpmnElement="EndEvent_Cancelled">
+        <dc:Bounds x="932" y="242" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendRejectionEmail_di" bpmnElement="Task_SendRejectionEmail">
+        <dc:Bounds x="710" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="852" y="302" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ProcessReimbursement_di" bpmnElement="Task_ProcessReimbursement">
+        <dc:Bounds x="710" y="50" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Completed_di" bpmnElement="EndEvent_Completed">
+        <dc:Bounds x="852" y="62" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_ReceiveToCheck_di" bpmnElement="Flow_ReceiveToCheck">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="231" y="115" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NoAccount_di" bpmnElement="Flow_NoAccount">
+        <di:waypoint x="256" y="140" />
+        <di:waypoint x="370" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_HasAccount_di" bpmnElement="Flow_HasAccount">
+        <di:waypoint x="281" y="115" />
+        <di:waypoint x="451" y="115" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AccountCreated_di" bpmnElement="Flow_AccountCreated">
+        <di:waypoint x="420" y="190" />
+        <di:waypoint x="476" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AutoApprove_di" bpmnElement="Flow_AutoApprove">
+        <di:waypoint x="476" y="90" />
+        <di:waypoint x="610" y="90" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SupervisorApproval_di" bpmnElement="Flow_SupervisorApproval">
+        <di:waypoint x="501" y="115" />
+        <di:waypoint x="560" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToReimburse_di" bpmnElement="Flow_ToReimburse">
+        <di:waypoint x="660" y="90" />
+        <di:waypoint x="760" y="90" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="660" y="190" />
+        <di:waypoint x="760" y="130" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="610" y="230" />
+        <di:waypoint x="760" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SendProgressEmail_di" bpmnElement="Flow_SendProgressEmail">
+        <di:waypoint x="748" y="180" />
+        <di:waypoint x="790" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BackToApproval_di" bpmnElement="Flow_BackToApproval">
+        <di:waypoint x="890" y="190" />
+        <di:waypoint x="660" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CancelProcess_di" bpmnElement="Flow_CancelProcess">
+        <di:waypoint x="748" y="260" />
+        <di:waypoint x="790" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EndCancelled_di" bpmnElement="Flow_EndCancelled">
+        <di:waypoint x="890" y="270" />
+        <di:waypoint x="932" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EndRejected_di" bpmnElement="Flow_EndRejected">
+        <di:waypoint x="810" y="330" />
+        <di:waypoint x="852" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EndCompleted_di" bpmnElement="Flow_EndCompleted">
+        <di:waypoint x="810" y="90" />
+        <di:waypoint x="852" y="80" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

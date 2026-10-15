@@ -1,0 +1,506 @@
+{
+  "name": "Account Defaulter Processing Process",
+  "resources": [
+    {
+      "name": "Database System",
+      "capacity": 1,
+      "resource_type": "system"
+    },
+    {
+      "name": "CRM System",
+      "capacity": 1,
+      "resource_type": "system"
+    },
+    {
+      "name": "Supervisor",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start",
+      "name": "Start of Workday",
+      "event_position": "start",
+      "trigger_type": "timer",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_normal",
+      "name": "Process Completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_alert_230",
+      "name": "Send Alert to Supervisor (2:30 PM Deadline Missed)",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Alert: Registration Phase Delay"
+    },
+    {
+      "id": "evt_msg_supervisor_400",
+      "name": "Send Message to Supervisor (4:00 PM Deadline Missed)",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Message: Reconciliation Phase Delay"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_backup_db",
+      "name": "Backup Database",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Database System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_check_defaulter_table",
+      "name": "Check Account Defaulter Table for New Records",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Database System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_defaulter_table"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_check_crm_returns_initial",
+      "name": "Check CRM for New Returns (Initial Check)",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "CRM System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_crm_system"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_register_defaulters",
+      "name": "Register Defaulting Accounts and Customers",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Database System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_crm_system"
+      ],
+      "output_data_ids": [
+        "data_defaulter_table"
+      ]
+    },
+    {
+      "id": "task_check_advised_status",
+      "name": "Check if Client Codes Previously Advised",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Database System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_defaulter_table"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_produce_send_table",
+      "name": "Produce Table of Defaulting Accounts and Send to Account Management",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Database System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_defaulter_table"
+      ],
+      "output_data_ids": [
+        "data_defaulting_account_report"
+      ]
+    },
+    {
+      "id": "task_check_crm_returns_reconcile",
+      "name": "Check CRM for New Returns (Reconciliation Check)",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "CRM System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_crm_system"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_reconcile_accounts",
+      "name": "Reconcile with Existing Account Defaulters Table",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Database System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_crm_system",
+        "data_defaulter_table"
+      ],
+      "output_data_ids": [
+        "data_defaulter_table"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_new_records",
+      "name": "New Records in Defaulter Table?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_no_new_records",
+          "condition": "No new records found"
+        },
+        {
+          "flow_id": "flow_has_new_records",
+          "condition": "New records found"
+        }
+      ]
+    },
+    {
+      "id": "gw_new_returns_initial",
+      "name": "New Returns Filed (Initial)?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_no_new_returns_initial",
+          "condition": "No new returns"
+        },
+        {
+          "flow_id": "flow_has_new_returns_initial",
+          "condition": "New returns exist"
+        }
+      ]
+    },
+    {
+      "id": "gw_previously_advised",
+      "name": "Client Codes Previously Advised?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_already_advised",
+          "condition": "Yes, previously advised"
+        },
+        {
+          "flow_id": "flow_not_advised",
+          "condition": "No, not previously advised"
+        }
+      ]
+    },
+    {
+      "id": "gw_deadline_230",
+      "name": "Completed by 2:30 PM?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_on_time_230",
+          "condition": "Yes, completed on time"
+        },
+        {
+          "flow_id": "flow_late_230",
+          "condition": "No, deadline missed"
+        }
+      ]
+    },
+    {
+      "id": "gw_new_returns_reconcile",
+      "name": "New Returns Filed (Reconciliation)?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_no_new_returns_reconcile",
+          "condition": "No new returns"
+        },
+        {
+          "flow_id": "flow_has_new_returns_reconcile",
+          "condition": "New returns filed"
+        }
+      ]
+    },
+    {
+      "id": "gw_deadline_400",
+      "name": "Completed by 4:00 PM?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_on_time_400",
+          "condition": "Yes, completed on time"
+        },
+        {
+          "flow_id": "flow_late_400",
+          "condition": "No, deadline missed"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_to_backup",
+      "source_id": "evt_start",
+      "target_id": "task_backup_db",
+      "condition_name": null
+    },
+    {
+      "id": "flow_backup_to_check_defaulter",
+      "source_id": "task_backup_db",
+      "target_id": "task_check_defaulter_table",
+      "condition_name": null
+    },
+    {
+      "id": "flow_check_defaulter_to_gw_new_records",
+      "source_id": "task_check_defaulter_table",
+      "target_id": "gw_new_records",
+      "condition_name": null
+    },
+    {
+      "id": "flow_no_new_records",
+      "source_id": "gw_new_records",
+      "target_id": "task_check_crm_returns_initial",
+      "condition_name": "No new records found"
+    },
+    {
+      "id": "flow_has_new_records",
+      "source_id": "gw_new_records",
+      "target_id": "task_register_defaulters",
+      "condition_name": "New records found"
+    },
+    {
+      "id": "flow_check_crm_initial_to_gw_returns",
+      "source_id": "task_check_crm_returns_initial",
+      "target_id": "gw_new_returns_initial",
+      "condition_name": null
+    },
+    {
+      "id": "flow_no_new_returns_initial",
+      "source_id": "gw_new_returns_initial",
+      "target_id": "gw_deadline_230",
+      "condition_name": "No new returns"
+    },
+    {
+      "id": "flow_has_new_returns_initial",
+      "source_id": "gw_new_returns_initial",
+      "target_id": "task_register_defaulters",
+      "condition_name": "New returns exist"
+    },
+    {
+      "id": "flow_register_to_check_advised",
+      "source_id": "task_register_defaulters",
+      "target_id": "task_check_advised_status",
+      "condition_name": null
+    },
+    {
+      "id": "flow_check_advised_to_gw_advised",
+      "source_id": "task_check_advised_status",
+      "target_id": "gw_previously_advised",
+      "condition_name": null
+    },
+    {
+      "id": "flow_already_advised",
+      "source_id": "gw_previously_advised",
+      "target_id": "gw_deadline_230",
+      "condition_name": "Yes, previously advised"
+    },
+    {
+      "id": "flow_not_advised",
+      "source_id": "gw_previously_advised",
+      "target_id": "task_produce_send_table",
+      "condition_name": "No, not previously advised"
+    },
+    {
+      "id": "flow_produce_table_to_gw_230",
+      "source_id": "task_produce_send_table",
+      "target_id": "gw_deadline_230",
+      "condition_name": null
+    },
+    {
+      "id": "flow_on_time_230",
+      "source_id": "gw_deadline_230",
+      "target_id": "task_check_crm_returns_reconcile",
+      "condition_name": "Yes, completed on time"
+    },
+    {
+      "id": "flow_late_230",
+      "source_id": "gw_deadline_230",
+      "target_id": "evt_alert_230",
+      "condition_name": "No, deadline missed"
+    },
+    {
+      "id": "flow_alert_230_to_check_reconcile",
+      "source_id": "evt_alert_230",
+      "target_id": "task_check_crm_returns_reconcile",
+      "condition_name": null
+    },
+    {
+      "id": "flow_check_reconcile_to_gw_returns_reconcile",
+      "source_id": "task_check_crm_returns_reconcile",
+      "target_id": "gw_new_returns_reconcile",
+      "condition_name": null
+    },
+    {
+      "id": "flow_no_new_returns_reconcile",
+      "source_id": "gw_new_returns_reconcile",
+      "target_id": "gw_deadline_400",
+      "condition_name": "No new returns"
+    },
+    {
+      "id": "flow_has_new_returns_reconcile",
+      "source_id": "gw_new_returns_reconcile",
+      "target_id": "task_reconcile_accounts",
+      "condition_name": "New returns filed"
+    },
+    {
+      "id": "flow_reconcile_to_gw_400",
+      "source_id": "task_reconcile_accounts",
+      "target_id": "gw_deadline_400",
+      "condition_name": null
+    },
+    {
+      "id": "flow_on_time_400",
+      "source_id": "gw_deadline_400",
+      "target_id": "evt_end_normal",
+      "condition_name": "Yes, completed on time"
+    },
+    {
+      "id": "flow_late_400",
+      "source_id": "gw_deadline_400",
+      "target_id": "evt_msg_supervisor_400",
+      "condition_name": "No, deadline missed"
+    },
+    {
+      "id": "flow_msg_400_to_end",
+      "source_id": "evt_msg_supervisor_400",
+      "target_id": "evt_end_normal",
+      "condition_name": null
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [
+    {
+      "id": "data_defaulter_table",
+      "name": "Account Defaulter Table"
+    },
+    {
+      "id": "data_defaulting_account_report",
+      "name": "Defaulting Account Report / Table"
+    }
+  ],
+  "data_stores": [
+    {
+      "id": "data_crm_system",
+      "name": "CRM System"
+    },
+    {
+      "id": "data_database",
+      "name": "Database"
+    }
+  ],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="data_loan_request" name="Customer Loan Request" dataObjectRef="data_loan_request_do" />
+    <bpmn:dataObject id="data_loan_request_do" />
+    <bpmn:dataObjectReference id="data_risk_assessment_result" name="Risk Assessment Result" dataObjectRef="data_risk_assessment_result_do" />
+    <bpmn:dataObject id="data_risk_assessment_result_do" />
+    <bpmn:dataObjectReference id="data_approval_decision" name="Approver Decision" dataObjectRef="data_approval_decision_do" />
+    <bpmn:dataObject id="data_approval_decision_do" />
+    <bpmn:startEvent id="event_start" name="Customer loan request received">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end_approved" name="Loan Approved Feedback Sent">
+      <bpmn:incoming>flow_to_approved</bpmn:incoming>
+      <bpmn:incoming>flow_approver_approved</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_end_approved_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_denied" name="Loan Denied Feedback Sent">
+      <bpmn:incoming>flow_to_denied</bpmn:incoming>
+      <bpmn:incoming>flow_approver_denied</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_end_denied_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_assess_risk" name="Assess loan request via risk assessment Web service">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:property id="task_assess_risk_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_assess_risk_dia0">
+        <bpmn:sourceRef>data_loan_request</bpmn:sourceRef>
+        <bpmn:targetRef>task_assess_risk_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_assess_risk_doa0">
+        <bpmn:targetRef>data_risk_assessment_result</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_approver_review" name="Review request via approver Web service">
+      <bpmn:incoming>flow_to_approver</bpmn:incoming>
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:property id="task_approver_review_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_approver_review_dia0">
+        <bpmn:sourceRef>data_loan_request</bpmn:sourceRef>
+        <bpmn:targetRef>task_approver_review_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_approver_review_dia1">
+        <bpmn:sourceRef>data_risk_assessment_result</bpmn:sourceRef>
+        <bpmn:targetRef>task_approver_review_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_approver_review_doa0">
+        <bpmn:targetRef>data_approval_decision</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gateway_assessment_decision" name="Evaluate Risk and Loan Amount" isMarkerVisible="true">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:outgoing>flow_to_approved</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_denied</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_approver</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gateway_approval_outcome" name="Evaluate Approver Decision" isMarkerVisible="true">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:outgoing>flow_approver_approved</bpmn:outgoing>
+      <bpmn:outgoing>flow_approver_denied</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="event_start" targetRef="task_assess_risk" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_assess_risk" targetRef="gateway_assessment_decision" />
+    <bpmn:sequenceFlow id="flow_to_approved" sourceRef="gateway_assessment_decision" targetRef="event_end_approved" name="Small loan AND Low risk" />
+    <bpmn:sequenceFlow id="flow_to_denied" sourceRef="gateway_assessment_decision" targetRef="event_end_denied" name="High risk" />
+    <bpmn:sequenceFlow id="flow_to_approver" sourceRef="gateway_assessment_decision" targetRef="task_approver_review" name="Further review needed OR Amount &gt;= $10,000" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="task_approver_review" targetRef="gateway_approval_outcome" />
+    <bpmn:sequenceFlow id="flow_approver_approved" sourceRef="gateway_approval_outcome" targetRef="event_end_approved" name="Approved" />
+    <bpmn:sequenceFlow id="flow_approver_denied" sourceRef="gateway_approval_outcome" targetRef="event_end_denied" name="Denied" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="event_end_approved_di" bpmnElement="event_end_approved">
+        <dc:Bounds x="1110" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_denied_di" bpmnElement="event_end_denied">
+        <dc:Bounds x="1110" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_di" bpmnElement="event_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_approval_outcome_di" bpmnElement="gateway_approval_outcome">
+        <dc:Bounds x="920" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_assessment_decision_di" bpmnElement="gateway_assessment_decision">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_approver_review_di" bpmnElement="task_approver_review">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assess_risk_di" bpmnElement="task_assess_risk">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_loan_request_di" bpmnElement="data_loan_request">
+        <dc:Bounds x="560" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_risk_assessment_result_di" bpmnElement="data_risk_assessment_result">
+        <dc:Bounds x="560" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_approval_decision_di" bpmnElement="data_approval_decision">
+        <dc:Bounds x="750" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_approved_di" bpmnElement="flow_to_approved">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_denied_di" bpmnElement="flow_to_denied">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="1128" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_approver_di" bpmnElement="flow_to_approver">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_approver_approved_di" bpmnElement="flow_approver_approved">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_approver_denied_di" bpmnElement="flow_approver_denied">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1128" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_assess_risk_dia0_di" bpmnElement="task_assess_risk_dia0">
+        <di:waypoint x="578" y="390" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_assess_risk_doa0_di" bpmnElement="task_assess_risk_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="578" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_approver_review_dia0_di" bpmnElement="task_approver_review_dia0">
+        <di:waypoint x="578" y="390" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_approver_review_dia1_di" bpmnElement="task_approver_review_dia1">
+        <di:waypoint x="578" y="390" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_approver_review_doa0_di" bpmnElement="task_approver_review_doa0">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="768" y="390" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

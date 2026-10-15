@@ -1,0 +1,307 @@
+{
+  "name": "Job Vacancy Processing Process",
+  "resources": [
+    {
+      "name": "HR Clerk",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Department",
+      "capacity": 1,
+      "resource_type": "department"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_vacancy_reported",
+      "name": "Vacancy Reported",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Vacancy Report"
+    },
+    {
+      "id": "evt_end_job_posted",
+      "name": "Job Posted",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_msg_send_desc_for_approval",
+      "name": "Send Job Description for Approval",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Job Description for Approval"
+    },
+    {
+      "id": "evt_msg_receive_approval_decision",
+      "name": "Receive Approval Decision",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Approval Decision"
+    },
+    {
+      "id": "evt_msg_request_clarification",
+      "name": "Request Clarification from Department",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Clarification Request"
+    },
+    {
+      "id": "evt_msg_receive_clarification",
+      "name": "Receive Clarification",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Clarification Response"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_create_job_description",
+      "name": "Create Job Description",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "HR Clerk",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_job_description"
+      ]
+    },
+    {
+      "id": "task_correct_job_description",
+      "name": "Correct Job Description",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "HR Clerk",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_job_description"
+      ],
+      "output_data_ids": [
+        "data_job_description"
+      ]
+    },
+    {
+      "id": "task_post_job",
+      "name": "Post the Job",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "HR Clerk",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_job_description"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_confusion_check",
+      "name": "Is there confusion in the message?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_confusion_yes",
+          "condition": "Yes (Confusion exists)"
+        },
+        {
+          "flow_id": "flow_confusion_no",
+          "condition": "No (Clear)"
+        }
+      ]
+    },
+    {
+      "id": "gw_approval_check",
+      "name": "Is the description approved?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_approved_yes",
+          "condition": "Approved"
+        },
+        {
+          "flow_id": "flow_approved_no",
+          "condition": "Rejected/Correction requested"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_to_create",
+      "source_id": "evt_start_vacancy_reported",
+      "target_id": "task_create_job_description",
+      "condition_name": null
+    },
+    {
+      "id": "flow_create_to_confusion_check",
+      "source_id": "task_create_job_description",
+      "target_id": "gw_confusion_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_confusion_yes",
+      "source_id": "gw_confusion_check",
+      "target_id": "evt_msg_request_clarification",
+      "condition_name": "Yes"
+    },
+    {
+      "id": "flow_confusion_no",
+      "source_id": "gw_confusion_check",
+      "target_id": "evt_msg_send_desc_for_approval",
+      "condition_name": "No"
+    },
+    {
+      "id": "flow_receive_clarification_to_correct",
+      "source_id": "evt_msg_receive_clarification",
+      "target_id": "task_correct_job_description",
+      "condition_name": null
+    },
+    {
+      "id": "flow_correct_to_send_approval",
+      "source_id": "task_correct_job_description",
+      "target_id": "evt_msg_send_desc_for_approval",
+      "condition_name": null
+    },
+    {
+      "id": "flow_send_approval_to_receive_decision",
+      "source_id": "evt_msg_send_desc_for_approval",
+      "target_id": "evt_msg_receive_approval_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_receive_decision_to_approval_check",
+      "source_id": "evt_msg_receive_approval_decision",
+      "target_id": "gw_approval_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_approved_yes",
+      "source_id": "gw_approval_check",
+      "target_id": "task_post_job",
+      "condition_name": "Approved"
+    },
+    {
+      "id": "flow_approved_no",
+      "source_id": "gw_approval_check",
+      "target_id": "task_correct_job_description",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_post_job_to_end",
+      "source_id": "task_post_job",
+      "target_id": "evt_end_job_posted",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_hr",
+      "name": "HR Clerk",
+      "element_ids": [
+        "evt_start_vacancy_reported",
+        "task_create_job_description",
+        "gw_confusion_check",
+        "evt_msg_request_clarification",
+        "evt_msg_receive_clarification",
+        "task_correct_job_description",
+        "evt_msg_send_desc_for_approval",
+        "evt_msg_receive_approval_decision",
+        "gw_approval_check",
+        "task_post_job",
+        "evt_end_job_posted"
+      ]
+    },
+    {
+      "id": "pool_department",
+      "name": "Department",
+      "element_ids": []
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_vacancy_report",
+      "source_id": "pool_department",
+      "target_id": "evt_start_vacancy_reported",
+      "name": "Vacancy Report"
+    },
+    {
+      "id": "msg_flow_clarification_req",
+      "source_id": "evt_msg_request_clarification",
+      "target_id": "pool_department",
+      "name": "Clarification Request"
+    },
+    {
+      "id": "msg_flow_clarification_resp",
+      "source_id": "pool_department",
+      "target_id": "evt_msg_receive_clarification",
+      "name": "Clarification Response"
+    },
+    {
+      "id": "msg_flow_desc_submission",
+      "source_id": "evt_msg_send_desc_for_approval",
+      "target_id": "pool_department",
+      "name": "Job Description for Approval"
+    },
+    {
+      "id": "msg_flow_approval_decision",
+      "source_id": "pool_department",
+      "target_id": "evt_msg_receive_approval_decision",
+      "name": "Approval Decision"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_job_description",
+      "name": "Job Description"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

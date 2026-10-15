@@ -1,0 +1,842 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="definitions_mpo_process"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <collaboration id="collaboration_mpo">
+    <participant id="participant_go" name="Grid Operator (GO)" processRef="process_go" />
+    <participant id="participant_mpon" name="New Metering Point Operator (MPON)" processRef="process_mpon" />
+    <participant id="participant_mpoo" name="Old Metering Point Operator (MPOO)" />
+    <participant id="participant_mspo" name="Meter Service Provider (MSPO)" />
+    <participant id="participant_sp" name="Supplier (SP)" />
+
+    <messageFlow id="mf_report_meter_op" name="Report Meter Operation" sourceRef="task_mpon_report_op" targetRef="start_go_report_rec" />
+    <messageFlow id="mf_app_rejected" name="Application Rejected" sourceRef="task_go_reject" targetRef="event_mpon_app_rejected" />
+    <messageFlow id="mf_confirm_reg_mpon" name="Registration Confirmation" sourceRef="task_go_confirm_app" targetRef="event_mpon_reg_confirmed" />
+    <messageFlow id="mf_confirm_reg_mpoo" name="Registration Confirmation" sourceRef="task_go_inform_mpoo_reg" targetRef="participant_mpoo" />
+    <messageFlow id="mf_confirm_reg_mspo" name="Registration Confirmation" sourceRef="task_go_inform_mspo_reg" targetRef="participant_mspo" />
+    
+    <messageFlow id="mf_report_failure" name="Process Failure" sourceRef="task_mpon_report_failure" targetRef="event_go_failure_rec" />
+    <messageFlow id="mf_report_success" name="Process Completion" sourceRef="task_mpon_report_success" targetRef="event_go_success_rec" />
+    
+    <messageFlow id="mf_timeout_failure" name="Transaction Failure by Deadline" sourceRef="task_go_inform_timeout" targetRef="event_mpon_timeout" />
+    <messageFlow id="mf_confirm_fail_mpon" name="Confirmation of Failure" sourceRef="task_go_confirm_failure" targetRef="event_mpon_failure_confirmed" />
+    <messageFlow id="mf_inform_fail_mpoo" name="Assignment Failure" sourceRef="task_go_inform_mpoo_fail" targetRef="participant_mpoo" />
+    <messageFlow id="mf_inform_fail_mspo" name="Assignment Failure" sourceRef="task_go_inform_mspo_fail" targetRef="participant_mspo" />
+    
+    <messageFlow id="mf_confirm_assign_mpon" name="Assignment Confirmation" sourceRef="task_go_confirm_assign" targetRef="event_mpon_assign_confirmed" />
+    <messageFlow id="mf_inform_assign_mpoo" name="Assignment Notification" sourceRef="task_go_inform_mpoo_assign" targetRef="participant_mpoo" />
+    <messageFlow id="mf_inform_assign_mspo" name="Assignment Notification" sourceRef="task_go_inform_mspo_assign" targetRef="participant_mspo" />
+    <messageFlow id="mf_inform_assign_sp" name="Assignment Notification" sourceRef="task_go_inform_sp_assign" targetRef="participant_sp" />
+  </collaboration>
+
+  <process id="process_go" name="Grid Operator Process" isExecutable="true">
+    <startEvent id="start_go_report_rec" name="Meter Operation Report Received">
+      <outgoing>seq_go_1</outgoing>
+      <messageEventDefinition id="med_start_go" />
+    </startEvent>
+
+    <task id="task_go_examine" name="Examine Application of MPON">
+      <incoming>seq_go_1</incoming>
+      <outgoing>seq_go_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_go_exam_decision" name="Application Approved?">
+      <incoming>seq_go_2</incoming>
+      <outgoing>seq_go_rejected</outgoing>
+      <outgoing>seq_go_approved</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_go_reject" name="Reject Application of MPON">
+      <incoming>seq_go_rejected</incoming>
+      <outgoing>seq_go_to_end_reject</outgoing>
+    </task>
+
+    <endEvent id="end_go_rejected" name="Application Rejected">
+      <incoming>seq_go_to_end_reject</incoming>
+    </endEvent>
+
+    <task id="task_go_confirm_app" name="Confirm Application of MPON">
+      <incoming>seq_go_approved</incoming>
+      <outgoing>seq_go_3</outgoing>
+    </task>
+
+    <task id="task_go_inform_mpoo_reg" name="Inform MPOO about Registration Confirmation">
+      <incoming>seq_go_3</incoming>
+      <outgoing>seq_go_4</outgoing>
+    </task>
+
+    <task id="task_go_inform_mspo_reg" name="Inform MSPO about Registration Confirmation">
+      <incoming>seq_go_4</incoming>
+      <outgoing>seq_go_5</outgoing>
+    </task>
+
+    <eventBasedGateway id="gw_go_await_completion" name="Await MPON Response">
+      <incoming>seq_go_5</incoming>
+      <outgoing>seq_go_to_timer</outgoing>
+      <outgoing>seq_go_to_fail_rec</outgoing>
+      <outgoing>seq_go_to_succ_rec</outgoing>
+    </eventBasedGateway>
+
+    <!-- Branch 1: Timeout -->
+    <intermediateCatchEvent id="event_go_timer" name="Maximum Time Limit Exceeded">
+      <incoming>seq_go_to_timer</incoming>
+      <outgoing>seq_go_timer_out</outgoing>
+      <timerEventDefinition id="ted_go_timer" />
+    </intermediateCatchEvent>
+
+    <task id="task_go_inform_timeout" name="Inform MPON about Failure by Deadline">
+      <incoming>seq_go_timer_out</incoming>
+      <outgoing>seq_go_timeout_end</outgoing>
+    </task>
+
+    <endEvent id="end_go_timeout" name="Failed by Deadline">
+      <incoming>seq_go_timeout_end</incoming>
+    </endEvent>
+
+    <!-- Branch 2: Process Failure Reported -->
+    <intermediateCatchEvent id="event_go_failure_rec" name="Failure Message Received">
+      <incoming>seq_go_to_fail_rec</incoming>
+      <outgoing>seq_go_fail_rec_out</outgoing>
+      <messageEventDefinition id="med_go_fail" />
+    </intermediateCatchEvent>
+
+    <task id="task_go_confirm_failure" name="Confirm Failure of Assignment to MPON">
+      <incoming>seq_go_fail_rec_out</incoming>
+      <outgoing>seq_go_6</outgoing>
+    </task>
+
+    <task id="task_go_inform_mpoo_fail" name="Inform MPOO about Failure of Assignment">
+      <incoming>seq_go_6</incoming>
+      <outgoing>seq_go_7</outgoing>
+    </task>
+
+    <task id="task_go_inform_mspo_fail" name="Inform MSPO about Failure of Assignment">
+      <incoming>seq_go_7</incoming>
+      <outgoing>seq_go_fail_end</outgoing>
+    </task>
+
+    <endEvent id="end_go_failed" name="Process Terminated with Failure">
+      <incoming>seq_go_fail_end</incoming>
+    </endEvent>
+
+    <!-- Branch 3: Process Success Reported -->
+    <intermediateCatchEvent id="event_go_success_rec" name="Success Message Received">
+      <incoming>seq_go_to_succ_rec</incoming>
+      <outgoing>seq_go_succ_rec_out</outgoing>
+      <messageEventDefinition id="med_go_succ" />
+    </intermediateCatchEvent>
+
+    <task id="task_go_assign_mpon" name="Assign MPON">
+      <incoming>seq_go_succ_rec_out</incoming>
+      <outgoing>seq_go_8</outgoing>
+    </task>
+
+    <task id="task_go_confirm_assign" name="Confirm Assignment to MPON">
+      <incoming>seq_go_8</incoming>
+      <outgoing>seq_go_9</outgoing>
+    </task>
+
+    <task id="task_go_inform_mpoo_assign" name="Inform MPOO about Assignment of MPON">
+      <incoming>seq_go_9</incoming>
+      <outgoing>seq_go_10</outgoing>
+    </task>
+
+    <task id="task_go_inform_mspo_assign" name="Inform MSPO about Assignment of MPON">
+      <incoming>seq_go_10</incoming>
+      <outgoing>seq_go_11</outgoing>
+    </task>
+
+    <task id="task_go_inform_sp_assign" name="Inform SP about Assignment of MPON">
+      <incoming>seq_go_11</incoming>
+      <outgoing>seq_go_succ_end</outgoing>
+    </task>
+
+    <endEvent id="end_go_assigned" name="MPON Successfully Assigned">
+      <incoming>seq_go_succ_end</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows GO -->
+    <sequenceFlow id="seq_go_1" sourceRef="start_go_report_rec" targetRef="task_go_examine" />
+    <sequenceFlow id="seq_go_2" sourceRef="task_go_examine" targetRef="gw_go_exam_decision" />
+    <sequenceFlow id="seq_go_rejected" name="No" sourceRef="gw_go_exam_decision" targetRef="task_go_reject" />
+    <sequenceFlow id="seq_go_approved" name="Yes" sourceRef="gw_go_exam_decision" targetRef="task_go_confirm_app" />
+    <sequenceFlow id="seq_go_to_end_reject" sourceRef="task_go_reject" targetRef="end_go_rejected" />
+    <sequenceFlow id="seq_go_3" sourceRef="task_go_confirm_app" targetRef="task_go_inform_mpoo_reg" />
+    <sequenceFlow id="seq_go_4" sourceRef="task_go_inform_mpoo_reg" targetRef="task_go_inform_mspo_reg" />
+    <sequenceFlow id="seq_go_5" sourceRef="task_go_inform_mspo_reg" targetRef="gw_go_await_completion" />
+    <sequenceFlow id="seq_go_to_timer" sourceRef="gw_go_await_completion" targetRef="event_go_timer" />
+    <sequenceFlow id="seq_go_to_fail_rec" sourceRef="gw_go_await_completion" targetRef="event_go_failure_rec" />
+    <sequenceFlow id="seq_go_to_succ_rec" sourceRef="gw_go_await_completion" targetRef="event_go_success_rec" />
+    <sequenceFlow id="seq_go_timer_out" sourceRef="event_go_timer" targetRef="task_go_inform_timeout" />
+    <sequenceFlow id="seq_go_timeout_end" sourceRef="task_go_inform_timeout" targetRef="end_go_timeout" />
+    <sequenceFlow id="seq_go_fail_rec_out" sourceRef="event_go_failure_rec" targetRef="task_go_confirm_failure" />
+    <sequenceFlow id="seq_go_6" sourceRef="task_go_confirm_failure" targetRef="task_go_inform_mpoo_fail" />
+    <sequenceFlow id="seq_go_7" sourceRef="task_go_inform_mpoo_fail" targetRef="task_go_inform_mspo_fail" />
+    <sequenceFlow id="seq_go_fail_end" sourceRef="task_go_inform_mspo_fail" targetRef="end_go_failed" />
+    <sequenceFlow id="seq_go_succ_rec_out" sourceRef="event_go_success_rec" targetRef="task_go_assign_mpon" />
+    <sequenceFlow id="seq_go_8" sourceRef="task_go_assign_mpon" targetRef="task_go_confirm_assign" />
+    <sequenceFlow id="seq_go_9" sourceRef="task_go_confirm_assign" targetRef="task_go_inform_mpoo_assign" />
+    <sequenceFlow id="seq_go_10" sourceRef="task_go_inform_mpoo_assign" targetRef="task_go_inform_mspo_assign" />
+    <sequenceFlow id="seq_go_11" sourceRef="task_go_inform_mspo_assign" targetRef="task_go_inform_sp_assign" />
+    <sequenceFlow id="seq_go_succ_end" sourceRef="task_go_inform_sp_assign" targetRef="end_go_assigned" />
+  </process>
+
+  <process id="process_mpon" name="New Metering Point Operator Process" isExecutable="true">
+    <startEvent id="start_mpon" name="Process Started">
+      <outgoing>seq_mpon_1</outgoing>
+    </startEvent>
+
+    <task id="task_mpon_report_op" name="Report Meter Operation to GO">
+      <incoming>seq_mpon_1</incoming>
+      <outgoing>seq_mpon_2</outgoing>
+    </task>
+
+    <eventBasedGateway id="gw_mpon_await_reg" name="Await Registration Response">
+      <incoming>seq_mpon_2</incoming>
+      <outgoing>seq_mpon_to_rejected</outgoing>
+      <outgoing>seq_mpon_to_confirmed</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="event_mpon_app_rejected" name="Application Rejected">
+      <incoming>seq_mpon_to_rejected</incoming>
+      <outgoing>seq_mpon_rej_out</outgoing>
+      <messageEventDefinition id="med_mpon_rej" />
+    </intermediateCatchEvent>
+
+    <endEvent id="end_mpon_rejected" name="Application Rejected">
+      <incoming>seq_mpon_rej_out</incoming>
+    </endEvent>
+
+    <intermediateCatchEvent id="event_mpon_reg_confirmed" name="Registration Confirmed">
+      <incoming>seq_mpon_to_confirmed</incoming>
+      <outgoing>seq_mpon_conf_out</outgoing>
+      <messageEventDefinition id="med_mpon_conf" />
+    </intermediateCatchEvent>
+
+    <task id="task_mpon_acq_change" name="Perform Equipment Acquisition and/or Equipment Changes">
+      <incoming>seq_mpon_conf_out</incoming>
+      <outgoing>seq_mpon_3</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_mpon_execution_outcome" name="Equipment Process Successful?">
+      <incoming>seq_mpon_3</incoming>
+      <outgoing>seq_mpon_failed</outgoing>
+      <outgoing>seq_mpon_succeeded</outgoing>
+    </exclusiveGateway>
+
+    <!-- Execution Failed -->
+    <task id="task_mpon_report_failure" name="Inform GO about Failure of Entire Process">
+      <incoming>seq_mpon_failed</incoming>
+      <outgoing>seq_mpon_4</outgoing>
+    </task>
+
+    <eventBasedGateway id="gw_mpon_await_fail_ack" name="Await Failure Acknowledgement">
+      <incoming>seq_mpon_4</incoming>
+      <outgoing>seq_mpon_to_fail_conf</outgoing>
+      <outgoing>seq_mpon_to_timeout1</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="event_mpon_failure_confirmed" name="Failure Confirmed">
+      <incoming>seq_mpon_to_fail_conf</incoming>
+      <outgoing>seq_mpon_fail_conf_out</outgoing>
+      <messageEventDefinition id="med_mpon_fail_conf" />
+    </intermediateCatchEvent>
+
+    <endEvent id="end_mpon_failed" name="Process Failed">
+      <incoming>seq_mpon_fail_conf_out</incoming>
+    </endEvent>
+
+    <!-- Execution Succeeded -->
+    <task id="task_mpon_report_success" name="Inform GO about Successful Completion">
+      <incoming>seq_mpon_succeeded</incoming>
+      <outgoing>seq_mpon_5</outgoing>
+    </task>
+
+    <eventBasedGateway id="gw_mpon_await_assign_ack" name="Await Assignment Acknowledgement">
+      <incoming>seq_mpon_5</incoming>
+      <outgoing>seq_mpon_to_assign_conf</outgoing>
+      <outgoing>seq_mpon_to_timeout2</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="event_mpon_assign_confirmed" name="Assignment Confirmed">
+      <incoming>seq_mpon_to_assign_conf</incoming>
+      <outgoing>seq_mpon_assign_conf_out</outgoing>
+      <messageEventDefinition id="med_mpon_assign_conf" />
+    </intermediateCatchEvent>
+
+    <endEvent id="end_mpon_assigned" name="Successfully Assigned">
+      <incoming>seq_mpon_assign_conf_out</incoming>
+    </endEvent>
+
+    <!-- Timeout Event Catch for both paths if GO triggers timeout -->
+    <intermediateCatchEvent id="event_mpon_timeout" name="Failure by Deadline Received">
+      <incoming>seq_mpon_to_timeout1</incoming>
+      <incoming>seq_mpon_to_timeout2</incoming>
+      <outgoing>seq_mpon_timeout_out</outgoing>
+      <messageEventDefinition id="med_mpon_timeout" />
+    </intermediateCatchEvent>
+
+    <endEvent id="end_mpon_timeout" name="Terminated by Deadline">
+      <incoming>seq_mpon_timeout_out</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows MPON -->
+    <sequenceFlow id="seq_mpon_1" sourceRef="start_mpon" targetRef="task_mpon_report_op" />
+    <sequenceFlow id="seq_mpon_2" sourceRef="task_mpon_report_op" targetRef="gw_mpon_await_reg" />
+    <sequenceFlow id="seq_mpon_to_rejected" sourceRef="gw_mpon_await_reg" targetRef="event_mpon_app_rejected" />
+    <sequenceFlow id="seq_mpon_to_confirmed" sourceRef="gw_mpon_await_reg" targetRef="event_mpon_reg_confirmed" />
+    <sequenceFlow id="seq_mpon_rej_out" sourceRef="event_mpon_app_rejected" targetRef="end_mpon_rejected" />
+    <sequenceFlow id="seq_mpon_conf_out" sourceRef="event_mpon_reg_confirmed" targetRef="task_mpon_acq_change" />
+    <sequenceFlow id="seq_mpon_3" sourceRef="task_mpon_acq_change" targetRef="gw_mpon_execution_outcome" />
+    <sequenceFlow id="seq_mpon_failed" name="No" sourceRef="gw_mpon_execution_outcome" targetRef="task_mpon_report_failure" />
+    <sequenceFlow id="seq_mpon_succeeded" name="Yes" sourceRef="gw_mpon_execution_outcome" targetRef="task_mpon_report_success" />
+    <sequenceFlow id="seq_mpon_4" sourceRef="task_mpon_report_failure" targetRef="gw_mpon_await_fail_ack" />
+    <sequenceFlow id="seq_mpon_to_fail_conf" sourceRef="gw_mpon_await_fail_ack" targetRef="event_mpon_failure_confirmed" />
+    <sequenceFlow id="seq_mpon_to_timeout1" sourceRef="gw_mpon_await_fail_ack" targetRef="event_mpon_timeout" />
+    <sequenceFlow id="seq_mpon_fail_conf_out" sourceRef="event_mpon_failure_confirmed" targetRef="end_mpon_failed" />
+    <sequenceFlow id="seq_mpon_5" sourceRef="task_mpon_report_success" targetRef="gw_mpon_await_assign_ack" />
+    <sequenceFlow id="seq_mpon_to_assign_conf" sourceRef="gw_mpon_await_assign_ack" targetRef="event_mpon_assign_confirmed" />
+    <sequenceFlow id="seq_mpon_to_timeout2" sourceRef="gw_mpon_await_assign_ack" targetRef="event_mpon_timeout" />
+    <sequenceFlow id="seq_mpon_assign_conf_out" sourceRef="event_mpon_assign_confirmed" targetRef="end_mpon_assigned" />
+    <sequenceFlow id="seq_mpon_timeout_out" sourceRef="event_mpon_timeout" targetRef="end_mpon_timeout" />
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_mpo">
+    <bpmndi:BPMNPlane id="BPMNPlane_mpo" bpmnElement="collaboration_mpo">
+      <bpmndi:BPMNShape id="shape_participant_go" bpmnElement="participant_go" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1680" height="420" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_start_go_report_rec" bpmnElement="start_go_report_rec">
+        <dc:Bounds x="220" y="230" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="198" y="273" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_examine" bpmnElement="task_go_examine">
+        <dc:Bounds x="300" y="208" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_go_exam_decision" bpmnElement="gw_go_exam_decision" isMarkerVisible="true">
+        <dc:Bounds x="445" y="223" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="442" y="186" width="56" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_reject" bpmnElement="task_go_reject">
+        <dc:Bounds x="540" y="110" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_go_rejected" bpmnElement="end_go_rejected">
+        <dc:Bounds x="692" y="132" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="683" y="175" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_confirm_app" bpmnElement="task_go_confirm_app">
+        <dc:Bounds x="540" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_inform_mpoo_reg" bpmnElement="task_go_inform_mpoo_reg">
+        <dc:Bounds x="680" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_inform_mspo_reg" bpmnElement="task_go_inform_mspo_reg">
+        <dc:Bounds x="820" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_go_await_completion" bpmnElement="gw_go_await_completion">
+        <dc:Bounds x="965" y="305" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="958" y="268" width="64" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_go_timer" bpmnElement="event_go_timer">
+        <dc:Bounds x="1062" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1046" y="155" width="69" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_inform_timeout" bpmnElement="task_go_inform_timeout">
+        <dc:Bounds x="1140" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_go_timeout" bpmnElement="end_go_timeout">
+        <dc:Bounds x="1282" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1275" y="235" width="50" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_go_failure_rec" bpmnElement="event_go_failure_rec">
+        <dc:Bounds x="1062" y="312" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1041" y="275" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_confirm_failure" bpmnElement="task_go_confirm_failure">
+        <dc:Bounds x="1140" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_inform_mpoo_fail" bpmnElement="task_go_inform_mpoo_fail">
+        <dc:Bounds x="1280" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_inform_mspo_fail" bpmnElement="task_go_inform_mspo_fail">
+        <dc:Bounds x="1420" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_go_failed" bpmnElement="end_go_failed">
+        <dc:Bounds x="1562" y="312" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1541" y="355" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_go_success_rec" bpmnElement="event_go_success_rec">
+        <dc:Bounds x="1062" y="412" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1036" y="375" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_assign_mpon" bpmnElement="task_go_assign_mpon">
+        <dc:Bounds x="1140" y="390" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_confirm_assign" bpmnElement="task_go_confirm_assign">
+        <dc:Bounds x="1280" y="390" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_inform_mpoo_assign" bpmnElement="task_go_inform_mpoo_assign">
+        <dc:Bounds x="1420" y="390" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_inform_mspo_assign" bpmnElement="task_go_inform_mspo_assign">
+        <dc:Bounds x="1560" y="390" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_inform_sp_assign" bpmnElement="task_go_inform_sp_assign">
+        <dc:Bounds x="1700" y="390" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_go_assigned" bpmnElement="end_go_assigned">
+        <dc:Bounds x="1832" y="412" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1819" y="455" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="edge_seq_go_1" bpmnElement="seq_go_1">
+        <di:waypoint x="256" y="248" />
+        <di:waypoint x="300" y="248" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_2" bpmnElement="seq_go_2">
+        <di:waypoint x="400" y="248" />
+        <di:waypoint x="445" y="248" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_rejected" bpmnElement="seq_go_rejected">
+        <di:waypoint x="470" y="223" />
+        <di:waypoint x="470" y="150" />
+        <di:waypoint x="540" y="150" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="478" y="184" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_approved" bpmnElement="seq_go_approved">
+        <di:waypoint x="470" y="273" />
+        <di:waypoint x="470" y="330" />
+        <di:waypoint x="540" y="330" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="476" y="299" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_to_end_reject" bpmnElement="seq_go_to_end_reject">
+        <di:waypoint x="640" y="150" />
+        <di:waypoint x="692" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_3" bpmnElement="seq_go_3">
+        <di:waypoint x="640" y="330" />
+        <di:waypoint x="680" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_4" bpmnElement="seq_go_4">
+        <di:waypoint x="780" y="330" />
+        <di:waypoint x="820" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_5" bpmnElement="seq_go_5">
+        <di:waypoint x="920" y="330" />
+        <di:waypoint x="965" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_to_timer" bpmnElement="seq_go_to_timer">
+        <di:waypoint x="990" y="305" />
+        <di:waypoint x="990" y="210" />
+        <di:waypoint x="1062" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_to_fail_rec" bpmnElement="seq_go_to_fail_rec">
+        <di:waypoint x="1015" y="330" />
+        <di:waypoint x="1062" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_to_succ_rec" bpmnElement="seq_go_to_succ_rec">
+        <di:waypoint x="990" y="355" />
+        <di:waypoint x="990" y="430" />
+        <di:waypoint x="1062" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_timer_out" bpmnElement="seq_go_timer_out">
+        <di:waypoint x="1098" y="210" />
+        <di:waypoint x="1140" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_timeout_end" bpmnElement="seq_go_timeout_end">
+        <di:waypoint x="1240" y="210" />
+        <di:waypoint x="1282" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_fail_rec_out" bpmnElement="seq_go_fail_rec_out">
+        <di:waypoint x="1098" y="330" />
+        <di:waypoint x="1140" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_6" bpmnElement="seq_go_6">
+        <di:waypoint x="1240" y="330" />
+        <di:waypoint x="1280" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_7" bpmnElement="seq_go_7">
+        <di:waypoint x="1380" y="330" />
+        <di:waypoint x="1420" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_fail_end" bpmnElement="seq_go_fail_end">
+        <di:waypoint x="1520" y="330" />
+        <di:waypoint x="1562" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_succ_rec_out" bpmnElement="seq_go_succ_rec_out">
+        <di:waypoint x="1098" y="430" />
+        <di:waypoint x="1140" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_8" bpmnElement="seq_go_8">
+        <di:waypoint x="1240" y="430" />
+        <di:waypoint x="1280" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_9" bpmnElement="seq_go_9">
+        <di:waypoint x="1380" y="430" />
+        <di:waypoint x="1420" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_10" bpmnElement="seq_go_10">
+        <di:waypoint x="1520" y="430" />
+        <di:waypoint x="1560" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_11" bpmnElement="seq_go_11">
+        <di:waypoint x="1660" y="430" />
+        <di:waypoint x="1700" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_succ_end" bpmnElement="seq_go_succ_end">
+        <di:waypoint x="1800" y="430" />
+        <di:waypoint x="1832" y="430" />
+      </bpmndi:BPMNEdge>
+
+      <!-- MPON Participant Shapes -->
+      <bpmndi:BPMNShape id="shape_participant_mpon" bpmnElement="participant_mpon" isHorizontal="true">
+        <dc:Bounds x="160" y="550" width="1680" height="380" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_start_mpon" bpmnElement="start_mpon">
+        <dc:Bounds x="212" y="692" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="192" y="735" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_report_op" bpmnElement="task_mpon_report_op">
+        <dc:Bounds x="280" y="670" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_mpon_await_reg" bpmnElement="gw_mpon_await_reg">
+        <dc:Bounds x="425" y="685" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="418" y="742" width="65" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_mpon_app_rejected" bpmnElement="event_mpon_app_rejected">
+        <dc:Bounds x="512" y="592" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="503" y="635" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_mpon_rejected" bpmnElement="end_mpon_rejected">
+        <dc:Bounds x="612" y="592" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="603" y="635" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_mpon_reg_confirmed" bpmnElement="event_mpon_reg_confirmed">
+        <dc:Bounds x="512" y="692" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="500" y="735" width="61" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_acq_change" bpmnElement="task_mpon_acq_change">
+        <dc:Bounds x="590" y="670" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_mpon_execution_outcome" bpmnElement="gw_mpon_execution_outcome" isMarkerVisible="true">
+        <dc:Bounds x="755" y="685" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="749" y="648" width="62" height="34" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_report_failure" bpmnElement="task_mpon_report_failure">
+        <dc:Bounds x="850" y="770" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_mpon_await_fail_ack" bpmnElement="gw_mpon_await_fail_ack">
+        <dc:Bounds x="995" y="785" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="976" y="842" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_mpon_failure_confirmed" bpmnElement="event_mpon_failure_confirmed">
+        <dc:Bounds x="1102" y="792" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1095" y="835" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_mpon_failed" bpmnElement="end_mpon_failed">
+        <dc:Bounds x="1202" y="792" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1184" y="835" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_report_success" bpmnElement="task_mpon_report_success">
+        <dc:Bounds x="850" y="670" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_mpon_await_assign_ack" bpmnElement="gw_mpon_await_assign_ack">
+        <dc:Bounds x="995" y="685" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="977" y="648" width="86" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_mpon_assign_confirmed" bpmnElement="event_mpon_assign_confirmed">
+        <dc:Bounds x="1102" y="692" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1090" y="735" width="61" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_mpon_assigned" bpmnElement="end_mpon_assigned">
+        <dc:Bounds x="1202" y="692" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1191" y="735" width="59" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_mpon_timeout" bpmnElement="event_mpon_timeout">
+        <dc:Bounds x="1102" y="582" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1095" y="625" width="50" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_mpon_timeout" bpmnElement="end_mpon_timeout">
+        <dc:Bounds x="1202" y="582" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1186" y="625" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="edge_seq_mpon_1" bpmnElement="seq_mpon_1">
+        <di:waypoint x="248" y="710" />
+        <di:waypoint x="280" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_2" bpmnElement="seq_mpon_2">
+        <di:waypoint x="380" y="710" />
+        <di:waypoint x="425" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_to_rejected" bpmnElement="seq_mpon_to_rejected">
+        <di:waypoint x="450" y="685" />
+        <di:waypoint x="450" y="610" />
+        <di:waypoint x="512" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_to_confirmed" bpmnElement="seq_mpon_to_confirmed">
+        <di:waypoint x="475" y="710" />
+        <di:waypoint x="512" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_rej_out" bpmnElement="seq_mpon_rej_out">
+        <di:waypoint x="548" y="610" />
+        <di:waypoint x="612" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_conf_out" bpmnElement="seq_mpon_conf_out">
+        <di:waypoint x="548" y="710" />
+        <di:waypoint x="590" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_3" bpmnElement="seq_mpon_3">
+        <di:waypoint x="710" y="710" />
+        <di:waypoint x="755" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_failed" bpmnElement="seq_mpon_failed">
+        <di:waypoint x="780" y="735" />
+        <di:waypoint x="780" y="810" />
+        <di:waypoint x="850" y="810" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="788" y="770" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_succeeded" bpmnElement="seq_mpon_succeeded">
+        <di:waypoint x="805" y="710" />
+        <di:waypoint x="850" y="710" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="819" y="692" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_4" bpmnElement="seq_mpon_4">
+        <di:waypoint x="950" y="810" />
+        <di:waypoint x="995" y="810" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_to_fail_conf" bpmnElement="seq_mpon_to_fail_conf">
+        <di:waypoint x="1045" y="810" />
+        <di:waypoint x="1102" y="810" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_to_timeout1" bpmnElement="seq_mpon_to_timeout1">
+        <di:waypoint x="1020" y="785" />
+        <di:waypoint x="1020" y="600" />
+        <di:waypoint x="1102" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_fail_conf_out" bpmnElement="seq_mpon_fail_conf_out">
+        <di:waypoint x="1138" y="810" />
+        <di:waypoint x="1202" y="810" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_5" bpmnElement="seq_mpon_5">
+        <di:waypoint x="950" y="710" />
+        <di:waypoint x="995" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_to_assign_conf" bpmnElement="seq_mpon_to_assign_conf">
+        <di:waypoint x="1045" y="710" />
+        <di:waypoint x="1102" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_to_timeout2" bpmnElement="seq_mpon_to_timeout2">
+        <di:waypoint x="1020" y="685" />
+        <di:waypoint x="1020" y="600" />
+        <di:waypoint x="1102" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_assign_conf_out" bpmnElement="seq_mpon_assign_conf_out">
+        <di:waypoint x="1138" y="710" />
+        <di:waypoint x="1202" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_timeout_out" bpmnElement="seq_mpon_timeout_out">
+        <di:waypoint x="1138" y="600" />
+        <di:waypoint x="1202" y="600" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Other Participants -->
+      <bpmndi:BPMNShape id="shape_participant_mpoo" bpmnElement="participant_mpoo" isHorizontal="true">
+        <dc:Bounds x="160" y="970" width="1680" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_participant_mspo" bpmnElement="participant_mspo" isHorizontal="true">
+        <dc:Bounds x="160" y="1080" width="1680" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_participant_sp" bpmnElement="participant_sp" isHorizontal="true">
+        <dc:Bounds x="160" y="1190" width="1680" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Message Flows -->
+      <bpmndi:BPMNEdge id="edge_mf_report_meter_op" bpmnElement="mf_report_meter_op">
+        <di:waypoint x="330" y="670" />
+        <di:waypoint x="330" y="470" />
+        <di:waypoint x="238" y="470" />
+        <di:waypoint x="238" y="266" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="252" y="480" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_app_rejected" bpmnElement="mf_app_rejected">
+        <di:waypoint x="590" y="190" />
+        <di:waypoint x="590" y="530" />
+        <di:waypoint x="530" y="530" />
+        <di:waypoint x="530" y="592" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="533" y="536" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_confirm_reg_mpon" bpmnElement="mf_confirm_reg_mpon">
+        <di:waypoint x="560" y="370" />
+        <di:waypoint x="560" y="530" />
+        <di:waypoint x="530" y="530" />
+        <di:waypoint x="530" y="692" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="488" y="480" width="61" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_confirm_reg_mpoo" bpmnElement="mf_confirm_reg_mpoo">
+        <di:waypoint x="730" y="370" />
+        <di:waypoint x="730" y="970" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="739" y="536" width="61" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_confirm_reg_mspo" bpmnElement="mf_confirm_reg_mspo">
+        <di:waypoint x="870" y="370" />
+        <di:waypoint x="870" y="1080" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="879" y="536" width="61" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_report_failure" bpmnElement="mf_report_failure">
+        <di:waypoint x="900" y="770" />
+        <di:waypoint x="900" y="520" />
+        <di:waypoint x="1080" y="520" />
+        <di:waypoint x="1080" y="348" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="951" y="502" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_report_success" bpmnElement="mf_report_success">
+        <di:waypoint x="920" y="670" />
+        <di:waypoint x="920" y="480" />
+        <di:waypoint x="1080" y="480" />
+        <di:waypoint x="1080" y="448" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="971" y="462" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_timeout_failure" bpmnElement="mf_timeout_failure">
+        <di:waypoint x="1190" y="250" />
+        <di:waypoint x="1190" y="550" />
+        <di:waypoint x="1120" y="550" />
+        <di:waypoint x="1120" y="582" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1126" y="516" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_confirm_fail_mpon" bpmnElement="mf_confirm_fail_mpon">
+        <di:waypoint x="1170" y="370" />
+        <di:waypoint x="1170" y="760" />
+        <di:waypoint x="1120" y="760" />
+        <di:waypoint x="1120" y="792" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1124" y="726" width="72" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_inform_fail_mpoo" bpmnElement="mf_inform_fail_mpoo">
+        <di:waypoint x="1330" y="370" />
+        <di:waypoint x="1330" y="970" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1339" y="666" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_inform_fail_mspo" bpmnElement="mf_inform_fail_mspo">
+        <di:waypoint x="1470" y="370" />
+        <di:waypoint x="1470" y="1080" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1479" y="666" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_confirm_assign_mpon" bpmnElement="mf_confirm_assign_mpon">
+        <di:waypoint x="1300" y="470" />
+        <di:waypoint x="1300" y="660" />
+        <di:waypoint x="1120" y="660" />
+        <di:waypoint x="1120" y="692" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1189" y="626" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_inform_assign_mpoo" bpmnElement="mf_inform_assign_mpoo">
+        <di:waypoint x="1450" y="470" />
+        <di:waypoint x="1450" y="970" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1459" y="716" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="edge_mf_inform_assign_mspo" bpmnElement="mf_inform_assign_mspo">
+        <di:waypoint x="1610" y="470" />
+        <di:waypoint x="1610" y="1080" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1619" y="716" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </

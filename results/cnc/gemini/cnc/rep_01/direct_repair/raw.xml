@@ -1,0 +1,636 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_GyartasiFolyamat"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:collaboration id="Collaboration_Gyartas">
+    <bpmn:participant id="Participant_GyartasiProcess" name="Gyártó vállalat részfolyamata" processRef="Process_Gyartas" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_Gyartas" isExecutable="true">
+    
+    <bpmn:laneSet id="LaneSet_Gyartas">
+      <bpmn:lane id="Lane_DaraboloUzem" name="Daraboló üzem">
+        <bpmn:flowNodeRef>StartEvent_NyersanyagErkezes</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_VonalkodBeolvasas_Darabolas</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_NyersanyagMeretreVagasa</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StatuszRogziteseMES_Darabolas</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_MuheljrajzTovábbitsa</bpmn:flowNodeRef>
+      </bpmn:lane>
+      
+      <bpmn:lane id="Lane_ForgacsoloElokeszito" name="Forgácsoló gyártáselőkészítő">
+        <bpmn:flowNodeRef>Task_AlkatreszjegyzékRogzitese</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StatuszValtasMES_Elokeszites</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_MegmunkalasTipusAVizsgalata</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_MegmunkalasTipusa</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CNCProgramVizsgalata</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_CNCProgramMegvan</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CNCProgramozoErtesitese</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AtadasCNCMegmunkalashoz</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_NemCNC_Hagyomanyos</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_NemCNC_Kiszervezes</bpmn:flowNodeRef>
+      </bpmn:lane>
+      
+      <bpmn:lane id="Lane_ForgacsoloUzem" name="Forgácsoló üzem (CNC gépkezelő)">
+        <bpmn:flowNodeRef>Task_VonalkodBeolvasas_CNC</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CNCProgramLetoltese</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SatuEllenorzese</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_SatuCsereSzukseges</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SatuCserese</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AlapanyagRogziteseSatuban</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SzerszamlistaEllenorzese</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_SzerszamokMegfeleloek</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UjSzerszamRogziteseEsKorrekcio</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CNCGepAjtajanagZarasa</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AlapanyagForgacsolasa</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CNCGepAjtajanagNyitasa</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SatuOldasa</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_MegmunkalasElkeszultsegenekVizsgalata</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_UjabbMegmunkalasSzukseges</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StatuszValtasMES_Kesz</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_FolyamatVege</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Daraboló üzem Flow -->
+    <bpmn:startEvent id="StartEvent_NyersanyagErkezes" name="Nyersanyag és műhelyrajz megérkezik">
+      <bpmn:outgoing>Flow_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_VonalkodBeolvasas_Darabolas" name="Vonalkódok beolvasása scannerrel">
+      <bpmn:incoming>Flow_01</bpmn:incoming>
+      <bpmn:outgoing>Flow_02</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_NyersanyagMeretreVagasa" name="Nyersanyag méretre vágása (műhelyrajz szerint)">
+      <bpmn:incoming>Flow_02</bpmn:incoming>
+      <bpmn:outgoing>Flow_03</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_StatuszRogziteseMES_Darabolas" name="Alkatrész státuszának rögzítése a MES-ben">
+      <bpmn:incoming>Flow_03</bpmn:incoming>
+      <bpmn:outgoing>Flow_04</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MuheljrajzTovábbitsa" name="Műhelyrajz és darabolt alapanyag továbbítása">
+      <bpmn:incoming>Flow_04</bpmn:incoming>
+      <bpmn:outgoing>Flow_05</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Forgácsoló gyártáselőkészítő Flow -->
+    <bpmn:task id="Task_AlkatreszjegyzékRogzitese" name="Darabolt alkatrészjegyzék rögzítése">
+      <bpmn:incoming>Flow_05</bpmn:incoming>
+      <bpmn:outgoing>Flow_06</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_StatuszValtasMES_Elokeszites" name="Státuszváltás a MES-ben">
+      <bpmn:incoming>Flow_06</bpmn:incoming>
+      <bpmn:outgoing>Flow_07</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MegmunkalasTipusAVizsgalata" name="Megmunkálás típusának vizsgálata és meghatározása">
+      <bpmn:incoming>Flow_07</bpmn:incoming>
+      <bpmn:outgoing>Flow_08</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_MegmunkalasTipusa" name="Megmunkálás típusa?">
+      <bpmn:incoming>Flow_08</bpmn:incoming>
+      <bpmn:outgoing>Flow_CNC</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Hagyomanyos</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Kiszervezes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="EndEvent_NemCNC_Hagyomanyos" name="Hagyományos megmunkálási ág">
+      <bpmn:incoming>Flow_Hagyomanyos</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_NemCNC_Kiszervezes" name="Kiszervezés alvállalkozónak ág">
+      <bpmn:incoming>Flow_Kiszervezes</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_CNCProgramVizsgalata" name="CNC program meglétének ellenőrzése">
+      <bpmn:incoming>Flow_CNC</bpmn:incoming>
+      <bpmn:outgoing>Flow_09</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_CNCProgramMegvan" name="CNC program rendelkezésre áll?">
+      <bpmn:incoming>Flow_09</bpmn:incoming>
+      <bpmn:outgoing>Flow_CNCProgNincs</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CNCProgVan</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CNCProgramozoErtesitese" name="CNC programozó értesítése">
+      <bpmn:incoming>Flow_CNCProgNincs</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AtadasCNCMegmunkalashoz" name="Átadások CNC megmunkálásra">
+      <bpmn:incoming>Flow_CNCProgVan</bpmn:incoming>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Forgácsoló üzem Flow -->
+    <bpmn:task id="Task_VonalkodBeolvasas_CNC" name="Beazonosítás vonalkód olvasással">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:incoming>Flow_UjabbMegmunkalas</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CNCProgramLetoltese" name="CNC program letöltése a programszerverről">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SatuEllenorzese" name="Satu ellenőrzése">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_SatuCsereSzukseges" name="Satu cseréje szükséges?">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_SatuCsereIgen</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SatuCsereNem</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_SatuCserese" name="Satu cseréje">
+      <bpmn:incoming>Flow_SatuCsereIgen</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AlapanyagRogziteseSatuban" name="Alapanyag rögzítése a satuban">
+      <bpmn:incoming>Flow_SatuCsereNem</bpmn:incoming>
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SzerszamlistaEllenorzese" name="Szerszámlista ellenőrzése (CNC programból)">
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_SzerszamokMegfeleloek" name="Megfelelő szerszámok vannak betárazva?">
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:outgoing>Flow_SzerszamokOK</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SzerszamCsereSzukseges</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_UjSzerszamRogziteseEsKorrekcio" name="Új szerszám rögzítése, hossz és korrekciós értékek felvitele">
+      <bpmn:incoming>Flow_SzerszamCsereSzukseges</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CNCGepAjtajanagZarasa" name="CNC gép ajtajának zárása">
+      <bpmn:incoming>Flow_SzerszamokOK</bpmn:incoming>
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_19</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AlapanyagForgacsolasa" name="Alapanyag forgácsolása">
+      <bpmn:incoming>Flow_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_20</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CNCGepAjtajanagNyitasa" name="Ajtó nyitása">
+      <bpmn:incoming>Flow_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SatuOldasa" name="Satu oldása">
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+      <bpmn:outgoing>Flow_22</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MegmunkalasElkeszultsegenekVizsgalata" name="Megmunkálás elkészültségének vizsgálata">
+      <bpmn:incoming>Flow_22</bpmn:incoming>
+      <bpmn:outgoing>Flow_23</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_UjabbMegmunkalasSzukseges" name="Szükséges újabb megmunkálás?">
+      <bpmn:incoming>Flow_23</bpmn:incoming>
+      <bpmn:outgoing>Flow_UjabbMegmunkalas</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NincsUjabbMegmunkalas</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_StatuszValtasMES_Kesz" name="Termék elkészültségének jelzése (státuszváltás a MES-ben)">
+      <bpmn:incoming>Flow_NincsUjabbMegmunkalas</bpmn:incoming>
+      <bpmn:outgoing>Flow_24</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_FolyamatVege" name="Forgácsolási folyamat kész">
+      <bpmn:incoming>Flow_24</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="StartEvent_NyersanyagErkezes" targetRef="Task_VonalkodBeolvasas_Darabolas" />
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_VonalkodBeolvasas_Darabolas" targetRef="Task_NyersanyagMeretreVagasa" />
+    <bpmn:sequenceFlow id="Flow_03" sourceRef="Task_NyersanyagMeretreVagasa" targetRef="Task_StatuszRogziteseMES_Darabolas" />
+    <bpmn:sequenceFlow id="Flow_04" sourceRef="Task_StatuszRogziteseMES_Darabolas" targetRef="Task_MuheljrajzTovábbitsa" />
+    <bpmn:sequenceFlow id="Flow_05" sourceRef="Task_MuheljrajzTovábbitsa" targetRef="Task_AlkatreszjegyzékRogzitese" />
+    <bpmn:sequenceFlow id="Flow_06" sourceRef="Task_AlkatreszjegyzékRogzitese" targetRef="Task_StatuszValtasMES_Elokeszites" />
+    <bpmn:sequenceFlow id="Flow_07" sourceRef="Task_StatuszValtasMES_Elokeszites" targetRef="Task_MegmunkalasTipusAVizsgalata" />
+    <bpmn:sequenceFlow id="Flow_08" sourceRef="Task_MegmunkalasTipusAVizsgalata" targetRef="Gateway_MegmunkalasTipusa" />
+    
+    <bpmn:sequenceFlow id="Flow_CNC" name="CNC" sourceRef="Gateway_MegmunkalasTipusa" targetRef="Task_CNCProgramVizsgalata" />
+    <bpmn:sequenceFlow id="Flow_Hagyomanyos" name="Hagyományos" sourceRef="Gateway_MegmunkalasTipusa" targetRef="EndEvent_NemCNC_Hagyomanyos" />
+    <bpmn:sequenceFlow id="Flow_Kiszervezes" name="Kiszervezés" sourceRef="Gateway_MegmunkalasTipusa" targetRef="EndEvent_NemCNC_Kiszervezes" />
+
+    <bpmn:sequenceFlow id="Flow_09" sourceRef="Task_CNCProgramVizsgalata" targetRef="Gateway_CNCProgramMegvan" />
+    <bpmn:sequenceFlow id="Flow_CNCProgNincs" name="Hiányzik" sourceRef="Gateway_CNCProgramMegvan" targetRef="Task_CNCProgramozoErtesitese" />
+    <bpmn:sequenceFlow id="Flow_CNCProgVan" name="Rendelkezésre áll" sourceRef="Gateway_CNCProgramMegvan" targetRef="Task_AtadasCNCMegmunkalashoz" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_CNCProgramozoErtesitese" targetRef="Task_AtadasCNCMegmunkalashoz" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_AtadasCNCMegmunkalashoz" targetRef="Task_VonalkodBeolvasas_CNC" />
+
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_VonalkodBeolvasas_CNC" targetRef="Task_CNCProgramLetoltese" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_CNCProgramLetoltese" targetRef="Task_SatuEllenorzese" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_SatuEllenorzese" targetRef="Gateway_SatuCsereSzukseges" />
+    <bpmn:sequenceFlow id="Flow_SatuCsereIgen" name="Igen" sourceRef="Gateway_SatuCsereSzukseges" targetRef="Task_SatuCserese" />
+    <bpmn:sequenceFlow id="Flow_SatuCsereNem" name="Nem" sourceRef="Gateway_SatuCsereSzukseges" targetRef="Task_AlapanyagRogziteseSatuban" />
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_SatuCserese" targetRef="Task_AlapanyagRogziteseSatuban" />
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="Task_AlapanyagRogziteseSatuban" targetRef="Task_SzerszamlistaEllenorzese" />
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="Task_SzerszamlistaEllenorzese" targetRef="Gateway_SzerszamokMegfeleloek" />
+    <bpmn:sequenceFlow id="Flow_SzerszamokOK" name="Igen" sourceRef="Gateway_SzerszamokMegfeleloek" targetRef="Task_CNCGepAjtajanagZarasa" />
+    <bpmn:sequenceFlow id="Flow_SzerszamCsereSzukseges" name="Nem (csere kell)" sourceRef="Gateway_SzerszamokMegfeleloek" targetRef="Task_UjSzerszamRogziteseEsKorrekcio" />
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="Task_UjSzerszamRogziteseEsKorrekcio" targetRef="Task_CNCGepAjtajanagZarasa" />
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="Task_CNCGepAjtajanagZarasa" targetRef="Task_AlapanyagForgacsolasa" />
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="Task_AlapanyagForgacsolasa" targetRef="Task_CNCGepAjtajanagNyitasa" />
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="Task_CNCGepAjtajanagNyitasa" targetRef="Task_SatuOldasa" />
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="Task_SatuOldasa" targetRef="Task_MegmunkalasElkeszultsegenekVizsgalata" />
+    <bpmn:sequenceFlow id="Flow_23" sourceRef="Task_MegmunkalasElkeszultsegenekVizsgalata" targetRef="Gateway_UjabbMegmunkalasSzukseges" />
+    <bpmn:sequenceFlow id="Flow_UjabbMegmunkalas" name="Igen" sourceRef="Gateway_UjabbMegmunkalasSzukseges" targetRef="Task_VonalkodBeolvasas_CNC" />
+    <bpmn:sequenceFlow id="Flow_NincsUjabbMegmunkalas" name="Nem" sourceRef="Gateway_UjabbMegmunkalasSzukseges" targetRef="Task_StatuszValtasMES_Kesz" />
+    <bpmn:sequenceFlow id="Flow_24" sourceRef="Task_StatuszValtasMES_Kesz" targetRef="EndEvent_FolyamatVege" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_Gyartas">
+      <bpmndi:BPMNShape id="Participant_GyartasiProcess_di" bpmnElement="Participant_GyartasiProcess" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2220" height="920" />
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="Lane_DaraboloUzem_di" bpmnElement="Lane_DaraboloUzem" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="2190" height="240" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_ForgacsoloElokeszito_di" bpmnElement="Lane_ForgacsoloElokeszito" isHorizontal="true">
+        <dc:Bounds x="190" y="320" width="2190" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_ForgacsoloUzem_di" bpmnElement="Lane_ForgacsoloUzem" isHorizontal="true">
+        <dc:Bounds x="190" y="600" width="2190" height="400" />
+      </bpmndi:BPMNShape>
+
+      <!-- Daraboló üzem elements -->
+      <bpmndi:BPMNShape id="StartEvent_NyersanyagErkezes_di" bpmnElement="StartEvent_NyersanyagErkezes">
+        <dc:Bounds x="242" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="221" y="225" width="79" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_VonalkodBeolvasas_Darabolas_di" bpmnElement="Task_VonalkodBeolvasas_Darabolas">
+        <dc:Bounds x="330" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_NyersanyagMeretreVagasa_di" bpmnElement="Task_NyersanyagMeretreVagasa">
+        <dc:Bounds x="480" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_StatuszRogziteseMES_Darabolas_di" bpmnElement="Task_StatuszRogziteseMES_Darabolas">
+        <dc:Bounds x="630" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MuheljrajzTovábbitsa_di" bpmnElement="Task_MuheljrajzTovábbitsa">
+        <dc:Bounds x="780" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Forgácsoló gyártáselőkészítő elements -->
+      <bpmndi:BPMNShape id="Task_AlkatreszjegyzékRogzitese_di" bpmnElement="Task_AlkatreszjegyzékRogzitese">
+        <dc:Bounds x="780" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_StatuszValtasMES_Elokeszites_di" bpmnElement="Task_StatuszValtasMES_Elokeszites">
+        <dc:Bounds x="930" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MegmunkalasTipusAVizsgalata_di" bpmnElement="Task_MegmunkalasTipusAVizsgalata">
+        <dc:Bounds x="1080" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MegmunkalasTipusa_di" bpmnElement="Gateway_MegmunkalasTipusa" isMarkerVisible="true">
+        <dc:Bounds x="1235" y="435" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1226" y="405" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_NemCNC_Hagyomanyos_di" bpmnElement="EndEvent_NemCNC_Hagyomanyos">
+        <dc:Bounds x="1242" y="342" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1225" y="385" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_NemCNC_Kiszervezes_di" bpmnElement="EndEvent_NemCNC_Kiszervezes">
+        <dc:Bounds x="1242" y="532" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1221" y="575" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CNCProgramVizsgalata_di" bpmnElement="Task_CNCProgramVizsgalata">
+        <dc:Bounds x="1340" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_CNCProgramMegvan_di" bpmnElement="Gateway_CNCProgramMegvan" isMarkerVisible="true">
+        <dc:Bounds x="1495" y="435" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1485" y="398" width="70" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CNCProgramozoErtesitese_di" bpmnElement="Task_CNCProgramozoErtesitese">
+        <dc:Bounds x="1590" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AtadasCNCMegmunkalashoz_di" bpmnElement="Task_AtadasCNCMegmunkalashoz">
+        <dc:Bounds x="1730" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Forgácsoló üzem elements -->
+      <bpmndi:BPMNShape id="Task_VonalkodBeolvasas_CNC_di" bpmnElement="Task_VonalkodBeolvasas_CNC">
+        <dc:Bounds x="250" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CNCProgramLetoltese_di" bpmnElement="Task_CNCProgramLetoltese">
+        <dc:Bounds x="390" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SatuEllenorzese_di" bpmnElement="Task_SatuEllenorzese">
+        <dc:Bounds x="530" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_SatuCsereSzukseges_di" bpmnElement="Gateway_SatuCsereSzukseges" isMarkerVisible="true">
+        <dc:Bounds x="675" y="745" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="668" y="708" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SatuCserese_di" bpmnElement="Task_SatuCserese">
+        <dc:Bounds x="770" y="650" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AlapanyagRogziteseSatuban_di" bpmnElement="Task_AlapanyagRogziteseSatuban">
+        <dc:Bounds x="910" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SzerszamlistaEllenorzese_di" bpmnElement="Task_SzerszamlistaEllenorzese">
+        <dc:Bounds x="1050" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_SzerszamokMegfeleloek_di" bpmnElement="Gateway_SzerszamokMegfeleloek" isMarkerVisible="true">
+        <dc:Bounds x="1195" y="745" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1188" y="700" width="64" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_UjSzerszamRogziteseEsKorrekcio_di" bpmnElement="Task_UjSzerszamRogziteseEsKorrekcio">
+        <dc:Bounds x="1290" y="650" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CNCGepAjtajanagZarasa_di" bpmnElement="Task_CNCGepAjtajanagZarasa">
+        <dc:Bounds x="1430" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AlapanyagForgacsolasa_di" bpmnElement="Task_AlapanyagForgacsolasa">
+        <dc:Bounds x="1570" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CNCGepAjtajanagNyitasa_di" bpmnElement="Task_CNCGepAjtajanagNyitasa">
+        <dc:Bounds x="1710" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SatuOldasa_di" bpmnElement="Task_SatuOldasa">
+        <dc:Bounds x="1850" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MegmunkalasElkeszultsegenekVizsgalata_di" bpmnElement="Task_MegmunkalasElkeszultsegenekVizsgalata">
+        <dc:Bounds x="1990" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_UjabbMegmunkalasSzukseges_di" bpmnElement="Gateway_UjabbMegmunkalasSzukseges" isMarkerVisible="true">
+        <dc:Bounds x="2135" y="745" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2126" y="708" width="67" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_StatuszValtasMES_Kesz_di" bpmnElement="Task_StatuszValtasMES_Kesz">
+        <dc:Bounds x="2230" y="730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_FolyamatVege_di" bpmnElement="EndEvent_FolyamatVege">
+        <dc:Bounds x="2372" y="752" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2357" y="795" width="66" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Connections -->
+      <bpmndi:BPMNEdge id="Flow_01_di" bpmnElement="Flow_01">
+        <di:waypoint x="278" y="200" />
+        <di:waypoint x="330" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_02_di" bpmnElement="Flow_02">
+        <di:waypoint x="430" y="200" />
+        <di:waypoint x="480" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_03_di" bpmnElement="Flow_03">
+        <di:waypoint x="580" y="200" />
+        <di:waypoint x="630" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_04_di" bpmnElement="Flow_04">
+        <di:waypoint x="730" y="200" />
+        <di:waypoint x="780" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05_di" bpmnElement="Flow_05">
+        <di:waypoint x="830" y="240" />
+        <di:waypoint x="830" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06_di" bpmnElement="Flow_06">
+        <di:waypoint x="880" y="460" />
+        <di:waypoint x="930" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07_di" bpmnElement="Flow_07">
+        <di:waypoint x="1030" y="460" />
+        <di:waypoint x="1080" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_08_di" bpmnElement="Flow_08">
+        <di:waypoint x="1180" y="460" />
+        <di:waypoint x="1235" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CNC_di" bpmnElement="Flow_CNC">
+        <di:waypoint x="1285" y="460" />
+        <di:waypoint x="1340" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1298" y="442" width="25" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Hagyomanyos_di" bpmnElement="Flow_Hagyomanyos">
+        <di:waypoint x="1260" y="435" />
+        <di:waypoint x="1260" y="378" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1265" y="404" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Kiszervezes_di" bpmnElement="Flow_Kiszervezes">
+        <di:waypoint x="1260" y="485" />
+        <di:waypoint x="1260" y="532" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1266" y="506" width="59" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09_di" bpmnElement="Flow_09">
+        <di:waypoint x="1440" y="460" />
+        <di:waypoint x="1495" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CNCProgNincs_di" bpmnElement="Flow_CNCProgNincs">
+        <di:waypoint x="1520" y="435" />
+        <di:waypoint x="1520" y="380" />
+        <di:waypoint x="1590" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1529" y="405" width="41" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CNCProgVan_di" bpmnElement="Flow_CNCProgVan">
+        <di:waypoint x="1545" y="460" />
+        <di:waypoint x="1730" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1603" y="442" width="87" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1690" y="380" />
+        <di:waypoint x="1780" y="380" />
+        <di:waypoint x="1780" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1830" y="460" />
+        <di:waypoint x="1870" y="460" />
+        <di:waypoint x="1870" y="620" />
+        <di:waypoint x="300" y="620" />
+        <di:waypoint x="300" y="730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="350" y="770" />
+        <di:waypoint x="390" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="490" y="770" />
+        <di:waypoint x="530" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="630" y="770" />
+        <di:waypoint x="675" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SatuCsereIgen_di" bpmnElement="Flow_SatuCsereIgen">
+        <di:waypoint x="700" y="745" />
+        <di:waypoint x="700" y="690" />
+        <di:waypoint x="770" y="690" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="705" y="715" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SatuCsereNem_di" bpmnElement="Flow_SatuCsereNem">
+        <di:waypoint x="725" y="770" />
+        <di:waypoint x="910" y="770" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="806" y="752" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="870" y="690" />
+        <di:waypoint x="960" y="690" />
+        <di:waypoint x="960" y="730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1010" y="770" />
+        <di:waypoint x="1050" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="1150" y="770" />
+        <di:waypoint x="1195" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SzerszamokOK_di" bpmnElement="Flow_SzerszamokOK">
+        <di:waypoint x="1245" y="770" />
+        <di:waypoint x="1430" y="770" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1327" y="752" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SzerszamCsereSzukseges_di" bpmnElement="Flow_SzerszamCsereSzukseges">
+        <di:waypoint x="1220" y="745" />
+        <di:waypoint x="1220" y="690" />
+        <di:waypoint x="1290" y="690" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1200" y="715" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="1390" y="690" />
+        <di:waypoint x="1480" y="690" />
+        <di:waypoint x="1480" y="730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="1530" y="770" />
+        <di:waypoint x="1570" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="1670" y="770" />
+        <di:waypoint x="1710" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="1810" y="770" />
+        <di:waypoint x="1850" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22">
+        <di:waypoint x="1950" y="770" />
+        <di:waypoint x="1990" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23">
+        <di:waypoint x="2090" y="770" />
+        <di:waypoint x="2135" y="770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_UjabbMegmunkalas_di" bpmnElement="Flow_UjabbMegmunkalas">
+        <di:waypoint x="2160" y="795" />
+        <di:waypoint x="2160" y="880" />
+        <di:waypoint x="300" y="880" />
+        <di:waypoint x="300" y="810" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1219" y="862" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_NincsUjabbMegmunkalas_di" bpmnElement="Flow_NincsUjabbMegmunkalas">
+        <di:waypoint x="2185" y="770" />
+        <di:waypoint x="2230" y="770" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2196" y="752" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_24_di" bpmnElement="Flow_24">
+        <di:waypoint x="2330" y="770" />
+        <di:waypoint x="2372" y="770" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

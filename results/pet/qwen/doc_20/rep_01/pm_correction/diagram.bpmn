@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="data_part_list_manual" name="List of necessary parts and quantities" dataObjectRef="data_part_list_manual_do" />
+    <bpmn:dataObject id="data_part_list_manual_do" />
+    <bpmn:dataObjectReference id="data_procurement_list" name="List of parts to be procured" dataObjectRef="data_procurement_list_do" />
+    <bpmn:dataObject id="data_procurement_list_do" />
+    <bpmn:startEvent id="evt_start_sales_order" name="New Order Received from Sales">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_sales_order_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_production_complete" name="Production Completed">
+      <bpmn:incoming>flow_7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_determine_parts" name="Determine necessary parts, quantities, and delivery date">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_determine_parts_doa0">
+        <bpmn:targetRef>data_part_list_manual</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_enter_pps" name="Enter information into Production Planning System (PPS)">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:property id="task_enter_pps_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_enter_pps_dia0">
+        <bpmn:sourceRef>data_part_list_manual</bpmn:sourceRef>
+        <bpmn:targetRef>task_enter_pps_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_pps_optimize" name="Optimize production processes and create work packages">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_pps_optimize_doa0">
+        <bpmn:targetRef>data_procurement_list</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:manualTask id="task_transfer_to_erp" name="Manually transfer data to Enterprise Resource Planning system (ERP)">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+      <bpmn:outgoing>flow_5</bpmn:outgoing>
+      <bpmn:property id="task_transfer_to_erp_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_transfer_to_erp_dia0">
+        <bpmn:sourceRef>data_procurement_list</bpmn:sourceRef>
+        <bpmn:targetRef>task_transfer_to_erp_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_implement_production" name="Implement production">
+      <bpmn:incoming>flow_missing_yes</bpmn:incoming>
+      <bpmn:incoming>flow_missing_no</bpmn:incoming>
+      <bpmn:outgoing>flow_6</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_quality_check" name="Check order for quality">
+      <bpmn:incoming>flow_6</bpmn:incoming>
+      <bpmn:outgoing>flow_7</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="gw_check_parts" name="Are any parts missing?" isMarkerVisible="true">
+      <bpmn:incoming>flow_5</bpmn:incoming>
+      <bpmn:outgoing>flow_missing_yes</bpmn:outgoing>
+      <bpmn:outgoing>flow_missing_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="evt_start_sales_order" targetRef="task_determine_parts" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_determine_parts" targetRef="task_enter_pps" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="task_enter_pps" targetRef="task_pps_optimize" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="task_pps_optimize" targetRef="task_transfer_to_erp" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="task_transfer_to_erp" targetRef="gw_check_parts" />
+    <bpmn:sequenceFlow id="flow_missing_yes" sourceRef="gw_check_parts" targetRef="task_implement_production" name="Parts missing" />
+    <bpmn:sequenceFlow id="flow_missing_no" sourceRef="gw_check_parts" targetRef="task_implement_production" name="No parts missing" />
+    <bpmn:sequenceFlow id="flow_6" sourceRef="task_implement_production" targetRef="task_quality_check" />
+    <bpmn:sequenceFlow id="flow_7" sourceRef="task_quality_check" targetRef="evt_end_production_complete" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="evt_end_production_complete_di" bpmnElement="evt_end_production_complete">
+        <dc:Bounds x="1680" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_sales_order_di" bpmnElement="evt_start_sales_order">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_check_parts_di" bpmnElement="gw_check_parts">
+        <dc:Bounds x="1110" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_determine_parts_di" bpmnElement="task_determine_parts">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_enter_pps_di" bpmnElement="task_enter_pps">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_implement_production_di" bpmnElement="task_implement_production">
+        <dc:Bounds x="1300" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_pps_optimize_di" bpmnElement="task_pps_optimize">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_quality_check_di" bpmnElement="task_quality_check">
+        <dc:Bounds x="1490" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_transfer_to_erp_di" bpmnElement="task_transfer_to_erp">
+        <dc:Bounds x="920" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_part_list_manual_di" bpmnElement="data_part_list_manual">
+        <dc:Bounds x="465" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_procurement_list_di" bpmnElement="data_procurement_list">
+        <dc:Bounds x="845" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="970" y="140" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_missing_yes_di" bpmnElement="flow_missing_yes">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_missing_no_di" bpmnElement="flow_missing_no">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_7_di" bpmnElement="flow_7">
+        <di:waypoint x="1540" y="140" />
+        <di:waypoint x="1698" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_determine_parts_doa0_di" bpmnElement="task_determine_parts_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="483" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_enter_pps_dia0_di" bpmnElement="task_enter_pps_dia0">
+        <di:waypoint x="483" y="265" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_pps_optimize_doa0_di" bpmnElement="task_pps_optimize_doa0">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="863" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_transfer_to_erp_dia0_di" bpmnElement="task_transfer_to_erp_dia0">
+        <di:waypoint x="863" y="265" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

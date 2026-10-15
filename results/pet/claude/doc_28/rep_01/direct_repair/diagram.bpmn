@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_IntakeProcess"
+                  targetNamespace="http://example.com/bpmn/intake">
+
+  <bpmn:collaboration id="Collaboration_Intake">
+    <bpmn:participant id="Participant_FamilyDoctor" name="Family Doctor" processRef="Process_FamilyDoctor"/>
+    <bpmn:participant id="Participant_Institute" name="Mental Health Care Institute" processRef="Process_Institute"/>
+
+    <bpmn:messageFlow id="MF_Call" name="Telephone notice" sourceRef="Task_FD_Call" targetRef="StartEvent_Sec"/>
+    <bpmn:messageFlow id="MF_FullInquiry" name="Patient information by phone" sourceRef="Task_FD_FullInquiry" targetRef="Task_NO_FullInquiry"/>
+    <bpmn:messageFlow id="MF_Letter" name="Letter requesting medical file" sourceRef="Task_Sec_SendLetter" targetRef="Event_FD_ReceiveLetter"/>
+    <bpmn:messageFlow id="MF_Copy" name="Copy of medical file" sourceRef="Task_FD_SendCopy" targetRef="Event_Sec_ReceiveCopy"/>
+  </bpmn:collaboration>
+
+  <!-- ============================================================= -->
+  <!-- FAMILY DOCTOR PROCESS                                          -->
+  <!-- ============================================================= -->
+  <bpmn:process id="Process_FamilyDoctor" name="Family Doctor" isExecutable="false">
+
+    <bpmn:startEvent id="StartEvent_FD" name="Patient needs mental treatment">
+      <bpmn:outgoing>SF_FD1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_FD_Call" name="Call secretarial office to notify need for treatment">
+      <bpmn:incoming>SF_FD1</bpmn:incoming>
+      <bpmn:outgoing>SF_FD2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_FD_ProvideInfo" name="Provide patient name and residence">
+      <bpmn:incoming>SF_FD2</bpmn:incoming>
+      <bpmn:outgoing>SF_FD3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_FD_FullInquiry" name="Provide full mental/health/social information by phone to nursing officer">
+      <bpmn:incoming>SF_FD3</bpmn:incoming>
+      <bpmn:outgoing>SF_FD4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_FD1" name="Initial contact completed">
+      <bpmn:incoming>SF_FD4</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:startEvent id="Event_FD_ReceiveLetter" name="Letter requesting medical file received">
+      <bpmn:messageEventDefinition/>
+      <bpmn:outgoing>SF_FD5</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_FD_SendCopy" name="Send copy of medical file to secretarial office">
+      <bpmn:incoming>SF_FD5</bpmn:incoming>
+      <bpmn:outgoing>SF_FD6</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_FD2" name="Medical file sent">
+      <bpmn:incoming>SF_FD6</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF_FD1" sourceRef="StartEvent_FD" targetRef="Task_FD_Call"/>
+    <bpmn:sequenceFlow id="SF_FD2" sourceRef="Task_FD_Call" targetRef="Task_FD_ProvideInfo"/>
+    <bpmn:sequenceFlow id="SF_FD3" sourceRef="Task_FD_ProvideInfo" targetRef="Task_FD_FullInquiry"/>
+    <bpmn:sequenceFlow id="SF_FD4" sourceRef="Task_FD_FullInquiry" targetRef="EndEvent_FD1"/>
+    <bpmn:sequenceFlow id="SF_FD5" sourceRef="Event_FD_ReceiveLetter" targetRef="Task_FD_SendCopy"/>
+    <bpmn:sequenceFlow id="SF_FD6" sourceRef="Task_FD_SendCopy" targetRef="EndEvent_FD2"/>
+
+  </bpmn:process>
+
+  <!-- ============================================================= -->
+  <!-- MENTAL HEALTH CARE INSTITUTE PROCESS                           -->
+  <!-- ============================================================= -->
+  <bpmn:process id="Process_Institute" name="Mental Health Care Institute - Intake" isExecutable="false">
+
+    <bpmn:laneSet id="LaneSet_Institute">
+      <bpmn:lane id="Lane_Secretarial" name="Secretarial Office">
+        <bpmn:flowNodeRef>StartEvent_Sec</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_InquireNameResidence</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_PutThrough</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_StoreInfo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_Print</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_NewPatient</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_CreateFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_StoreDocs</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_ProduceCards</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_AddToList</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_StoreAssignment</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_PassCards</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Split1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_MedFileNeeded</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_SendLetter</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_Sec_ReceiveCopy</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_InformSecondIntaker</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_AddCopyToFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Merge_MedFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_TypeTapes</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_AddTypedInfo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Join_BothDone</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_AddToStatusList</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Sec_ProvideList</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_NursingOfficer" name="Nursing Officer">
+        <bpmn:flowNodeRef>Task_NO_FullInquiry</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_NO_RecordForm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_NO_HandIn</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_TeamLeader" name="Team Leader">
+        <bpmn:flowNodeRef>Event_TL_StaffMeeting</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TL_Assign</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TL_RecordAssignment</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TL_HandList</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TL_FormulateTreatmentPlan</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Institute</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_FirstIntaker" name="First Intaker (Social-Medical Worker)">
+        <bpmn:flowNodeRef>Task_FI_PlanMeeting</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FI_Meeting</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FI_FillChecklist</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FI_RecordObservations</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FI_CopyNotes</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FI_AddChecklist</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_SecondIntaker" name="Second Intaker (Physician)">
+        <bpmn:flowNodeRef>Task_SI_PlanMeeting</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SI_Meeting</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_Psychiatrist" name="Psychiatrist">
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- SECRETARIAL OFFICE: INITIAL NOTICE HANDLING -->
+    <bpmn:startEvent id="StartEvent_Sec" name="Telephone notice received">
+      <bpmn:messageEventDefinition/>
+      <bpmn:outgoing>SF1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_Sec_InquireNameResidence" name="Inquire name and residence of patient">
+      <bpmn:incoming>SF1</bpmn:incoming>
+      <bpmn:outgoing>SF2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_PutThrough" name="Put doctor through to nursing officer responsible for region">
+      <bpmn:incoming>SF2</bpmn:incoming>
+      <bpmn:outgoing>SF3</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- NURSING OFFICER -->
+    <bpmn:task id="Task_NO_FullInquiry" name="Make full inquiry into mental, health and social state">
+      <bpmn:incoming>SF3</bpmn:incoming>
+      <bpmn:outgoing>SF4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_NO_RecordForm" name="Record information on registration form">
+      <bpmn:incoming>SF4</bpmn:incoming>
+      <bpmn:outgoing>SF5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_NO_HandIn" name="Hand in registration form at secretarial office">
+      <bpmn:incoming>SF5</bpmn:incoming>
+      <bpmn:outgoing>SF6</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- SECRETARIAL OFFICE: REGISTRATION -->
+    <bpmn:task id="Task_Sec_StoreInfo" name="Store information from registration form in information system">
+      <bpmn:incoming>SF6</bpmn:incoming>
+      <bpmn:outgoing>SF7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_Print" name="Print information from information system">
+      <bpmn:incoming>SF7</bpmn:incoming>
+      <bpmn:outgoing>SF8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_NewPatient" name="New patient?">
+      <bpmn:incoming>SF8</bpmn:incoming>
+      <bpmn:outgoing>SF9</bpmn:outgoing>
+      <bpmn:outgoing>SF10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_Sec_CreateFile" name="Create patient file">
+      <bpmn:incoming>SF9</bpmn:incoming>
+      <bpmn:outgoing>SF11</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_StoreDocs" name="Store registration form and print in patient file">
+      <bpmn:incoming>SF10</bpmn:incoming>
+      <bpmn:incoming>SF11</bpmn:incoming>
+      <bpmn:outgoing>SF12</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_ProduceCards" name="Produce two registration cards (first and second intaker)">
+      <bpmn:incoming>SF12</bpmn:incoming>
+      <bpmn:outgoing>SF13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_AddToList" name="Add patient to list of new notices">
+      <bpmn:incoming>SF13</bpmn:incoming>
+      <bpmn:outgoing>SF14</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- TEAM LEADER: WEDNESDAY STAFF MEETING - ASSIGNMENT -->
+    <bpmn:intermediateCatchEvent id="Event_TL_StaffMeeting" name="Wednesday staff meeting">
+      <bpmn:incoming>SF14</bpmn:incoming>
+      <bpmn:outgoing>SF15</bpmn:outgoing>
+      <bpmn:timerEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_TL_Assign" name="Assign new patients to first intaker (social-medical worker) and second intaker (physician), considering expertise, region, earlier contacts and case load">
+      <bpmn:incoming>SF15</bpmn:incoming>
+      <bpmn:outgoing>SF16</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_TL_RecordAssignment" name="Record assignments on assignment list, incl. whether medical file is required">
+      <bpmn:incoming>SF16</bpmn:incoming>
+      <bpmn:outgoing>SF17</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_TL_HandList" name="Hand assignment list to secretarial office">
+      <bpmn:incoming>SF17</bpmn:incoming>
+      <bpmn:outgoing>SF18</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- SECRETARIAL OFFICE: PROCESS ASSIGNMENTS -->
+    <bpmn:task id="Task_Sec_StoreAssignment" name="Store assignment of each patient in information system">
+      <bpmn:incoming>SF18</bpmn:incoming>
+      <bpmn:outgoing>SF19</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_PassCards" name="Pass registration cards to first and second intaker">
+      <bpmn:incoming>SF19</bpmn:incoming>
+      <bpmn:outgoing>SF20</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:parallelGateway id="Gateway_Split1" name="Split intake activities">
+      <bpmn:incoming>SF20</bpmn:incoming>
+      <bpmn:outgoing>SF21</bpmn:outgoing>
+      <bpmn:outgoing>SF22</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:exclusiveGateway id="Gateway_MedFileNeeded" name="Medical file required?">
+      <bpmn:incoming>SF22</bpmn:incoming>
+      <bpmn:outgoing>SF23</bpmn:outgoing>
+      <bpmn:outgoing>SF24</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_Sec_SendLetter" name="Prepare and send letter to family doctor requesting copy of medical file">
+      <bpmn:incoming>SF23</bpmn:incoming>
+      <bpmn:outgoing>SF25</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="Event_Sec_ReceiveCopy" name="Copy of medical file received">
+      <bpmn:incoming>SF25</bpmn:incoming>
+      <bpmn:outgoing>SF26</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_Sec_InformSecondIntaker" name="Inform second intaker that medical file copy has arrived">
+      <bpmn:incoming>SF26</bpmn:incoming>
+      <bpmn:outgoing>SF27</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_AddCopyToFile" name="Add copy of medical file to patient file">
+      <bpmn:incoming>SF27</bpmn:incoming>
+      <bpmn:outgoing>SF28</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_Merge_MedFile" name="Merge medical file paths">
+      <bpmn:incoming>SF24</bpmn:incoming>
+      <bpmn:incoming>SF28</bpmn:incoming>
+      <bpmn:outgoing>SF29</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- SECOND INTAKER -->
+    <bpmn:task id="Task_SI_PlanMeeting" name="Plan first meeting with patient (after medical info received if required)">
+      <bpmn:incoming>SF29</bpmn:incoming>
+      <bpmn:outgoing>SF30</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SI_Meeting" name="Meet with patient and record observations via dictaphone">
+      <bpmn:incoming>SF30</bpmn:incoming>
+      <bpmn:outgoing>SF31</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_TypeTapes" name="Type out dictaphone tapes">
+      <bpmn:incoming>SF31</bpmn:incoming>
+      <bpmn:outgoing>SF32</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_AddTypedInfo" name="Add typed information to patient file">
+      <bpmn:incoming>SF32</bpmn:incoming>
+      <bpmn:outgoing>SF33</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- FIRST INTAKER -->
+    <bpmn:task id="Task_FI_PlanMeeting" name="Plan meeting with patient as soon as possible">
+      <bpmn:incoming>SF21</bpmn:incoming>
+      <bpmn:outgoing>SF34</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_FI_Meeting" name="Hold first meeting with patient">
+      <bpmn:incoming>SF34</bpmn:incoming>
+      <bpmn:outgoing>SF35</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_FI_FillChecklist" name="Examine patient using standard checklist">
+      <bpmn:incoming>SF35</bpmn:incoming>
+      <bpmn:outgoing>SF36</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_FI_RecordObservations" name="Register additional observations in personal notebook">
+      <bpmn:incoming>SF36</bpmn:incoming>
+      <bpmn:outgoing>SF37</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_FI_CopyNotes" name="Put copy of notes in patient file">
+      <bpmn:incoming>SF37</bpmn:incoming>
+      <bpmn:outgoing>SF38</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_FI_AddChecklist" name="Add standard checklist to patient file">
+      <bpmn:incoming>SF38</bpmn:incoming>
+      <bpmn:outgoing>SF39</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:parallelGateway id="Gateway_Join_BothDone" name="Both intakers done">
+      <bpmn:incoming>SF33</bpmn:incoming>
+      <bpmn:incoming>SF39</bpmn:incoming>
+      <bpmn:outgoing>SF40</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:task id="Task_Sec_AddToStatusList" name="Put patient on list of patients with completed meetings">
+      <bpmn:incoming>SF40</bpmn:incoming>
+      <bpmn:outgoing>SF41</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Sec_ProvideList" name="Provide team-leader with list for Wednesday staff meeting">
+      <bpmn:incoming>SF41</bpmn:incoming>
+      <bpmn:outgoing>SF42</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_TL_FormulateTreatmentPlan" name="Formulate treatment plan with first and second intaker, team-leader and attending psychiatrist">
+      <bpmn:incoming>SF42</bpmn:incoming>
+      <bpmn:outgoing>SF43</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_Institute" name="Intake procedure ended">
+      <bpmn:incoming>SF43</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- SEQUENCE FLOWS -->
+    <bpmn:sequenceFlow id="SF1" sourceRef="StartEvent_Sec" targetRef="Task_Sec_InquireNameResidence"/>
+    <bpmn:sequenceFlow id="SF2" sourceRef="Task_Sec_InquireNameResidence" targetRef="Task_Sec_PutThrough"/>
+    <bpmn:sequenceFlow id="SF3" sourceRef="Task_Sec_PutThrough" targetRef="Task_NO_FullInquiry"/>
+    <bpmn:sequenceFlow id="SF4" sourceRef="Task_NO_FullInquiry" targetRef="Task_NO_RecordForm"/>
+    <bpmn:sequenceFlow id="SF5" sourceRef="Task_NO_RecordForm" targetRef="Task_NO_HandIn"/>
+    <bpmn:sequenceFlow id="SF6" sourceRef="Task_NO_HandIn" targetRef="Task_Sec_StoreInfo"/>
+    <bpmn:sequenceFlow id="SF7" sourceRef="Task_Sec_StoreInfo" targetRef="Task_Sec_Print"/>
+    <bpmn:sequenceFlow id="SF8" sourceRef="Task_Sec_Print" targetRef="Gateway_NewPatient"/>
+    <bpmn:sequenceFlow id="SF9" name="New patient" sourceRef="Gateway_NewPatient" targetRef="Task_Sec_CreateFile"/>
+    <bpmn:sequenceFlow id="SF10" name="Existing patient" sourceRef="Gateway_NewPatient" targetRef="Task_Sec_StoreDocs"/>
+    <bpmn:sequenceFlow id="SF11" sourceRef="Task_Sec_CreateFile" targetRef="Task_Sec_StoreDocs"/>
+    <bpmn:sequenceFlow id="SF12" sourceRef="Task_Sec_StoreDocs" targetRef="Task_Sec_ProduceCards"/>
+    <bpmn:sequenceFlow id="SF13" sourceRef="Task_Sec_ProduceCards" targetRef="Task_Sec_AddToList"/>
+    <bpmn:sequenceFlow id="SF14" sourceRef="Task_Sec_AddToList" targetRef="Event_TL_StaffMeeting"/>
+    <bpmn:sequenceFlow id="SF15" sourceRef="Event_TL_StaffMeeting" targetRef="Task_TL_Assign"/>
+    <bpmn:sequenceFlow id="SF16" sourceRef="Task_TL_Assign" targetRef="Task_TL_RecordAssignment"/>
+    <bpmn:sequenceFlow id="SF17" sourceRef="Task_TL_RecordAssignment" targetRef="Task_TL_HandList"/>
+    <bpmn:sequenceFlow id="SF18" sourceRef="Task_TL_HandList" targetRef="Task_Sec_StoreAssignment"/>
+    <bpmn:sequenceFlow id="SF19" sourceRef="Task_Sec_StoreAssignment" targetRef="Task_Sec_PassCards"/>
+    <bpmn:sequenceFlow id="SF20" sourceRef="Task_Sec_PassCards" targetRef="Gateway_Split1"/>
+    <bpmn:sequenceFlow id="SF21" sourceRef="Gateway_Split1" targetRef="Task_FI_PlanMeeting"/>
+    <bpmn:sequenceFlow id="SF22" sourceRef="Gateway_Split1" targetRef="Gateway_MedFileNeeded"/>
+    <bpmn:sequenceFlow id="SF23" name="Required" sourceRef="Gateway_MedFileNeeded" targetRef="Task_Sec_SendLetter"/>
+    <bpmn:sequenceFlow id="SF24" name="Not required" sourceRef="Gateway_MedFileNeeded" targetRef="Gateway_Merge_MedFile"/>
+    <bpmn:sequenceFlow id="SF25" sourceRef="Task_Sec_SendLetter" targetRef="Event_Sec_ReceiveCopy"/>
+    <bpmn:sequenceFlow id="SF26" sourceRef="Event_Sec_ReceiveCopy" targetRef="Task_Sec_InformSecondIntaker"/>
+    <bpmn:sequenceFlow id="SF27" sourceRef="Task_Sec_InformSecondIntaker" targetRef="Task_Sec_AddCopyToFile"/>
+    <bpmn:sequenceFlow id="SF28" sourceRef="Task_Sec_AddCopyToFile" targetRef="Gateway_Merge_MedFile"/>
+    <bpmn:sequenceFlow id="SF29" sourceRef="Gateway_Merge_MedFile" targetRef="Task_SI_PlanMeeting"/>
+    <bpmn:sequenceFlow id="SF30" sourceRef="Task_SI_PlanMeeting" targetRef="Task_SI_Meeting"/>
+    <bpmn:sequenceFlow id="SF31" sourceRef="Task_SI_Meeting" targetRef="Task_Sec_TypeTapes"/>
+    <bpmn:sequenceFlow id="SF32" sourceRef="Task_Sec_TypeTapes" targetRef="Task_Sec_AddTypedInfo"/>
+    <bpmn:sequenceFlow id="SF33" sourceRef="Task_Sec_AddTypedInfo" targetRef="Gateway_Join_BothDone"/>
+    <bpmn:sequenceFlow id="SF34" sourceRef="Task_FI_PlanMeeting" targetRef="Task_FI_Meeting"/>
+    <bpmn:sequenceFlow id="SF35" sourceRef="Task_FI_Meeting" targetRef="Task_FI_FillChecklist"/>
+    <bpmn:sequenceFlow id="SF36" sourceRef="Task_FI_FillChecklist" targetRef="Task_FI_RecordObservations"/>
+    <bpmn:sequenceFlow id="SF37" sourceRef="Task_FI_RecordObservations" targetRef="Task_FI_CopyNotes"/>
+    <bpmn:sequenceFlow id="SF38" sourceRef="Task_FI_CopyNotes" targetRef="Task_FI_AddChecklist"/>
+    <bpmn:sequenceFlow id="SF39" sourceRef="Task_FI_AddChecklist" targetRef="Gateway_Join_BothDone"/>
+    <bpmn:sequenceFlow id="SF40" sourceRef="Gateway_Join_BothDone" targetRef="Task_Sec_AddToStatusList"/>
+    <bpmn:sequenceFlow id="SF41" sourceRef="Task_Sec_AddToStatusList" targetRef="Task_Sec_ProvideList"/>
+    <bpmn:sequenceFlow id="SF42" sourceRef="Task_Sec_ProvideList" targetRef="Task_TL_FormulateTreatmentPlan"/>
+    <bpmn:sequenceFlow id="SF43" sourceRef="Task_TL_FormulateTreatmentPlan" targetRef="EndEvent_Institute"/>
+
+  </bpmn:process>
+
+</bpmn:definitions>

@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_HRClerk" name="HR Clerk" processRef="Process_HRClerk"/>
+    <participant id="Participant_Department" name="Department" processRef="Process_Department"/>
+
+    <messageFlow id="MF_AskClarification" sourceRef="Task_AskDept" targetRef="StartEvent_Dept_Clarification"/>
+    <messageFlow id="MF_ClarificationReply" sourceRef="EndEvent_Dept_ClarificationSent" targetRef="IntermediateCatch_ClarificationReceived"/>
+    <messageFlow id="MF_SubmitJD" sourceRef="Task_SubmitJD" targetRef="StartEvent_Dept_ReviewJD"/>
+    <messageFlow id="MF_ApprovalReply" sourceRef="EndEvent_Dept_Approved" targetRef="IntermediateCatch_Decision"/>
+    <messageFlow id="MF_RejectionReply" sourceRef="EndEvent_Dept_Rejected" targetRef="IntermediateCatch_Decision"/>
+  </collaboration>
+
+  <!-- ===================== HR CLERK PROCESS ===================== -->
+  <process id="Process_HRClerk" name="HR Clerk Vacancy Handling" isExecutable="false">
+
+    <startEvent id="StartEvent_VacancyReported" name="Vacancy Reported">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_CreateJD" name="Create Job Description">
+      <incoming>Flow_1</incoming>
+      <incoming>Flow_FromClarification</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Confusion" name="Confusion in message?">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_ToAsk</outgoing>
+      <outgoing>Flow_ToSubmit</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="Task_AskDept" name="Ask Department for Clarification">
+      <incoming>Flow_ToAsk</incoming>
+      <outgoing>Flow_3</outgoing>
+    </sendTask>
+
+    <intermediateCatchEvent id="IntermediateCatch_ClarificationReceived" name="Clarification Received">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_FromClarification</outgoing>
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+
+    <sendTask id="Task_SubmitJD" name="Submit Job Description for Consideration">
+      <incoming>Flow_ToSubmit</incoming>
+      <incoming>Flow_FromCorrect</incoming>
+      <outgoing>Flow_4</outgoing>
+    </sendTask>
+
+    <intermediateCatchEvent id="IntermediateCatch_Decision" name="Receive Decision">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_5</outgoing>
+      <messageEventDefinition/>
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="Gateway_Approved" name="Approved?">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_Rejected</outgoing>
+      <outgoing>Flow_ApprovedYes</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_Correct" name="Correct Job Description">
+      <incoming>Flow_Rejected</incoming>
+      <outgoing>Flow_FromCorrect</outgoing>
+    </task>
+
+    <task id="Task_PostJob" name="Post the Job">
+      <incoming>Flow_ApprovedYes</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_JobPosted" name="Job Posted">
+      <incoming>Flow_6</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_VacancyReported" targetRef="Task_CreateJD"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_CreateJD" targetRef="Gateway_Confusion"/>
+    <sequenceFlow id="Flow_ToAsk" name="Confused" sourceRef="Gateway_Confusion" targetRef="Task_AskDept"/>
+    <sequenceFlow id="Flow_ToSubmit" name="Clear" sourceRef="Gateway_Confusion" targetRef="Task_SubmitJD"/>
+    <sequenceFlow id="Flow_3" sourceRef="Task_AskDept" targetRef="IntermediateCatch_ClarificationReceived"/>
+    <sequenceFlow id="Flow_FromClarification" sourceRef="IntermediateCatch_ClarificationReceived" targetRef="Task_CreateJD"/>
+    <sequenceFlow id="Flow_4" sourceRef="Task_SubmitJD" targetRef="IntermediateCatch_Decision"/>
+    <sequenceFlow id="Flow_5" sourceRef="IntermediateCatch_Decision" targetRef="Gateway_Approved"/>
+    <sequenceFlow id="Flow_Rejected" name="Rejected" sourceRef="Gateway_Approved" targetRef="Task_Correct"/>
+    <sequenceFlow id="Flow_FromCorrect" sourceRef="Task_Correct" targetRef="Task_SubmitJD"/>
+    <sequenceFlow id="Flow_ApprovedYes" name="Approved" sourceRef="Gateway_Approved" targetRef="Task_PostJob"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_PostJob" targetRef="EndEvent_JobPosted"/>
+
+  </process>
+
+  <!-- ===================== DEPARTMENT PROCESS ===================== -->
+  <process id="Process_Department" name="Department" isExecutable="false">
+
+    <startEvent id="StartEvent_Dept_Clarification" name="Clarification Requested">
+      <outgoing>Flow_D1</outgoing>
+      <messageEventDefinition/>
+    </startEvent>
+
+    <task id="Task_ProvideClarification" name="Provide Clarification">
+      <incoming>Flow_D1</incoming>
+      <outgoing>Flow_D2</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Dept_ClarificationSent" name="Clarification Sent">
+      <incoming>Flow_D2</incoming>
+      <messageEventDefinition/>
+    </endEvent>
+
+    <startEvent id="StartEvent_Dept_ReviewJD" name="Job Description Received">
+      <outgoing>Flow_D3</outgoing>
+      <messageEventDefinition/>
+    </startEvent>
+
+    <task id="Task_ReviewJD" name="Review Job Description">
+      <incoming>Flow_D3</incoming>
+      <outgoing>Flow_D4</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_DeptApprove" name="Approve Description?">
+      <incoming>Flow_D4</incoming>
+      <outgoing>Flow_D_Approve</outgoing>
+      <outgoing>Flow_D_Reject</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_SendApproval" name="Send Approval">
+      <incoming>Flow_D_Approve</incoming>
+      <outgoing>Flow_D5</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Dept_Approved" name="Approval Sent">
+      <incoming>Flow_D5</incoming>
+      <messageEventDefinition/>
+    </endEvent>
+
+    <task id="Task_SendRejection" name="Send Rejection and Request Correction">
+      <incoming>Flow_D_Reject</incoming>
+      <outgoing>Flow_D6</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Dept_Rejected" name="Rejection Sent">
+      <incoming>Flow_D6</incoming>
+      <messageEventDefinition/>
+    </endEvent>
+
+    <sequenceFlow id="Flow_D1" sourceRef="StartEvent_Dept_Clarification" targetRef="Task_ProvideClarification"/>
+    <sequenceFlow id="Flow_D2" sourceRef="Task_ProvideClarification" targetRef="EndEvent_Dept_ClarificationSent"/>
+    <sequenceFlow id="Flow_D3" sourceRef="StartEvent_Dept_ReviewJD" targetRef="Task_ReviewJD"/>
+    <sequenceFlow id="Flow_D4" sourceRef="Task_ReviewJD" targetRef="Gateway_DeptApprove"/>
+    <sequenceFlow id="Flow_D_Approve" name="Approve" sourceRef="Gateway_DeptApprove" targetRef="Task_SendApproval"/>
+    <sequenceFlow id="Flow_D_Reject" name="Reject" sourceRef="Gateway_DeptApprove" targetRef="Task_SendRejection"/>
+    <sequenceFlow id="Flow_D5" sourceRef="Task_SendApproval" targetRef="EndEvent_Dept_Approved"/>
+    <sequenceFlow id="Flow_D6" sourceRef="Task_SendRejection" targetRef="EndEvent_Dept_Rejected"/>
+
+  </process>
+
+  <!-- ===================== DIAGRAM ===================== -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape bpmnElement="Participant_HRClerk" isHorizontal="true">
+        <omgdc:Bounds x="100" y="60" width="1300" height="280"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape bpmnElement="StartEvent_VacancyReported">
+        <omgdc:Bounds x="140" y="170" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_CreateJD">
+        <omgdc:Bounds x="220" y="148" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Gateway_Confusion">
+        <omgdc:Bounds x="370" y="163" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_AskDept">
+        <omgdc:Bounds x="470" y="80" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="IntermediateCatch_ClarificationReceived">
+        <omgdc:Bounds x="620" y="102" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_SubmitJD">
+        <omgdc:Bounds x="470" y="230" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="IntermediateCatch_Decision">
+        <omgdc:Bounds x="620" y="252" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Gateway_Approved">
+        <omgdc:Bounds x="700" y="245" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_Correct">
+        <omgdc:Bounds x="700" y="330" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_PostJob">
+        <omgdc:Bounds x="820" y="230" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="EndEvent_JobPosted">
+        <omgdc:Bounds x="980" y="252" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape bpmnElement="Participant_Department" isHorizontal="true">
+        <omgdc:Bounds x="100" y="380" width="1300" height="280"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape bpmnElement="StartEvent_Dept_Clarification">
+        <omgdc:Bounds x="620" y="400" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_ProvideClarification">
+        <omgdc:Bounds x="700" y="378" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="EndEvent_Dept_ClarificationSent">
+        <omgdc:Bounds x="850" y="400" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape bpmnElement="StartEvent_Dept_ReviewJD">
+        <omgdc:Bounds x="620" y="520" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_ReviewJD">
+        <omgdc:Bounds x="700" y="498" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Gateway_DeptApprove">
+        <omgdc:Bounds x="850" y="513" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_SendApproval">
+        <omgdc:Bounds x="950" y="440" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="EndEvent_Dept_Approved">
+        <omgdc:Bounds x="1100" y="462" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_SendRejection">
+        <omgdc:Bounds x="950" y="560" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="EndEvent_Dept_Rejected">
+        <omgdc:Bounds x="1120" y="582" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- sequence flow edges -->
+      <bpmndi:BPMNEdge bpmnElement="Flow_1" sourceRef="StartEvent_VacancyReported" targetRef="Task_CreateJD">
+        <omgdi:waypoint x="176" y="188"/>
+        <omgdi:waypoint x="220" y="188"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_2" sourceRef="Task_CreateJD" targetRef="Gateway_Confusion">
+        <omgdi:waypoint x="320" y="188"/>
+        <omgdi:waypoint x="370" y="188"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_ToAsk" sourceRef="Gateway_Confusion" targetRef="Task_AskDept">
+        <omgdi:waypoint x="395" y="163"/>
+        <omgdi:waypoint x="395" y="120"/>
+        <omgdi:waypoint x="470" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_ToSubmit" sourceRef="Gateway_Confusion" targetRef="Task_SubmitJD">
+        <omgdi:waypoint x="395" y="213"/>
+        <omgdi:waypoint x="395" y="270"/>
+        <omgdi:waypoint x="470" y="270"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_3" sourceRef="Task_AskDept" targetRef="IntermediateCatch_ClarificationReceived">
+        <omgdi:waypoint x="570" y="120"/>
+        <omgdi:waypoint x="620" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_FromClarification" sourceRef="IntermediateCatch_ClarificationReceived" targetRef="Task_CreateJD">
+        <omgdi:waypoint x="638" y="102"/>
+        <omgdi:waypoint x="638" y="60"/>
+        <omgdi:waypoint x="270" y="60"/>
+        <omgdi:waypoint x="270" y="148"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_4" sourceRef="Task_SubmitJD" targetRef="IntermediateCatch_Decision">
+        <omgdi:waypoint x="570" y="270"/>
+        <omgdi:waypoint x="620" y="270"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_5" sourceRef="IntermediateCatch_Decision" targetRef="Gateway_Approved">
+        <omgdi:waypoint x="656" y="270"/>
+        <omgdi:waypoint x="700" y="270"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_Rejected" sourceRef="Gateway_Approved" targetRef="Task_Correct">
+        <omgdi:waypoint x="725" y="295"/>
+        <omgdi:waypoint x="725" y="330"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_FromCorrect" sourceRef="Task_Correct" targetRef="Task_SubmitJD">
+        <omgdi:waypoint x="700" y="370"/>
+        <omgdi:waypoint x="520" y="370"/>
+        <omgdi:waypoint x="520" y="310"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_ApprovedYes" sourceRef="Gateway_Approved" targetRef="Task_PostJob">
+        <omgdi:waypoint x="750" y="270"/>
+        <omgdi:waypoint x="820" y="270"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_6" sourceRef="Task_PostJob" targetRef="EndEvent_JobPosted">
+        <omgdi:waypoint x="920" y="270"/>
+        <omgdi:waypoint x="980" y="270"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge bpmnElement="Flow_D1" sourceRef="StartEvent_Dept_Clarification" targetRef="Task_ProvideClarification">
+        <omgdi:waypoint x="656" y="418"/>
+        <omgdi:waypoint x="700" y="418"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_D2" sourceRef="Task_ProvideClarification" targetRef="EndEvent_Dept_ClarificationSent">
+        <omgdi:waypoint x="800" y="418"/>
+        <omgdi:waypoint x="850" y="418"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_D3" sourceRef="StartEvent_Dept_ReviewJD" targetRef="Task_ReviewJD">
+        <omgdi:waypoint x="656" y="538"/>
+        <omgdi:waypoint x="700" y="538"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_D4" sourceRef="Task_ReviewJD" targetRef="Gateway_DeptApprove">
+        <omgdi:waypoint x="800" y="538"/>
+        <omgdi:waypoint x="850" y="538"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_D_Approve" sourceRef="Gateway_DeptApprove" targetRef="Task_SendApproval">
+        <omgdi:waypoint x="875" y="513"/>
+        <omgdi:waypoint x="875" y="480"/>
+        <omgdi:waypoint x="950" y="480"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_D_Reject" sourceRef="Gateway_DeptApprove" targetRef="Task_SendRejection">
+        <omgdi:waypoint x="875" y="563"/>
+        <omgdi:waypoint x="875" y="600"/>
+        <omgdi:waypoint x="950" y="600"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_D5" sourceRef="Task_SendApproval" targetRef="EndEvent_Dept_Approved">
+        <omgdi:waypoint x="1050" y="480"/>
+        <omgdi:waypoint x="1100" y="480"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_D6" sourceRef="Task_SendRejection" targetRef="EndEvent_Dept_Rejected">
+        <omgdi:waypoint x="1070" y="600"/>
+        <omgdi:waypoint x="1120" y="600"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- message flows -->
+      <bpmndi:BPMNEdge bpmnElement="MF_AskClarification" sourceRef="Task_AskDept" targetRef="StartEvent_Dept_Clarification">
+        <omgdi:waypoint x="520" y="160"/>
+        <omgdi:waypoint x="520" y="300"/>
+        <omgdi:waypoint x="638" y="300"/>
+        <omgdi:waypoint x="638" y="400"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="MF_ClarificationReply" sourceRef="EndEvent_Dept_ClarificationSent" targetRef="IntermediateCatch_ClarificationReceived">
+        <omgdi:waypoint x="868" y="400"/>
+        <omgdi:waypoint x="868" y="140"/>
+        <omgdi:waypoint x="638" y="140"/>
+        <omgdi:waypoint x="638" y="102"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="MF_SubmitJD" sourceRef="Task_SubmitJD" targetRef="StartEvent_Dept_ReviewJD">
+        <omgdi:waypoint x="520" y="310"/>
+        <omgdi:waypoint x="520" y="400"/>
+        <omgdi:waypoint x="638" y="400"/>
+        <omgdi:waypoint x="638" y="520"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="MF_ApprovalReply" sourceRef="EndEvent_Dept_Approved" targetRef="IntermediateCatch_Decision">
+        <omgdi:waypoint x="1118" y="462"/>
+        <omgdi:waypoint x="1118" y="330"/>
+        <omgdi:waypoint x="638" y="330"/>
+        <omgdi:waypoint x="638" y="288"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="MF_RejectionReply" sourceRef="EndEvent_Dept_Rejected" targetRef="IntermediateCatch_Decision">
+        <omgdi:waypoint x="1138" y="582"/>
+        <omgdi:waypoint x="1138" y="330"/>
+        <omgdi:waypoint x="656" y="330"/>
+        <omgdi:waypoint x="638" y="288"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

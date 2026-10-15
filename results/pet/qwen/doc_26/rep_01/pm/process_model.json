@@ -1,0 +1,263 @@
+{
+  "name": "MSPO Deregistration and GO Assignment Process",
+  "resources": [
+    {
+      "name": "GO",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "MSPO",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_mspo_deregister",
+      "name": "MSPO deregisters at the GO",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_rejected",
+      "name": "Deregistration Rejected",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "msg_start_go_inform_mspo",
+      "name": "Receive info about end of assignment",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Info: End of MSPO assignment / Start of GO assignment"
+    },
+    {
+      "id": "msg_end_go_inform_mspo",
+      "name": "Send info about end of assignment",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Info: End of MSPO assignment / Start of GO assignment"
+    },
+    {
+      "id": "msg_start_mpo_inform",
+      "name": "Receive info about GO assignment",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Info: Assignment of GO"
+    },
+    {
+      "id": "msg_end_mpo_inform",
+      "name": "Send info about GO assignment",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Info: Assignment of GO"
+    },
+    {
+      "id": "msg_start_sp_inform",
+      "name": "Receive info about GO assignment",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Info: Assignment of GO"
+    },
+    {
+      "id": "msg_end_sp_inform",
+      "name": "Send info about GO assignment",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Info: Assignment of GO"
+    },
+    {
+      "id": "end_process_complete",
+      "name": "Process Complete",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_verify_dereg",
+      "name": "Verify the deregistration",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "GO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_assign_self_msp",
+      "name": "Assign himself as MSP",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "GO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_decision_outcome",
+      "name": "Decision on Deregistration",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_to_reject",
+          "condition": "Reject deregistration"
+        },
+        {
+          "flow_id": "flow_to_confirm",
+          "condition": "Preliminarily confirm deregistration"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "start_mspo_deregister",
+      "target_id": "task_verify_dereg",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_verify_dereg",
+      "target_id": "gw_decision_outcome",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_reject",
+      "source_id": "gw_decision_outcome",
+      "target_id": "end_rejected",
+      "condition_name": "Reject deregistration"
+    },
+    {
+      "id": "flow_to_confirm",
+      "source_id": "gw_decision_outcome",
+      "target_id": "task_assign_self_msp",
+      "condition_name": "Preliminarily confirm deregistration"
+    },
+    {
+      "id": "flow_3",
+      "source_id": "task_assign_self_msp",
+      "target_id": "msg_end_go_inform_mspo",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "msg_end_go_inform_mspo",
+      "target_id": "msg_end_mpo_inform",
+      "condition_name": null
+    },
+    {
+      "id": "flow_5",
+      "source_id": "msg_end_mpo_inform",
+      "target_id": "msg_end_sp_inform",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "msg_end_sp_inform",
+      "target_id": "end_process_complete",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_mspon",
+      "name": "MSPO",
+      "element_ids": [
+        "start_mspo_deregister",
+        "msg_start_go_inform_mspo"
+      ]
+    },
+    {
+      "id": "pool_go",
+      "name": "GO",
+      "element_ids": [
+        "task_verify_dereg",
+        "gw_decision_outcome",
+        "end_rejected",
+        "task_assign_self_msp",
+        "msg_end_go_inform_mspo",
+        "msg_end_mpo_inform",
+        "msg_end_sp_inform",
+        "end_process_complete"
+      ]
+    },
+    {
+      "id": "pool_mpo",
+      "name": "MPO",
+      "element_ids": [
+        "msg_start_mpo_inform"
+      ]
+    },
+    {
+      "id": "pool_sp",
+      "name": "SP",
+      "element_ids": [
+        "msg_start_sp_inform"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_1",
+      "source_id": "msg_end_go_inform_mspo",
+      "target_id": "msg_start_go_inform_mspo",
+      "name": "Info: End of MSPO assignment / Start of GO assignment"
+    },
+    {
+      "id": "msg_flow_2",
+      "source_id": "msg_end_mpo_inform",
+      "target_id": "msg_start_mpo_inform",
+      "name": "Info: Assignment of GO"
+    },
+    {
+      "id": "msg_flow_3",
+      "source_id": "msg_end_sp_inform",
+      "target_id": "msg_start_sp_inform",
+      "name": "Info: Assignment of GO"
+    }
+  ],
+  "data_objects": [],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

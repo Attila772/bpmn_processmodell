@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mpoo_part" name="MPOO" processRef="pool_mpoo_proc" />
+    <bpmn:participant id="pool_mspon_part" name="MSPO" processRef="pool_mspon_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_mpon_part" name="MPON" processRef="pool_mpon_proc" />
+    <bpmn:messageFlow id="msg_flow_mpoo_metering" sourceRef="evt_start_mpoo_metering" targetRef="evt_msg_mpoo_metering_to_go" name="Metering Bill" />
+    <bpmn:messageFlow id="msg_flow_mspon_measurement" sourceRef="evt_start_mspon_measurement" targetRef="evt_msg_mspon_measurement_to_go" name="Measurement Bill" />
+    <bpmn:messageFlow id="msg_flow_mspon_readings" sourceRef="evt_start_mspon_readings" targetRef="evt_msg_mspon_readings_to_go" name="Additional Readings Bill" />
+    <bpmn:messageFlow id="msg_flow_mpoo_equip_go" sourceRef="evt_start_mpoo_equipment_go" targetRef="evt_msg_mpoo_equipment_to_go" name="Equipment Bill" />
+    <bpmn:messageFlow id="msg_flow_mpoo_equip_mpon" sourceRef="evt_start_mpoo_equipment_mpon" targetRef="evt_msg_mpoo_equipment_to_mpon" name="Equipment Bill" />
+    <bpmn:messageFlow id="msg_flow_go_confirm_mpoo" sourceRef="evt_msg_confirm_to_mpoo" targetRef="evt_start_mpoo_confirmed" name="Confirmation/Rejection" />
+    <bpmn:messageFlow id="msg_flow_mpon_confirm_mpoo" sourceRef="evt_msg_confirm_to_mpoo" targetRef="evt_start_mpoo_confirmed" name="Confirmation/Rejection" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mpoo_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_start_mpoo_metering" name="Start: MPOO sends metering bill">
+      <bpmn:outgoing>flow_mpoo_start_to_msg</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_mspo_measurement" name="Start: MSPO sends measurement bill">
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_mspo_readings" name="Start: MSPO sends additional readings bill">
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_mpoo_equipment_go" name="Start: MPOO sends equipment bill to GO">
+      <bpmn:outgoing>flow_mpoo_start_equip_go_to_msg</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_mpoo_equipment_mpon" name="Start: MPOO sends equipment bill to MPON">
+      <bpmn:outgoing>flow_mpoo_start_equip_mpon_to_msg</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_msg_mspo_measurement_to_go" name="Receive Measurement Bill">
+      <bpmn:messageEventDefinition id="evt_msg_mspo_measurement_to_go_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_msg_mspo_readings_to_go" name="Receive Additional Readings Bill">
+      <bpmn:messageEventDefinition id="evt_msg_mspo_readings_to_go_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_msg_confirm_to_mspon" name="Send Confirmation to MSPO">
+      <bpmn:messageEventDefinition id="evt_msg_confirm_to_mspon_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_msg_reject_to_mspon" name="Send Rejection to MSPO">
+      <bpmn:messageEventDefinition id="evt_msg_reject_to_mspon_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_mpoo_confirmed" name="Start: MPOO Receives Decision">
+      <bpmn:outgoing>flow_mpoo_recv_confirm</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_mpoo_confirmed_msgdef" />
+    </bpmn:startEvent>
+  </bpmn:process>
+  <bpmn:process id="pool_mspon_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_start_mspon_confirmed" name="Start: MSPO Receives Decision">
+      <bpmn:outgoing>flow_mspon_recv_confirm</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_mspon_confirmed_msgdef" />
+    </bpmn:startEvent>
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_bill_metering" name="Bill for temporary continuation of metering point operations" dataObjectRef="data_bill_metering_do" />
+    <bpmn:dataObject id="data_bill_metering_do" />
+    <bpmn:dataObjectReference id="data_bill_measurement" name="Bill for temporary continuation of measurement" dataObjectRef="data_bill_measurement_do" />
+    <bpmn:dataObject id="data_bill_measurement_do" />
+    <bpmn:dataObjectReference id="data_bill_readings" name="Bill for additional readings" dataObjectRef="data_bill_readings_do" />
+    <bpmn:dataObject id="data_bill_readings_do" />
+    <bpmn:dataObjectReference id="data_bill_equipment" name="Bill for equipment acquisition" dataObjectRef="data_bill_equipment_do" />
+    <bpmn:dataObject id="data_bill_equipment_do" />
+    <bpmn:dataObjectReference id="data_decision" name="Payment advice or Rejection notice" dataObjectRef="data_decision_do" />
+    <bpmn:dataObject id="data_decision_do" />
+    <bpmn:startEvent id="evt_msg_mpoo_metering_to_go" name="Receive Metering Bill">
+      <bpmn:incoming>flow_mpoo_start_to_msg</bpmn:incoming>
+      <bpmn:outgoing>flow_go_msg_to_task_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_mpoo_metering_to_go_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_msg_mpoo_equipment_to_go" name="Receive Equipment Bill (GO)">
+      <bpmn:incoming>flow_mpoo_start_equip_go_to_msg</bpmn:incoming>
+      <bpmn:outgoing>flow_go_msg_to_task_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_mpoo_equipment_to_go_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_go_examined" name="End: GO Examined Bill">
+      <bpmn:incoming>flow_go_task_1_to_end</bpmn:incoming>
+      <bpmn:incoming>flow_go_task_2_to_end</bpmn:incoming>
+      <bpmn:incoming>flow_go_task_3_to_end</bpmn:incoming>
+      <bpmn:incoming>flow_mpoo_recv_confirm</bpmn:incoming>
+      <bpmn:incoming>flow_mspon_recv_confirm</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_examine_go_1" name="Examine the bill (Metering)">
+      <bpmn:incoming>flow_go_msg_to_task_1</bpmn:incoming>
+      <bpmn:outgoing>flow_go_task_1_to_end</bpmn:outgoing>
+      <bpmn:property id="task_examine_go_1_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_examine_go_1_dia0">
+        <bpmn:sourceRef>data_bill_metering</bpmn:sourceRef>
+        <bpmn:targetRef>task_examine_go_1_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_examine_go_2" name="Examine the bill (Measurement)">
+      <bpmn:incoming>flow_go_msg_to_task_2</bpmn:incoming>
+      <bpmn:outgoing>flow_go_task_2_to_end</bpmn:outgoing>
+      <bpmn:property id="task_examine_go_2_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_examine_go_2_dia0">
+        <bpmn:sourceRef>data_bill_measurement</bpmn:sourceRef>
+        <bpmn:targetRef>task_examine_go_2_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_examine_go_3" name="Examine the bill (Additional Readings)">
+      <bpmn:incoming>flow_go_msg_to_task_3</bpmn:incoming>
+      <bpmn:outgoing>flow_go_task_3_to_end</bpmn:outgoing>
+      <bpmn:property id="task_examine_go_3_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_examine_go_3_dia0">
+        <bpmn:sourceRef>data_bill_readings</bpmn:sourceRef>
+        <bpmn:targetRef>task_examine_go_3_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_examine_go_4" name="Examine the bill (Equipment)">
+      <bpmn:incoming>flow_go_msg_to_task_4</bpmn:incoming>
+      <bpmn:outgoing>flow_go_task_4_to_decide</bpmn:outgoing>
+      <bpmn:property id="task_examine_go_4_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_examine_go_4_dia0">
+        <bpmn:sourceRef>data_bill_equipment</bpmn:sourceRef>
+        <bpmn:targetRef>task_examine_go_4_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_decide_go" name="Confirm or Reject Invoice (GO)">
+      <bpmn:incoming>flow_go_task_4_to_decide</bpmn:incoming>
+      <bpmn:outgoing>flow_go_decide_to_gw</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_decide_go_doa0">
+        <bpmn:targetRef>data_decision</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_decide_go" name="Decision Gateway (GO)" isMarkerVisible="true">
+      <bpmn:incoming>flow_go_decide_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_go_confirm</bpmn:outgoing>
+      <bpmn:outgoing>flow_go_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_go_msg_to_task_1" sourceRef="evt_msg_mpoo_metering_to_go" targetRef="task_examine_go_1" />
+    <bpmn:sequenceFlow id="flow_go_msg_to_task_4" sourceRef="evt_msg_mpoo_equipment_to_go" targetRef="task_examine_go_4" />
+    <bpmn:sequenceFlow id="flow_go_task_1_to_end" sourceRef="task_examine_go_1" targetRef="evt_end_go_examined" />
+    <bpmn:sequenceFlow id="flow_go_task_2_to_end" sourceRef="task_examine_go_2" targetRef="evt_end_go_examined" />
+    <bpmn:sequenceFlow id="flow_go_task_3_to_end" sourceRef="task_examine_go_3" targetRef="evt_end_go_examined" />
+    <bpmn:sequenceFlow id="flow_go_task_4_to_decide" sourceRef="task_examine_go_4" targetRef="task_decide_go" />
+    <bpmn:sequenceFlow id="flow_go_decide_to_gw" sourceRef="task_decide_go" targetRef="gw_decide_go" />
+  </bpmn:process>
+  <bpmn:process id="pool_mpon_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_bill_equipment_p1" name="Bill for equipment acquisition" dataObjectRef="data_bill_equipment_p1_do" />
+    <bpmn:dataObject id="data_bill_equipment_p1_do" />
+    <bpmn:dataObjectReference id="data_decision_p1" name="Payment advice or Rejection notice" dataObjectRef="data_decision_p1_do" />
+    <bpmn:dataObject id="data_decision_p1_do" />
+    <bpmn:startEvent id="evt_msg_mpoo_equipment_to_mpon" name="Receive Equipment Bill (MPON)">
+      <bpmn:incoming>flow_mpoo_start_equip_mpon_to_msg</bpmn:incoming>
+      <bpmn:outgoing>flow_mpon_msg_to_task</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_mpoo_equipment_to_mpon_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mpon_examined" name="End: MPON Examined Bill">
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_msg_confirm_to_mpoo" name="Send Confirmation to MPOO">
+      <bpmn:incoming>flow_go_confirm</bpmn:incoming>
+      <bpmn:incoming>flow_mpon_confirm</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_confirm_to_mpoo_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_msg_reject_to_mpoo" name="Send Rejection to MPOO">
+      <bpmn:incoming>flow_go_reject</bpmn:incoming>
+      <bpmn:incoming>flow_mpon_reject</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_reject_to_mpoo_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_examine_mpon" name="Examine the bill (Equipment)">
+      <bpmn:incoming>flow_mpon_msg_to_task</bpmn:incoming>
+      <bpmn:outgoing>flow_mpon_task_to_decide</bpmn:outgoing>
+      <bpmn:property id="task_examine_mpon_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_examine_mpon_dia0">
+        <bpmn:sourceRef>data_bill_equipment_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_examine_mpon_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_decide_mpon" name="Confirm or Reject Invoice (MPON)">
+      <bpmn:incoming>flow_mpon_task_to_decide</bpmn:incoming>
+      <bpmn:outgoing>flow_mpon_decide_to_gw</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_decide_mpon_doa0">
+        <bpmn:targetRef>data_decision_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_decide_mpon" name="Decision Gateway (MPON)" isMarkerVisible="true">
+      <bpmn:incoming>flow_mpon_decide_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_mpon_confirm</bpmn:outgoing>
+      <bpmn:outgoing>flow_mpon_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_mpon_msg_to_task" sourceRef="evt_msg_mpoo_equipment_to_mpon" targetRef="task_examine_mpon" />
+    <bpmn:sequenceFlow id="flow_mpon_task_to_decide" sourceRef="task_examine_mpon" targetRef="task_decide_mpon" />
+    <bpmn:sequenceFlow id="flow_mpon_decide_to_gw" sourceRef="task_decide_mpon" targetRef="gw_decide_mpon" />
+    <bpmn:sequenceFlow id="flow_mpon_confirm" sourceRef="gw_decide_mpon" targetRef="evt_msg_confirm_to_mpoo" name="Confirm" />
+    <bpmn:sequenceFlow id="flow_mpon_reject" sourceRef="gw_decide_mpon" targetRef="evt_msg_reject_to_mpoo" name="Reject" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mpoo_part_di" bpmnElement="pool_mpoo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="700" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mspon_part_di" bpmnElement="pool_mspon_part" isHorizontal="true">
+        <dc:Bounds x="120" y="750" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1085" width="1140" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpon_part_di" bpmnElement="pool_mpon_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1795" width="1140" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_go_examined_di" bpmnElement="evt_end_go_examined">
+        <dc:Bounds x="540" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpon_examined_di" bpmnElement="evt_end_mpon_examined">
+        <dc:Bounds x="160" y="1855" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_confirm_to_mpoo_di" bpmnElement="evt_msg_confirm_to_mpoo">
+        <dc:Bounds x="920" y="1855" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_confirm_to_mspon_di" bpmnElement="evt_msg_confirm_to_mspon">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_mpoo_equipment_to_go_di" bpmnElement="evt_msg_mpoo_equipment_to_go">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_mpoo_equipment_to_mpon_di" bpmnElement="evt_msg_mpoo_equipment_to_mpon">
+        <dc:Bounds x="160" y="1980" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_mpoo_metering_to_go_di" bpmnElement="evt_msg_mpoo_metering_to_go">
+        <dc:Bounds x="160" y="1270" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_mspo_measurement_to_go_di" bpmnElement="evt_msg_mspo_measurement_to_go">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_mspo_readings_to_go_di" bpmnElement="evt_msg_mspo_readings_to_go">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_reject_to_mpoo_di" bpmnElement="evt_msg_reject_to_mpoo">
+        <dc:Bounds x="920" y="1980" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_reject_to_mspon_di" bpmnElement="evt_msg_reject_to_mspon">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpoo_confirmed_di" bpmnElement="evt_start_mpoo_confirmed">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpoo_equipment_go_di" bpmnElement="evt_start_mpoo_equipment_go">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpoo_equipment_mpon_di" bpmnElement="evt_start_mpoo_equipment_mpon">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpoo_metering_di" bpmnElement="evt_start_mpoo_metering">
+        <dc:Bounds x="160" y="475" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mspo_measurement_di" bpmnElement="evt_start_mspo_measurement">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mspo_readings_di" bpmnElement="evt_start_mspo_readings">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mspon_confirmed_di" bpmnElement="evt_start_mspon_confirmed">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_decide_go_di" bpmnElement="gw_decide_go">
+        <dc:Bounds x="730" y="1145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_decide_mpon_di" bpmnElement="gw_decide_mpon">
+        <dc:Bounds x="730" y="1855" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_decide_go_di" bpmnElement="task_decide_go">
+        <dc:Bounds x="540" y="1270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_decide_mpon_di" bpmnElement="task_decide_mpon">
+        <dc:Bounds x="540" y="1855" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_go_1_di" bpmnElement="task_examine_go_1">
+        <dc:Bounds x="350" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_go_2_di" bpmnElement="task_examine_go_2">
+        <dc:Bounds x="160" y="1395" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_go_3_di" bpmnElement="task_examine_go_3">
+        <dc:Bounds x="160" y="1520" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_go_4_di" bpmnElement="task_examine_go_4">
+        <dc:Bounds x="350" y="1270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_mpon_di" bpmnElement="task_examine_mpon">
+        <dc:Bounds x="350" y="1855" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_bill_metering_di" bpmnElement="data_bill_metering">
+        <dc:Bounds x="370" y="1660" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_bill_measurement_di" bpmnElement="data_bill_measurement">
+        <dc:Bounds x="180" y="1660" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_bill_readings_di" bpmnElement="data_bill_readings">
+        <dc:Bounds x="180" y="1660" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_bill_equipment_di" bpmnElement="data_bill_equipment">
+        <dc:Bounds x="370" y="1660" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_decision_di" bpmnElement="data_decision">
+        <dc:Bounds x="560" y="1660" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_bill_equipment_p1_di" bpmnElement="data_bill_equipment_p1">
+        <dc:Bounds x="370" y="2120" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_decision_p1_di" bpmnElement="data_decision_p1">
+        <dc:Bounds x="560" y="2120" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_mpoo_start_to_msg_di" bpmnElement="flow_mpoo_start_to_msg">
+        <di:waypoint x="178" y="493" />
+        <di:waypoint x="178" y="1288" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mspon_start_meas_to_msg_di" bpmnElement="flow_mspon_start_meas_to_msg">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mspon_start_read_to_msg_di" bpmnElement="flow_mspon_start_read_to_msg">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpoo_start_equip_go_to_msg_di" bpmnElement="flow_mpoo_start_equip_go_to_msg">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpoo_start_equip_mpon_to_msg_di" bpmnElement="flow_mpoo_start_equip_mpon_to_msg">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="178" y="1998" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_msg_to_task_1_di" bpmnElement="flow_go_msg_to_task_1">
+        <di:waypoint x="178" y="1288" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_msg_to_task_2_di" bpmnElement="flow_go_msg_to_task_2">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="210" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_msg_to_task_3_di" bpmnElement="flow_go_msg_to_task_3">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="210" y="1560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_msg_to_task_4_di" bpmnElement="flow_go_msg_to_task_4">
+        <di:waypoint x="178" y="1163" />
+        <di:waypoint x="400" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpon_msg_to_task_di" bpmnElement="flow_mpon_msg_to_task">
+        <di:waypoint x="178" y="1998" />
+        <di:waypoint x="400" y="1895" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_task_1_to_end_di" bpmnElement="flow_go_task_1_to_end">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="558" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_task_2_to_end_di" bpmnElement="flow_go_task_2_to_end">
+        <di:waypoint x="210" y="1435" />
+        <di:waypoint x="558" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_task_3_to_end_di" bpmnElement="flow_go_task_3_to_end">
+        <di:waypoint x="210" y="1560" />
+        <di:waypoint x="558" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_task_4_to_decide_di" bpmnElement="flow_go_task_4_to_decide">
+        <di:waypoint x="400" y="1310" />
+        <di:waypoint x="590" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpon_task_to_decide_di" bpmnElement="flow_mpon_task_to_decide">
+        <di:waypoint x="400" y="1895" />
+        <di:waypoint x="590" y="1895" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_decide_to_gw_di" bpmnElement="flow_go_decide_to_gw">
+        <di:waypoint x="590" y="1310" />
+        <di:waypoint x="755" y="1170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpon_decide_to_gw_di" bpmnElement="flow_mpon_decide_to_gw">
+        <di:waypoint x="590" y="1895" />
+        <di:waypoint x="755" y="1880" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_confirm_di" bpmnElement="flow_go_confirm">
+        <di:waypoint x="755" y="1170" />
+        <di:waypoint x="938" y="1873" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_reject_di" bpmnElement="flow_go_reject">
+        <di:waypoint x="755" y="1170" />
+        <di:waypoint x="938" y="1998" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpon_confirm_di" bpmnElement="flow_mpon_confirm">
+        <di:waypoint x="755" y="1880" />
+        <di:waypoint x="938" y="1873" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpon_reject_di" bpmnElement="flow_mpon_reject">
+        <di:waypoint x="755" y="1880" />
+        <di:waypoint x="938" y="1998" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpoo_recv_confirm_di" bpmnElement="flow_mpoo_recv_confirm">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="558" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mspon_recv_confirm_di" bpmnElement="flow_mspon_recv_confirm">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="558" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mpoo_metering_di" bpmnElement="msg_flow_mpoo_metering">
+        <di:waypoint x="178" y="493" />
+        <di:waypoint x="178" y="1288" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mspon_measurement_di" bpmnElement="msg_flow_mspon_measurement">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mspon_readings_di" bpmnElement="msg_flow_mspon_readings">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mpoo_equip_go_di" bpmnElement="msg_flow_mpoo_equip_go">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mpoo_equip_mpon_di" bpmnElement="msg_flow_mpoo_equip_mpon">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="178" y="1998" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_go_confirm_mpoo_di" bpmnElement="msg_flow_go_confirm_mpoo">
+        <di:waypoint x="938" y="1873" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_mpon_confirm_mpoo_di" bpmnElement="msg_flow_mpon_confirm_mpoo">
+        <di:waypoint x="938" y="1873" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_go_1_dia0_di" bpmnElement="task_examine_go_1_dia0">
+        <di:waypoint x="388" y="1685" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_go_2_dia0_di" bpmnElement="task_examine_go_2_dia0">
+        <di:waypoint x="198" y="1685" />
+        <di:waypoint x="210" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_go_3_dia0_di" bpmnElement="task_examine_go_3_dia0">
+        <di:waypoint x="198" y="1685" />
+        <di:waypoint x="210" y="1560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_go_4_dia0_di" bpmnElement="task_examine_go_4_dia0">
+        <di:waypoint x="388" y="1685" />
+        <di:waypoint x="400" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_mpon_dia0_di" bpmnElement="task_examine_mpon_dia0">
+        <di:waypoint x="388" y="2145" />
+        <di:waypoint x="400" y="1895" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_decide_go_doa0_di" bpmnElement="task_decide_go_doa0">
+        <di:waypoint x="590" y="1310" />
+        <di:waypoint x="578" y="1685" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_decide_mpon_doa0_di" bpmnElement="task_decide_mpon_doa0">
+        <di:waypoint x="590" y="1895" />
+        <di:waypoint x="578" y="2145" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

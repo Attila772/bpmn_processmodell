@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="VacancyReportingProcess" name="Vacancy Reporting Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_DetectedRequirements" name="Detected Personnel Requirements">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_ReportVacancy" name="Report Vacancy to Personnel Dept">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_JobDescriptionReceived" name="Job Description Received for Review">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="Gateway_ReviewDecision" name="Review Job Description">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approve</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Correct</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_Approved" name="Job Description Approved">
+      <bpmn:incoming>Flow_Approve</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_RequestCorrections" name="Request Corrections">
+      <bpmn:incoming>Flow_Correct</bpmn:incoming>
+      <bpmn:outgoing>Flow_BackToHR</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_DetectedRequirements" targetRef="Task_ReportVacancy" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ReportVacancy" targetRef="Event_JobDescriptionReceived" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Event_JobDescriptionReceived" targetRef="Gateway_ReviewDecision" />
+    <bpmn:sequenceFlow id="Flow_Approve" name="Approve" sourceRef="Gateway_ReviewDecision" targetRef="EndEvent_Approved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">approved == true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Correct" name="Request Corrections" sourceRef="Gateway_ReviewDecision" targetRef="Task_RequestCorrections">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">correctionsNeeded == true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_BackToHR" sourceRef="Task_RequestCorrections" targetRef="Event_JobDescriptionReceived" />
+    
+    <!-- Sub-process or separate flow for Clarifications -->
+    <bpmn:subProcess id="SubProcess_Clarifications" name="Clarification Phase">
+      <bpmn:incoming>Flow_HRQuestions</bpmn:incoming>
+      <bpmn:outgoing>Flow_ClarificationDone</bpmn:outgoing>
+      <bpmn:startEvent id="StartEvent_HRQuestions" name="HR Has Questions">
+        <bpmn:outgoing>Flow_ToClarify</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:task id="Task_ProvideClarifications" name="Provide Clarifications on Tasks/Requirements">
+        <bpmn:incoming>Flow_ToClarify</bpmn:incoming>
+        <bpmn:outgoing>Flow_FromClarify</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:endEvent id="EndEvent_Clarified" name="Clarifications Provided">
+        <bpmn:incoming>Flow_FromClarify</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_ToClarify" sourceRef="StartEvent_HRQuestions" targetRef="Task_ProvideClarifications" />
+      <bpmn:sequenceFlow id="Flow_FromClarify" sourceRef="Task_ProvideClarifications" targetRef="EndEvent_Clarified" />
+    </bpmn:subProcess>
+
+    <!-- Connecting the clarification phase as an interrupting event or parallel path? 
+         The prompt says "Sometimes it also happens...". This implies a conditional branch from the initial report or during the wait.
+         Let's model it as a potential interruption or a parallel interaction triggered by HR.
+         For simplicity in a single process view, we can add a message event or just note the interaction.
+         However, BPMN usually models the main flow. Let's add a boundary event on the Wait state for "HR Questions".
+    -->
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_HRQuestions" name="HR Asks Questions" attachedToRef="Event_JobDescriptionReceived" cancelActivity="false">
+      <bpmn:outgoing>Flow_HRQuestions</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDef_Questions" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:sequenceFlow id="Flow_HRQuestions" sourceRef="BoundaryEvent_HRQuestions" targetRef="SubProcess_Clarifications" />
+    <bpmn:sequenceFlow id="Flow_ClarificationDone" sourceRef="SubProcess_Clarifications" targetRef="Event_JobDescriptionReceived" />
+
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="VacancyReportingProcess">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_DetectedRequirements">
+        <dc:Bounds x="179" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="159" y="142" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReportVacancy_di" bpmnElement="Task_ReportVacancy">
+        <dc:Bounds x="260" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_JobDescriptionReceived_di" bpmnElement="Event_JobDescriptionReceived" isMarkerVisible="true">
+        <dc:Bounds x="412" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="386" y="142" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ReviewDecision_di" bpmnElement="Gateway_ReviewDecision" isMarkerVisible="true">
+        <dc:Bounds x="502" y="82" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Approved_di" bpmnElement="EndEvent_Approved">
+        <dc:Bounds x="632" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="616" y="142" width="68" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RequestCorrections_di" bpmnElement="Task_RequestCorrections">
+        <dc:Bounds x="502" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="215" y="117" />
+        <di:waypoint x="260" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="360" y="120" />
+        <di:waypoint x="412" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="448" y="117" />
+        <di:waypoint x="502" y="107" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approve_di" bpmnElement="Flow_Approve">
+        <di:waypoint x="552" y="107" />
+        <di:waypoint x="632" y="117" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="582" y="92" width="30" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Correct_di" bpmnElement="Flow_Correct">
+        <di:waypoint x="527" y="132" />
+        <di:waypoint x="527" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="502" y="142" width="100" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BackToHR_di" bpmnElement="Flow_BackToHR">
+        <di:waypoint x="552" y="260" />
+        <di:waypoint x="552" y="300" />
+        <di:waypoint x="429" y="300" />
+        <di:waypoint x="429" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="SubProcess_Clarifications_di" bpmnElement="SubProcess_Clarifications" isExpanded="true">
+        <dc:Bounds x="680" y="180" width="200" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_HRQuestions_di" bpmnElement="StartEvent_HRQuestions">
+        <dc:Bounds x="702" y="219" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ProvideClarifications_di" bpmnElement="Task_ProvideClarifications">
+        <dc:Bounds x="780" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Clarified_di" bpmnElement="EndEvent_Clarified">
+        <dc:Bounds x="922" y="219" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_ToClarify_di" bpmnElement="Flow_ToClarify">
+        <di:waypoint x="738" y="237" />
+        <di:waypoint x="780" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_FromClarify_di" bpmnElement="Flow_FromClarify">
+        <di:waypoint x="880" y="240" />
+        <di:waypoint x="922" y="237" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="BoundaryEvent_HRQuestions_di" bpmnElement="BoundaryEvent_HRQuestions">
+        <dc:Bounds x="429" y="135" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_HRQuestions_di" bpmnElement="Flow_HRQuestions">
+        <di:waypoint x="465" y="153" />
+        <di:waypoint x="680" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ClarificationDone_di" bpmnElement="Flow_ClarificationDone">
+        <di:waypoint x="880" y="230" />
+        <di:waypoint x="920" y="230" />
+        <di:waypoint x="920" y="117" />
+        <di:waypoint x="448" y="117" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,715 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_secretariat_part" name="Secretariat" processRef="pool_secretariat_proc" />
+    <bpmn:participant id="pool_accounting_part" name="Accounting" processRef="pool_accounting_proc" />
+    <bpmn:participant id="pool_cost_center_managers_part" name="Cost Center Managers" processRef="pool_cost_center_managers_proc" />
+    <bpmn:participant id="pool_commercial_manager_part" name="Commercial Manager" processRef="pool_commercial_manager_proc" />
+    <bpmn:participant id="pool_board_part" name="Board" processRef="pool_board_proc" />
+    <bpmn:messageFlow id="msg_flow_secretariat_to_accounting" sourceRef="evt_msg_to_accounting" targetRef="evt_msg_from_secretariat" name="Invoice &amp; Docket to Accounting" />
+    <bpmn:messageFlow id="msg_flow_accounting_to_ccm_1" sourceRef="evt_msg_to_ccm_1" targetRef="evt_msg_from_ccm_1" name="Invoice Copy &amp; Docket to CCM" />
+    <bpmn:messageFlow id="msg_flow_ccm_loop_internal" sourceRef="evt_msg_to_next_ccm" targetRef="evt_msg_from_next_ccm" name="Invoice Copy &amp; Docket to Next CCM" />
+    <bpmn:messageFlow id="msg_flow_ccm_to_accounting_approved" sourceRef="evt_msg_back_to_accounting_ccm" targetRef="evt_msg_from_accounting_ccm_return" name="Approved Invoice &amp; Docket to Accounting" />
+    <bpmn:messageFlow id="msg_flow_ccm_to_accounting_rejected" sourceRef="evt_msg_reject_to_accounting" targetRef="evt_msg_from_accounting_reject" name="Rejected Invoice &amp; Docket to Accounting" />
+    <bpmn:messageFlow id="msg_flow_accounting_to_ccm_resend" sourceRef="evt_msg_resend_to_ccm" targetRef="evt_msg_from_accounting_resend" name="Clarified Invoice &amp; Docket to CCMs" />
+    <bpmn:messageFlow id="msg_flow_accounting_to_commercial" sourceRef="evt_msg_to_commercial_mgr" targetRef="evt_msg_from_commercial_mgr" name="Approved Invoice &amp; Docket to Comm. Mgr." />
+    <bpmn:messageFlow id="msg_flow_commercial_to_accounting_complaint" sourceRef="evt_msg_complaint_to_accounting" targetRef="evt_msg_from_accounting_complaint" name="Complaint Details to Accounting" />
+    <bpmn:messageFlow id="msg_flow_accounting_to_commercial_retry" sourceRef="evt_msg_to_commercial_mgr" targetRef="evt_msg_from_commercial_mgr" name="Retry Commercial Audit" />
+    <bpmn:messageFlow id="msg_flow_commercial_to_board" sourceRef="evt_msg_commercial_approved_to_board" targetRef="evt_msg_from_board" name="Invoice for Board Approval" />
+    <bpmn:messageFlow id="msg_flow_board_to_accounting" sourceRef="evt_msg_board_approved_to_accounting" targetRef="evt_msg_from_accounting_board_return" name="Board Approved Invoice to Accounting" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_secretariat_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_invoice_paper" name="Invoice (Paper/Fax)" dataObjectRef="data_invoice_paper_do" />
+    <bpmn:dataObject id="data_invoice_paper_do" />
+    <bpmn:startEvent id="evt_start_invoice_received" name="Invoice Received (Paper/Fax)">
+      <bpmn:outgoing>flow_start_to_inspection</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_to_accounting" name="Forward to Accounting">
+      <bpmn:incoming>flow_inspection_to_msg_accounting</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_to_accounting_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_commercial_approved_to_board" name="Send to Board (if &gt;20 EUR)">
+      <bpmn:incoming>flow_to_board</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_commercial_approved_to_board_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:manualTask id="task_visual_inspection" name="Visual Inspection">
+      <bpmn:incoming>flow_start_to_inspection</bpmn:incoming>
+      <bpmn:outgoing>flow_inspection_to_msg_accounting</bpmn:outgoing>
+      <bpmn:property id="task_visual_inspection_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_visual_inspection_dia0">
+        <bpmn:sourceRef>data_invoice_paper</bpmn:sourceRef>
+        <bpmn:targetRef>task_visual_inspection_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="flow_start_to_inspection" sourceRef="evt_start_invoice_received" targetRef="task_visual_inspection" />
+    <bpmn:sequenceFlow id="flow_inspection_to_msg_accounting" sourceRef="task_visual_inspection" targetRef="evt_msg_to_accounting" />
+  </bpmn:process>
+  <bpmn:process id="pool_accounting_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_invoice_copy" name="Copy of Invoice" dataObjectRef="data_invoice_copy_do" />
+    <bpmn:dataObject id="data_invoice_copy_do" />
+    <bpmn:dataObjectReference id="data_docket" name="Docket" dataObjectRef="data_docket_do" />
+    <bpmn:dataObject id="data_docket_do" />
+    <bpmn:endEvent id="evt_end_process_closed" name="Instance Closed">
+      <bpmn:incoming>flow_close_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_msg_from_secretariat" name="Receive from Secretariat">
+      <bpmn:outgoing>flow_msg_accounting_to_create_instance</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_secretariat_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_to_ccm_1" name="Send to First CCM">
+      <bpmn:incoming>flow_check_items_to_msg_ccm_1</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_to_ccm_1_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_back_to_accounting_ccm" name="Return to Accounting (CCM Loop End)">
+      <bpmn:incoming>flow_to_commercial_mgr</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_back_to_accounting_ccm_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_msg_from_accounting_ccm_return" name="Receive Return from Accounting (CCM Loop)">
+      <bpmn:outgoing>flow_msg_back_to_accounting_to_commercial</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_accounting_ccm_return_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_reject_to_accounting" name="Reject to Accounting">
+      <bpmn:incoming>flow_reject_to_msg_accounting</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_reject_to_accounting_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_msg_from_accounting_reject" name="Receive Rejection from CCM">
+      <bpmn:outgoing>flow_msg_reject_to_clarify</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_accounting_reject_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_resend_to_ccm" name="Resend to CCMs after Clarification">
+      <bpmn:incoming>flow_clarify_to_msg_resend</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_resend_to_ccm_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_msg_from_accounting_resend" name="Receive Resend Trigger">
+      <bpmn:outgoing>flow_msg_resend_to_review_loop</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_accounting_resend_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_to_commercial_mgr" name="Send to Commercial Manager">
+      <bpmn:incoming>flow_msg_back_to_accounting_to_commercial</bpmn:incoming>
+      <bpmn:incoming>flow_resolve_to_msg_commercial_retry</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_to_commercial_mgr_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_complaint_to_accounting" name="Complaint to Accounting">
+      <bpmn:incoming>flow_to_complaint</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_complaint_to_accounting_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_msg_from_accounting_complaint" name="Receive Complaint">
+      <bpmn:outgoing>flow_msg_complaint_to_resolve</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_accounting_complaint_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_board_approved_to_accounting" name="Return to Accounting (Board Approved)">
+      <bpmn:incoming>flow_board_check_to_msg_accounting</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_board_approved_to_accounting_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_msg_from_accounting_board_return" name="Receive Board Approved Invoice">
+      <bpmn:outgoing>flow_msg_board_approved_to_payment</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_accounting_board_return_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:userTask id="task_create_instance" name="Identify Supplier &amp; Create Instance">
+      <bpmn:incoming>flow_msg_accounting_to_create_instance</bpmn:incoming>
+      <bpmn:outgoing>flow_create_instance_to_check_items</bpmn:outgoing>
+      <bpmn:property id="task_create_instance_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_create_instance_dia0">
+        <bpmn:sourceRef>data_invoice_copy</bpmn:sourceRef>
+        <bpmn:targetRef>task_create_instance_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_create_instance_doa0">
+        <bpmn:targetRef>data_docket</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_check_items_and_cost_centers" name="Check Items &amp; Note Cost Centers">
+      <bpmn:incoming>flow_create_instance_to_check_items</bpmn:incoming>
+      <bpmn:outgoing>flow_check_items_to_msg_ccm_1</bpmn:outgoing>
+      <bpmn:property id="task_check_items_and_cost_centers_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_items_and_cost_centers_dia0">
+        <bpmn:sourceRef>data_invoice_copy</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_items_and_cost_centers_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_check_items_and_cost_centers_doa0">
+        <bpmn:targetRef>data_docket</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_clarify_with_vendor" name="Clarify with Vendor / Consult CCMs">
+      <bpmn:incoming>flow_msg_reject_to_clarify</bpmn:incoming>
+      <bpmn:outgoing>flow_clarify_to_msg_resend</bpmn:outgoing>
+      <bpmn:property id="task_clarify_with_vendor_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_clarify_with_vendor_dia0">
+        <bpmn:sourceRef>data_docket</bpmn:sourceRef>
+        <bpmn:targetRef>task_clarify_with_vendor_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_resolve_complaint" name="Resolve Complaint with Supplier">
+      <bpmn:incoming>flow_msg_complaint_to_resolve</bpmn:incoming>
+      <bpmn:outgoing>flow_resolve_to_msg_commercial_retry</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_give_payment_instructions" name="Give Payment Instructions">
+      <bpmn:incoming>flow_to_payment_instructions</bpmn:incoming>
+      <bpmn:incoming>flow_msg_board_approved_to_payment</bpmn:incoming>
+      <bpmn:outgoing>flow_payment_to_close</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_close_instance" name="Close Instance in ACME Financial Accounting">
+      <bpmn:incoming>flow_payment_to_close</bpmn:incoming>
+      <bpmn:outgoing>flow_close_to_end</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_msg_accounting_to_create_instance" sourceRef="evt_msg_from_secretariat" targetRef="task_create_instance" />
+    <bpmn:sequenceFlow id="flow_create_instance_to_check_items" sourceRef="task_create_instance" targetRef="task_check_items_and_cost_centers" />
+    <bpmn:sequenceFlow id="flow_check_items_to_msg_ccm_1" sourceRef="task_check_items_and_cost_centers" targetRef="evt_msg_to_ccm_1" />
+    <bpmn:sequenceFlow id="flow_msg_reject_to_clarify" sourceRef="evt_msg_from_accounting_reject" targetRef="task_clarify_with_vendor" />
+    <bpmn:sequenceFlow id="flow_clarify_to_msg_resend" sourceRef="task_clarify_with_vendor" targetRef="evt_msg_resend_to_ccm" />
+    <bpmn:sequenceFlow id="flow_msg_back_to_accounting_to_commercial" sourceRef="evt_msg_from_accounting_ccm_return" targetRef="evt_msg_to_commercial_mgr" />
+    <bpmn:sequenceFlow id="flow_msg_complaint_to_resolve" sourceRef="evt_msg_from_accounting_complaint" targetRef="task_resolve_complaint" />
+    <bpmn:sequenceFlow id="flow_resolve_to_msg_commercial_retry" sourceRef="task_resolve_complaint" targetRef="evt_msg_to_commercial_mgr" />
+    <bpmn:sequenceFlow id="flow_msg_board_approved_to_payment" sourceRef="evt_msg_from_accounting_board_return" targetRef="task_give_payment_instructions" />
+    <bpmn:sequenceFlow id="flow_payment_to_close" sourceRef="task_give_payment_instructions" targetRef="task_close_instance" />
+    <bpmn:sequenceFlow id="flow_close_to_end" sourceRef="task_close_instance" targetRef="evt_end_process_closed" />
+  </bpmn:process>
+  <bpmn:process id="pool_cost_center_managers_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_invoice_copy_p1" name="Copy of Invoice" dataObjectRef="data_invoice_copy_p1_do" />
+    <bpmn:dataObject id="data_invoice_copy_p1_do" />
+    <bpmn:dataObjectReference id="data_docket_p1" name="Docket" dataObjectRef="data_docket_p1_do" />
+    <bpmn:dataObject id="data_docket_p1_do" />
+    <bpmn:startEvent id="evt_msg_from_ccm_1" name="Receive from First CCM">
+      <bpmn:outgoing>flow_msg_ccm_1_to_review</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_ccm_1_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_to_next_ccm" name="Send to Next CCM">
+      <bpmn:incoming>flow_to_next_ccm_or_accounting</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_to_next_ccm_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_msg_from_next_ccm" name="Receive from Next CCM">
+      <bpmn:outgoing>flow_msg_next_ccm_to_review_loop</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_next_ccm_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:userTask id="task_review_accuracy_ccm" name="Review Content for Accuracy">
+      <bpmn:incoming>flow_msg_ccm_1_to_review</bpmn:incoming>
+      <bpmn:incoming>flow_msg_next_ccm_to_review_loop</bpmn:incoming>
+      <bpmn:incoming>flow_msg_resend_to_review_loop</bpmn:incoming>
+      <bpmn:outgoing>flow_review_to_gateway_ccm</bpmn:outgoing>
+      <bpmn:property id="task_review_accuracy_ccm_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_review_accuracy_ccm_dia0">
+        <bpmn:sourceRef>data_invoice_copy_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_accuracy_ccm_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_review_accuracy_ccm_dia1">
+        <bpmn:sourceRef>data_docket_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_accuracy_ccm_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_review_accuracy_ccm_doa0">
+        <bpmn:targetRef>data_docket_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_note_ap_code" name="Note AP Code (Accurate Position)">
+      <bpmn:incoming>flow_to_note_ap</bpmn:incoming>
+      <bpmn:outgoing>flow_note_ap_to_gateway_all_correct</bpmn:outgoing>
+      <bpmn:property id="task_note_ap_code_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_note_ap_code_dia0">
+        <bpmn:sourceRef>data_docket_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_note_ap_code_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_note_ap_code_doa0">
+        <bpmn:targetRef>data_docket_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_reject_ap_with_note" name="Reject AP with Note &amp; Statement">
+      <bpmn:incoming>flow_to_reject</bpmn:incoming>
+      <bpmn:outgoing>flow_reject_to_msg_accounting</bpmn:outgoing>
+      <bpmn:property id="task_reject_ap_with_note_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_reject_ap_with_note_dia0">
+        <bpmn:sourceRef>data_docket_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_reject_ap_with_note_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_reject_ap_with_note_doa0">
+        <bpmn:targetRef>data_docket_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="gw_all_items_marked_correct" name="All Items Marked Correct?" isMarkerVisible="true">
+      <bpmn:incoming>flow_note_ap_to_gateway_all_correct</bpmn:incoming>
+      <bpmn:outgoing>flow_to_next_ccm_or_accounting</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_commercial_mgr</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_ccm_decision" name="Accuracy Check Result" isMarkerVisible="true">
+      <bpmn:incoming>flow_review_to_gateway_ccm</bpmn:incoming>
+      <bpmn:outgoing>flow_to_note_ap</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_msg_ccm_1_to_review" sourceRef="evt_msg_from_ccm_1" targetRef="task_review_accuracy_ccm" />
+    <bpmn:sequenceFlow id="flow_review_to_gateway_ccm" sourceRef="task_review_accuracy_ccm" targetRef="gw_ccm_decision" />
+    <bpmn:sequenceFlow id="flow_to_note_ap" sourceRef="gw_ccm_decision" targetRef="task_note_ap_code" name="In Order" />
+    <bpmn:sequenceFlow id="flow_to_reject" sourceRef="gw_ccm_decision" targetRef="task_reject_ap_with_note" name="Inconsistencies Exist" />
+    <bpmn:sequenceFlow id="flow_note_ap_to_gateway_all_correct" sourceRef="task_note_ap_code" targetRef="gw_all_items_marked_correct" />
+    <bpmn:sequenceFlow id="flow_to_next_ccm_or_accounting" sourceRef="gw_all_items_marked_correct" targetRef="evt_msg_to_next_ccm" name="No" />
+    <bpmn:sequenceFlow id="flow_msg_next_ccm_to_review_loop" sourceRef="evt_msg_from_next_ccm" targetRef="task_review_accuracy_ccm" />
+  </bpmn:process>
+  <bpmn:process id="pool_commercial_manager_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_invoice_copy_p2" name="Copy of Invoice" dataObjectRef="data_invoice_copy_p2_do" />
+    <bpmn:dataObject id="data_invoice_copy_p2_do" />
+    <bpmn:dataObjectReference id="data_docket_p2" name="Docket" dataObjectRef="data_docket_p2_do" />
+    <bpmn:dataObject id="data_docket_p2_do" />
+    <bpmn:startEvent id="evt_msg_from_commercial_mgr" name="Receive from Commercial Manager">
+      <bpmn:outgoing>flow_msg_commercial_to_audit</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_commercial_mgr_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:userTask id="task_commercial_audit" name="Commercial Audit">
+      <bpmn:incoming>flow_msg_commercial_to_audit</bpmn:incoming>
+      <bpmn:outgoing>flow_audit_to_gateway_commercial</bpmn:outgoing>
+      <bpmn:property id="task_commercial_audit_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_commercial_audit_dia0">
+        <bpmn:sourceRef>data_invoice_copy_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_commercial_audit_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_commercial_audit_dia1">
+        <bpmn:sourceRef>data_docket_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_commercial_audit_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_issue_approval_payment" name="Issue Approval for Payment">
+      <bpmn:incoming>flow_to_issue_approval</bpmn:incoming>
+      <bpmn:outgoing>flow_issue_approval_to_gateway_amount</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_commercial_audit_result" name="Commercial Audit Result" isMarkerVisible="true">
+      <bpmn:incoming>flow_audit_to_gateway_commercial</bpmn:incoming>
+      <bpmn:outgoing>flow_to_issue_approval</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_complaint</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_amount_exceeds_20" name="Amount &gt; EUR 20?" isMarkerVisible="true">
+      <bpmn:incoming>flow_issue_approval_to_gateway_amount</bpmn:incoming>
+      <bpmn:outgoing>flow_to_board</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_payment_instructions</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_msg_commercial_to_audit" sourceRef="evt_msg_from_commercial_mgr" targetRef="task_commercial_audit" />
+    <bpmn:sequenceFlow id="flow_audit_to_gateway_commercial" sourceRef="task_commercial_audit" targetRef="gw_commercial_audit_result" />
+    <bpmn:sequenceFlow id="flow_to_issue_approval" sourceRef="gw_commercial_audit_result" targetRef="task_issue_approval_payment" name="Successful" />
+    <bpmn:sequenceFlow id="flow_issue_approval_to_gateway_amount" sourceRef="task_issue_approval_payment" targetRef="gw_amount_exceeds_20" />
+  </bpmn:process>
+  <bpmn:process id="pool_board_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_invoice_copy_p3" name="Copy of Invoice" dataObjectRef="data_invoice_copy_p3_do" />
+    <bpmn:dataObject id="data_invoice_copy_p3_do" />
+    <bpmn:dataObjectReference id="data_docket_p3" name="Docket" dataObjectRef="data_docket_p3_do" />
+    <bpmn:dataObject id="data_docket_p3_do" />
+    <bpmn:startEvent id="evt_msg_from_board" name="Receive Board Approval/Rejection">
+      <bpmn:outgoing>flow_msg_board_to_check</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_board_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:userTask id="task_board_check" name="Board Check (4-eyes principle)">
+      <bpmn:incoming>flow_msg_board_to_check</bpmn:incoming>
+      <bpmn:outgoing>flow_board_check_to_msg_accounting</bpmn:outgoing>
+      <bpmn:property id="task_board_check_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_board_check_dia0">
+        <bpmn:sourceRef>data_invoice_copy_p3</bpmn:sourceRef>
+        <bpmn:targetRef>task_board_check_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_board_check_dia1">
+        <bpmn:sourceRef>data_docket_p3</bpmn:sourceRef>
+        <bpmn:targetRef>task_board_check_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_msg_board_to_check" sourceRef="evt_msg_from_board" targetRef="task_board_check" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_secretariat_part_di" bpmnElement="pool_secretariat_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_accounting_part_di" bpmnElement="pool_accounting_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="950" height="1400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_cost_center_managers_part_di" bpmnElement="pool_cost_center_managers_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1835" width="1330" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_commercial_manager_part_di" bpmnElement="pool_commercial_manager_part" isHorizontal="true">
+        <dc:Bounds x="120" y="2295" width="1140" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_board_part_di" bpmnElement="pool_board_part" isHorizontal="true">
+        <dc:Bounds x="120" y="2630" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_process_closed_di" bpmnElement="evt_end_process_closed">
+        <dc:Bounds x="730" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_back_to_accounting_ccm_di" bpmnElement="evt_msg_back_to_accounting_ccm">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_board_approved_to_accounting_di" bpmnElement="evt_msg_board_approved_to_accounting">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_commercial_approved_to_board_di" bpmnElement="evt_msg_commercial_approved_to_board">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_complaint_to_accounting_di" bpmnElement="evt_msg_complaint_to_accounting">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_accounting_board_return_di" bpmnElement="evt_msg_from_accounting_board_return">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_accounting_ccm_return_di" bpmnElement="evt_msg_from_accounting_ccm_return">
+        <dc:Bounds x="160" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_accounting_complaint_di" bpmnElement="evt_msg_from_accounting_complaint">
+        <dc:Bounds x="160" y="1060" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_accounting_reject_di" bpmnElement="evt_msg_from_accounting_reject">
+        <dc:Bounds x="160" y="1185" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_accounting_resend_di" bpmnElement="evt_msg_from_accounting_resend">
+        <dc:Bounds x="160" y="1310" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_board_di" bpmnElement="evt_msg_from_board">
+        <dc:Bounds x="160" y="2690" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_ccm_1_di" bpmnElement="evt_msg_from_ccm_1">
+        <dc:Bounds x="160" y="1895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_commercial_mgr_di" bpmnElement="evt_msg_from_commercial_mgr">
+        <dc:Bounds x="160" y="2355" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_next_ccm_di" bpmnElement="evt_msg_from_next_ccm">
+        <dc:Bounds x="160" y="2020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_secretariat_di" bpmnElement="evt_msg_from_secretariat">
+        <dc:Bounds x="160" y="1435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_reject_to_accounting_di" bpmnElement="evt_msg_reject_to_accounting">
+        <dc:Bounds x="160" y="1560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_resend_to_ccm_di" bpmnElement="evt_msg_resend_to_ccm">
+        <dc:Bounds x="540" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_accounting_di" bpmnElement="evt_msg_to_accounting">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_ccm_1_di" bpmnElement="evt_msg_to_ccm_1">
+        <dc:Bounds x="730" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_commercial_mgr_di" bpmnElement="evt_msg_to_commercial_mgr">
+        <dc:Bounds x="540" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_next_ccm_di" bpmnElement="evt_msg_to_next_ccm">
+        <dc:Bounds x="1110" y="1895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_invoice_received_di" bpmnElement="evt_start_invoice_received">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_all_items_marked_correct_di" bpmnElement="gw_all_items_marked_correct">
+        <dc:Bounds x="920" y="1895" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_amount_exceeds_20_di" bpmnElement="gw_amount_exceeds_20">
+        <dc:Bounds x="920" y="2355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_ccm_decision_di" bpmnElement="gw_ccm_decision">
+        <dc:Bounds x="540" y="1895" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_commercial_audit_result_di" bpmnElement="gw_commercial_audit_result">
+        <dc:Bounds x="540" y="2355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_board_check_di" bpmnElement="task_board_check">
+        <dc:Bounds x="350" y="2690" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_items_and_cost_centers_di" bpmnElement="task_check_items_and_cost_centers">
+        <dc:Bounds x="540" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_clarify_with_vendor_di" bpmnElement="task_clarify_with_vendor">
+        <dc:Bounds x="350" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_close_instance_di" bpmnElement="task_close_instance">
+        <dc:Bounds x="540" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_commercial_audit_di" bpmnElement="task_commercial_audit">
+        <dc:Bounds x="350" y="2355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_instance_di" bpmnElement="task_create_instance">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_give_payment_instructions_di" bpmnElement="task_give_payment_instructions">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_issue_approval_payment_di" bpmnElement="task_issue_approval_payment">
+        <dc:Bounds x="730" y="2355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_note_ap_code_di" bpmnElement="task_note_ap_code">
+        <dc:Bounds x="730" y="1895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reject_ap_with_note_di" bpmnElement="task_reject_ap_with_note">
+        <dc:Bounds x="730" y="2020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_resolve_complaint_di" bpmnElement="task_resolve_complaint">
+        <dc:Bounds x="350" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_accuracy_ccm_di" bpmnElement="task_review_accuracy_ccm">
+        <dc:Bounds x="350" y="1895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_visual_inspection_di" bpmnElement="task_visual_inspection">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_invoice_paper_di" bpmnElement="data_invoice_paper">
+        <dc:Bounds x="370" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_invoice_copy_di" bpmnElement="data_invoice_copy">
+        <dc:Bounds x="465" y="1700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_docket_di" bpmnElement="data_docket">
+        <dc:Bounds x="433" y="1700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_invoice_copy_p1_di" bpmnElement="data_invoice_copy_p1">
+        <dc:Bounds x="370" y="2160" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_docket_p1_di" bpmnElement="data_docket_p1">
+        <dc:Bounds x="623" y="2160" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_invoice_copy_p2_di" bpmnElement="data_invoice_copy_p2">
+        <dc:Bounds x="370" y="2495" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_docket_p2_di" bpmnElement="data_docket_p2">
+        <dc:Bounds x="370" y="2495" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_invoice_copy_p3_di" bpmnElement="data_invoice_copy_p3">
+        <dc:Bounds x="370" y="2830" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_docket_p3_di" bpmnElement="data_docket_p3">
+        <dc:Bounds x="370" y="2830" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_inspection_di" bpmnElement="flow_start_to_inspection">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inspection_to_msg_accounting_di" bpmnElement="flow_inspection_to_msg_accounting">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_accounting_to_create_instance_di" bpmnElement="flow_msg_accounting_to_create_instance">
+        <di:waypoint x="178" y="1453" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_create_instance_to_check_items_di" bpmnElement="flow_create_instance_to_check_items">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="590" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_check_items_to_msg_ccm_1_di" bpmnElement="flow_check_items_to_msg_ccm_1">
+        <di:waypoint x="590" y="725" />
+        <di:waypoint x="748" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_ccm_1_to_review_di" bpmnElement="flow_msg_ccm_1_to_review">
+        <di:waypoint x="178" y="1913" />
+        <di:waypoint x="400" y="1935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_review_to_gateway_ccm_di" bpmnElement="flow_review_to_gateway_ccm">
+        <di:waypoint x="400" y="1935" />
+        <di:waypoint x="565" y="1920" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_note_ap_di" bpmnElement="flow_to_note_ap">
+        <di:waypoint x="565" y="1920" />
+        <di:waypoint x="780" y="1935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_reject_di" bpmnElement="flow_to_reject">
+        <di:waypoint x="565" y="1920" />
+        <di:waypoint x="780" y="2060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_note_ap_to_gateway_all_correct_di" bpmnElement="flow_note_ap_to_gateway_all_correct">
+        <di:waypoint x="780" y="1935" />
+        <di:waypoint x="945" y="1920" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_next_ccm_or_accounting_di" bpmnElement="flow_to_next_ccm_or_accounting">
+        <di:waypoint x="945" y="1920" />
+        <di:waypoint x="1128" y="1913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_commercial_mgr_di" bpmnElement="flow_to_commercial_mgr">
+        <di:waypoint x="945" y="1920" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_next_ccm_to_review_loop_di" bpmnElement="flow_msg_next_ccm_to_review_loop">
+        <di:waypoint x="178" y="2038" />
+        <di:waypoint x="400" y="1935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reject_to_msg_accounting_di" bpmnElement="flow_reject_to_msg_accounting">
+        <di:waypoint x="780" y="2060" />
+        <di:waypoint x="178" y="1578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_reject_to_clarify_di" bpmnElement="flow_msg_reject_to_clarify">
+        <di:waypoint x="178" y="1203" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_clarify_to_msg_resend_di" bpmnElement="flow_clarify_to_msg_resend">
+        <di:waypoint x="400" y="475" />
+        <di:waypoint x="558" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_resend_to_review_loop_di" bpmnElement="flow_msg_resend_to_review_loop">
+        <di:waypoint x="178" y="1328" />
+        <di:waypoint x="400" y="1935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_back_to_accounting_to_commercial_di" bpmnElement="flow_msg_back_to_accounting_to_commercial">
+        <di:waypoint x="178" y="953" />
+        <di:waypoint x="558" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_commercial_to_audit_di" bpmnElement="flow_msg_commercial_to_audit">
+        <di:waypoint x="178" y="2373" />
+        <di:waypoint x="400" y="2395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_audit_to_gateway_commercial_di" bpmnElement="flow_audit_to_gateway_commercial">
+        <di:waypoint x="400" y="2395" />
+        <di:waypoint x="565" y="2380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_issue_approval_di" bpmnElement="flow_to_issue_approval">
+        <di:waypoint x="565" y="2380" />
+        <di:waypoint x="780" y="2395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_complaint_di" bpmnElement="flow_to_complaint">
+        <di:waypoint x="565" y="2380" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_complaint_to_resolve_di" bpmnElement="flow_msg_complaint_to_resolve">
+        <di:waypoint x="178" y="1078" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_resolve_to_msg_commercial_retry_di" bpmnElement="flow_resolve_to_msg_commercial_retry">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="558" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_issue_approval_to_gateway_amount_di" bpmnElement="flow_issue_approval_to_gateway_amount">
+        <di:waypoint x="780" y="2395" />
+        <di:waypoint x="945" y="2380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_board_di" bpmnElement="flow_to_board">
+        <di:waypoint x="945" y="2380" />
+        <di:waypoint x="118" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_payment_instructions_di" bpmnElement="flow_to_payment_instructions">
+        <di:waypoint x="945" y="2380" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_board_to_check_di" bpmnElement="flow_msg_board_to_check">
+        <di:waypoint x="178" y="2708" />
+        <di:waypoint x="400" y="2730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_board_check_to_msg_accounting_di" bpmnElement="flow_board_check_to_msg_accounting">
+        <di:waypoint x="400" y="2730" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_board_approved_to_payment_di" bpmnElement="flow_msg_board_approved_to_payment">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_payment_to_close_di" bpmnElement="flow_payment_to_close">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="590" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_close_to_end_di" bpmnElement="flow_close_to_end">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="748" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_secretariat_to_accounting_di" bpmnElement="msg_flow_secretariat_to_accounting">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="1453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_accounting_to_ccm_1_di" bpmnElement="msg_flow_accounting_to_ccm_1">
+        <di:waypoint x="748" y="578" />
+        <di:waypoint x="178" y="1913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_ccm_loop_internal_di" bpmnElement="msg_flow_ccm_loop_internal">
+        <di:waypoint x="1128" y="1913" />
+        <di:waypoint x="178" y="2038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_ccm_to_accounting_approved_di" bpmnElement="msg_flow_ccm_to_accounting_approved">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="178" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_ccm_to_accounting_rejected_di" bpmnElement="msg_flow_ccm_to_accounting_rejected">
+        <di:waypoint x="178" y="1578" />
+        <di:waypoint x="178" y="1203" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_accounting_to_ccm_resend_di" bpmnElement="msg_flow_accounting_to_ccm_resend">
+        <di:waypoint x="558" y="453" />
+        <di:waypoint x="178" y="1328" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_accounting_to_commercial_di" bpmnElement="msg_flow_accounting_to_commercial">
+        <di:waypoint x="558" y="578" />
+        <di:waypoint x="178" y="2373" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_commercial_to_accounting_complaint_di" bpmnElement="msg_flow_commercial_to_accounting_complaint">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="178" y="1078" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_accounting_to_commercial_retry_di" bpmnElement="msg_flow_accounting_to_commercial_retry">
+        <di:waypoint x="558" y="578" />
+        <di:waypoint x="178" y="2373" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_commercial_to_board_di" bpmnElement="msg_flow_commercial_to_board">
+        <di:waypoint x="118" y="118" />
+        <di:waypoint x="178" y="2708" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_board_to_accounting_di" bpmnElement="msg_flow_board_to_accounting">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_visual_inspection_dia0_di" bpmnElement="task_visual_inspection_dia0">
+        <di:waypoint x="388" y="265" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_instance_dia0_di" bpmnElement="task_create_instance_dia0">
+        <di:waypoint x="483" y="1725" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_instance_doa0_di" bpmnElement="task_create_instance_doa0">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="451" y="1725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_items_and_cost_centers_dia0_di" bpmnElement="task_check_items_and_cost_centers_dia0">
+        <di:waypoint x="483" y="1725" />
+        <di:waypoint x="590" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_items_and_cost_centers_doa0_di" bpmnElement="task_check_items_and_cost_centers_doa0">
+        <di:waypoint x="590" y="725" />
+        <di:waypoint x="451" y="1725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_accuracy_ccm_dia0_di" bpmnElement="task_review_accuracy_ccm_dia0">
+        <di:waypoint x="388" y="2185" />
+        <di:waypoint x="400" y="1935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_accuracy_ccm_dia1_di" bpmnElement="task_review_accuracy_ccm_dia1">
+        <di:waypoint x="641" y="2185" />
+        <di:waypoint x="400" y="1935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_accuracy_ccm_doa0_di" bpmnElement="task_review_accuracy_ccm_doa0">
+        <di:waypoint x="400" y="1935" />
+        <di:waypoint x="641" y="2185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_note_ap_code_dia0_di" bpmnElement="task_note_ap_code_dia0">
+        <di:waypoint x="641" y="2185" />
+        <di:waypoint x="780" y="1935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_note_ap_code_doa0_di" bpmnElement="task_note_ap_code_doa0">
+        <di:waypoint x="780" y="1935" />
+        <di:waypoint x="641" y="2185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reject_ap_with_note_dia0_di" bpmnElement="task_reject_ap_with_note_dia0">
+        <di:waypoint x="641" y="2185" />
+        <di:waypoint x="780" y="2060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reject_ap_with_note_doa0_di" bpmnElement="task_reject_ap_with_note_doa0">
+        <di:waypoint x="780" y="2060" />
+        <di:waypoint x="641" y="2185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_clarify_with_vendor_dia0_di" bpmnElement="task_clarify_with_vendor_dia0">
+        <di:waypoint x="451" y="1725" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_commercial_audit_dia0_di" bpmnElement="task_commercial_audit_dia0">
+        <di:waypoint x="388" y="2520" />
+        <di:waypoint x="400" y="2395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_commercial_audit_dia1_di" bpmnElement="task_commercial_audit_dia1">
+        <di:waypoint x="388" y="2520" />
+        <di:waypoint x="400" y="2395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_board_check_dia0_di" bpmnElement="task_board_check_dia0">
+        <di:waypoint x="388" y="2855" />
+        <di:waypoint x="400" y="2730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_board_check_dia1_di" bpmnElement="task_board_check_dia1">
+        <di:waypoint x="388" y="2855" />
+        <di:waypoint x="400" y="2730" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

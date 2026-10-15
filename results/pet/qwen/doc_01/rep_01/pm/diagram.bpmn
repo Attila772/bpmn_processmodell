@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_ec_part" name="EC" processRef="pool_ec_proc" />
+    <bpmn:participant id="pool_inq_part" name="INQ" processRef="pool_inq_proc" />
+    <bpmn:participant id="pool_ip_part" name="IP" processRef="pool_ip_proc" />
+    <bpmn:messageFlow id="msg_flow_ec_to_inq" sourceRef="evt_ec_send_change" targetRef="evt_inq_receive_change" name="Change Notification" />
+    <bpmn:messageFlow id="msg_flow_inq_to_ip" sourceRef="evt_inq_send_check_req" targetRef="evt_ip_receive_check_request" name="Check Request" />
+    <bpmn:messageFlow id="msg_flow_ip_to_inq" sourceRef="evt_ip_send_decision" targetRef="evt_inq_receive_decision" name="Decision Result" />
+    <bpmn:messageFlow id="msg_flow_inq_to_ec_confirm" sourceRef="evt_inq_send_confirm" targetRef="evt_ec_receive_confirm" name="Confirmation" />
+    <bpmn:messageFlow id="msg_flow_inq_to_ec_reject" sourceRef="evt_inq_send_reject" targetRef="evt_ec_receive_reject" name="Rejection" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_ec_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_ec_start" name="Start: EC initiates change">
+      <bpmn:outgoing>flow_ec_start_to_notify</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_ec_end_confirmed" name="End: Changes Confirmed">
+      <bpmn:incoming>flow_ec_recv_confirm_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_ec_end_rejected" name="End: Changes Rejected">
+      <bpmn:incoming>flow_ec_recv_reject_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_ec_notify_inq" name="Notify INQ about master data change">
+      <bpmn:incoming>flow_ec_start_to_notify</bpmn:incoming>
+      <bpmn:outgoing>flow_ec_notify_to_end_msg</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="flow_ec_start_to_notify" sourceRef="evt_ec_start" targetRef="task_ec_notify_inq" />
+  </bpmn:process>
+  <bpmn:process id="pool_inq_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_inq_receive_change" name="Receive change notification from EC">
+      <bpmn:outgoing>flow_inq_recv_to_notify_ip</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_inq_receive_change_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_inq_receive_decision" name="Receive decision from IP">
+      <bpmn:outgoing>flow_inq_recv_dec_to_forward</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_inq_receive_decision_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:task id="task_inq_notify_ip" name="Notify IP of the change">
+      <bpmn:incoming>flow_inq_recv_to_notify_ip</bpmn:incoming>
+      <bpmn:outgoing>flow_inq_notify_to_end_msg</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_inq_forward_decision" name="Forward decision to EC">
+      <bpmn:incoming>flow_inq_recv_dec_to_forward</bpmn:incoming>
+      <bpmn:outgoing>flow_inq_forward_to_gateway</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_inq_route" name="Route Decision to EC" isMarkerVisible="true">
+      <bpmn:incoming>flow_inq_forward_to_gateway</bpmn:incoming>
+      <bpmn:outgoing>flow_inq_to_confirm_end</bpmn:outgoing>
+      <bpmn:outgoing>flow_inq_to_reject_end</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_inq_recv_to_notify_ip" sourceRef="evt_inq_receive_change" targetRef="task_inq_notify_ip" />
+    <bpmn:sequenceFlow id="flow_inq_recv_dec_to_forward" sourceRef="evt_inq_receive_decision" targetRef="task_inq_forward_decision" />
+    <bpmn:sequenceFlow id="flow_inq_forward_to_gateway" sourceRef="task_inq_forward_decision" targetRef="gw_inq_route" />
+  </bpmn:process>
+  <bpmn:process id="pool_ip_proc" isExecutable="false">
+    <bpmn:startEvent id="evt_ip_receive_check_request" name="Receive check request from INQ">
+      <bpmn:outgoing>flow_ip_recv_to_check</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_ip_receive_check_request_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:task id="task_ip_check_feasibility" name="Check whether master data can be changed at desired time">
+      <bpmn:incoming>flow_ip_recv_to_check</bpmn:incoming>
+      <bpmn:outgoing>flow_ip_check_to_gateway</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_ip_send_decision" name="Send confirmation or rejection to INQ">
+      <bpmn:incoming>flow_ip_to_confirm</bpmn:incoming>
+      <bpmn:incoming>flow_ip_to_reject</bpmn:incoming>
+      <bpmn:outgoing>flow_ip_send_to_end_msg</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_ip_decision" name="Decision on Master Data Change" isMarkerVisible="true">
+      <bpmn:incoming>flow_ip_check_to_gateway</bpmn:incoming>
+      <bpmn:outgoing>flow_ip_to_confirm</bpmn:outgoing>
+      <bpmn:outgoing>flow_ip_to_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_ip_recv_to_check" sourceRef="evt_ip_receive_check_request" targetRef="task_ip_check_feasibility" />
+    <bpmn:sequenceFlow id="flow_ip_check_to_gateway" sourceRef="task_ip_check_feasibility" targetRef="gw_ip_decision" />
+    <bpmn:sequenceFlow id="flow_ip_to_confirm" sourceRef="gw_ip_decision" targetRef="task_ip_send_decision" name="Confirm changes" />
+    <bpmn:sequenceFlow id="flow_ip_to_reject" sourceRef="gw_ip_decision" targetRef="task_ip_send_decision" name="Reject changes" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_ec_part_di" bpmnElement="pool_ec_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="700" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_inq_part_di" bpmnElement="pool_inq_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_ip_part_di" bpmnElement="pool_ip_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1085" width="950" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_ec_end_confirmed_di" bpmnElement="evt_ec_end_confirmed">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_ec_end_rejected_di" bpmnElement="evt_ec_end_rejected">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_ec_start_di" bpmnElement="evt_ec_start">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_inq_receive_change_di" bpmnElement="evt_inq_receive_change">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_inq_receive_decision_di" bpmnElement="evt_inq_receive_decision">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_ip_receive_check_request_di" bpmnElement="evt_ip_receive_check_request">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_inq_route_di" bpmnElement="gw_inq_route">
+        <dc:Bounds x="540" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_ip_decision_di" bpmnElement="gw_ip_decision">
+        <dc:Bounds x="540" y="1145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ec_notify_inq_di" bpmnElement="task_ec_notify_inq">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inq_forward_decision_di" bpmnElement="task_inq_forward_decision">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inq_notify_ip_di" bpmnElement="task_inq_notify_ip">
+        <dc:Bounds x="350" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ip_check_feasibility_di" bpmnElement="task_ip_check_feasibility">
+        <dc:Bounds x="350" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ip_send_decision_di" bpmnElement="task_ip_send_decision">
+        <dc:Bounds x="730" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_ec_start_to_notify_di" bpmnElement="flow_ec_start_to_notify">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ec_notify_to_end_msg_di" bpmnElement="flow_ec_notify_to_end_msg">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inq_recv_to_notify_ip_di" bpmnElement="flow_inq_recv_to_notify_ip">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inq_notify_to_end_msg_di" bpmnElement="flow_inq_notify_to_end_msg">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_recv_to_check_di" bpmnElement="flow_ip_recv_to_check">
+        <di:waypoint x="178" y="1163" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_check_to_gateway_di" bpmnElement="flow_ip_check_to_gateway">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="565" y="1170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_to_confirm_di" bpmnElement="flow_ip_to_confirm">
+        <di:waypoint x="565" y="1170" />
+        <di:waypoint x="780" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_to_reject_di" bpmnElement="flow_ip_to_reject">
+        <di:waypoint x="565" y="1170" />
+        <di:waypoint x="780" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ip_send_to_end_msg_di" bpmnElement="flow_ip_send_to_end_msg">
+        <di:waypoint x="780" y="1185" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inq_recv_dec_to_forward_di" bpmnElement="flow_inq_recv_dec_to_forward">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inq_forward_to_gateway_di" bpmnElement="flow_inq_forward_to_gateway">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="565" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inq_to_confirm_end_di" bpmnElement="flow_inq_to_confirm_end">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_inq_to_reject_end_di" bpmnElement="flow_inq_to_reject_end">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ec_recv_confirm_to_end_di" bpmnElement="flow_ec_recv_confirm_to_end">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ec_recv_reject_to_end_di" bpmnElement="flow_ec_recv_reject_to_end">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_ec_to_inq_di" bpmnElement="msg_flow_ec_to_inq">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_inq_to_ip_di" bpmnElement="msg_flow_inq_to_ip">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_ip_to_inq_di" bpmnElement="msg_flow_ip_to_inq">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_inq_to_ec_confirm_di" bpmnElement="msg_flow_inq_to_ec_confirm">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_inq_to_ec_reject_di" bpmnElement="msg_flow_inq_to_ec_reject">
+        <di:waypoint x="150" y="140" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,509 @@
+{
+  "name": "Mail Processing and Registry Workflow",
+  "resources": [
+    {
+      "name": "Mail Clerk",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Assistant Registry Manager",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Cashier",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_mail_collected",
+      "name": "Mail collected from party",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_mail_distributed",
+      "name": "Mail distributed",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Unopened Mail"
+    },
+    {
+      "id": "start_mail_received",
+      "name": "Mail received at Registry",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Unopened Mail"
+    },
+    {
+      "id": "end_send_requisition",
+      "name": "Requisition list sent to party",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_send_to_cashier",
+      "name": "Matter details sent to Cashier",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Matter Details"
+    },
+    {
+      "id": "start_receive_matter_details",
+      "name": "Matter details received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Matter Details"
+    },
+    {
+      "id": "end_send_receipt_to_registry",
+      "name": "Receipt and file sent to Registry",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Receipt and Court File"
+    },
+    {
+      "id": "start_receipt_from_cashier",
+      "name": "Receipt received from Cashier",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Receipt and Court File"
+    },
+    {
+      "id": "end_registry_process",
+      "name": "Process completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_sort_unopened_mail",
+      "name": "Sort unopened mail into business areas",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Mail Clerk",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_unopened_mail"
+      ]
+    },
+    {
+      "id": "task_open_sort_register",
+      "name": "Open and sort mail, register in Mail Register",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Registry Staff",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_unopened_mail"
+      ],
+      "output_data_ids": [
+        "data_mail_register_entry"
+      ]
+    },
+    {
+      "id": "task_quality_check",
+      "name": "Perform quality check on mail",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Assistant Registry Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_mail_register_entry"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_compile_requisition_list",
+      "name": "Compile list of requisition with reason for rejection",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Assistant Registry Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_requisition_list"
+      ]
+    },
+    {
+      "id": "task_capture_matter_details",
+      "name": "Capture matter details (types of action)",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Assistant Registry Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_matter_details"
+      ]
+    },
+    {
+      "id": "task_take_fees",
+      "name": "Take applicable fees attached to mail",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Cashier",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_matter_details"
+      ],
+      "output_data_ids": [
+        "data_receipt"
+      ]
+    },
+    {
+      "id": "task_capture_party_details",
+      "name": "Capture Party Details",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Cashier",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_party_details"
+      ]
+    },
+    {
+      "id": "task_print_physical_court_file",
+      "name": "Print Physical Court File",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Cashier",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_party_details"
+      ],
+      "output_data_ids": [
+        "data_physical_court_file"
+      ]
+    },
+    {
+      "id": "task_post_receipt",
+      "name": "Put receipt and copied documents into envelope and post to party",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Assistant Registry Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_receipt"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_compliant",
+      "name": "Mail compliant?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_gw_to_requisition",
+          "condition": "not compliant"
+        },
+        {
+          "flow_id": "flow_gw_to_capture",
+          "condition": "compliant"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow1",
+      "source_id": "start_mail_collected",
+      "target_id": "task_sort_unopened_mail",
+      "condition_name": null
+    },
+    {
+      "id": "flow2",
+      "source_id": "task_sort_unopened_mail",
+      "target_id": "end_mail_distributed",
+      "condition_name": null
+    },
+    {
+      "id": "flow3",
+      "source_id": "start_mail_received",
+      "target_id": "task_open_sort_register",
+      "condition_name": null
+    },
+    {
+      "id": "flow4",
+      "source_id": "task_open_sort_register",
+      "target_id": "task_quality_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow5",
+      "source_id": "task_quality_check",
+      "target_id": "gw_compliant",
+      "condition_name": null
+    },
+    {
+      "id": "flow_gw_to_requisition",
+      "source_id": "gw_compliant",
+      "target_id": "task_compile_requisition_list",
+      "condition_name": "not compliant"
+    },
+    {
+      "id": "flow_gw_to_capture",
+      "source_id": "gw_compliant",
+      "target_id": "task_capture_matter_details",
+      "condition_name": "compliant"
+    },
+    {
+      "id": "flow6",
+      "source_id": "task_compile_requisition_list",
+      "target_id": "end_send_requisition",
+      "condition_name": null
+    },
+    {
+      "id": "flow7",
+      "source_id": "task_capture_matter_details",
+      "target_id": "end_send_to_cashier",
+      "condition_name": null
+    },
+    {
+      "id": "flow8",
+      "source_id": "start_receive_matter_details",
+      "target_id": "task_take_fees",
+      "condition_name": null
+    },
+    {
+      "id": "flow9",
+      "source_id": "task_take_fees",
+      "target_id": "task_capture_party_details",
+      "condition_name": null
+    },
+    {
+      "id": "flow10",
+      "source_id": "task_capture_party_details",
+      "target_id": "task_print_physical_court_file",
+      "condition_name": null
+    },
+    {
+      "id": "flow11",
+      "source_id": "task_print_physical_court_file",
+      "target_id": "end_send_receipt_to_registry",
+      "condition_name": null
+    },
+    {
+      "id": "flow12",
+      "source_id": "start_receipt_from_cashier",
+      "target_id": "task_post_receipt",
+      "condition_name": null
+    },
+    {
+      "id": "flow13",
+      "source_id": "task_post_receipt",
+      "target_id": "end_registry_process",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_mpu",
+      "name": "Mail Processing Unit",
+      "element_ids": [
+        "start_mail_collected",
+        "task_sort_unopened_mail",
+        "end_mail_distributed"
+      ]
+    },
+    {
+      "id": "pool_registry",
+      "name": "Registry",
+      "element_ids": [
+        "start_mail_received",
+        "task_open_sort_register",
+        "task_quality_check",
+        "gw_compliant",
+        "task_compile_requisition_list",
+        "end_send_requisition",
+        "task_capture_matter_details",
+        "end_send_to_cashier",
+        "start_receipt_from_cashier",
+        "task_post_receipt",
+        "end_registry_process"
+      ]
+    },
+    {
+      "id": "pool_cashier",
+      "name": "Cashier",
+      "element_ids": [
+        "start_receive_matter_details",
+        "task_take_fees",
+        "task_capture_party_details",
+        "task_print_physical_court_file",
+        "end_send_receipt_to_registry"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "mf1",
+      "source_id": "end_mail_distributed",
+      "target_id": "start_mail_received",
+      "name": "Unopened Mail"
+    },
+    {
+      "id": "mf2",
+      "source_id": "end_send_to_cashier",
+      "target_id": "start_receive_matter_details",
+      "name": "Matter Details"
+    },
+    {
+      "id": "mf3",
+      "source_id": "end_send_receipt_to_registry",
+      "target_id": "start_receipt_from_cashier",
+      "name": "Receipt and Court File"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_unopened_mail",
+      "name": "Unopened Mail"
+    },
+    {
+      "id": "data_mail_register_entry",
+      "name": "Incoming Mail Register Entry"
+    },
+    {
+      "id": "data_requisition_list",
+      "name": "List of Requisition"
+    },
+    {
+      "id": "data_matter_details",
+      "name": "Matter Details"
+    },
+    {
+      "id": "data_receipt",
+      "name": "Receipt"
+    },
+    {
+      "id": "data_party_details",
+      "name": "Party Details"
+    },
+    {
+      "id": "data_physical_court_file",
+      "name": "Physical Court File"
+    }
+  ],
+  "data_stores": [
+    {
+      "id": "ds_mail_register",
+      "name": "Incoming Mail Register"
+    }
+  ],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

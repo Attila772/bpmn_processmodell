@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_OfficeSupplyRequest"
+                  targetNamespace="http://example.org/bpmn/officesupply">
+
+  <bpmn:process id="OfficeSupplyRequestProcess" name="Office Supply Request Process" isExecutable="true">
+
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Employee" name="Employee">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReviewComments</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Rejected</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Supervisor" name="Supervisor">
+        <bpmn:flowNodeRef>Task_SupervisorReview</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_SupervisorDecision</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_PurchaseDept" name="Purchase Department">
+        <bpmn:flowNodeRef>SubProcess_Quotation</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SelectVendor</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_VendorValid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ChooseDifferentVendor</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ConfirmVendor</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_System" name="System">
+        <bpmn:flowNodeRef>Task_RegisterRequest</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendRejectNotification</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendChangeNotification</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendApproveNotification</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_GeneratePO</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_WaitDelivery</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_WaitInvoice</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendFinalNotification</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Completed</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Start -->
+    <bpmn:startEvent id="StartEvent_1" name="Office Supply Request Submitted">
+      <bpmn:outgoing>SF1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Register -->
+    <bpmn:task id="Task_RegisterRequest" name="Register Request">
+      <bpmn:incoming>SF1</bpmn:incoming>
+      <bpmn:incoming>SF8</bpmn:incoming>
+      <bpmn:outgoing>SF2</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Supervisor review -->
+    <bpmn:task id="Task_SupervisorReview" name="Review Request">
+      <bpmn:incoming>SF2</bpmn:incoming>
+      <bpmn:outgoing>SF3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_SupervisorDecision" name="Supervisor Decision">
+      <bpmn:incoming>SF3</bpmn:incoming>
+      <bpmn:outgoing>SF4</bpmn:outgoing>
+      <bpmn:outgoing>SF6</bpmn:outgoing>
+      <bpmn:outgoing>SF9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Reject branch -->
+    <bpmn:task id="Task_SendRejectNotification" name="Send Rejection Notification">
+      <bpmn:incoming>SF4</bpmn:incoming>
+      <bpmn:outgoing>SF5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Request Rejected">
+      <bpmn:incoming>SF5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Change branch -->
+    <bpmn:task id="Task_SendChangeNotification" name="Send Change Required Notification">
+      <bpmn:incoming>SF6</bpmn:incoming>
+      <bpmn:outgoing>SF7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_ReviewComments" name="Review Comments and Update Request">
+      <bpmn:incoming>SF7</bpmn:incoming>
+      <bpmn:outgoing>SF8</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Approve branch -->
+    <bpmn:task id="Task_SendApproveNotification" name="Send Approval Notification">
+      <bpmn:incoming>SF9</bpmn:incoming>
+      <bpmn:outgoing>SF10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:subProcess id="SubProcess_Quotation" name="Prepare Quotations">
+      <bpmn:incoming>SF10</bpmn:incoming>
+      <bpmn:outgoing>SF11</bpmn:outgoing>
+
+      <bpmn:startEvent id="SubStart" name="Start Quotation Process">
+        <bpmn:outgoing>SubSF1</bpmn:outgoing>
+      </bpmn:startEvent>
+
+      <bpmn:task id="Task_RequestQuotes" name="Request Quotes from Vendors">
+        <bpmn:incoming>SubSF1</bpmn:incoming>
+        <bpmn:outgoing>SubSF2</bpmn:outgoing>
+      </bpmn:task>
+
+      <bpmn:task id="Task_CollectQuotes" name="Collect Vendor Quotes">
+        <bpmn:incoming>SubSF2</bpmn:incoming>
+        <bpmn:outgoing>SubSF3</bpmn:outgoing>
+      </bpmn:task>
+
+      <bpmn:task id="Task_CompareQuotes" name="Compare Quotes">
+        <bpmn:incoming>SubSF3</bpmn:incoming>
+        <bpmn:outgoing>SubSF4</bpmn:outgoing>
+      </bpmn:task>
+
+      <bpmn:endEvent id="SubEnd" name="Quotations Ready">
+        <bpmn:incoming>SubSF4</bpmn:incoming>
+      </bpmn:endEvent>
+
+      <bpmn:sequenceFlow id="SubSF1" sourceRef="SubStart" targetRef="Task_RequestQuotes" />
+      <bpmn:sequenceFlow id="SubSF2" sourceRef="Task_RequestQuotes" targetRef="Task_CollectQuotes" />
+      <bpmn:sequenceFlow id="SubSF3" sourceRef="Task_CollectQuotes" targetRef="Task_CompareQuotes" />
+      <bpmn:sequenceFlow id="SubSF4" sourceRef="Task_CompareQuotes" targetRef="SubEnd" />
+    </bpmn:subProcess>
+
+    <bpmn:task id="Task_SelectVendor" name="Select Vendor">
+      <bpmn:incoming>SF11</bpmn:incoming>
+      <bpmn:incoming>SF14</bpmn:incoming>
+      <bpmn:outgoing>SF12</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_VendorValid" name="Vendor Valid?">
+      <bpmn:incoming>SF12</bpmn:incoming>
+      <bpmn:outgoing>SF13</bpmn:outgoing>
+      <bpmn:outgoing>SF15</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_ChooseDifferentVendor" name="Choose Different Vendor">
+      <bpmn:incoming>SF13</bpmn:incoming>
+      <bpmn:outgoing>SF14</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_ConfirmVendor" name="Confirm Vendor">
+      <bpmn:incoming>SF15</bpmn:incoming>
+      <bpmn:outgoing>SF16</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_GeneratePO" name="Generate and Send Purchase Order">
+      <bpmn:incoming>SF16</bpmn:incoming>
+      <bpmn:outgoing>SF17</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:receiveTask id="Task_WaitDelivery" name="Wait for Product Delivery">
+      <bpmn:incoming>SF17</bpmn:incoming>
+      <bpmn:outgoing>SF18</bpmn:outgoing>
+    </bpmn:receiveTask>
+
+    <bpmn:receiveTask id="Task_WaitInvoice" name="Wait for Invoice Received">
+      <bpmn:incoming>SF18</bpmn:incoming>
+      <bpmn:outgoing>SF19</bpmn:outgoing>
+    </bpmn:receiveTask>
+
+    <bpmn:task id="Task_SendFinalNotification" name="Send Completion Notification">
+      <bpmn:incoming>SF19</bpmn:incoming>
+      <bpmn:outgoing>SF20</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_Completed" name="Process Completed">
+      <bpmn:incoming>SF20</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="SF1" sourceRef="StartEvent_1" targetRef="Task_RegisterRequest" />
+    <bpmn:sequenceFlow id="SF2" sourceRef="Task_RegisterRequest" targetRef="Task_SupervisorReview" />
+    <bpmn:sequenceFlow id="SF3" sourceRef="Task_SupervisorReview" targetRef="Gateway_SupervisorDecision" />
+
+    <bpmn:sequenceFlow id="SF4" name="Reject" sourceRef="Gateway_SupervisorDecision" targetRef="Task_SendRejectNotification" />
+    <bpmn:sequenceFlow id="SF5" sourceRef="Task_SendRejectNotification" targetRef="EndEvent_Rejected" />
+
+    <bpmn:sequenceFlow id="SF6" name="Change Required" sourceRef="Gateway_SupervisorDecision" targetRef="Task_SendChangeNotification" />
+    <bpmn:sequenceFlow id="SF7" sourceRef="Task_SendChangeNotification" targetRef="Task_ReviewComments" />
+    <bpmn:sequenceFlow id="SF8" sourceRef="Task_ReviewComments" targetRef="Task_RegisterRequest" />
+
+    <bpmn:sequenceFlow id="SF9" name="Approve" sourceRef="Gateway_SupervisorDecision" targetRef="Task_SendApproveNotification" />
+    <bpmn:sequenceFlow id="SF10" sourceRef="Task_SendApproveNotification" targetRef="SubProcess_Quotation" />
+    <bpmn:sequenceFlow id="SF11" sourceRef="SubProcess_Quotation" targetRef="Task_SelectVendor" />
+    <bpmn:sequenceFlow id="SF12" sourceRef="Task_SelectVendor" targetRef="Gateway_VendorValid" />
+
+    <bpmn:sequenceFlow id="SF13" name="No" sourceRef="Gateway_VendorValid" targetRef="Task_ChooseDifferentVendor" />
+    <bpmn:sequenceFlow id="SF14" sourceRef="Task_ChooseDifferentVendor" targetRef="Task_SelectVendor" />
+
+    <bpmn:sequenceFlow id="SF15" name="Yes" sourceRef="Gateway_VendorValid" targetRef="Task_ConfirmVendor" />
+    <bpmn:sequenceFlow id="SF16" sourceRef="Task_ConfirmVendor" targetRef="Task_GeneratePO" />
+    <bpmn:sequenceFlow id="SF17" sourceRef="Task_GeneratePO" targetRef="Task_WaitDelivery" />
+    <bpmn:sequenceFlow id="SF18" sourceRef="Task_WaitDelivery" targetRef="Task_WaitInvoice" />
+    <bpmn:sequenceFlow id="SF19" sourceRef="Task_WaitInvoice" targetRef="Task_SendFinalNotification" />
+    <bpmn:sequenceFlow id="SF20" sourceRef="Task_SendFinalNotification" targetRef="EndEvent_Completed" />
+
+  </bpmn:process>
+</bpmn:definitions>

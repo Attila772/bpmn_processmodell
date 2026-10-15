@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="Process_BicycleOrder" name="Customized Bicycle Order Process" isExecutable="true">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Sales" name="Sales Department">
+        <flowNodeRef>StartEvent_OrderReceived</flowNodeRef>
+        <flowNodeRef>Task_ReviewOrder</flowNodeRef>
+        <flowNodeRef>Gateway_OrderAccepted</flowNodeRef>
+        <flowNodeRef>EndEvent_OrderRejected</flowNodeRef>
+        <flowNodeRef>Task_ShipBicycle</flowNodeRef>
+        <flowNodeRef>EndEvent_ProcessFinished</flowNodeRef>
+      </lane>
+      <lane id="Lane_Storehouse" name="Storehouse">
+        <flowNodeRef>SubProcess_ProcessPartList</flowNodeRef>
+      </lane>
+      <lane id="Lane_Engineering" name="Engineering Department">
+        <flowNodeRef>Task_PrepareAssembly</flowNodeRef>
+        <flowNodeRef>Task_AssembleBicycle</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <startEvent id="StartEvent_OrderReceived" name="Order Received">
+      <outgoing>Flow_Start_to_Review</outgoing>
+    </startEvent>
+
+    <task id="Task_ReviewOrder" name="Review Order">
+      <incoming>Flow_Start_to_Review</incoming>
+      <outgoing>Flow_Review_to_Gateway</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_OrderAccepted" name="Order Accepted?">
+      <incoming>Flow_Review_to_Gateway</incoming>
+      <outgoing>Flow_Rejected</outgoing>
+      <outgoing>Flow_Accepted</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="EndEvent_OrderRejected" name="Order Rejected">
+      <incoming>Flow_Rejected</incoming>
+    </endEvent>
+
+    <parallelGateway id="Gateway_Split" name="Inform Storehouse and Engineering">
+      <incoming>Flow_Accepted</incoming>
+      <outgoing>Flow_ToStorehouse</outgoing>
+      <outgoing>Flow_ToEngineeringPrepare</outgoing>
+    </parallelGateway>
+
+    <subProcess id="SubProcess_ProcessPartList" name="Process Part List">
+      <incoming>Flow_ToStorehouse</incoming>
+      <outgoing>Flow_Storehouse_to_Join</outgoing>
+      <multiInstanceLoopCharacteristics isSequential="false" />
+
+      <startEvent id="SubStart_PartItem" name="For Each Part">
+        <outgoing>Flow_SubStart_to_Check</outgoing>
+      </startEvent>
+
+      <task id="Task_CheckQuantity" name="Check Required Quantity">
+        <incoming>Flow_SubStart_to_Check</incoming>
+        <outgoing>Flow_Check_to_Gateway</outgoing>
+      </task>
+
+      <exclusiveGateway id="Gateway_PartAvailable" name="Part Available?">
+        <incoming>Flow_Check_to_Gateway</incoming>
+        <outgoing>Flow_Available</outgoing>
+        <outgoing>Flow_NotAvailable</outgoing>
+      </exclusiveGateway>
+
+      <task id="Task_ReservePart" name="Reserve Part">
+        <incoming>Flow_Available</incoming>
+        <outgoing>Flow_Reserve_to_End</outgoing>
+      </task>
+
+      <task id="Task_BackOrderPart" name="Back-Order Part">
+        <incoming>Flow_NotAvailable</incoming>
+        <outgoing>Flow_BackOrder_to_End</outgoing>
+      </task>
+
+      <endEvent id="SubEnd_PartItem" name="Part Processed">
+        <incoming>Flow_Reserve_to_End</incoming>
+        <incoming>Flow_BackOrder_to_End</incoming>
+      </endEvent>
+
+      <sequenceFlow id="Flow_SubStart_to_Check" sourceRef="SubStart_PartItem" targetRef="Task_CheckQuantity" />
+      <sequenceFlow id="Flow_Check_to_Gateway" sourceRef="Task_CheckQuantity" targetRef="Gateway_PartAvailable" />
+      <sequenceFlow id="Flow_Available" name="Available" sourceRef="Gateway_PartAvailable" targetRef="Task_ReservePart" />
+      <sequenceFlow id="Flow_NotAvailable" name="Not Available" sourceRef="Gateway_PartAvailable" targetRef="Task_BackOrderPart" />
+      <sequenceFlow id="Flow_Reserve_to_End" sourceRef="Task_ReservePart" targetRef="SubEnd_PartItem" />
+      <sequenceFlow id="Flow_BackOrder_to_End" sourceRef="Task_BackOrderPart" targetRef="SubEnd_PartItem" />
+
+    </subProcess>
+
+    <task id="Task_PrepareAssembly" name="Prepare Assembly">
+      <incoming>Flow_ToEngineeringPrepare</incoming>
+      <outgoing>Flow_Engineering_to_Join</outgoing>
+    </task>
+
+    <parallelGateway id="Gateway_Join" name="Storehouse and Engineering Ready">
+      <incoming>Flow_Storehouse_to_Join</incoming>
+      <incoming>Flow_Engineering_to_Join</incoming>
+      <outgoing>Flow_Join_to_Assemble</outgoing>
+    </parallelGateway>
+
+    <task id="Task_AssembleBicycle" name="Assemble Bicycle">
+      <incoming>Flow_Join_to_Assemble</incoming>
+      <outgoing>Flow_Assemble_to_Ship</outgoing>
+    </task>
+
+    <task id="Task_ShipBicycle" name="Ship Bicycle to Customer">
+      <incoming>Flow_Assemble_to_Ship</incoming>
+      <outgoing>Flow_Ship_to_End</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_ProcessFinished" name="Process Finished">
+      <incoming>Flow_Ship_to_End</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_Start_to_Review" sourceRef="StartEvent_OrderReceived" targetRef="Task_ReviewOrder" />
+    <sequenceFlow id="Flow_Review_to_Gateway" sourceRef="Task_ReviewOrder" targetRef="Gateway_OrderAccepted" />
+    <sequenceFlow id="Flow_Rejected" name="No" sourceRef="Gateway_OrderAccepted" targetRef="EndEvent_OrderRejected" />
+    <sequenceFlow id="Flow_Accepted" name="Yes" sourceRef="Gateway_OrderAccepted" targetRef="Gateway_Split" />
+    <sequenceFlow id="Flow_ToStorehouse" sourceRef="Gateway_Split" targetRef="SubProcess_ProcessPartList" />
+    <sequenceFlow id="Flow_ToEngineeringPrepare" sourceRef="Gateway_Split" targetRef="Task_PrepareAssembly" />
+    <sequenceFlow id="Flow_Storehouse_to_Join" sourceRef="SubProcess_ProcessPartList" targetRef="Gateway_Join" />
+    <sequenceFlow id="Flow_Engineering_to_Join" sourceRef="Task_PrepareAssembly" targetRef="Gateway_Join" />
+    <sequenceFlow id="Flow_Join_to_Assemble" sourceRef="Gateway_Join" targetRef="Task_AssembleBicycle" />
+    <sequenceFlow id="Flow_Assemble_to_Ship" sourceRef="Task_AssembleBicycle" targetRef="Task_ShipBicycle" />
+    <sequenceFlow id="Flow_Ship_to_End" sourceRef="Task_ShipBicycle" targetRef="EndEvent_ProcessFinished" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_BicycleOrder">
+
+      <bpmndi:BPMNShape id="Shape_StartEvent_OrderReceived" bpmnElement="StartEvent_OrderReceived">
+        <omgdc:Bounds x="80" y="120" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ReviewOrder" bpmnElement="Task_ReviewOrder">
+        <omgdc:Bounds x="160" y="98" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_OrderAccepted" bpmnElement="Gateway_OrderAccepted">
+        <omgdc:Bounds x="300" y="113" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_OrderRejected" bpmnElement="EndEvent_OrderRejected">
+        <omgdc:Bounds x="380" y="20" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_Split" bpmnElement="Gateway_Split">
+        <omgdc:Bounds x="400" y="113" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_SubProcess_ProcessPartList" bpmnElement="SubProcess_ProcessPartList" isExpanded="true">
+        <omgdc:Bounds x="500" y="200" width="350" height="150" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_SubStart_PartItem" bpmnElement="SubStart_PartItem">
+        <omgdc:Bounds x="520" y="260" width="30" height="30" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_CheckQuantity" bpmnElement="Task_CheckQuantity">
+        <omgdc:Bounds x="570" y="245" width="90" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_PartAvailable" bpmnElement="Gateway_PartAvailable">
+        <omgdc:Bounds x="680" y="255" width="40" height="40" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ReservePart" bpmnElement="Task_ReservePart">
+        <omgdc:Bounds x="750" y="210" width="90" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_BackOrderPart" bpmnElement="Task_BackOrderPart">
+        <omgdc:Bounds x="750" y="290" width="90" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_SubEnd_PartItem" bpmnElement="SubEnd_PartItem">
+        <omgdc:Bounds x="800" y="255" width="30" height="30" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_PrepareAssembly" bpmnElement="Task_PrepareAssembly">
+        <omgdc:Bounds x="500" y="400" width="110" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_Join" bpmnElement="Gateway_Join">
+        <omgdc:Bounds x="900" y="113" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_AssembleBicycle" bpmnElement="Task_AssembleBicycle">
+        <omgdc:Bounds x="1000" y="390" width="110" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_ShipBicycle" bpmnElement="Task_ShipBicycle">
+        <omgdc:Bounds x="1150" y="98" width="110" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_ProcessFinished" bpmnElement="EndEvent_ProcessFinished">
+        <omgdc:Bounds x="1300" y="120" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Start_to_Review" bpmnElement="Flow_Start_to_Review">
+        <omgdi:waypoint x="116" y="138" />
+        <omgdi:waypoint x="160" y="138" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Review_to_Gateway" bpmnElement="Flow_Review_to_Gateway">
+        <omgdi:waypoint x="260" y="138" />
+        <omgdi:waypoint x="300" y="138" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Rejected" bpmnElement="Flow_Rejected">
+        <omgdi:waypoint x="325" y="113" />
+        <omgdi:waypoint x="325" y="38" />
+        <omgdi:waypoint x="380" y="38" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Accepted" bpmnElement="Flow_Accepted">
+        <omgdi:waypoint x="350" y="138" />
+        <omgdi:waypoint x="400" y="138" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_ToStorehouse" bpmnElement="Flow_ToStorehouse">
+        <omgdi:waypoint x="425" y="163" />
+        <omgdi:waypoint x="425" y="275" />
+        <omgdi:waypoint x="500" y="275" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_ToEngineeringPrepare" bpmnElement="Flow_ToEngineeringPrepare">
+        <omgdi:waypoint x="425" y="163" />
+        <omgdi:waypoint x="425" y="430" />
+        <omgdi:waypoint x="500" y="430" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_SubStart_to_Check" bpmnElement="Flow_SubStart_to_Check">
+        <omgdi:waypoint x="550" y="275" />
+        <omgdi:waypoint x="570" y="275" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Check_to_Gateway" bpmnElement="Flow_Check_to_Gateway">
+        <omgdi:waypoint x="660" y="275" />
+        <omgdi:waypoint x="680" y="275" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Available" bpmnElement="Flow_Available">
+        <omgdi:waypoint x="700" y="255" />
+        <omgdi:waypoint x="700" y="235" />
+        <omgdi:waypoint x="750" y="235" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_NotAvailable" bpmnElement="Flow_NotAvailable">
+        <omgdi:waypoint x="700" y="295" />
+        <omgdi:waypoint x="700" y="315" />
+        <omgdi:waypoint x="750" y="315" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Reserve_to_End" bpmnElement="Flow_Reserve_to_End">
+        <omgdi:waypoint x="840" y="235" />
+        <omgdi:waypoint x="815" y="270" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_BackOrder_to_End" bpmnElement="Flow_BackOrder_to_End">
+        <omgdi:waypoint x="840" y="315" />
+        <omgdi:waypoint x="815" y="285" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Storehouse_to_Join" bpmnElement="Flow_Storehouse_to_Join">
+        <omgdi:waypoint x="850" y="275" />
+        <omgdi:waypoint x="925" y="275" />
+        <omgdi:waypoint x="925" y="163" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Engineering_to_Join" bpmnElement="Flow_Engineering_to_Join">
+        <omgdi:waypoint x="610" y="430" />
+        <omgdi:waypoint x="925" y="430" />
+        <omgdi:waypoint x="925" y="163" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Join_to_Assemble" bpmnElement="Flow_Join_to_Assemble">
+        <omgdi:waypoint x="925" y="163" />
+        <omgdi:waypoint x="925" y="420" />
+        <omgdi:waypoint x="1000" y="420" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Assemble_to_Ship" bpmnElement="Flow_Assemble_to_Ship">
+        <omgdi:waypoint x="1110" y="420" />
+        <omgdi:waypoint x="1205" y="420" />
+        <omgdi:waypoint x="1205" y="178" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_Ship_to_End" bpmnElement="Flow_Ship_to_End">
+        <omgdi:waypoint x="1260" y="138" />
+        <omgdi:waypoint x="1300" y="138" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

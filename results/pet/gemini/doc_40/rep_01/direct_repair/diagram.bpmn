@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- Collaboration definition -->
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Party" name="Party" />
+    <bpmn:participant id="Participant_SCT" name="Small Claims Registry Operations" processRef="Process_SCT" />
+    <bpmn:participant id="Participant_Police" name="Queensland Police" />
+    
+    <bpmn:messageFlow id="MessageFlow_Request" name="Warrant Possession Request" sourceRef="Participant_Party" targetRef="StartEvent_RequestReceived" />
+    <bpmn:messageFlow id="MessageFlow_ToPolice" name="SCT Warrant Possession" sourceRef="Task_ForwardPolice" targetRef="Participant_Police" />
+    <bpmn:messageFlow id="MessageFlow_FromPolice" name="Police Report" sourceRef="Participant_Police" targetRef="CatchEvent_ReportReceived" />
+  </bpmn:collaboration>
+
+  <!-- Process definition -->
+  <bpmn:process id="Process_SCT" name="Warrant Possession Process" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_BackOffice" name="Client Service Back Office">
+        <bpmn:flowNodeRef>StartEvent_RequestReceived</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RetrieveFile1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ForwardPolice</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StoreFile1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CatchEvent_ReportReceived</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RetrieveFile2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AttachDocument</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StoreExpandedFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_HandedOver</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:dataObject id="DataObject_SCTFile" name="SCT Physical File" />
+
+    <bpmn:startEvent id="StartEvent_RequestReceived" name="Warrant possession request received">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_RetrieveFile1" name="Retrieve SCT file">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_ForwardPolice" name="Forward SCT Warrant Possession to Queensland Police">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_StoreFile1" name="Store SCT physical file awaiting report">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="CatchEvent_ReportReceived" name="Police report received">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_2" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_RetrieveFile2" name="Retrieve respective SCT file">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AttachDocument" name="Attach new SCT document">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_StoreExpandedFile" name="Store expanded SCT physical file">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_HandedOver" name="File handed over to MC internal staff">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_RequestReceived" targetRef="Task_RetrieveFile1" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_RetrieveFile1" targetRef="Task_ForwardPolice" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_ForwardPolice" targetRef="Task_StoreFile1" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_StoreFile1" targetRef="CatchEvent_ReportReceived" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="CatchEvent_ReportReceived" targetRef="Task_RetrieveFile2" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_RetrieveFile2" targetRef="Task_AttachDocument" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_AttachDocument" targetRef="Task_StoreExpandedFile" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_StoreExpandedFile" targetRef="EndEvent_HandedOver" />
+  </bpmn:process>
+
+  <!-- Diagram Interchange -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      
+      <!-- Pools -->
+      <bpmndi:BPMNShape id="Participant_Party_di" bpmnElement="Participant_Party" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_SCT_di" bpmnElement="Participant_SCT" isHorizontal="true">
+        <dc:Bounds x="160" y="220" width="1150" height="260" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_BackOffice_di" bpmnElement="Lane_BackOffice" isHorizontal="true">
+        <dc:Bounds x="190" y="220" width="1120" height="260" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_Police_di" bpmnElement="Participant_Police" isHorizontal="true">
+        <dc:Bounds x="160" y="520" width="1150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Flow Nodes -->
+      <bpmndi:BPMNShape id="StartEvent_RequestReceived_di" bpmnElement="StartEvent_RequestReceived">
+        <dc:Bounds x="242" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="221" y="375" width="79" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RetrieveFile1_di" bpmnElement="Task_RetrieveFile1">
+        <dc:Bounds x="330" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ForwardPolice_di" bpmnElement="Task_ForwardPolice">
+        <dc:Bounds x="470" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_StoreFile1_di" bpmnElement="Task_StoreFile1">
+        <dc:Bounds x="610" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="CatchEvent_ReportReceived_di" bpmnElement="CatchEvent_ReportReceived">
+        <dc:Bounds x="752" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="739" y="295" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RetrieveFile2_di" bpmnElement="Task_RetrieveFile2">
+        <dc:Bounds x="830" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AttachDocument_di" bpmnElement="Task_AttachDocument">
+        <dc:Bounds x="970" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_StoreExpandedFile_di" bpmnElement="Task_StoreExpandedFile">
+        <dc:Bounds x="1110" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_HandedOver_di" bpmnElement="EndEvent_HandedOver">
+        <dc:Bounds x="1252" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1231" y="375" width="79" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="278" y="350" />
+        <di:waypoint x="330" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="430" y="350" />
+        <di:waypoint x="470" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="570" y="350" />
+        <di:waypoint x="610" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="710" y="350" />
+        <di:waypoint x="752" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="788" y="350" />
+        <di:waypoint x="830" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="930" y="350" />
+        <di:waypoint x="970" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1070" y="350" />
+        <di:waypoint x="1110" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1210" y="350" />
+        <di:waypoint x="1252" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Message Flow Edges -->
+      <bpmndi:BPMNEdge id="MessageFlow_Request_di" bpmnElement="MessageFlow_Request">
+        <di:waypoint x="260" y="160" />
+        <di:waypoint x="260" y="332" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="270" y="180" width="60" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_ToPolice_di" bpmnElement="MessageFlow_ToPolice">
+        <di:waypoint x="520" y="390" />
+        <di:waypoint x="520" y="520" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="530" y="450" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_FromPolice_di" bpmnElement="MessageFlow_FromPolice">
+        <di:waypoint x="770" y="520" />
+        <di:waypoint x="770" y="368" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="780" y="450" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="definitions_1"
+             targetNamespace="http://example.com/bpmn">
+
+  <collaboration id="collaboration_1">
+    <participant id="participant_head" name="Head of Functional Department" processRef="process_head"/>
+    <participant id="participant_hr" name="Personnel Department (HR)" processRef="process_hr"/>
+
+    <messageFlow id="mf_1" name="Vacancy Report" sourceRef="task_report_vacancy" targetRef="start_hr"/>
+    <messageFlow id="mf_2" name="Question on Tasks/Requirements" sourceRef="task_ask_questions" targetRef="task_clarify"/>
+    <messageFlow id="mf_3" name="Clarification Answer" sourceRef="task_clarify" targetRef="task_receive_clarification"/>
+    <messageFlow id="mf_4" name="Job Description for Review" sourceRef="task_send_jobdesc" targetRef="task_review_jobdesc"/>
+    <messageFlow id="mf_5" name="Request Corrections" sourceRef="task_request_corrections" targetRef="task_receive_feedback"/>
+    <messageFlow id="mf_6" name="Approval" sourceRef="task_approve_jobdesc" targetRef="task_receive_feedback2"/>
+  </collaboration>
+
+  <process id="process_head" name="Head of Functional Department" isExecutable="false">
+
+    <startEvent id="start_head" name="Personnel Requirement Detected">
+      <outgoing>flow_1</outgoing>
+    </startEvent>
+
+    <task id="task_report_vacancy" name="Report Vacancy to Personnel Department">
+      <incoming>flow_1</incoming>
+      <outgoing>flow_2</outgoing>
+    </task>
+
+    <task id="task_clarify" name="Provide Clarifications">
+      <incoming>flow_2</incoming>
+      <outgoing>flow_3</outgoing>
+    </task>
+
+    <task id="task_review_jobdesc" name="Review Job Description">
+      <incoming>flow_3</incoming>
+      <incoming>flow_6</incoming>
+      <outgoing>flow_4</outgoing>
+    </task>
+
+    <exclusiveGateway id="gateway_corrections" name="Corrections Needed?">
+      <incoming>flow_4</incoming>
+      <outgoing>flow_5</outgoing>
+      <outgoing>flow_7</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_request_corrections" name="Request Corrections">
+      <incoming>flow_5</incoming>
+      <outgoing>flow_6</outgoing>
+    </task>
+
+    <task id="task_approve_jobdesc" name="Approve Job Description">
+      <incoming>flow_7</incoming>
+      <outgoing>flow_8</outgoing>
+    </task>
+
+    <endEvent id="end_head" name="Job Description Approved">
+      <incoming>flow_8</incoming>
+    </endEvent>
+
+    <sequenceFlow id="flow_1" sourceRef="start_head" targetRef="task_report_vacancy"/>
+    <sequenceFlow id="flow_2" sourceRef="task_report_vacancy" targetRef="task_clarify"/>
+    <sequenceFlow id="flow_3" sourceRef="task_clarify" targetRef="task_review_jobdesc"/>
+    <sequenceFlow id="flow_4" sourceRef="task_review_jobdesc" targetRef="gateway_corrections"/>
+    <sequenceFlow id="flow_5" name="Corrections Needed" sourceRef="gateway_corrections" targetRef="task_request_corrections"/>
+    <sequenceFlow id="flow_6" sourceRef="task_request_corrections" targetRef="task_review_jobdesc"/>
+    <sequenceFlow id="flow_7" name="No Corrections" sourceRef="gateway_corrections" targetRef="task_approve_jobdesc"/>
+    <sequenceFlow id="flow_8" sourceRef="task_approve_jobdesc" targetRef="end_head"/>
+
+  </process>
+
+  <process id="process_hr" name="Personnel Department (HR)" isExecutable="false">
+
+    <startEvent id="start_hr" name="Vacancy Received">
+      <outgoing>flow_h1</outgoing>
+    </startEvent>
+
+    <exclusiveGateway id="gateway_questions" name="Questions About Tasks/Requirements?">
+      <incoming>flow_h1</incoming>
+      <outgoing>flow_h2</outgoing>
+      <outgoing>flow_h3</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_ask_questions" name="Ask Head for Clarification">
+      <incoming>flow_h2</incoming>
+      <outgoing>flow_h4</outgoing>
+    </task>
+
+    <task id="task_receive_clarification" name="Receive Clarification">
+      <incoming>flow_h4</incoming>
+      <outgoing>flow_h5</outgoing>
+    </task>
+
+    <task id="task_describe_job" name="Describe Job">
+      <incoming>flow_h3</incoming>
+      <incoming>flow_h5</incoming>
+      <incoming>flow_h7</incoming>
+      <outgoing>flow_h6</outgoing>
+    </task>
+
+    <task id="task_send_jobdesc" name="Send Job Description for Review">
+      <incoming>flow_h6</incoming>
+      <outgoing>flow_h8</outgoing>
+    </task>
+
+    <task id="task_receive_feedback" name="Receive Correction Request">
+      <incoming>flow_h8</incoming>
+      <outgoing>flow_h7</outgoing>
+    </task>
+
+    <task id="task_receive_feedback2" name="Receive Approval">
+      <incoming>flow_h8</incoming>
+      <outgoing>flow_h9</outgoing>
+    </task>
+
+    <endEvent id="end_hr" name="Job Advertized">
+      <incoming>flow_h9</incoming>
+    </endEvent>
+
+    <sequenceFlow id="flow_h1" sourceRef="start_hr" targetRef="gateway_questions"/>
+    <sequenceFlow id="flow_h2" name="Has Questions" sourceRef="gateway_questions" targetRef="task_ask_questions"/>
+    <sequenceFlow id="flow_h3" name="No Questions" sourceRef="gateway_questions" targetRef="task_describe_job"/>
+    <sequenceFlow id="flow_h4" sourceRef="task_ask_questions" targetRef="task_receive_clarification"/>
+    <sequenceFlow id="flow_h5" sourceRef="task_receive_clarification" targetRef="task_describe_job"/>
+    <sequenceFlow id="flow_h6" sourceRef="task_describe_job" targetRef="task_send_jobdesc"/>
+    <sequenceFlow id="flow_h8" sourceRef="task_send_jobdesc" targetRef="task_receive_feedback"/>
+    <sequenceFlow id="flow_h7" sourceRef="task_receive_feedback" targetRef="task_describe_job"/>
+    <sequenceFlow id="flow_h9" sourceRef="task_receive_feedback2" targetRef="end_hr"/>
+
+  </process>
+
+</definitions>

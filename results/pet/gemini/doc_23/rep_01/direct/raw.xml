@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://www.example.org/bpmn"
+             id="definitions_Evanstonian">
+
+  <collaboration id="collaboration_1">
+    <participant id="participant_hotel" name="The Evanstonian Room Service" processRef="process_room_service" />
+  </collaboration>
+
+  <process id="process_room_service" isExecutable="false">
+    <laneSet id="laneSet_1">
+      <lane id="lane_manager" name="Room-Service Manager">
+        <flowNodeRef>start_order_received</flowNodeRef>
+        <flowNodeRef>task_take_order</flowNodeRef>
+        <flowNodeRef>fork_manager_tasks</flowNodeRef>
+        <flowNodeRef>task_submit_kitchen_order</flowNodeRef>
+        <flowNodeRef>gateway_alcohol_check</flowNodeRef>
+        <flowNodeRef>task_order_alcohol</flowNodeRef>
+        <flowNodeRef>gateway_alcohol_merge</flowNodeRef>
+        <flowNodeRef>task_assign_waiter</flowNodeRef>
+        <flowNodeRef>join_manager_tasks</flowNodeRef>
+      </lane>
+      <lane id="lane_kitchen" name="Kitchen">
+        <flowNodeRef>task_prepare_food</flowNodeRef>
+      </lane>
+      <lane id="lane_sommelier" name="Sommelier">
+        <flowNodeRef>task_fetch_alcohol</flowNodeRef>
+      </lane>
+      <lane id="lane_waiter" name="Waiter">
+        <flowNodeRef>task_ready_cart</flowNodeRef>
+        <flowNodeRef>join_prep_tasks</flowNodeRef>
+        <flowNodeRef>task_deliver_order</flowNodeRef>
+        <flowNodeRef>task_debit_account</flowNodeRef>
+        <flowNodeRef>end_order_fulfilled</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Start Event -->
+    <startEvent id="start_order_received" name="Guest order received">
+      <outgoing>seq_1</outgoing>
+    </startEvent>
+
+    <!-- Sequence Flows: Start to Take Order -->
+    <sequenceFlow id="seq_1" sourceRef="start_order_received" targetRef="task_take_order" />
+
+    <userTask id="task_take_order" name="Take down order">
+      <incoming>seq_1</incoming>
+      <outgoing>seq_2</outgoing>
+    </userTask>
+
+    <sequenceFlow id="seq_2" sourceRef="task_take_order" targetRef="fork_manager_tasks" />
+
+    <!-- Parallel Fork: Manager creates tasks -->
+    <parallelGateway id="fork_manager_tasks" name="Distribute order tasks">
+      <incoming>seq_2</incoming>
+      <outgoing>seq_to_kitchen</outgoing>
+      <outgoing>seq_to_alcohol_check</outgoing>
+      <outgoing>seq_to_assign_waiter</outgoing>
+    </parallelGateway>
+
+    <!-- Path 1: Kitchen -->
+    <sequenceFlow id="seq_to_kitchen" sourceRef="fork_manager_tasks" targetRef="task_submit_kitchen_order" />
+
+    <task id="task_submit_kitchen_order" name="Submit order ticket to kitchen">
+      <incoming>seq_to_kitchen</incoming>
+      <outgoing>seq_to_prep_food</outgoing>
+    </task>
+
+    <sequenceFlow id="seq_to_prep_food" sourceRef="task_submit_kitchen_order" targetRef="task_prepare_food" />
+
+    <task id="task_prepare_food" name="Prepare food">
+      <incoming>seq_to_prep_food</incoming>
+      <outgoing>seq_food_ready</outgoing>
+    </task>
+
+    <sequenceFlow id="seq_food_ready" sourceRef="task_prepare_food" targetRef="join_prep_tasks" />
+
+    <!-- Path 2: Alcohol (Conditional Gateway) -->
+    <sequenceFlow id="seq_to_alcohol_check" sourceRef="fork_manager_tasks" targetRef="gateway_alcohol_check" />
+
+    <exclusiveGateway id="gateway_alcohol_check" name="Includes alcoholic beverage?">
+      <incoming>seq_to_alcohol_check</incoming>
+      <outgoing>seq_alcohol_yes</outgoing>
+      <outgoing>seq_alcohol_no</outgoing>
+    </exclusiveGateway>
+
+    <sequenceFlow id="seq_alcohol_yes" name="Yes (80%)" sourceRef="gateway_alcohol_check" targetRef="task_order_alcohol" />
+
+    <task id="task_order_alcohol" name="Give order to sommelier">
+      <incoming>seq_alcohol_yes</incoming>
+      <outgoing>seq_to_sommelier</outgoing>
+    </task>
+
+    <sequenceFlow id="seq_to_sommelier" sourceRef="task_order_alcohol" targetRef="task_fetch_alcohol" />
+
+    <task id="task_fetch_alcohol" name="Fetch wine and prepare alcoholic beverages">
+      <incoming>seq_to_sommelier</incoming>
+      <outgoing>seq_alcohol_ready</outgoing>
+    </task>
+
+    <sequenceFlow id="seq_alcohol_ready" sourceRef="task_fetch_alcohol" targetRef="gateway_alcohol_merge" />
+
+    <sequenceFlow id="seq_alcohol_no" name="No (20%)" sourceRef="gateway_alcohol_check" targetRef="gateway_alcohol_merge" />
+
+    <exclusiveGateway id="gateway_alcohol_merge">
+      <incoming>seq_alcohol_ready</incoming>
+      <incoming>seq_alcohol_no</incoming>
+      <outgoing>seq_alcohol_path_done</outgoing>
+    </exclusiveGateway>
+
+    <sequenceFlow id="seq_alcohol_path_done" sourceRef="gateway_alcohol_merge" targetRef="join_manager_tasks" />
+
+    <!-- Path 3: Waiter Assignment -->
+    <sequenceFlow id="seq_to_assign_waiter" sourceRef="fork_manager_tasks" targetRef="task_assign_waiter" />
+
+    <task id="task_assign_waiter" name="Assign order to waiter">
+      <incoming>seq_to_assign_waiter</incoming>
+      <outgoing>seq_assign_done</outgoing>
+    </task>
+
+    <sequenceFlow id="seq_assign_done" sourceRef="task_assign_waiter" targetRef="join_manager_tasks" />
+
+    <!-- Manager Join (Ensures alcohol & assignment setup complete) -->
+    <parallelGateway id="join_manager_tasks">
+      <incoming>seq_alcohol_path_done</incoming>
+      <incoming>seq_assign_done</incoming>
+      <outgoing>seq_to_cart_prep</outgoing>
+    </parallelGateway>
+
+    <sequenceFlow id="seq_to_cart_prep" sourceRef="join_manager_tasks" targetRef="task_ready_cart" />
+
+    <task id="task_ready_cart" name="Ready cart and prepare nonalcoholic drinks">
+      <incoming>seq_to_cart_prep</incoming>
+      <outgoing>seq_cart_ready</outgoing>
+    </task>
+
+    <sequenceFlow id="seq_cart_ready" sourceRef="task_ready_cart" targetRef="join_prep_tasks" />
+
+    <!-- Synchronizing Join: Wait for Food, Wine/Alcohol, and Cart -->
+    <parallelGateway id="join_prep_tasks" name="Wait for food, beverages, and cart">
+      <incoming>seq_food_ready</incoming>
+      <incoming>seq_cart_ready</incoming>
+      <outgoing>seq_ready_for_delivery</outgoing>
+    </parallelGateway>
+
+    <sequenceFlow id="seq_ready_for_delivery" sourceRef="join_prep_tasks" targetRef="task_deliver_order" />
+
+    <!-- Delivery and Billing -->
+    <userTask id="task_deliver_order" name="Deliver order to guest's room">
+      <incoming>seq_ready_for_delivery</incoming>
+      <outgoing>seq_delivered</outgoing>
+    </userTask>
+
+    <sequenceFlow id="seq_delivered" sourceRef="task_deliver_order" targetRef="task_debit_account" />
+
+    <userTask id="task_debit_account" name="Debit guest's account">
+      <incoming>seq_delivered</incoming>
+      <outgoing>seq_billed</outgoing>
+    </userTask>
+
+    <sequenceFlow id="seq_billed" sourceRef="task_debit_account" targetRef="end_order_fulfilled" />
+
+    <!-- End Event -->
+    <endEvent id="end_order_fulfilled" name="Order fulfilled and billed">
+      <incoming>seq_billed</incoming>
+    </endEvent>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="collaboration_1">
+      
+      <!-- Participant/Pool -->
+      <bpmndi:BPMNShape id="participant_hotel_di" bpmnElement="participant_hotel" isHorizontal="true">
+        <omgdc:Bounds x="160" y="80" width="1600" height="730" />
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="lane_manager_di" bpmnElement="lane_manager" isHorizontal="true">
+        <omgdc:Bounds x="190" y="80" width="1570" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_kitchen_di" bpmnElement="lane_kitchen" isHorizontal="true">
+        <omgdc:Bounds x="190" y="340" width="1570" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_sommelier_di" bpmnElement="lane_sommelier" isHorizontal="true">
+        <omgdc:Bounds x="190" y="490" width="1570" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_waiter_di" bpmnElement="lane_waiter" isHorizontal="true">
+        <omgdc:Bounds x="190" y="640" width="1570" height="170" />
+      </bpmndi:BPMNShape>
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="start_order_received_di" bpmnElement="start_order_received">
+        <omgdc:Bounds x="232" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="221" y="225" width="59" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Manager Tasks and Gateways -->
+      <bpmndi:BPMNShape id="task_take_order_di" bpmnElement="task_take_order">
+        <omgdc:Bounds x="300" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="fork_manager_tasks_di" bpmnElement="fork_manager_tasks" isMarkerVisible="true">
+        <omgdc:Bounds x="435" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="423" y="145" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_submit_kitchen_order_di" bpmnElement="task_submit_kitchen_order">
+        <omgdc:Bounds x="520" y="100" width="100" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_alcohol_check_di" bpmnElement="gateway_alcohol_check" isMarkerVisible="true">
+        <omgdc:Bounds x="525" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="506" y="145" width="89" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_order_alcohol_di" bpmnElement="task_order_alcohol">
+        <omgdc:Bounds x="620" y="170" width="100" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="gateway_alcohol_merge_di" bpmnElement="gateway_alcohol_merge" isMarkerVisible="true">
+        <omgdc:Bounds x="765" y="175" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_assign_waiter_di" bpmnElement="task_assign_waiter">
+        <omgdc:Bounds x="520" y="260" width="100" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="join_manager_tasks_di" bpmnElement="join_manager_tasks" isMarkerVisible="true">
+        <omgdc:Bounds x="855" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Kitchen Shapes -->
+      <bpmndi:BPMNShape id="task_prepare_food_di" bpmnElement="task_prepare_food">
+        <omgdc:Bounds x="670" y="375" width="110" height="70" />
+      </bpmndi:BPMNShape>
+
+      <!-- Sommelier Shapes -->
+      <bpmndi:BPMNShape id="task_fetch_alcohol_di" bpmnElement="task_fetch_alcohol">
+        <omgdc:Bounds x="670" y="525" width="120" height="70" />
+      </bpmndi:BPMNShape>
+
+      <!-- Waiter Shapes -->
+      <bpmndi:BPMNShape id="task_ready_cart_di" bpmnElement="task_ready_cart">
+        <omgdc:Bounds x="920" y="685" width="120" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="join_prep_tasks_di" bpmnElement="join_prep_tasks" isMarkerVisible="true">
+        <omgdc:Bounds x="1115" y="695" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1100" y="752" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_deliver_order_di" bpmnElement="task_deliver_order">
+        <omgdc:Bounds x="1220" y="680" width="110" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="task_debit_account_di" bpmnElement="task_debit_account">
+        <omgdc:Bounds x="1380" y="680" width="110" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="end_order_fulfilled_di" bpmnElement="end_order_fulfilled">
+        <omgdc:Bounds x="1542" y="697" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1527" y="740" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="seq_1_di" bpmnElement="seq_1">
+        <omgdi:waypoint x="268" y="200" />
+        <omgdi:waypoint x="300" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_2_di" bpmnElement="seq_2">
+        <omgdi:waypoint x="400" y="200" />
+        <omgdi:waypoint x="435" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_to_kitchen_di" bpmnElement="seq_to_kitchen">
+        <omgdi:waypoint x="460" y="175" />
+        <omgdi:waypoint x="460" y="130" />
+        <omgdi:waypoint x="520" y="130" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_to_prep_food_di" bpmnElement="seq_to_prep_food">
+        <omgdi:waypoint x="570" y="160" />
+        <omgdi:waypoint x="570" y="410" />
+        <omgdi:waypoint x="670" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_food_ready_di" bpmnElement="seq_food_ready">
+        <omgdi:waypoint x="780" y="410" />
+        <omgdi:waypoint x="1140" y="410" />
+        <omgdi:waypoint x="1140" y="695" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_to_alcohol_check_di" bpmnElement="seq_to_alcohol_check">
+        <omgdi:waypoint x="485" y="200" />
+        <omgdi:waypoint x="525" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_alcohol_yes_di" bpmnElement="seq_alcohol_yes">
+        <omgdi:waypoint x="575" y="200" />
+        <omgdi:waypoint x="620" y="200" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="568" y="182" width="49" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_to_sommelier_di" bpmnElement="seq_to_sommelier">
+        <omgdi:waypoint x="670" y="230" />
+        <omgdi:waypoint x="670" y="525" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_alcohol_ready_di" bpmnElement="seq_alcohol_ready">
+        <omgdi:waypoint x="790" y="560" />
+        <omgdi:waypoint x="790" y="225" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_alcohol_no_di" bpmnElement="seq_alcohol_no">
+        <omgdi:waypoint x="550" y="225" />
+        <omgdi:waypoint x="550" y="250" />
+        <omgdi:waypoint x="790" y="250" />
+        <omgdi:waypoint x="790" y="225" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="558" y="232" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_alcohol_path_done_di" bpmnElement="seq_alcohol_path_done">
+        <omgdi:waypoint x="815" y="200" />
+        <omgdi:waypoint x="880" y="200" />
+        <omgdi:waypoint x="880" y="215" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_to_assign_waiter_di" bpmnElement="seq_to_assign_waiter">
+        <omgdi:waypoint x="460" y="225" />
+        <omgdi:waypoint x="460" y="290" />
+        <omgdi:waypoint x="520" y="290" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_assign_done_di" bpmnElement="seq_assign_done">
+        <omgdi:waypoint x="620" y="290" />
+        <omgdi:waypoint x="880" y="290" />
+        <omgdi:waypoint x="880" y="265" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_to_cart_prep_di" bpmnElement="seq_to_cart_prep">
+        <omgdi:waypoint x="880" y="265" />
+        <omgdi:waypoint x="880" y="720" />
+        <omgdi:waypoint x="920" y="720" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_cart_ready_di" bpmnElement="seq_cart_ready">
+        <omgdi:waypoint x="1040" y="720" />
+        <omgdi:waypoint x="1115" y="720" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_ready_for_delivery_di" bpmnElement="seq_ready_for_delivery">
+        <omgdi:waypoint x="1165" y="720" />
+        <omgdi:waypoint x="1220" y="720" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_delivered_di" bpmnElement="seq_delivered">
+        <omgdi:waypoint x="1330" y="715" />
+        <omgdi:waypoint x="1380" y="715" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="seq_billed_di" bpmnElement="seq_billed">
+        <omgdi:waypoint x="1490" y="715" />
+        <omgdi:waypoint x="1542" y="715" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

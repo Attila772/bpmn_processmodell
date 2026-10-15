@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_Customer" name="Customer" processRef="Process_Customer"/>
+    <participant id="Participant_Insurer" name="Car Insurer" processRef="Process_Insurer"/>
+    <messageFlow id="MessageFlow_1" sourceRef="Task_SubmitClaim" targetRef="Task_CheckDocs"/>
+    <messageFlow id="MessageFlow_2" sourceRef="Task_SendLetter" targetRef="Participant_Customer"/>
+  </collaboration>
+
+  <process id="Process_Customer" isExecutable="false">
+    <startEvent id="StartEvent_Customer" name="Claim occurs">
+      <outgoing>Flow_C1</outgoing>
+    </startEvent>
+    <task id="Task_SubmitClaim" name="Submit claim with documentation">
+      <incoming>Flow_C1</incoming>
+      <outgoing>Flow_C2</outgoing>
+    </task>
+    <endEvent id="EndEvent_Customer" name="Claim submitted">
+      <incoming>Flow_C2</incoming>
+    </endEvent>
+    <sequenceFlow id="Flow_C1" sourceRef="StartEvent_Customer" targetRef="Task_SubmitClaim"/>
+    <sequenceFlow id="Flow_C2" sourceRef="Task_SubmitClaim" targetRef="EndEvent_Customer"/>
+  </process>
+
+  <process id="Process_Insurer" isExecutable="false">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Notification" name="Notification Department">
+        <flowNodeRef>StartEvent_Insurer</flowNodeRef>
+        <flowNodeRef>Task_CheckDocs</flowNodeRef>
+        <flowNodeRef>Task_RegisterClaim</flowNodeRef>
+      </lane>
+      <lane id="Lane_Handling" name="Handling Department">
+        <flowNodeRef>Task_CheckInsurance</flowNodeRef>
+        <flowNodeRef>Task_Assessment</flowNodeRef>
+        <flowNodeRef>Gateway_AssessmentOutcome</flowNodeRef>
+        <flowNodeRef>Task_PhoneGarage</flowNodeRef>
+        <flowNodeRef>Task_SchedulePayment</flowNodeRef>
+        <flowNodeRef>Task_RejectClaim</flowNodeRef>
+        <flowNodeRef>Gateway_Merge</flowNodeRef>
+        <flowNodeRef>Task_SendLetter</flowNodeRef>
+        <flowNodeRef>EndEvent_Insurer</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <startEvent id="StartEvent_Insurer" name="Claim received">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_CheckDocs" name="Check documents for completeness">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <task id="Task_RegisterClaim" name="Register claim">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <task id="Task_CheckInsurance" name="Check insurance">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </task>
+
+    <task id="Task_Assessment" name="Perform assessment">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_5</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_AssessmentOutcome" name="Assessment positive?">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_Positive</outgoing>
+      <outgoing>Flow_Negative</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_PhoneGarage" name="Phone garage to authorise repairs">
+      <incoming>Flow_Positive</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <task id="Task_SchedulePayment" name="Schedule payment">
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+
+    <task id="Task_RejectClaim" name="Reject claim">
+      <incoming>Flow_Negative</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Merge" name="Merge">
+      <incoming>Flow_7</incoming>
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_9</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_SendLetter" name="Send letter to customer">
+      <incoming>Flow_9</incoming>
+      <outgoing>Flow_10</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Insurer" name="Process complete">
+      <incoming>Flow_10</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_Insurer" targetRef="Task_CheckDocs"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_CheckDocs" targetRef="Task_RegisterClaim"/>
+    <sequenceFlow id="Flow_3" sourceRef="Task_RegisterClaim" targetRef="Task_CheckInsurance"/>
+    <sequenceFlow id="Flow_4" sourceRef="Task_CheckInsurance" targetRef="Task_Assessment"/>
+    <sequenceFlow id="Flow_5" sourceRef="Task_Assessment" targetRef="Gateway_AssessmentOutcome"/>
+    <sequenceFlow id="Flow_Positive" name="Positive" sourceRef="Gateway_AssessmentOutcome" targetRef="Task_PhoneGarage"/>
+    <sequenceFlow id="Flow_Negative" name="Negative" sourceRef="Gateway_AssessmentOutcome" targetRef="Task_RejectClaim"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_PhoneGarage" targetRef="Task_SchedulePayment"/>
+    <sequenceFlow id="Flow_7" sourceRef="Task_SchedulePayment" targetRef="Gateway_Merge"/>
+    <sequenceFlow id="Flow_8" sourceRef="Task_RejectClaim" targetRef="Gateway_Merge"/>
+    <sequenceFlow id="Flow_9" sourceRef="Gateway_Merge" targetRef="Task_SendLetter"/>
+    <sequenceFlow id="Flow_10" sourceRef="Task_SendLetter" targetRef="EndEvent_Insurer"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Participant_Customer_di" bpmnElement="Participant_Customer" isHorizontal="true">
+        <omgdc:Bounds x="100" y="40" width="700" height="120"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_Customer_di" bpmnElement="StartEvent_Customer">
+        <omgdc:Bounds x="150" y="82" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SubmitClaim_di" bpmnElement="Task_SubmitClaim">
+        <omgdc:Bounds x="230" y="60" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Customer_di" bpmnElement="EndEvent_Customer">
+        <omgdc:Bounds x="400" y="82" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_Insurer_di" bpmnElement="Participant_Insurer" isHorizontal="true">
+        <omgdc:Bounds x="100" y="200" width="1300" height="400"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Notification_di" bpmnElement="Lane_Notification" isHorizontal="true">
+        <omgdc:Bounds x="130" y="200" width="1270" height="150"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Handling_di" bpmnElement="Lane_Handling" isHorizontal="true">
+        <omgdc:Bounds x="130" y="350" width="1270" height="250"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_Insurer_di" bpmnElement="StartEvent_Insurer">
+        <omgdc:Bounds x="170" y="258" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckDocs_di" bpmnElement="Task_CheckDocs">
+        <omgdc:Bounds x="250" y="236" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RegisterClaim_di" bpmnElement="Task_RegisterClaim">
+        <omgdc:Bounds x="410" y="236" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckInsurance_di" bpmnElement="Task_CheckInsurance">
+        <omgdc:Bounds x="570" y="400" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Assessment_di" bpmnElement="Task_Assessment">
+        <omgdc:Bounds x="730" y="400" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_AssessmentOutcome_di" bpmnElement="Gateway_AssessmentOutcome" isMarkerVisible="true">
+        <omgdc:Bounds x="890" y="415" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PhoneGarage_di" bpmnElement="Task_PhoneGarage">
+        <omgdc:Bounds x="990" y="340" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SchedulePayment_di" bpmnElement="Task_SchedulePayment">
+        <omgdc:Bounds x="1160" y="340" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RejectClaim_di" bpmnElement="Task_RejectClaim">
+        <omgdc:Bounds x="990" y="470" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Merge_di" bpmnElement="Gateway_Merge" isMarkerVisible="true">
+        <omgdc:Bounds x="1340" y="415" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendLetter_di" bpmnElement="Task_SendLetter">
+        <omgdc:Bounds x="1430" y="400" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Insurer_di" bpmnElement="EndEvent_Insurer">
+        <omgdc:Bounds x="1600" y="422" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_C1_di" bpmnElement="Flow_C1">
+        <omgdi:waypoint x="186" y="100"/>
+        <omgdi:waypoint x="230" y="100"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C2_di" bpmnElement="Flow_C2">
+        <omgdi:waypoint x="350" y="100"/>
+        <omgdi:waypoint x="400" y="100"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="206" y="276"/>
+        <omgdi:waypoint x="250" y="276"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="370" y="276"/>
+        <omgdi:waypoint x="410" y="276"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <omgdi:waypoint x="470" y="316"/>
+        <omgdi:waypoint x="470" y="440"/>
+        <omgdi:waypoint x="570" y="440"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <omgdi:waypoint x="690" y="440"/>
+        <omgdi:waypoint x="730" y="440"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <omgdi:waypoint x="850" y="440"/>
+        <omgdi:waypoint x="890" y="440"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Positive_di" bpmnElement="Flow_Positive">
+        <omgdi:waypoint x="915" y="415"/>
+        <omgdi:waypoint x="915" y="380"/>
+        <omgdi:waypoint x="990" y="380"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Negative_di" bpmnElement="Flow_Negative">
+        <omgdi:waypoint x="915" y="465"/>
+        <omgdi:waypoint x="915" y="510"/>
+        <omgdi:waypoint x="990" y="510"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <omgdi:waypoint x="1120" y="380"/>
+        <omgdi:waypoint x="1160" y="380"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <omgdi:waypoint x="1290" y="380"/>
+        <omgdi:waypoint x="1365" y="380"/>
+        <omgdi:waypoint x="1365" y="415"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <omgdi:waypoint x="1120" y="510"/>
+        <omgdi:waypoint x="1365" y="510"/>
+        <omgdi:waypoint x="1365" y="465"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <omgdi:waypoint x="1390" y="440"/>
+        <omgdi:waypoint x="1430" y="440"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <omgdi:waypoint x="1560" y="440"/>
+        <omgdi:waypoint x="1600" y="440"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_1_di" bpmnElement="MessageFlow_1">
+        <omgdi:waypoint x="290" y="140"/>
+        <omgdi:waypoint x="290" y="236"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_2_di" bpmnElement="MessageFlow_2">
+        <omgdi:waypoint x="1495" y="400"/>
+        <omgdi:waypoint x="1495" y="160"/>
+        <omgdi:waypoint x="800" y="160"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

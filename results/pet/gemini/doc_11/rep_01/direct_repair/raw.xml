@@ -1,0 +1,767 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="definitions_teleco"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <!-- ==================================================================== -->
+  <!-- PROCESS: Customer                                                   -->
+  <!-- ==================================================================== -->
+  <process id="process_customer" name="Customer" isExecutable="true">
+    <startEvent id="start_customer" name="Service Degradation Perceived">
+      <outgoing>seq_cust_1</outgoing>
+    </startEvent>
+
+    <sendTask id="task_send_problem_params" name="Send Problem Parameters List">
+      <incoming>seq_cust_1</incoming>
+      <outgoing>seq_cust_2</outgoing>
+    </sendTask>
+
+    <receiveTask id="task_receive_cust_report" name="Receive Performance and Resolution Report">
+      <incoming>seq_cust_2</incoming>
+      <outgoing>seq_cust_3</outgoing>
+    </receiveTask>
+
+    <endEvent id="end_customer" name="Customer Process Ended">
+      <incoming>seq_cust_3</incoming>
+    </endEvent>
+
+    <sequenceFlow id="seq_cust_1" sourceRef="start_customer" targetRef="task_send_problem_params"/>
+    <sequenceFlow id="seq_cust_2" sourceRef="task_send_problem_params" targetRef="task_receive_cust_report"/>
+    <sequenceFlow id="seq_cust_3" sourceRef="task_receive_cust_report" targetRef="end_customer"/>
+  </process>
+
+  <!-- ==================================================================== -->
+  <!-- PROCESS: TELECO                                                      -->
+  <!-- ==================================================================== -->
+  <process id="process_teleco" name="TELECO" isExecutable="true">
+
+    <laneSet id="laneset_teleco">
+      <!-- LANE: Customer Service -->
+      <lane id="lane_cs" name="Customer Service">
+        <flowNodeRef>start_cs</flowNodeRef>
+        <flowNodeRef>task_enter_report</flowNodeRef>
+        <flowNodeRef>task_compare_sla</flowNodeRef>
+        <flowNodeRef>task_determine_measures</flowNodeRef>
+        <flowNodeRef>task_determine_significance</flowNodeRef>
+        <flowNodeRef>gw_is_premium</flowNodeRef>
+        <flowNodeRef>call_extra_fix</flowNodeRef>
+        <flowNodeRef>gw_affect_measures</flowNodeRef>
+        <flowNodeRef>task_create_detailed_report</flowNodeRef>
+        <flowNodeRef>task_send_detailed_report_cs</flowNodeRef>
+        <flowNodeRef>gw_event_cs_receive</flowNodeRef>
+        <flowNodeRef>msg_receive_actual_perf</flowNodeRef>
+        <flowNodeRef>msg_receive_prob_res</flowNodeRef>
+        <flowNodeRef>gw_cs_merge_received</flowNodeRef>
+        <flowNodeRef>gw_cs_parallel_split</flowNodeRef>
+        <flowNodeRef>task_create_cust_report</flowNodeRef>
+        <flowNodeRef>task_send_cust_report</flowNodeRef>
+        <flowNodeRef>task_report_sla_rebate</flowNodeRef>
+        <flowNodeRef>gw_cs_parallel_join</flowNodeRef>
+        <flowNodeRef>end_cs</flowNodeRef>
+      </lane>
+
+      <!-- LANE: Service Management -->
+      <lane id="lane_sm" name="Service Management">
+        <flowNodeRef>msg_receive_detailed_report_sm</flowNodeRef>
+        <flowNodeRef>task_investigate_analyzable</flowNodeRef>
+        <flowNodeRef>gw_is_sm_analyzable</flowNodeRef>
+        <flowNodeRef>task_send_detailed_report_rp</flowNodeRef>
+        <flowNodeRef>task_sm_analyze</flowNodeRef>
+        <flowNodeRef>task_sm_create_trouble_report</flowNodeRef>
+        <flowNodeRef>gw_sm_merge_analysis</flowNodeRef>
+        <flowNodeRef>msg_receive_rp_status</flowNodeRef>
+        <flowNodeRef>task_sm_prepare_final_status</flowNodeRef>
+        <flowNodeRef>gw_sm_determine_action</flowNodeRef>
+        <flowNodeRef>task_sm_send_actual_perf</flowNodeRef>
+        <flowNodeRef>end_sm_no_prob</flowNodeRef>
+        <flowNodeRef>task_sm_minor_actions</flowNodeRef>
+        <flowNodeRef>task_sm_create_res_report</flowNodeRef>
+        <flowNodeRef>gw_sm_merge_res_report</flowNodeRef>
+        <flowNodeRef>task_sm_send_res_report</flowNodeRef>
+        <flowNodeRef>end_sm_minor</flowNodeRef>
+        <flowNodeRef>task_sm_create_restoration_req</flowNodeRef>
+        <flowNodeRef>task_sm_send_restoration_req</flowNodeRef>
+        <flowNodeRef>msg_sm_receive_troubleshoot_report</flowNodeRef>
+      </lane>
+
+      <!-- LANE: Resource Provisioning -->
+      <lane id="lane_rp" name="Resource Provisioning">
+        <flowNodeRef>msg_receive_detailed_report_rp</flowNodeRef>
+        <flowNodeRef>task_rp_check_problems</flowNodeRef>
+        <flowNodeRef>gw_rp_problem_detected</flowNodeRef>
+        <flowNodeRef>task_rp_create_normal_exec</flowNodeRef>
+        <flowNodeRef>task_rp_analyze</flowNodeRef>
+        <flowNodeRef>task_rp_create_trouble_report</flowNodeRef>
+        <flowNodeRef>gw_rp_merge_status_item</flowNodeRef>
+        <flowNodeRef>task_rp_send_status_report</flowNodeRef>
+        <flowNodeRef>gw_rp_event_based</flowNodeRef>
+        <flowNodeRef>msg_rp_receive_restoration_req</flowNodeRef>
+        <flowNodeRef>timer_2_days</flowNodeRef>
+        <flowNodeRef>end_rp_timeout</flowNodeRef>
+        <flowNodeRef>task_rp_track_errors</flowNodeRef>
+        <flowNodeRef>task_rp_undertake_actions</flowNodeRef>
+        <flowNodeRef>task_rp_create_troubleshoot_report</flowNodeRef>
+        <flowNodeRef>task_rp_send_troubleshoot_report</flowNodeRef>
+        <flowNodeRef>end_rp_completed</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- CUSTOMER SERVICE FLOWS -->
+    <startEvent id="start_cs" name="Problem Parameters Received">
+      <outgoing>seq_cs_1</outgoing>
+      <messageEventDefinition id="med_start_cs"/>
+    </startEvent>
+
+    <userTask id="task_enter_report" name="Enter Problem Report into System T">
+      <incoming>seq_cs_1</incoming>
+      <outgoing>seq_cs_2</outgoing>
+    </userTask>
+
+    <serviceTask id="task_compare_sla" name="Compare Problem Report to Customer SLA">
+      <incoming>seq_cs_2</incoming>
+      <outgoing>seq_cs_3</outgoing>
+    </serviceTask>
+
+    <businessRuleTask id="task_determine_measures" name="Determine Necessary Counter Measures &amp; Priorities">
+      <incoming>seq_cs_3</incoming>
+      <incoming>seq_cs_reprioritize</incoming>
+      <outgoing>seq_cs_4</outgoing>
+    </businessRuleTask>
+
+    <serviceTask id="task_determine_significance" name="Determine Customer Significance">
+      <incoming>seq_cs_4</incoming>
+      <outgoing>seq_cs_5</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="gw_is_premium" name="Is Customer Premium?">
+      <incoming>seq_cs_5</incoming>
+      <outgoing>seq_cs_premium_yes</outgoing>
+      <outgoing>seq_cs_premium_no</outgoing>
+    </exclusiveGateway>
+
+    <callActivity id="call_extra_fix" name="Extra Problem Fix Process">
+      <incoming>seq_cs_premium_yes</incoming>
+      <outgoing>seq_cs_after_extra</outgoing>
+    </callActivity>
+
+    <exclusiveGateway id="gw_affect_measures" name="Significance Affects Counter Measures?">
+      <incoming>seq_cs_premium_no</incoming>
+      <incoming>seq_cs_after_extra</incoming>
+      <outgoing>seq_cs_reprioritize</outgoing>
+      <outgoing>seq_cs_continue</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_create_detailed_report" name="Create Detailed Problem Report">
+      <incoming>seq_cs_continue</incoming>
+      <outgoing>seq_cs_6</outgoing>
+    </task>
+
+    <sendTask id="task_send_detailed_report_cs" name="Send Detailed Problem Report to Service Management">
+      <incoming>seq_cs_6</incoming>
+      <outgoing>seq_cs_7</outgoing>
+    </sendTask>
+
+    <eventBasedGateway id="gw_event_cs_receive" name="Wait for SM Response">
+      <incoming>seq_cs_7</incoming>
+      <outgoing>seq_cs_wait_actual</outgoing>
+      <outgoing>seq_cs_wait_resolution</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="msg_receive_actual_perf" name="Actual Service Performance Received">
+      <incoming>seq_cs_wait_actual</incoming>
+      <outgoing>seq_cs_rec_1</outgoing>
+      <messageEventDefinition id="med_rec_actual"/>
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="msg_receive_prob_res" name="Problem Resolution Report Received">
+      <incoming>seq_cs_wait_resolution</incoming>
+      <outgoing>seq_cs_rec_2</outgoing>
+      <messageEventDefinition id="med_rec_res"/>
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="gw_cs_merge_received">
+      <incoming>seq_cs_rec_1</incoming>
+      <incoming>seq_cs_rec_2</incoming>
+      <outgoing>seq_cs_8</outgoing>
+    </exclusiveGateway>
+
+    <parallelGateway id="gw_cs_parallel_split">
+      <incoming>seq_cs_8</incoming>
+      <outgoing>seq_cs_p1</outgoing>
+      <outgoing>seq_cs_p2</outgoing>
+    </parallelGateway>
+
+    <task id="task_create_cust_report" name="Create Customer Performance &amp; Resolution Report">
+      <incoming>seq_cs_p1</incoming>
+      <outgoing>seq_cs_p1_1</outgoing>
+    </task>
+
+    <sendTask id="task_send_cust_report" name="Send Report to Customer">
+      <incoming>seq_cs_p1_1</incoming>
+      <outgoing>seq_cs_p1_2</outgoing>
+    </sendTask>
+
+    <task id="task_report_sla_rebate" name="Report SLA Violation Rebate to Billing &amp; Collections">
+      <incoming>seq_cs_p2</incoming>
+      <outgoing>seq_cs_p2_1</outgoing>
+    </task>
+
+    <parallelGateway id="gw_cs_parallel_join">
+      <incoming>seq_cs_p1_2</incoming>
+      <incoming>seq_cs_p2_1</incoming>
+      <outgoing>seq_cs_end</outgoing>
+    </parallelGateway>
+
+    <endEvent id="end_cs" name="Customer Service Process Ended">
+      <incoming>seq_cs_end</incoming>
+    </endEvent>
+
+    <!-- CUSTOMER SERVICE SEQUENCE FLOWS -->
+    <sequenceFlow id="seq_cs_1" sourceRef="start_cs" targetRef="task_enter_report"/>
+    <sequenceFlow id="seq_cs_2" sourceRef="task_enter_report" targetRef="task_compare_sla"/>
+    <sequenceFlow id="seq_cs_3" sourceRef="task_compare_sla" targetRef="task_determine_measures"/>
+    <sequenceFlow id="seq_cs_4" sourceRef="task_determine_measures" targetRef="task_determine_significance"/>
+    <sequenceFlow id="seq_cs_5" sourceRef="task_determine_significance" targetRef="gw_is_premium"/>
+    <sequenceFlow id="seq_cs_premium_yes" name="Yes" sourceRef="gw_is_premium" targetRef="call_extra_fix"/>
+    <sequenceFlow id="seq_cs_premium_no" name="No" sourceRef="gw_is_premium" targetRef="gw_affect_measures"/>
+    <sequenceFlow id="seq_cs_after_extra" sourceRef="call_extra_fix" targetRef="gw_affect_measures"/>
+    <sequenceFlow id="seq_cs_reprioritize" name="Yes" sourceRef="gw_affect_measures" targetRef="task_determine_measures"/>
+    <sequenceFlow id="seq_cs_continue" name="No" sourceRef="gw_affect_measures" targetRef="task_create_detailed_report"/>
+    <sequenceFlow id="seq_cs_6" sourceRef="task_create_detailed_report" targetRef="task_send_detailed_report_cs"/>
+    <sequenceFlow id="seq_cs_7" sourceRef="task_send_detailed_report_cs" targetRef="gw_event_cs_receive"/>
+    <sequenceFlow id="seq_cs_wait_actual" sourceRef="gw_event_cs_receive" targetRef="msg_receive_actual_perf"/>
+    <sequenceFlow id="seq_cs_wait_resolution" sourceRef="gw_event_cs_receive" targetRef="msg_receive_prob_res"/>
+    <sequenceFlow id="seq_cs_rec_1" sourceRef="msg_receive_actual_perf" targetRef="gw_cs_merge_received"/>
+    <sequenceFlow id="seq_cs_rec_2" sourceRef="msg_receive_prob_res" targetRef="gw_cs_merge_received"/>
+    <sequenceFlow id="seq_cs_8" sourceRef="gw_cs_merge_received" targetRef="gw_cs_parallel_split"/>
+    <sequenceFlow id="seq_cs_p1" sourceRef="gw_cs_parallel_split" targetRef="task_create_cust_report"/>
+    <sequenceFlow id="seq_cs_p1_1" sourceRef="task_create_cust_report" targetRef="task_send_cust_report"/>
+    <sequenceFlow id="seq_cs_p1_2" sourceRef="task_send_cust_report" targetRef="gw_cs_parallel_join"/>
+    <sequenceFlow id="seq_cs_p2" sourceRef="gw_cs_parallel_split" targetRef="task_report_sla_rebate"/>
+    <sequenceFlow id="seq_cs_p2_1" sourceRef="task_report_sla_rebate" targetRef="gw_cs_parallel_join"/>
+    <sequenceFlow id="seq_cs_end" sourceRef="gw_cs_parallel_join" targetRef="end_cs"/>
+
+    <!-- SERVICE MANAGEMENT FLOWS -->
+    <startEvent id="msg_receive_detailed_report_sm" name="Detailed Problem Report Received (SM)">
+      <outgoing>seq_sm_1</outgoing>
+      <messageEventDefinition id="med_sm_start"/>
+    </startEvent>
+
+    <task id="task_investigate_analyzable" name="Investigate Problem Analyzability">
+      <incoming>seq_sm_1</incoming>
+      <outgoing>seq_sm_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_is_sm_analyzable" name="Analyzable by SM?">
+      <incoming>seq_sm_2</incoming>
+      <outgoing>seq_sm_no</outgoing>
+      <outgoing>seq_sm_yes</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="task_send_detailed_report_rp" name="Send Detailed Problem Report to Resource Provisioning">
+      <incoming>seq_sm_no</incoming>
+      <outgoing>seq_sm_to_rp_wait</outgoing>
+    </sendTask>
+
+    <task id="task_sm_analyze" name="Perform Problem Analysis">
+      <incoming>seq_sm_yes</incoming>
+      <outgoing>seq_sm_3</outgoing>
+    </task>
+
+    <task id="task_sm_create_trouble_report" name="Create Trouble Report">
+      <incoming>seq_sm_3</incoming>
+      <outgoing>seq_sm_4</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_sm_merge_analysis">
+      <incoming>seq_sm_4</incoming>
+      <incoming>seq_sm_from_rp_status</incoming>
+      <outgoing>seq_sm_5</outgoing>
+    </exclusiveGateway>
+
+    <intermediateCatchEvent id="msg_receive_rp_status" name="Status Report Received from RP">
+      <incoming>seq_sm_to_rp_wait</incoming>
+      <outgoing>seq_sm_from_rp_status</outgoing>
+      <messageEventDefinition id="med_sm_rec_status"/>
+    </intermediateCatchEvent>
+
+    <task id="task_sm_prepare_final_status" name="Prepare Final Status Report">
+      <incoming>seq_sm_5</incoming>
+      <outgoing>seq_sm_6</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_sm_determine_action" name="Required Counter Measures?">
+      <incoming>seq_sm_6</incoming>
+      <outgoing>seq_sm_path_none</outgoing>
+      <outgoing>seq_sm_path_minor</outgoing>
+      <outgoing>seq_sm_path_auto</outgoing>
+    </exclusiveGateway>
+
+    <!-- Path i: No Problem -->
+    <sendTask id="task_sm_send_actual_perf" name="Send Actual Service Performance to CS">
+      <incoming>seq_sm_path_none</incoming>
+      <outgoing>seq_sm_end_1</outgoing>
+    </sendTask>
+
+    <endEvent id="end_sm_no_prob" name="Ended (No Problem)">
+      <incoming>seq_sm_end_1</incoming>
+    </endEvent>
+
+    <!-- Path ii: Minor Actions -->
+    <task id="task_sm_minor_actions" name="Undertake Minor Corrective Actions">
+      <incoming>seq_sm_path_minor</incoming>
+      <outgoing>seq_sm_minor_1</outgoing>
+    </task>
+
+    <task id="task_sm_create_res_report" name="Create Problem Resolution Report">
+      <incoming>seq_sm_minor_1</incoming>
+      <outgoing>seq_sm_minor_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_sm_merge_res_report">
+      <incoming>seq_sm_minor_2</incoming>
+      <incoming>seq_sm_from_troubleshoot</incoming>
+      <outgoing>seq_sm_send_res_out</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="task_sm_send_res_report" name="Send Problem Resolution Report to CS">
+      <incoming>seq_sm_send_res_out</incoming>
+      <outgoing>seq_sm_end_2</outgoing>
+    </sendTask>
+
+    <endEvent id="end_sm_minor" name="Ended (Problem Resolved)">
+      <incoming>seq_sm_end_2</incoming>
+    </endEvent>
+
+    <!-- Path iii: Automatic Restoration -->
+    <task id="task_sm_create_restoration_req" name="Create Request for Automatic Resource Restoration">
+      <incoming>seq_sm_path_auto</incoming>
+      <outgoing>seq_sm_auto_1</outgoing>
+    </task>
+
+    <sendTask id="task_sm_send_restoration_req" name="Send Restoration Request to RP">
+      <incoming>seq_sm_auto_1</incoming>
+      <outgoing>seq_sm_auto_2</outgoing>
+    </sendTask>
+
+    <intermediateCatchEvent id="msg_sm_receive_troubleshoot_report" name="Trouble-Shooting Report Received">
+      <incoming>seq_sm_auto_2</incoming>
+      <outgoing>seq_sm_from_troubleshoot</outgoing>
+      <messageEventDefinition id="med_sm_rec_troubleshoot"/>
+    </intermediateCatchEvent>
+
+    <!-- SERVICE MANAGEMENT SEQUENCE FLOWS -->
+    <sequenceFlow id="seq_sm_1" sourceRef="msg_receive_detailed_report_sm" targetRef="task_investigate_analyzable"/>
+    <sequenceFlow id="seq_sm_2" sourceRef="task_investigate_analyzable" targetRef="gw_is_sm_analyzable"/>
+    <sequenceFlow id="seq_sm_no" name="No" sourceRef="gw_is_sm_analyzable" targetRef="task_send_detailed_report_rp"/>
+    <sequenceFlow id="seq_sm_yes" name="Yes" sourceRef="gw_is_sm_analyzable" targetRef="task_sm_analyze"/>
+    <sequenceFlow id="seq_sm_to_rp_wait" sourceRef="task_send_detailed_report_rp" targetRef="msg_receive_rp_status"/>
+    <sequenceFlow id="seq_sm_3" sourceRef="task_sm_analyze" targetRef="task_sm_create_trouble_report"/>
+    <sequenceFlow id="seq_sm_4" sourceRef="task_sm_create_trouble_report" targetRef="gw_sm_merge_analysis"/>
+    <sequenceFlow id="seq_sm_from_rp_status" sourceRef="msg_receive_rp_status" targetRef="gw_sm_merge_analysis"/>
+    <sequenceFlow id="seq_sm_5" sourceRef="gw_sm_merge_analysis" targetRef="task_sm_prepare_final_status"/>
+    <sequenceFlow id="seq_sm_6" sourceRef="task_sm_prepare_final_status" targetRef="gw_sm_determine_action"/>
+    <sequenceFlow id="seq_sm_path_none" name="No Problem" sourceRef="gw_sm_determine_action" targetRef="task_sm_send_actual_perf"/>
+    <sequenceFlow id="seq_sm_end_1" sourceRef="task_sm_send_actual_perf" targetRef="end_sm_no_prob"/>
+    <sequenceFlow id="seq_sm_path_minor" name="Minor Actions" sourceRef="gw_sm_determine_action" targetRef="task_sm_minor_actions"/>
+    <sequenceFlow id="seq_sm_minor_1" sourceRef="task_sm_minor_actions" targetRef="task_sm_create_res_report"/>
+    <sequenceFlow id="seq_sm_minor_2" sourceRef="task_sm_create_res_report" targetRef="gw_sm_merge_res_report"/>
+    <sequenceFlow id="seq_sm_path_auto" name="Auto Restoration" sourceRef="gw_sm_determine_action" targetRef="task_sm_create_restoration_req"/>
+    <sequenceFlow id="seq_sm_auto_1" sourceRef="task_sm_create_restoration_req" targetRef="task_sm_send_restoration_req"/>
+    <sequenceFlow id="seq_sm_auto_2" sourceRef="task_sm_send_restoration_req" targetRef="msg_sm_receive_troubleshoot_report"/>
+    <sequenceFlow id="seq_sm_from_troubleshoot" sourceRef="msg_sm_receive_troubleshoot_report" targetRef="gw_sm_merge_res_report"/>
+    <sequenceFlow id="seq_sm_send_res_out" sourceRef="gw_sm_merge_res_report" targetRef="task_sm_send_res_report"/>
+    <sequenceFlow id="seq_sm_end_2" sourceRef="task_sm_send_res_report" targetRef="end_sm_minor"/>
+
+    <!-- RESOURCE PROVISIONING FLOWS -->
+    <startEvent id="msg_receive_detailed_report_rp" name="Detailed Problem Report Received (RP)">
+      <outgoing>seq_rp_1</outgoing>
+      <messageEventDefinition id="med_rp_start"/>
+    </startEvent>
+
+    <task id="task_rp_check_problems" name="Check for Possible Problems">
+      <incoming>seq_rp_1</incoming>
+      <outgoing>seq_rp_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_rp_problem_detected" name="Problem Detected?">
+      <incoming>seq_rp_2</incoming>
+      <outgoing>seq_rp_no</outgoing>
+      <outgoing>seq_rp_yes</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_rp_create_normal_exec" name="Create Normal Service Execution Notification">
+      <incoming>seq_rp_no</incoming>
+      <outgoing>seq_rp_3</outgoing>
+    </task>
+
+    <task id="task_rp_analyze" name="Analyze Problem">
+      <incoming>seq_rp_yes</incoming>
+      <outgoing>seq_rp_4</outgoing>
+    </task>
+
+    <task id="task_rp_create_trouble_report" name="Create Trouble Report">
+      <incoming>seq_rp_4</incoming>
+      <outgoing>seq_rp_5</outgoing>
+    </task>
+
+    <exclusiveGateway id="gw_rp_merge_status_item">
+      <incoming>seq_rp_3</incoming>
+      <incoming>seq_rp_5</incoming>
+      <outgoing>seq_rp_6</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="task_rp_send_status_report" name="Include Item in Status Report and Send to SM">
+      <incoming>seq_rp_6</incoming>
+      <outgoing>seq_rp_7</outgoing>
+    </sendTask>
+
+    <eventBasedGateway id="gw_rp_event_based" name="Wait for Request or Timeout">
+      <incoming>seq_rp_7</incoming>
+      <outgoing>seq_rp_wait_req</outgoing>
+      <outgoing>seq_rp_wait_timer</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="msg_rp_receive_restoration_req" name="Restoration Request Received">
+      <incoming>seq_rp_wait_req</incoming>
+      <outgoing>seq_rp_req_rec</outgoing>
+      <messageEventDefinition id="med_rp_rec_restoration"/>
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="timer_2_days" name="2 Days">
+      <incoming>seq_rp_wait_timer</incoming>
+      <outgoing>seq_rp_timeout</outgoing>
+      <timerEventDefinition id="ted_2_days">
+        <timeDuration xsi:type="tFormalExpression">P2D</timeDuration>
+      </timerEventDefinition>
+    </intermediateCatchEvent>
+
+    <endEvent id="end_rp_timeout" name="Terminated (Timeout)">
+      <incoming>seq_rp_timeout</incoming>
+    </endEvent>
+
+    <task id="task_rp_track_errors" name="Track All Possible Errors">
+      <incoming>seq_rp_req_rec</incoming>
+      <outgoing>seq_rp_8</outgoing>
+    </task>
+
+    <task id="task_rp_undertake_actions" name="Undertake Necessary Corrective Actions">
+      <incoming>seq_rp_8</incoming>
+      <outgoing>seq_rp_9</outgoing>
+    </task>
+
+    <task id="task_rp_create_troubleshoot_report" name="Create Trouble-Shooting Report">
+      <incoming>seq_rp_9</incoming>
+      <outgoing>seq_rp_10</outgoing>
+    </task>
+
+    <sendTask id="task_rp_send_troubleshoot_report" name="Send Trouble-Shooting Report to SM">
+      <incoming>seq_rp_10</incoming>
+      <outgoing>seq_rp_11</outgoing>
+    </sendTask>
+
+    <endEvent id="end_rp_completed" name="Resource Provisioning Process Ended">
+      <incoming>seq_rp_11</incoming>
+    </endEvent>
+
+    <!-- RESOURCE PROVISIONING SEQUENCE FLOWS -->
+    <sequenceFlow id="seq_rp_1" sourceRef="msg_receive_detailed_report_rp" targetRef="task_rp_check_problems"/>
+    <sequenceFlow id="seq_rp_2" sourceRef="task_rp_check_problems" targetRef="gw_rp_problem_detected"/>
+    <sequenceFlow id="seq_rp_no" name="No" sourceRef="gw_rp_problem_detected" targetRef="task_rp_create_normal_exec"/>
+    <sequenceFlow id="seq_rp_yes" name="Yes" sourceRef="gw_rp_problem_detected" targetRef="task_rp_analyze"/>
+    <sequenceFlow id="seq_rp_3" sourceRef="task_rp_create_normal_exec" targetRef="gw_rp_merge_status_item"/>
+    <sequenceFlow id="seq_rp_4" sourceRef="task_rp_analyze" targetRef="task_rp_create_trouble_report"/>
+    <sequenceFlow id="seq_rp_5" sourceRef="task_rp_create_trouble_report" targetRef="gw_rp_merge_status_item"/>
+    <sequenceFlow id="seq_rp_6" sourceRef="gw_rp_merge_status_item" targetRef="task_rp_send_status_report"/>
+    <sequenceFlow id="seq_rp_7" sourceRef="task_rp_send_status_report" targetRef="gw_rp_event_based"/>
+    <sequenceFlow id="seq_rp_wait_req" sourceRef="gw_rp_event_based" targetRef="msg_rp_receive_restoration_req"/>
+    <sequenceFlow id="seq_rp_wait_timer" sourceRef="gw_rp_event_based" targetRef="timer_2_days"/>
+    <sequenceFlow id="seq_rp_timeout" sourceRef="timer_2_days" targetRef="end_rp_timeout"/>
+    <sequenceFlow id="seq_rp_req_rec" sourceRef="msg_rp_receive_restoration_req" targetRef="task_rp_track_errors"/>
+    <sequenceFlow id="seq_rp_8" sourceRef="task_rp_track_errors" targetRef="task_rp_undertake_actions"/>
+    <sequenceFlow id="seq_rp_9" sourceRef="task_rp_undertake_actions" targetRef="task_rp_create_troubleshoot_report"/>
+    <sequenceFlow id="seq_rp_10" sourceRef="task_rp_create_troubleshoot_report" targetRef="task_rp_send_troubleshoot_report"/>
+    <sequenceFlow id="seq_rp_11" sourceRef="task_rp_send_troubleshoot_report" targetRef="end_rp_completed"/>
+
+  </process>
+
+  <!-- ==================================================================== -->
+  <!-- PROCESS: Billing & Collections                                      -->
+  <!-- ==================================================================== -->
+  <process id="process_billing" name="Billing &amp; Collections" isExecutable="true">
+    <startEvent id="start_billing" name="SLA Violation Rebate Reported">
+      <outgoing>seq_bill_1</outgoing>
+      <messageEventDefinition id="med_billing_start"/>
+    </startEvent>
+
+    <task id="task_adjust_billing" name="Adjust Billing">
+      <incoming>seq_bill_1</incoming>
+      <outgoing>seq_bill_2</outgoing>
+    </task>
+
+    <endEvent id="end_billing" name="Billing Adjusted">
+      <incoming>seq_bill_2</incoming>
+    </endEvent>
+
+    <sequenceFlow id="seq_bill_1" sourceRef="start_billing" targetRef="task_adjust_billing"/>
+    <sequenceFlow id="seq_bill_2" sourceRef="task_adjust_billing" targetRef="end_billing"/>
+  </process>
+
+  <!-- ==================================================================== -->
+  <!-- COLLABORATION & MESSAGE FLOWS                                        -->
+  <!-- ==================================================================== -->
+  <collaboration id="collaboration_teleco">
+    <participant id="part_customer" name="Customer" processRef="process_customer"/>
+    <participant id="part_teleco" name="TELECO" processRef="process_teleco"/>
+    <participant id="part_billing" name="Billing &amp; Collections" processRef="process_billing"/>
+
+    <!-- Message Flows -->
+    <messageFlow id="mf_params_to_cs" name="Problem Parameters" sourceRef="task_send_problem_params" targetRef="start_cs"/>
+    <messageFlow id="mf_cs_to_sm" name="Detailed Problem Report" sourceRef="task_send_detailed_report_cs" targetRef="msg_receive_detailed_report_sm"/>
+    <messageFlow id="mf_sm_to_rp" name="Detailed Problem Report" sourceRef="task_send_detailed_report_rp" targetRef="msg_receive_detailed_report_rp"/>
+    <messageFlow id="mf_rp_to_sm" name="Status Report" sourceRef="task_rp_send_status_report" targetRef="msg_receive_rp_status"/>
+    <messageFlow id="mf_sm_to_rp_req" name="Restoration Request" sourceRef="task_sm_send_restoration_req" targetRef="msg_rp_receive_restoration_req"/>
+    <messageFlow id="mf_rp_to_sm_trouble" name="Trouble-Shooting Report" sourceRef="task_rp_send_troubleshoot_report" targetRef="msg_sm_receive_troubleshoot_report"/>
+    <messageFlow id="mf_sm_to_cs_actual" name="Actual Service Performance" sourceRef="task_sm_send_actual_perf" targetRef="msg_receive_actual_perf"/>
+    <messageFlow id="mf_sm_to_cs_res" name="Problem Resolution Report" sourceRef="task_sm_send_res_report" targetRef="msg_receive_prob_res"/>
+    <messageFlow id="mf_cs_to_cust" name="Performance &amp; Resolution Report" sourceRef="task_send_cust_report" targetRef="task_receive_cust_report"/>
+    <messageFlow id="mf_cs_to_billing" name="SLA Violation Rebate" sourceRef="task_report_sla_rebate" targetRef="start_billing"/>
+  </collaboration>
+
+  <!-- ==================================================================== -->
+  <!-- BPMN DIAGRAM (VISUAL LAYOUT)                                         -->
+  <!-- ==================================================================== -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_teleco">
+    <bpmndi:BPMNPlane id="BPMNPlane_teleco" bpmnElement="collaboration_teleco">
+
+      <!-- Customer Pool -->
+      <bpmndi:BPMNShape id="shape_part_customer" bpmnElement="part_customer" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1800" height="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_start_customer" bpmnElement="start_customer">
+        <dc:Bounds x="212" y="142" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_send_problem_params" bpmnElement="task_send_problem_params">
+        <dc:Bounds x="290" y="120" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_receive_cust_report" bpmnElement="task_receive_cust_report">
+        <dc:Bounds x="1710" y="120" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_customer" bpmnElement="end_customer">
+        <dc:Bounds x="1872" y="142" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="edge_seq_cust_1" bpmnElement="seq_cust_1">
+        <di:waypoint x="248" y="160"/>
+        <di:waypoint x="290" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cust_2" bpmnElement="seq_cust_2">
+        <di:waypoint x="390" y="160"/>
+        <di:waypoint x="1710" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cust_3" bpmnElement="seq_cust_3">
+        <di:waypoint x="1810" y="160"/>
+        <di:waypoint x="1872" y="160"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- TELECO Pool -->
+      <bpmndi:BPMNShape id="shape_part_teleco" bpmnElement="part_teleco" isHorizontal="true">
+        <dc:Bounds x="160" y="280" width="2350" height="920"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="shape_lane_cs" bpmnElement="lane_cs" isHorizontal="true">
+        <dc:Bounds x="190" y="280" width="2320" height="300"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_sm" bpmnElement="lane_sm" isHorizontal="true">
+        <dc:Bounds x="190" y="580" width="2320" height="320"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_rp" bpmnElement="lane_rp" isHorizontal="true">
+        <dc:Bounds x="190" y="900" width="2320" height="300"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Customer Service Nodes -->
+      <bpmndi:BPMNShape id="shape_start_cs" bpmnElement="start_cs">
+        <dc:Bounds x="242" y="382" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_enter_report" bpmnElement="task_enter_report">
+        <dc:Bounds x="310" y="360" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_compare_sla" bpmnElement="task_compare_sla">
+        <dc:Bounds x="440" y="360" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_determine_measures" bpmnElement="task_determine_measures">
+        <dc:Bounds x="570" y="360" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_determine_significance" bpmnElement="task_determine_significance">
+        <dc:Bounds x="700" y="360" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_is_premium" bpmnElement="gw_is_premium" isMarkerVisible="true">
+        <dc:Bounds x="835" y="375" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_call_extra_fix" bpmnElement="call_extra_fix">
+        <dc:Bounds x="920" y="300" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_affect_measures" bpmnElement="gw_affect_measures" isMarkerVisible="true">
+        <dc:Bounds x="1055" y="375" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_create_detailed_report" bpmnElement="task_create_detailed_report">
+        <dc:Bounds x="1140" y="360" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_send_detailed_report_cs" bpmnElement="task_send_detailed_report_cs">
+        <dc:Bounds x="1270" y="360" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_event_cs_receive" bpmnElement="gw_event_cs_receive">
+        <dc:Bounds x="1415" y="375" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_msg_receive_actual_perf" bpmnElement="msg_receive_actual_perf">
+        <dc:Bounds x="1502" y="322" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_msg_receive_prob_res" bpmnElement="msg_receive_prob_res">
+        <dc:Bounds x="1502" y="422" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_cs_merge_received" bpmnElement="gw_cs_merge_received" isMarkerVisible="true">
+        <dc:Bounds x="1575" y="375" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_cs_parallel_split" bpmnElement="gw_cs_parallel_split">
+        <dc:Bounds x="1655" y="375" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_create_cust_report" bpmnElement="task_create_cust_report">
+        <dc:Bounds x="1730" y="310" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_send_cust_report" bpmnElement="task_send_cust_report">
+        <dc:Bounds x="1860" y="310" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_report_sla_rebate" bpmnElement="task_report_sla_rebate">
+        <dc:Bounds x="1730" y="430" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_cs_parallel_join" bpmnElement="gw_cs_parallel_join">
+        <dc:Bounds x="2005" y="375" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_cs" bpmnElement="end_cs">
+        <dc:Bounds x="2092" y="382" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Customer Service Edges -->
+      <bpmndi:BPMNEdge id="edge_seq_cs_1" bpmnElement="seq_cs_1"><di:waypoint x="278" y="400"/><di:waypoint x="310" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_2" bpmnElement="seq_cs_2"><di:waypoint x="410" y="400"/><di:waypoint x="440" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_3" bpmnElement="seq_cs_3"><di:waypoint x="540" y="400"/><di:waypoint x="570" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_4" bpmnElement="seq_cs_4"><di:waypoint x="670" y="400"/><di:waypoint x="700" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_5" bpmnElement="seq_cs_5"><di:waypoint x="800" y="400"/><di:waypoint x="835" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_premium_yes" bpmnElement="seq_cs_premium_yes"><di:waypoint x="860" y="375"/><di:waypoint x="860" y="340"/><di:waypoint x="920" y="340"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_premium_no" bpmnElement="seq_cs_premium_no"><di:waypoint x="860" y="425"/><di:waypoint x="860" y="470"/><di:waypoint x="1080" y="470"/><di:waypoint x="1080" y="425"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_after_extra" bpmnElement="seq_cs_after_extra"><di:waypoint x="1020" y="340"/><di:waypoint x="1080" y="340"/><di:waypoint x="1080" y="375"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_reprioritize" bpmnElement="seq_cs_reprioritize"><di:waypoint x="1080" y="425"/><di:waypoint x="1080" y="500"/><di:waypoint x="620" y="500"/><di:waypoint x="620" y="440"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_continue" bpmnElement="seq_cs_continue"><di:waypoint x="1105" y="400"/><di:waypoint x="1140" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_6" bpmnElement="seq_cs_6"><di:waypoint x="1240" y="400"/><di:waypoint x="1270" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_7" bpmnElement="seq_cs_7"><di:waypoint x="1370" y="400"/><di:waypoint x="1415" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_wait_actual" bpmnElement="seq_cs_wait_actual"><di:waypoint x="1440" y="375"/><di:waypoint x="1440" y="340"/><di:waypoint x="1502" y="340"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_wait_resolution" bpmnElement="seq_cs_wait_resolution"><di:waypoint x="1440" y="425"/><di:waypoint x="1440" y="440"/><di:waypoint x="1502" y="440"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_rec_1" bpmnElement="seq_cs_rec_1"><di:waypoint x="1538" y="340"/><di:waypoint x="1600" y="340"/><di:waypoint x="1600" y="375"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_rec_2" bpmnElement="seq_cs_rec_2"><di:waypoint x="1538" y="440"/><di:waypoint x="1600" y="440"/><di:waypoint x="1600" y="425"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_8" bpmnElement="seq_cs_8"><di:waypoint x="1625" y="400"/><di:waypoint x="1655" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_p1" bpmnElement="seq_cs_p1"><di:waypoint x="1680" y="375"/><di:waypoint x="1680" y="350"/><di:waypoint x="1730" y="350"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_p1_1" bpmnElement="seq_cs_p1_1"><di:waypoint x="1830" y="350"/><di:waypoint x="1860" y="350"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_p1_2" bpmnElement="seq_cs_p1_2"><di:waypoint x="1960" y="350"/><di:waypoint x="2030" y="350"/><di:waypoint x="2030" y="375"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_p2" bpmnElement="seq_cs_p2"><di:waypoint x="1680" y="425"/><di:waypoint x="1680" y="470"/><di:waypoint x="1730" y="470"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_p2_1" bpmnElement="seq_cs_p2_1"><di:waypoint x="1830" y="470"/><di:waypoint x="2030" y="470"/><di:waypoint x="2030" y="425"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_cs_end" bpmnElement="seq_cs_end"><di:waypoint x="2055" y="400"/><di:waypoint x="2092" y="400"/></bpmndi:BPMNEdge>
+
+      <!-- Service Management Nodes -->
+      <bpmndi:BPMNShape id="shape_msg_receive_detailed_report_sm" bpmnElement="msg_receive_detailed_report_sm">
+        <dc:Bounds x="242" y="682" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_investigate_analyzable" bpmnElement="task_investigate_analyzable">
+        <dc:Bounds x="310" y="660" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_is_sm_analyzable" bpmnElement="gw_is_sm_analyzable" isMarkerVisible="true">
+        <dc:Bounds x="445" y="675" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_send_detailed_report_rp" bpmnElement="task_send_detailed_report_rp">
+        <dc:Bounds x="530" y="740" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_analyze" bpmnElement="task_sm_analyze">
+        <dc:Bounds x="530" y="610" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_create_trouble_report" bpmnElement="task_sm_create_trouble_report">
+        <dc:Bounds x="660" y="610" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_msg_receive_rp_status" bpmnElement="msg_receive_rp_status">
+        <dc:Bounds x="692" y="762" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_sm_merge_analysis" bpmnElement="gw_sm_merge_analysis" isMarkerVisible="true">
+        <dc:Bounds x="795" y="675" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_prepare_final_status" bpmnElement="task_sm_prepare_final_status">
+        <dc:Bounds x="870" y="660" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_sm_determine_action" bpmnElement="gw_sm_determine_action" isMarkerVisible="true">
+        <dc:Bounds x="1005" y="675" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_send_actual_perf" bpmnElement="task_sm_send_actual_perf">
+        <dc:Bounds x="1100" y="600" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_sm_no_prob" bpmnElement="end_sm_no_prob">
+        <dc:Bounds x="1242" y="622" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_minor_actions" bpmnElement="task_sm_minor_actions">
+        <dc:Bounds x="1100" y="690" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_create_res_report" bpmnElement="task_sm_create_res_report">
+        <dc:Bounds x="1230" y="690" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_sm_merge_res_report" bpmnElement="gw_sm_merge_res_report" isMarkerVisible="true">
+        <dc:Bounds x="1365" y="705" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_send_res_report" bpmnElement="task_sm_send_res_report">
+        <dc:Bounds x="1440" y="690" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_sm_minor" bpmnElement="end_sm_minor">
+        <dc:Bounds x="1582" y="712" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_create_restoration_req" bpmnElement="task_sm_create_restoration_req">
+        <dc:Bounds x="1100" y="790" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_send_restoration_req" bpmnElement="task_sm_send_restoration_req">
+        <dc:Bounds x="1230" y="790" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_msg_sm_receive_troubleshoot_report" bpmnElement="msg_sm_receive_troubleshoot_report">
+        <dc:Bounds x="1372" y="812" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Service Management Edges -->
+      <bpmndi:BPMNEdge id="edge_seq_sm_1" bpmnElement="seq_sm_1"><di:waypoint x="278" y="700"/><di:waypoint x="310" y="700"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_2" bpmnElement="seq_sm_2"><di:waypoint x="410" y="700"/><di:waypoint x="445" y="700"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_no" bpmnElement="seq_sm_no"><di:waypoint x="470" y="725"/><di:waypoint x="470" y="780"/><di:waypoint x="530" y="780"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_yes" bpmnElement="seq_sm_yes"><di:waypoint x="470" y="675"/><di:waypoint x="470" y="650"/><di:waypoint x="530" y="650"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_to_rp_wait" bpmnElement="seq_sm_to_rp_wait"><di:waypoint x="630" y="780"/><di:waypoint x="692" y="780"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_3" bpmnElement="seq_sm_3"><di:waypoint x="630" y="650"/><di:waypoint x="660" y="650"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_4" bpmnElement="seq_sm_4"><di:waypoint x="760" y="650"/><di:waypoint x="820" y="650"/><di:waypoint x="820" y="675"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_from_rp_status" bpmnElement="seq_sm_from_rp_status"><di:waypoint x="728" y="780"/><di:waypoint x="820" y="780"/><di:waypoint x="820" y="725"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_5" bpmnElement="seq_sm_5"><di:waypoint x="845" y="700"/><di:waypoint x="870" y="700"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_6" bpmnElement="seq_sm_6"><di:waypoint x="970" y="700"/><di:waypoint x="1005" y="700"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_path_none" bpmnElement="seq_sm_path_none"><di:waypoint x="1030" y="675"/><di:waypoint x="1030" y="640"/><di:waypoint x="1100" y="640"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_end_1" bpmnElement="seq_sm_end_1"><di:waypoint x="1200" y="640"/><di:waypoint x="1242" y="640"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_path_minor" bpmnElement="seq_sm_path_minor"><di:waypoint x="1055" y="700"/><di:waypoint x="1100" y="730"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_minor_1" bpmnElement="seq_sm_minor_1"><di:waypoint x="1200" y="730"/><di:waypoint x="1230" y="730"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_minor_2" bpmnElement="seq_sm_minor_2"><di:waypoint x="1330" y="730"/><di:waypoint x="1365" y="730"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_path_auto" bpmnElement="seq_sm_path_auto"><di:waypoint x="1030" y="725"/><di:waypoint x="1030" y="830"/><di:waypoint x="1100" y="830"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_auto_1" bpmnElement="seq_sm_auto_1"><di:waypoint x="1200" y="830"/><di:waypoint x="1230" y="830"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_auto_2" bpmnElement="seq_sm_auto_2"><di:waypoint x="1330" y="830"/><di:waypoint x="1372" y="830"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_from_troubleshoot" bpmnElement="seq_sm_from_troubleshoot"><di:waypoint x="1390" y="812"/><di:waypoint x="1390" y="755"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_send_res_out" bpmnElement="seq_sm_send_res_out"><di:waypoint x="1415" y="730"/><di:waypoint x="1440" y="730"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_sm_end_2" bpmnElement="seq_sm_end_2"><di:waypoint x="1540" y="730"/><di:waypoint x="1582" y="730"/></bpmndi:BPMNEdge>
+
+      <!-- Resource Provisioning Nodes -->
+      <bpmndi:BPMNShape id="shape_msg_receive_detailed_report_rp" bpmnElement="msg_receive_detailed_report_rp">
+        <dc:Bounds x="242" y="992" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_rp_check_problems" bpmnElement="task_rp_check_problems">
+        <dc:Bounds x="310" y="970" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gw_rp_problem_detected" bpmnElement="gw_rp_problem_detected" isMarkerVisible="true">
+        <dc:Bounds x="445" y

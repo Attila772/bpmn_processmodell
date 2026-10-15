@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="SalesAcquisitionProcess" name="Customer Acquisition Process" isExecutable="false">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Marketing" name="Marketing">
+        <flowNodeRef>StartBuyDetails</flowNodeRef>
+        <flowNodeRef>StartExhibition</flowNodeRef>
+        <flowNodeRef>StartPersonalContact</flowNodeRef>
+        <flowNodeRef>Gateway_MergeStart</flowNodeRef>
+      </lane>
+      <lane id="Lane_CallCenter" name="Call Center Staff">
+        <flowNodeRef>Task_CallCustomer</flowNodeRef>
+        <flowNodeRef>Gateway_Interested</flowNodeRef>
+        <flowNodeRef>Gateway_BudgetHuge</flowNodeRef>
+        <flowNodeRef>EndEvent_Leave</flowNodeRef>
+      </lane>
+      <lane id="Lane_HeadOfDevelopment" name="Head of Development">
+        <flowNodeRef>Task_HeadDevAcquire</flowNodeRef>
+        <flowNodeRef>Gateway_InterestedAfterHeadDev</flowNodeRef>
+        <flowNodeRef>EndEvent_NotAcquired</flowNodeRef>
+      </lane>
+      <lane id="Lane_PreSales" name="Pre-Sales Employee">
+        <flowNodeRef>Task_PresentationPresales</flowNodeRef>
+      </lane>
+      <lane id="Lane_SalesRep" name="Sales Representative">
+        <flowNodeRef>Gateway_MergeToPresentation</flowNodeRef>
+        <flowNodeRef>Gateway_PresentationType</flowNodeRef>
+        <flowNodeRef>Task_PresentationSales</flowNodeRef>
+        <flowNodeRef>Gateway_MergeAfterPresentation</flowNodeRef>
+        <flowNodeRef>Task_WaitResponse</flowNodeRef>
+        <flowNodeRef>BoundaryTimer_2Weeks</flowNodeRef>
+        <flowNodeRef>Task_CallAgain</flowNodeRef>
+        <flowNodeRef>Gateway_MergeBeforeQuotation</flowNodeRef>
+        <flowNodeRef>Task_CreateQuotation</flowNodeRef>
+        <flowNodeRef>EndEvent_QuotationCreated</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Start Events -->
+    <startEvent id="StartBuyDetails" name="Contact details bought for cold calls">
+      <outgoing>Flow_S1</outgoing>
+    </startEvent>
+    <startEvent id="StartExhibition" name="Marketing staff meets prospect at exhibition">
+      <outgoing>Flow_S2</outgoing>
+    </startEvent>
+    <startEvent id="StartPersonalContact" name="Personal contact knows interested party">
+      <outgoing>Flow_S3</outgoing>
+    </startEvent>
+
+    <exclusiveGateway id="Gateway_MergeStart" name="Contact details available">
+      <incoming>Flow_S1</incoming>
+      <incoming>Flow_S2</incoming>
+      <incoming>Flow_S3</incoming>
+      <outgoing>Flow_1</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_CallCustomer" name="Call customer, determine contact person and budget">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Interested" name="Customer interested?">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_YesInterested</outgoing>
+      <outgoing>Flow_NoInterested</outgoing>
+    </exclusiveGateway>
+
+    <exclusiveGateway id="Gateway_BudgetHuge" name="Budget huge?">
+      <incoming>Flow_NoInterested</incoming>
+      <outgoing>Flow_BudgetYes</outgoing>
+      <outgoing>Flow_BudgetNo</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="EndEvent_Leave" name="Customer left alone">
+      <incoming>Flow_BudgetNo</incoming>
+    </endEvent>
+
+    <task id="Task_HeadDevAcquire" name="Head of Development personally tries to acquire customer">
+      <incoming>Flow_BudgetYes</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_InterestedAfterHeadDev" name="Customer interested now?">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_YesAfterHeadDev</outgoing>
+      <outgoing>Flow_NoAfterHeadDev</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="EndEvent_NotAcquired" name="Customer could not be acquired">
+      <incoming>Flow_NoAfterHeadDev</incoming>
+    </endEvent>
+
+    <exclusiveGateway id="Gateway_MergeToPresentation" name="Proceed to presentation">
+      <incoming>Flow_YesInterested</incoming>
+      <incoming>Flow_YesAfterHeadDev</incoming>
+      <outgoing>Flow_4</outgoing>
+    </exclusiveGateway>
+
+    <exclusiveGateway id="Gateway_PresentationType" name="Technical presentation needed?">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_Technical</outgoing>
+      <outgoing>Flow_Standard</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_PresentationPresales" name="Give technical online presentation">
+      <incoming>Flow_Technical</incoming>
+      <outgoing>Flow_5</outgoing>
+    </task>
+
+    <task id="Task_PresentationSales" name="Give online presentation">
+      <incoming>Flow_Standard</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_MergeAfterPresentation" name="Presentation done">
+      <incoming>Flow_5</incoming>
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_7</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_WaitResponse" name="Wait for customer response">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_ResponseReceived</outgoing>
+    </task>
+
+    <boundaryEvent id="BoundaryTimer_2Weeks" name="2 weeks elapsed" attachedToRef="Task_WaitResponse" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>P2W</timeDuration>
+      </timerEventDefinition>
+      <outgoing>Flow_TimerOut</outgoing>
+    </boundaryEvent>
+
+    <task id="Task_CallAgain" name="Sales representative calls customer again">
+      <incoming>Flow_TimerOut</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_MergeBeforeQuotation" name="Ready for quotation">
+      <incoming>Flow_ResponseReceived</incoming>
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_9</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_CreateQuotation" name="Create quotation">
+      <incoming>Flow_9</incoming>
+      <outgoing>Flow_10</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_QuotationCreated" name="Quotation created">
+      <incoming>Flow_10</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_S1" sourceRef="StartBuyDetails" targetRef="Gateway_MergeStart" />
+    <sequenceFlow id="Flow_S2" sourceRef="StartExhibition" targetRef="Gateway_MergeStart" />
+    <sequenceFlow id="Flow_S3" sourceRef="StartPersonalContact" targetRef="Gateway_MergeStart" />
+    <sequenceFlow id="Flow_1" sourceRef="Gateway_MergeStart" targetRef="Task_CallCustomer" />
+    <sequenceFlow id="Flow_2" sourceRef="Task_CallCustomer" targetRef="Gateway_Interested" />
+
+    <sequenceFlow id="Flow_YesInterested" name="Yes" sourceRef="Gateway_Interested" targetRef="Gateway_MergeToPresentation" />
+    <sequenceFlow id="Flow_NoInterested" name="No" sourceRef="Gateway_Interested" targetRef="Gateway_BudgetHuge" />
+
+    <sequenceFlow id="Flow_BudgetYes" name="Yes" sourceRef="Gateway_BudgetHuge" targetRef="Task_HeadDevAcquire" />
+    <sequenceFlow id="Flow_BudgetNo" name="No" sourceRef="Gateway_BudgetHuge" targetRef="EndEvent_Leave" />
+
+    <sequenceFlow id="Flow_3" sourceRef="Task_HeadDevAcquire" targetRef="Gateway_InterestedAfterHeadDev" />
+
+    <sequenceFlow id="Flow_YesAfterHeadDev" name="Yes" sourceRef="Gateway_InterestedAfterHeadDev" targetRef="Gateway_MergeToPresentation" />
+    <sequenceFlow id="Flow_NoAfterHeadDev" name="No" sourceRef="Gateway_InterestedAfterHeadDev" targetRef="EndEvent_NotAcquired" />
+
+    <sequenceFlow id="Flow_4" sourceRef="Gateway_MergeToPresentation" targetRef="Gateway_PresentationType" />
+
+    <sequenceFlow id="Flow_Technical" name="Technical" sourceRef="Gateway_PresentationType" targetRef="Task_PresentationPresales" />
+    <sequenceFlow id="Flow_Standard" name="Standard" sourceRef="Gateway_PresentationType" targetRef="Task_PresentationSales" />
+
+    <sequenceFlow id="Flow_5" sourceRef="Task_PresentationPresales" targetRef="Gateway_MergeAfterPresentation" />
+    <sequenceFlow id="Flow_6" sourceRef="Task_PresentationSales" targetRef="Gateway_MergeAfterPresentation" />
+
+    <sequenceFlow id="Flow_7" sourceRef="Gateway_MergeAfterPresentation" targetRef="Task_WaitResponse" />
+
+    <sequenceFlow id="Flow_ResponseReceived" name="Customer responded" sourceRef="Task_WaitResponse" targetRef="Gateway_MergeBeforeQuotation" />
+    <sequenceFlow id="Flow_TimerOut" name="No response after 2 weeks" sourceRef="BoundaryTimer_2Weeks" targetRef="Task_CallAgain" />
+    <sequenceFlow id="Flow_8" sourceRef="Task_CallAgain" targetRef="Gateway_MergeBeforeQuotation" />
+
+    <sequenceFlow id="Flow_9" sourceRef="Gateway_MergeBeforeQuotation" targetRef="Task_CreateQuotation" />
+    <sequenceFlow id="Flow_10" sourceRef="Task_CreateQuotation" targetRef="EndEvent_QuotationCreated" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="SalesAcquisitionProcess">
+
+      <bpmndi:BPMNShape id="Shape_StartBuyDetails" bpmnElement="StartBuyDetails">
+        <omgdc:Bounds x="60" y="60" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_StartExhibition" bpmnElement="StartExhibition">
+        <omgdc:Bounds x="60" y="140" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_StartPersonalContact" bpmnElement="StartPersonalContact">
+        <omgdc:Bounds x="60" y="220" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_MergeStart" bpmnElement="Gateway_MergeStart">
+        <omgdc:Bounds x="150" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_CallCustomer" bpmnElement="Task_CallCustomer">
+        <omgdc:Bounds x="250" y="130" width="120" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_Interested" bpmnElement="Gateway_Interested">
+        <omgdc:Bounds x="420" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_BudgetHuge" bpmnElement="Gateway_BudgetHuge">
+        <omgdc:Bounds x="420" y="280" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_Leave" bpmnElement="EndEvent_Leave">
+        <omgdc:Bounds x="510" y="390" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_HeadDevAcquire" bpmnElement="Task_HeadDevAcquire">
+        <omgdc:Bounds x="540" y="260" width="140" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_InterestedAfterHeadDev" bpmnElement="Gateway_InterestedAfterHeadDev">
+        <omgdc:Bounds x="740" y="280" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_NotAcquired" bpmnElement="EndEvent_NotAcquired">
+        <omgdc:Bounds x="830" y="390" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_MergeToPresentation" bpmnElement="Gateway_MergeToPresentation">
+        <omgdc:Bounds x="540" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_PresentationType" bpmnElement="Gateway_PresentationType">
+        <omgdc:Bounds x="650" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_PresentationPresales" bpmnElement="Task_PresentationPresales">
+        <omgdc:Bounds x="750" y="40" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_PresentationSales" bpmnElement="Task_PresentationSales">
+        <omgdc:Bounds x="750" y="160" width="150" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_MergeAfterPresentation" bpmnElement="Gateway_MergeAfterPresentation">
+        <omgdc:Bounds x="950" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_WaitResponse" bpmnElement="Task_WaitResponse">
+        <omgdc:Bounds x="1040" y="130" width="140" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_BoundaryTimer_2Weeks" bpmnElement="BoundaryTimer_2Weeks">
+        <omgdc:Bounds x="1092" y="190" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_CallAgain" bpmnElement="Task_CallAgain">
+        <omgdc:Bounds x="1040" y="280" width="140" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Gateway_MergeBeforeQuotation" bpmnElement="Gateway_MergeBeforeQuotation">
+        <omgdc:Bounds x="1230" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Task_CreateQuotation" bpmnElement="Task_CreateQuotation">
+        <omgdc:Bounds x="1320" y="130" width="140" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_EndEvent_QuotationCreated" bpmnElement="EndEvent_QuotationCreated">
+        <omgdc:Bounds x="1500" y="145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Edges (simplified, not exhaustive waypoints) -->
+      <bpmndi:BPMNEdge id="Edge_S1" bpmnElement="Flow_S1">
+        <omgdi:waypoint x="96" y="78" />
+        <omgdi:waypoint x="150" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_S2" bpmnElement="Flow_S2">
+        <omgdi:waypoint x="96" y="158" />
+        <omgdi:waypoint x="150" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_S3" bpmnElement="Flow_S3">
+        <omgdi:waypoint x="96" y="238" />
+        <omgdi:waypoint x="150" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_1" bpmnElement="Flow_1">
+        <omgdi:waypoint x="200" y="170" />
+        <omgdi:waypoint x="250" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_2" bpmnElement="Flow_2">
+        <omgdi:waypoint x="370" y="170" />
+        <omgdi:waypoint x="420" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_YesInterested" bpmnElement="Flow_YesInterested">
+        <omgdi:waypoint x="470" y="170" />
+        <omgdi:waypoint x="540" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_NoInterested" bpmnElement="Flow_NoInterested">
+        <omgdi:waypoint x="445" y="195" />
+        <omgdi:waypoint x="445" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_BudgetYes" bpmnElement="Flow_BudgetYes">
+        <omgdi:waypoint x="470" y="305" />
+        <omgdi:waypoint x="540" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_BudgetNo" bpmnElement="Flow_BudgetNo">
+        <omgdi:waypoint x="445" y="330" />
+        <omgdi:waypoint x="445" y="408" />
+        <omgdi:waypoint x="510" y="408" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_3" bpmnElement="Flow_3">
+        <omgdi:waypoint x="680" y="300" />
+        <omgdi:waypoint x="740" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_YesAfterHeadDev" bpmnElement="Flow_YesAfterHeadDev">
+        <omgdi:waypoint x="765" y="280" />
+        <omgdi:waypoint x="765" y="195" />
+        <omgdi:waypoint x="590" y="195" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_NoAfterHeadDev" bpmnElement="Flow_NoAfterHeadDev">
+        <omgdi:waypoint x="765" y="330" />
+        <omgdi:waypoint x="765" y="408" />
+        <omgdi:waypoint x="830" y="408" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_4" bpmnElement="Flow_4">
+        <omgdi:waypoint x="590" y="170" />
+        <omgdi:waypoint x="650" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Technical" bpmnElement="Flow_Technical">
+        <omgdi:waypoint x="675" y="145" />
+        <omgdi:waypoint x="675" y="80" />
+        <omgdi:waypoint x="750" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Standard" bpmnElement="Flow_Standard">
+        <omgdi:waypoint x="675" y="195" />
+        <omgdi:waypoint x="675" y="200" />
+        <omgdi:waypoint x="750" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_5" bpmnElement="Flow_5">
+        <omgdi:waypoint x="900" y="80" />
+        <omgdi:waypoint x="975" y="80" />
+        <omgdi:waypoint x="975" y="145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_6" bpmnElement="Flow_6">
+        <omgdi:waypoint x="900" y="200" />
+        <omgdi:waypoint x="975" y="200" />
+        <omgdi:waypoint x="975" y="195" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_7" bpmnElement="Flow_7">
+        <omgdi:waypoint x="1000" y="170" />
+        <omgdi:waypoint x="1040" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ResponseReceived" bpmnElement="Flow_ResponseReceived">
+        <omgdi:waypoint x="1180" y="170" />
+        <omgdi:waypoint x="1230" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_TimerOut" bpmnElement="Flow_TimerOut">
+        <omgdi:waypoint x="1110" y="226" />
+        <omgdi:waypoint x="1110" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_8" bpmnElement="Flow_8">
+        <omgdi:waypoint x="1180" y="320" />
+        <omgdi:waypoint x="1255" y="320" />
+        <omgdi:waypoint x="1255" y="195" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_9" bpmnElement="Flow_9">
+        <omgdi:waypoint x="1280" y="170" />
+        <omgdi:waypoint x="1320" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_10" bpmnElement="Flow_10">
+        <omgdi:waypoint x="1460" y="170" />
+        <omgdi:waypoint x="1500" y="163" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

@@ -1,0 +1,294 @@
+{
+  "name": "parsed",
+  "resources": [],
+  "events": [
+    {
+      "id": "StartEvent_RequestSubmitted",
+      "name": "Office Supply Request Submitted",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "EndEvent_RequestCancelled",
+      "name": "Request Cancelled",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "Event_WaitDeliveryAndInvoice",
+      "name": "Wait for Delivery and Invoice",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": null
+    },
+    {
+      "id": "EndEvent_ProcessCompleted",
+      "name": "Request Fulfilled",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "EndEvent_RequestRejected",
+      "name": "Request Rejected",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "Task_ApproveRequest",
+      "name": "Review and Decide Request",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "Task_ReviewComments",
+      "name": "Review Change Comments",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "Task_SelectVendor",
+      "name": "Select Vendor",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "Task_GenerateSendPO",
+      "name": "Generate and Send Purchase Order",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "Task_SendNotification",
+      "name": "Send Result Notification to User",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "Gateway_SupervisorDecision",
+      "name": "Supervisor Decision?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "Gateway_ReorderOrCancel",
+      "name": "Update or Cancel?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "Gateway_VendorValid",
+      "name": "Is Vendor Valid?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    },
+    {
+      "id": "Gateway_FinalOutcome",
+      "name": "Final Result?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "Flow_StartToApprove",
+      "source_id": "StartEvent_RequestSubmitted",
+      "target_id": "Task_ApproveRequest",
+      "condition_name": null
+    },
+    {
+      "id": "Flow_ApproveToGateway",
+      "source_id": "Task_ApproveRequest",
+      "target_id": "Gateway_SupervisorDecision",
+      "condition_name": null
+    },
+    {
+      "id": "Flow_DecisionToApproved",
+      "source_id": "Gateway_SupervisorDecision",
+      "target_id": "SubProcess_MakeQuotations",
+      "condition_name": "Approved"
+    },
+    {
+      "id": "Flow_DecisionToChange",
+      "source_id": "Gateway_SupervisorDecision",
+      "target_id": "Task_ReviewComments",
+      "condition_name": "Change Required"
+    },
+    {
+      "id": "Flow_DecisionToRejected",
+      "source_id": "Gateway_SupervisorDecision",
+      "target_id": "Task_SendNotification",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "Flow_ReviewToGateway",
+      "source_id": "Task_ReviewComments",
+      "target_id": "Gateway_ReorderOrCancel",
+      "condition_name": null
+    },
+    {
+      "id": "Flow_Resubmit",
+      "source_id": "Gateway_ReorderOrCancel",
+      "target_id": "Task_ApproveRequest",
+      "condition_name": "Resubmit Request"
+    },
+    {
+      "id": "Flow_Cancel",
+      "source_id": "Gateway_ReorderOrCancel",
+      "target_id": "EndEvent_RequestCancelled",
+      "condition_name": "Cancel Request"
+    },
+    {
+      "id": "Flow_QuotationsToSelectVendor",
+      "source_id": "SubProcess_MakeQuotations",
+      "target_id": "Task_SelectVendor",
+      "condition_name": null
+    },
+    {
+      "id": "Flow_SelectToVendorGateway",
+      "source_id": "Task_SelectVendor",
+      "target_id": "Gateway_VendorValid",
+      "condition_name": null
+    },
+    {
+      "id": "Flow_VendorValidToPO",
+      "source_id": "Gateway_VendorValid",
+      "target_id": "Task_GenerateSendPO",
+      "condition_name": "Yes"
+    },
+    {
+      "id": "Flow_VendorInvalidToSelect",
+      "source_id": "Gateway_VendorValid",
+      "target_id": "Task_SelectVendor",
+      "condition_name": "No (Choose Different)"
+    },
+    {
+      "id": "Flow_POToWait",
+      "source_id": "Task_GenerateSendPO",
+      "target_id": "Event_WaitDeliveryAndInvoice",
+      "condition_name": null
+    },
+    {
+      "id": "Flow_WaitToNotify",
+      "source_id": "Event_WaitDeliveryAndInvoice",
+      "target_id": "Task_SendNotification",
+      "condition_name": null
+    },
+    {
+      "id": "Flow_NotifyToGateway",
+      "source_id": "Task_SendNotification",
+      "target_id": "Gateway_FinalOutcome",
+      "condition_name": null
+    },
+    {
+      "id": "Flow_FinalToCompleted",
+      "source_id": "Gateway_FinalOutcome",
+      "target_id": "EndEvent_ProcessCompleted",
+      "condition_name": "Fulfilled"
+    },
+    {
+      "id": "Flow_FinalToRejected",
+      "source_id": "Gateway_FinalOutcome",
+      "target_id": "EndEvent_RequestRejected",
+      "condition_name": "Rejected"
+    }
+  ],
+  "pools": [],
+  "message_flows": [],
+  "data_objects": [],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": 24.0,
+  "simulation_duration_unit": "hours"
+}

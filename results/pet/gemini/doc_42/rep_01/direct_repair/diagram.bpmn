@@ -1,0 +1,542 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- COLLABORATION -->
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_GO" name="Grid Operator (GO)" processRef="Process_GO" />
+    <bpmn:participant id="Participant_MSP" name="Measuring Service Provider (MSP)" processRef="Process_MSP" />
+    <bpmn:participant id="Participant_SP" name="Service Provider (SP)" processRef="Process_SP" />
+    
+    <!-- Message Flows -->
+    <bpmn:messageFlow id="MsgFlow_Request" name="Measurement Request" sourceRef="Task_GO_RequestMeasurements" targetRef="Start_MSP_RequestReceived" />
+    <bpmn:messageFlow id="MsgFlow_Denial" name="Request Denial" sourceRef="Task_MSP_DenyRequest" targetRef="Event_GO_DenialReceived" />
+    <bpmn:messageFlow id="MsgFlow_Failure" name="Failure Notification" sourceRef="Task_MSP_InformFailure" targetRef="Event_GO_FailureReceived" />
+    <bpmn:messageFlow id="MsgFlow_Values" name="Measured Values" sourceRef="Task_MSP_TransmitValues" targetRef="Event_GO_ValuesReceived" />
+    <bpmn:messageFlow id="MsgFlow_ChangedValues" name="Changed Values" sourceRef="Task_GO_SendChangedValues" targetRef="Event_MSP_ChangedValuesReceived" />
+    <bpmn:messageFlow id="MsgFlow_ReadingsToSP" name="Readings" sourceRef="Task_GO_TransmitReadingsToSP" targetRef="Start_SP_ReadingsReceived" />
+  </bpmn:collaboration>
+
+  <!-- PROCESS: GO -->
+  <bpmn:process id="Process_GO" isExecutable="true">
+    <bpmn:startEvent id="Start_GO" name="Process Started">
+      <bpmn:outgoing>Flow_GO_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sendTask id="Task_GO_RequestMeasurements" name="Request Measurements from MSP">
+      <bpmn:incoming>Flow_GO_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_GO_2</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:eventBasedGateway id="Gateway_GO_ResponseWaiting" name="Wait for Response">
+      <bpmn:incoming>Flow_GO_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_GO_ToDenial</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GO_ToFailure</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GO_ToValues</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_GO_DenialReceived" name="Request Denied Received">
+      <bpmn:incoming>Flow_GO_ToDenial</bpmn:incoming>
+      <bpmn:outgoing>Flow_GO_DenialEnd</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgEvtDef_GO_Denial" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="End_GO_Denied" name="Process Ended (Denied)">
+      <bpmn:incoming>Flow_GO_DenialEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:intermediateCatchEvent id="Event_GO_FailureReceived" name="Reading Failure Received">
+      <bpmn:incoming>Flow_GO_ToFailure</bpmn:incoming>
+      <bpmn:outgoing>Flow_GO_FailureEnd</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgEvtDef_GO_Failure" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="End_GO_Failed" name="Process Ended (Failed Reading)">
+      <bpmn:incoming>Flow_GO_FailureEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:intermediateCatchEvent id="Event_GO_ValuesReceived" name="Measured Values Received">
+      <bpmn:incoming>Flow_GO_ToValues</bpmn:incoming>
+      <bpmn:outgoing>Flow_GO_ToProcessValues</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgEvtDef_GO_Values" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:userTask id="Task_GO_ProcessValues" name="Process Measured Values">
+      <bpmn:incoming>Flow_GO_ToProcessValues</bpmn:incoming>
+      <bpmn:outgoing>Flow_GO_ToSendChanged</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sendTask id="Task_GO_SendChangedValues" name="Send Changed Values to MSP">
+      <bpmn:incoming>Flow_GO_ToSendChanged</bpmn:incoming>
+      <bpmn:outgoing>Flow_GO_ToTransmitSP</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="Task_GO_TransmitReadingsToSP" name="Transmit Readings to SP">
+      <bpmn:incoming>Flow_GO_ToTransmitSP</bpmn:incoming>
+      <bpmn:outgoing>Flow_GO_SuccessEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="End_GO_Success" name="Process Completed Successfully">
+      <bpmn:incoming>Flow_GO_SuccessEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows GO -->
+    <bpmn:sequenceFlow id="Flow_GO_1" sourceRef="Start_GO" targetRef="Task_GO_RequestMeasurements" />
+    <bpmn:sequenceFlow id="Flow_GO_2" sourceRef="Task_GO_RequestMeasurements" targetRef="Gateway_GO_ResponseWaiting" />
+    <bpmn:sequenceFlow id="Flow_GO_ToDenial" sourceRef="Gateway_GO_ResponseWaiting" targetRef="Event_GO_DenialReceived" />
+    <bpmn:sequenceFlow id="Flow_GO_ToFailure" sourceRef="Gateway_GO_ResponseWaiting" targetRef="Event_GO_FailureReceived" />
+    <bpmn:sequenceFlow id="Flow_GO_ToValues" sourceRef="Gateway_GO_ResponseWaiting" targetRef="Event_GO_ValuesReceived" />
+    <bpmn:sequenceFlow id="Flow_GO_DenialEnd" sourceRef="Event_GO_DenialReceived" targetRef="End_GO_Denied" />
+    <bpmn:sequenceFlow id="Flow_GO_FailureEnd" sourceRef="Event_GO_FailureReceived" targetRef="End_GO_Failed" />
+    <bpmn:sequenceFlow id="Flow_GO_ToProcessValues" sourceRef="Event_GO_ValuesReceived" targetRef="Task_GO_ProcessValues" />
+    <bpmn:sequenceFlow id="Flow_GO_ToSendChanged" sourceRef="Task_GO_ProcessValues" targetRef="Task_GO_SendChangedValues" />
+    <bpmn:sequenceFlow id="Flow_GO_ToTransmitSP" sourceRef="Task_GO_SendChangedValues" targetRef="Task_GO_TransmitReadingsToSP" />
+    <bpmn:sequenceFlow id="Flow_GO_SuccessEnd" sourceRef="Task_GO_TransmitReadingsToSP" targetRef="End_GO_Success" />
+  </bpmn:process>
+
+  <!-- PROCESS: MSP -->
+  <bpmn:process id="Process_MSP" isExecutable="true">
+    <bpmn:startEvent id="Start_MSP_RequestReceived" name="Measurement Request Received">
+      <bpmn:outgoing>Flow_MSP_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgEvtDef_MSP_Request" />
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_MSP_CheckRequest" name="Check Received Request">
+      <bpmn:incoming>Flow_MSP_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSP_2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MSP_RequestAcceptance" name="Request Accepted?">
+      <bpmn:incoming>Flow_MSP_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSP_Denied</bpmn:outgoing>
+      <bpmn:outgoing>Flow_MSP_Accepted</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sendTask id="Task_MSP_DenyRequest" name="Deny Request of GO">
+      <bpmn:incoming>Flow_MSP_Denied</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSP_DenyEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="End_MSP_Denied" name="Request Denied">
+      <bpmn:incoming>Flow_MSP_DenyEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:userTask id="Task_MSP_PerformMeasurement" name="Perform Measurement">
+      <bpmn:incoming>Flow_MSP_Accepted</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSP_3</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MSP_MeasurementResult" name="Measurement Successful?">
+      <bpmn:incoming>Flow_MSP_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSP_Failed</bpmn:outgoing>
+      <bpmn:outgoing>Flow_MSP_Success</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sendTask id="Task_MSP_InformFailure" name="Inform GO about Reading Failure">
+      <bpmn:incoming>Flow_MSP_Failed</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSP_FailureEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="End_MSP_Failed" name="Measurement Failed">
+      <bpmn:incoming>Flow_MSP_FailureEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sendTask id="Task_MSP_TransmitValues" name="Transmit Measured Values to GO">
+      <bpmn:incoming>Flow_MSP_Success</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSP_4</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:intermediateCatchEvent id="Event_MSP_ChangedValuesReceived" name="Receive Changed Values">
+      <bpmn:incoming>Flow_MSP_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_MSP_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgEvtDef_MSP_ChangedValues" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="End_MSP_Success" name="Measurement Process Completed">
+      <bpmn:incoming>Flow_MSP_5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows MSP -->
+    <bpmn:sequenceFlow id="Flow_MSP_1" sourceRef="Start_MSP_RequestReceived" targetRef="Task_MSP_CheckRequest" />
+    <bpmn:sequenceFlow id="Flow_MSP_2" sourceRef="Task_MSP_CheckRequest" targetRef="Gateway_MSP_RequestAcceptance" />
+    <bpmn:sequenceFlow id="Flow_MSP_Denied" name="No" sourceRef="Gateway_MSP_RequestAcceptance" targetRef="Task_MSP_DenyRequest" />
+    <bpmn:sequenceFlow id="Flow_MSP_Accepted" name="Yes" sourceRef="Gateway_MSP_RequestAcceptance" targetRef="Task_MSP_PerformMeasurement" />
+    <bpmn:sequenceFlow id="Flow_MSP_DenyEnd" sourceRef="Task_MSP_DenyRequest" targetRef="End_MSP_Denied" />
+    <bpmn:sequenceFlow id="Flow_MSP_3" sourceRef="Task_MSP_PerformMeasurement" targetRef="Gateway_MSP_MeasurementResult" />
+    <bpmn:sequenceFlow id="Flow_MSP_Failed" name="No" sourceRef="Gateway_MSP_MeasurementResult" targetRef="Task_MSP_InformFailure" />
+    <bpmn:sequenceFlow id="Flow_MSP_Success" name="Yes" sourceRef="Gateway_MSP_MeasurementResult" targetRef="Task_MSP_TransmitValues" />
+    <bpmn:sequenceFlow id="Flow_MSP_FailureEnd" sourceRef="Task_MSP_InformFailure" targetRef="End_MSP_Failed" />
+    <bpmn:sequenceFlow id="Flow_MSP_4" sourceRef="Task_MSP_TransmitValues" targetRef="Event_MSP_ChangedValuesReceived" />
+    <bpmn:sequenceFlow id="Flow_MSP_5" sourceRef="Event_MSP_ChangedValuesReceived" targetRef="End_MSP_Success" />
+  </bpmn:process>
+
+  <!-- PROCESS: SP -->
+  <bpmn:process id="Process_SP" isExecutable="true">
+    <bpmn:startEvent id="Start_SP_ReadingsReceived" name="Readings Received">
+      <bpmn:outgoing>Flow_SP_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgEvtDef_SP_Readings" />
+    </bpmn:startEvent>
+
+    <bpmn:endEvent id="End_SP_Completed" name="Readings Processed">
+      <bpmn:incoming>Flow_SP_1</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows SP -->
+    <bpmn:sequenceFlow id="Flow_SP_1" sourceRef="Start_SP_ReadingsReceived" targetRef="End_SP_Completed" />
+  </bpmn:process>
+
+  <!-- BPMN DIAGRAM -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      
+      <!-- GO Pool -->
+      <bpmndi:BPMNShape id="Participant_GO_di" bpmnElement="Participant_GO" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1380" height="280" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Start_GO_di" bpmnElement="Start_GO">
+        <dc:Bounds x="212" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="191" y="225" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GO_RequestMeasurements_di" bpmnElement="Task_GO_RequestMeasurements">
+        <dc:Bounds x="300" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_GO_ResponseWaiting_di" bpmnElement="Gateway_GO_ResponseWaiting">
+        <dc:Bounds x="455" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="436" y="151" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_GO_DenialReceived_di" bpmnElement="Event_GO_DenialReceived">
+        <dc:Bounds x="562" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="541" y="145" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_GO_Denied_di" bpmnElement="End_GO_Denied">
+        <dc:Bounds x="662" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="643" y="145" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_GO_FailureReceived_di" bpmnElement="Event_GO_FailureReceived">
+        <dc:Bounds x="562" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="541" y="225" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_GO_Failed_di" bpmnElement="End_GO_Failed">
+        <dc:Bounds x="662" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="642" y="225" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_GO_ValuesReceived_di" bpmnElement="Event_GO_ValuesReceived">
+        <dc:Bounds x="562" y="272" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="537" y="315" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GO_ProcessValues_di" bpmnElement="Task_GO_ProcessValues">
+        <dc:Bounds x="780" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GO_SendChangedValues_di" bpmnElement="Task_GO_SendChangedValues">
+        <dc:Bounds x="940" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GO_TransmitReadingsToSP_di" bpmnElement="Task_GO_TransmitReadingsToSP">
+        <dc:Bounds x="1100" y="250" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_GO_Success_di" bpmnElement="End_GO_Success">
+        <dc:Bounds x="1262" y="272" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1248" y="315" width="65" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- GO Sequence Flows -->
+      <bpmndi:BPMNEdge id="Flow_GO_1_di" bpmnElement="Flow_GO_1">
+        <di:waypoint x="248" y="200" />
+        <di:waypoint x="300" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_2_di" bpmnElement="Flow_GO_2">
+        <di:waypoint x="400" y="200" />
+        <di:waypoint x="455" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_ToDenial_di" bpmnElement="Flow_GO_ToDenial">
+        <di:waypoint x="480" y="175" />
+        <di:waypoint x="480" y="120" />
+        <di:waypoint x="562" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_ToFailure_di" bpmnElement="Flow_GO_ToFailure">
+        <di:waypoint x="505" y="200" />
+        <di:waypoint x="562" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_ToValues_di" bpmnElement="Flow_GO_ToValues">
+        <di:waypoint x="480" y="225" />
+        <di:waypoint x="480" y="290" />
+        <di:waypoint x="562" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_DenialEnd_di" bpmnElement="Flow_GO_DenialEnd">
+        <di:waypoint x="598" y="120" />
+        <di:waypoint x="662" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_FailureEnd_di" bpmnElement="Flow_GO_FailureEnd">
+        <di:waypoint x="598" y="200" />
+        <di:waypoint x="662" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_ToProcessValues_di" bpmnElement="Flow_GO_ToProcessValues">
+        <di:waypoint x="598" y="290" />
+        <di:waypoint x="780" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_ToSendChanged_di" bpmnElement="Flow_GO_ToSendChanged">
+        <di:waypoint x="880" y="290" />
+        <di:waypoint x="940" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_ToTransmitSP_di" bpmnElement="Flow_GO_ToTransmitSP">
+        <di:waypoint x="1040" y="290" />
+        <di:waypoint x="1100" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GO_SuccessEnd_di" bpmnElement="Flow_GO_SuccessEnd">
+        <di:waypoint x="1200" y="290" />
+        <di:waypoint x="1262" y="290" />
+      </bpmndi:BPMNEdge>
+
+      <!-- MSP Pool -->
+      <bpmndi:BPMNShape id="Participant_MSP_di" bpmnElement="Participant_MSP" isHorizontal="true">
+        <dc:Bounds x="160" y="400" width="1380" height="310" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Start_MSP_RequestReceived_di" bpmnElement="Start_MSP_RequestReceived">
+        <dc:Bounds x="332" y="522" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="306" y="565" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MSP_CheckRequest_di" bpmnElement="Task_MSP_CheckRequest">
+        <dc:Bounds x="410" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MSP_RequestAcceptance_di" bpmnElement="Gateway_MSP_RequestAcceptance" isMarkerVisible="true">
+        <dc:Bounds x="545" y="515" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="543" y="572" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MSP_DenyRequest_di" bpmnElement="Task_MSP_DenyRequest">
+        <dc:Bounds x="640" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_MSP_Denied_di" bpmnElement="End_MSP_Denied">
+        <dc:Bounds x="782" y="442" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="761" y="485" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MSP_PerformMeasurement_di" bpmnElement="Task_MSP_PerformMeasurement">
+        <dc:Bounds x="640" y="590" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MSP_MeasurementResult_di" bpmnElement="Gateway_MSP_MeasurementResult" isMarkerVisible="true">
+        <dc:Bounds x="775" y="605" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="765" y="662" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MSP_InformFailure_di" bpmnElement="Task_MSP_InformFailure">
+        <dc:Bounds x="860" y="510" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_MSP_Failed_di" bpmnElement="End_MSP_Failed">
+        <dc:Bounds x="1002" y="532" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="985" y="575" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MSP_TransmitValues_di" bpmnElement="Task_MSP_TransmitValues">
+        <dc:Bounds x="860" y="600" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_MSP_ChangedValuesReceived_di" bpmnElement="Event_MSP_ChangedValuesReceived">
+        <dc:Bounds x="992" y="622" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="968" y="665" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_MSP_Success_di" bpmnElement="End_MSP_Success">
+        <dc:Bounds x="1082" y="622" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1066" y="665" width="69" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- MSP Sequence Flows -->
+      <bpmndi:BPMNEdge id="Flow_MSP_1_di" bpmnElement="Flow_MSP_1">
+        <di:waypoint x="368" y="540" />
+        <di:waypoint x="410" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_2_di" bpmnElement="Flow_MSP_2">
+        <di:waypoint x="510" y="540" />
+        <di:waypoint x="545" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_Denied_di" bpmnElement="Flow_MSP_Denied">
+        <di:waypoint x="570" y="515" />
+        <di:waypoint x="570" y="460" />
+        <di:waypoint x="640" y="460" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="578" y="485" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_Accepted_di" bpmnElement="Flow_MSP_Accepted">
+        <di:waypoint x="570" y="565" />
+        <di:waypoint x="570" y="630" />
+        <di:waypoint x="640" y="630" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="576" y="595" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_DenyEnd_di" bpmnElement="Flow_MSP_DenyEnd">
+        <di:waypoint x="740" y="460" />
+        <di:waypoint x="782" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_3_di" bpmnElement="Flow_MSP_3">
+        <di:waypoint x="740" y="630" />
+        <di:waypoint x="775" y="630" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_Failed_di" bpmnElement="Flow_MSP_Failed">
+        <di:waypoint x="800" y="605" />
+        <di:waypoint x="800" y="550" />
+        <di:waypoint x="860" y="550" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="808" y="575" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_Success_di" bpmnElement="Flow_MSP_Success">
+        <di:waypoint x="825" y="630" />
+        <di:waypoint x="860" y="630" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="834" y="612" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_FailureEnd_di" bpmnElement="Flow_MSP_FailureEnd">
+        <di:waypoint x="960" y="550" />
+        <di:waypoint x="1002" y="550" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_4_di" bpmnElement="Flow_MSP_4">
+        <di:waypoint x="960" y="640" />
+        <di:waypoint x="992" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MSP_5_di" bpmnElement="Flow_MSP_5">
+        <di:waypoint x="1028" y="640" />
+        <di:waypoint x="1082" y="640" />
+      </bpmndi:BPMNEdge>
+
+      <!-- SP Pool -->
+      <bpmndi:BPMNShape id="Participant_SP_di" bpmnElement="Participant_SP" isHorizontal="true">
+        <dc:Bounds x="160" y="750" width="1380" height="150" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Start_SP_ReadingsReceived_di" bpmnElement="Start_SP_ReadingsReceived">
+        <dc:Bounds x="1132" y="812" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1126" y="855" width="48" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_SP_Completed_di" bpmnElement="End_SP_Completed">
+        <dc:Bounds x="1232" y="812" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1223" y="855" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- SP Sequence Flows -->
+      <bpmndi:BPMNEdge id="Flow_SP_1_di" bpmnElement="Flow_SP_1">
+        <di:waypoint x="1168" y="830" />
+        <di:waypoint x="1232" y="830" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Message Flows -->
+      <bpmndi:BPMNEdge id="MsgFlow_Request_di" bpmnElement="MsgFlow_Request">
+        <di:waypoint x="350" y="240" />
+        <di:waypoint x="350" y="522" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="355" y="378" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_Denial_di" bpmnElement="MsgFlow_Denial">
+        <di:waypoint x="690" y="420" />
+        <di:waypoint x="690" y="270" />
+        <di:waypoint x="580" y="270" />
+        <di:waypoint x="580" y="138" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="612" y="252" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_Failure_di" bpmnElement="MsgFlow_Failure">
+        <di:waypoint x="910" y="510" />
+        <di:waypoint x="910" y="370" />
+        <di:waypoint x="580" y="370" />
+        <di:waypoint x="580" y="218" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="718" y="352" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_Values_di" bpmnElement="MsgFlow_Values">
+        <di:waypoint x="880" y="600" />
+        <di:waypoint x="880" y="430" />
+        <di:waypoint x="580" y="430" />
+        <di:waypoint x="580" y="308" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="705" y="412" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_ChangedValues_di" bpmnElement="MsgFlow_ChangedValues">
+        <di:waypoint x="990" y="330" />
+        <di:waypoint x="990" y="476" />
+        <di:waypoint x="1010" y="476" />
+        <di:waypoint x="1010" y="622" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1010" y="513" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MsgFlow_ReadingsToSP_di" bpmnElement="MsgFlow_ReadingsToSP">
+        <di:waypoint x="1150" y="330" />
+        <di:waypoint x="1150" y="812" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1157" y="568" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

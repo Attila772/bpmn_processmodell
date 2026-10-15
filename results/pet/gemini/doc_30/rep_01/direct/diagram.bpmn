@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="definitions_mpoo_deregistration"
+             targetNamespace="http://bpmn.org/examples">
+
+  <collaboration id="collaboration_1">
+    <participant id="participant_go" name="Grid Operator (GO)" processRef="process_go" />
+    <participant id="participant_mpoo" name="Meter Point Operator Old (MPOO)" />
+    <participant id="participant_mspo" name="Meter Service Provider Old (MSPO)" />
+    <participant id="participant_sp" name="Supplier (SP)" />
+    <messageFlow id="msg_1" name="Deregistration Request" sourceRef="participant_mpoo" targetRef="start_event_1" />
+    <messageFlow id="msg_2" name="Rejection" sourceRef="task_reject_deregistration" targetRef="participant_mpoo" />
+    <messageFlow id="msg_3" name="Preliminary Confirmation" sourceRef="task_prelim_confirm" targetRef="participant_mpoo" />
+    <messageFlow id="msg_4" name="Obligation to Continue" sourceRef="task_oblige_mpoo" targetRef="participant_mpoo" />
+    <messageFlow id="msg_5" name="Confirmation of Continuation" sourceRef="participant_mpoo" targetRef="task_receive_continuation_confirm" />
+    <messageFlow id="msg_6" name="Assignment End/Start Info" sourceRef="task_inform_mpoo" targetRef="participant_mpoo" />
+    <messageFlow id="msg_7" name="Assignment Info" sourceRef="task_inform_mspo" targetRef="participant_mspo" />
+    <messageFlow id="msg_8" name="Assignment Info" sourceRef="task_inform_sp" targetRef="participant_sp" />
+  </collaboration>
+
+  <process id="process_go" isExecutable="true">
+    <startEvent id="start_event_1" name="Deregistration Received">
+      <outgoing>flow_1</outgoing>
+      <messageEventDefinition id="msg_evt_def_1" />
+    </startEvent>
+
+    <task id="task_verify_deregistration" name="Verify Deregistration">
+      <incoming>flow_1</incoming>
+      <outgoing>flow_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="gateway_verify_result" name="Deregistration Valid?">
+      <incoming>flow_2</incoming>
+      <outgoing>flow_reject</outgoing>
+      <outgoing>flow_accept</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="task_reject_deregistration" name="Reject Deregistration of MPOO">
+      <incoming>flow_reject</incoming>
+      <outgoing>flow_end_rejected</outgoing>
+    </sendTask>
+
+    <endEvent id="end_event_rejected" name="Deregistration Rejected">
+      <incoming>flow_end_rejected</incoming>
+    </endEvent>
+
+    <sendTask id="task_prelim_confirm" name="Preliminarily Confirm Deregistration">
+      <incoming>flow_accept</incoming>
+      <outgoing>flow_3</outgoing>
+    </sendTask>
+
+    <task id="task_prepare_readmission" name="Prepare Readmission of Measuring Point">
+      <incoming>flow_3</incoming>
+      <outgoing>flow_4</outgoing>
+    </task>
+
+    <exclusiveGateway id="gateway_oblige_mpoo" name="Oblige MPOO to Continue Operations?">
+      <incoming>flow_4</incoming>
+      <outgoing>flow_oblige_yes</outgoing>
+      <outgoing>flow_oblige_no</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="task_oblige_mpoo" name="Oblige MPOO to Continue Operations">
+      <incoming>flow_oblige_yes</incoming>
+      <outgoing>flow_5</outgoing>
+    </sendTask>
+
+    <receiveTask id="task_receive_continuation_confirm" name="Receive Confirmation of Continuation">
+      <incoming>flow_5</incoming>
+      <outgoing>flow_6</outgoing>
+    </receiveTask>
+
+    <exclusiveGateway id="gateway_merge_oblige" name="Merge">
+      <incoming>flow_oblige_no</incoming>
+      <incoming>flow_6</incoming>
+      <outgoing>flow_7</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_equipment_changes" name="Perform Equipment Acquisition and/or Changes">
+      <incoming>flow_7</incoming>
+      <outgoing>flow_8</outgoing>
+    </task>
+
+    <task id="task_assign_go" name="Assign GO as MPO">
+      <incoming>flow_8</incoming>
+      <outgoing>flow_9</outgoing>
+    </task>
+
+    <sendTask id="task_inform_mpoo" name="Inform MPOO about End/Beginning of Assignment">
+      <incoming>flow_9</incoming>
+      <outgoing>flow_10</outgoing>
+    </sendTask>
+
+    <sendTask id="task_inform_mspo" name="Inform MSPO about Assignment of GO">
+      <incoming>flow_10</incoming>
+      <outgoing>flow_11</outgoing>
+    </sendTask>
+
+    <sendTask id="task_inform_sp" name="Inform SP about Assignment of GO">
+      <incoming>flow_11</incoming>
+      <outgoing>flow_12</outgoing>
+    </sendTask>
+
+    <endEvent id="end_event_success" name="GO Assigned as MPO">
+      <incoming>flow_12</incoming>
+    </endEvent>
+
+    <sequenceFlow id="flow_1" sourceRef="start_event_1" targetRef="task_verify_deregistration" />
+    <sequenceFlow id="flow_2" sourceRef="task_verify_deregistration" targetRef="gateway_verify_result" />
+    <sequenceFlow id="flow_reject" name="No" sourceRef="gateway_verify_result" targetRef="task_reject_deregistration" />
+    <sequenceFlow id="flow_accept" name="Yes" sourceRef="gateway_verify_result" targetRef="task_prelim_confirm" />
+    <sequenceFlow id="flow_end_rejected" sourceRef="task_reject_deregistration" targetRef="end_event_rejected" />
+    <sequenceFlow id="flow_3" sourceRef="task_prelim_confirm" targetRef="task_prepare_readmission" />
+    <sequenceFlow id="flow_4" sourceRef="task_prepare_readmission" targetRef="gateway_oblige_mpoo" />
+    <sequenceFlow id="flow_oblige_yes" name="Yes" sourceRef="gateway_oblige_mpoo" targetRef="task_oblige_mpoo" />
+    <sequenceFlow id="flow_oblige_no" name="No" sourceRef="gateway_oblige_mpoo" targetRef="gateway_merge_oblige" />
+    <sequenceFlow id="flow_5" sourceRef="task_oblige_mpoo" targetRef="task_receive_continuation_confirm" />
+    <sequenceFlow id="flow_6" sourceRef="task_receive_continuation_confirm" targetRef="gateway_merge_oblige" />
+    <sequenceFlow id="flow_7" sourceRef="gateway_merge_oblige" targetRef="task_equipment_changes" />
+    <sequenceFlow id="flow_8" sourceRef="task_equipment_changes" targetRef="task_assign_go" />
+    <sequenceFlow id="flow_9" sourceRef="task_assign_go" targetRef="task_inform_mpoo" />
+    <sequenceFlow id="flow_10" sourceRef="task_inform_mpoo" targetRef="task_inform_mspo" />
+    <sequenceFlow id="flow_11" sourceRef="task_inform_mspo" targetRef="task_inform_sp" />
+    <sequenceFlow id="flow_12" sourceRef="task_inform_sp" targetRef="end_event_success" />
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="collaboration_1">
+      <bpmndi:BPMNShape id="participant_mpoo_di" bpmnElement="participant_mpoo" isHorizontal="true">
+        <dc:Bounds x="160" y="80" x="1800" y="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="participant_mspo_di" bpmnElement="participant_mspo" isHorizontal="true">
+        <dc:Bounds x="160" y="550" x="1800" y="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="participant_sp_di" bpmnElement="participant_sp" isHorizontal="true">
+        <dc:Bounds x="160" y="660" x="1800" y="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="participant_go_di" bpmnElement="participant_go" isHorizontal="true">
+        <dc:Bounds x="160" y="200" x="1800" y="320" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_event_1_di" bpmnElement="start_event_1">
+        <dc:Bounds x="232" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="215" y="365" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_verify_deregistration_di" bpmnElement="task_verify_deregistration">
+        <dc:Bounds x="310" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_verify_result_di" bpmnElement="gateway_verify_result" isMarkerVisible="true">
+        <dc:Bounds x="455" y="315" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="446" y="372" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reject_deregistration_di" bpmnElement="task_reject_deregistration">
+        <dc:Bounds x="550" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_event_rejected_di" bpmnElement="end_event_rejected">
+        <dc:Bounds x="692" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="675" y="285" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prelim_confirm_di" bpmnElement="task_prelim_confirm">
+        <dc:Bounds x="550" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_readmission_di" bpmnElement="task_prepare_readmission">
+        <dc:Bounds x="690" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_oblige_mpoo_di" bpmnElement="gateway_oblige_mpoo" isMarkerVisible="true">
+        <dc:Bounds x="835" y="395" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="822" y="452" width="77" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_oblige_mpoo_di" bpmnElement="task_oblige_mpoo">
+        <dc:Bounds x="930" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_receive_continuation_confirm_di" bpmnElement="task_receive_continuation_confirm">
+        <dc:Bounds x="1070" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_merge_oblige_di" bpmnElement="gateway_merge_oblige" isMarkerVisible="true">
+        <dc:Bounds x="1205" y="395" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_equipment_changes_di" bpmnElement="task_equipment_changes">
+        <dc:Bounds x="1290" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assign_go_di" bpmnElement="task_assign_go">
+        <dc:Bounds x="1430" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mpoo_di" bpmnElement="task_inform_mpoo">
+        <dc:Bounds x="1570" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mspo_di" bpmnElement="task_inform_mspo">
+        <dc:Bounds x="1710" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_sp_di" bpmnElement="task_inform_sp">
+        <dc:Bounds x="1850" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_event_success_di" bpmnElement="end_event_success">
+        <dc:Bounds x="1992" y="402" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1970" y="445" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="268" y="340" />
+        <di:waypoint x="310" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="410" y="340" />
+        <di:waypoint x="455" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reject_di" bpmnElement="flow_reject">
+        <di:waypoint x="480" y="315" />
+        <di:waypoint x="480" y="260" />
+        <di:waypoint x="550" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="488" y="285" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_accept_di" bpmnElement="flow_accept">
+        <di:waypoint x="480" y="365" />
+        <di:waypoint x="480" y="420" />
+        <di:waypoint x="550" y="420" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="486" y="390" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_end_rejected_di" bpmnElement="flow_end_rejected">
+        <di:waypoint x="650" y="260" />
+        <di:waypoint x="692" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="650" y="420" />
+        <di:waypoint x="690" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="790" y="420" />
+        <di:waypoint x="835" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_oblige_yes_di" bpmnElement="flow_oblige_yes">
+        <di:waypoint x="860" y="395" />
+        <di:waypoint x="860" y="320" />
+        <di:waypoint x="930" y="320" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="866" y="355" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_oblige_no_di" bpmnElement="flow_oblige_no">
+        <di:waypoint x="885" y="420" />
+        <di:waypoint x="1205" y="420" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1038" y="402" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="1030" y="320" />
+        <di:waypoint x="1070" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="1170" y="320" />
+        <di:waypoint x="1230" y="320" />
+        <di:waypoint x="1230" y="395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_7_di" bpmnElement="flow_7">
+        <di:waypoint x="1255" y="420" />
+        <di:waypoint x="1290" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_8_di" bpmnElement="flow_8">
+        <di:waypoint x="1390" y="420" />
+        <di:waypoint x="1430" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_9_di" bpmnElement="flow_9">
+        <di:waypoint x="1530" y="420" />
+        <di:waypoint x="1570" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_10_di" bpmnElement="flow_10">
+        <di:waypoint x="1670" y="420" />
+        <di:waypoint x="1710" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_11_di" bpmnElement="flow_11">
+        <di:waypoint x="1810" y="420" />
+        <di:waypoint x="1850" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_12_di" bpmnElement="flow_12">
+        <di:waypoint x="1950" y="420" />
+        <di:waypoint x="1992" y="420" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="msg_1_di" bpmnElement="msg_1">
+        <di:waypoint x="250" y="160" />
+        <di:waypoint x="250" y="322" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="260" y="180" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_2_di" bpmnElement="msg_2">
+        <di:waypoint x="600" y="220" />
+        <di:waypoint x="600" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="610" y="180" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_3_di" bpmnElement="msg_3">
+        <di:waypoint x="570" y="380" />
+        <di:waypoint x="570" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="488" y="180" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_4_di" bpmnElement="msg_4">
+        <di:waypoint x="960" y="280" />
+        <di:waypoint x="960" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="970" y="180" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_5_di" bpmnElement="msg_5">
+        <di:waypoint x="1120" y="160" />
+        <di:waypoint x="1120" y="280" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1130" y="180" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_6_di" bpmnElement="msg_6">
+        <di:waypoint x="1620" y="380" />
+        <di:waypoint x="1620" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1630" y="180" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_7_di" bpmnElement="msg_7">
+        <di:waypoint x="1760" y="460" />
+        <di:waypoint x="1760" y="550" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1770" y="500" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_8_di" bpmnElement="msg_8">
+        <di:waypoint x="1900" y="460" />
+        <di:waypoint x="1900" y="660" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1910" y="550" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

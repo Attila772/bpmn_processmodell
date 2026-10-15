@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             id="Definitions_1"
+             targetNamespace="http://example.org/bpmn/equipmentchange">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_MPON_MPOO" name="MPON / MPOO" processRef="Process_MPON_MPOO"/>
+    <participant id="Participant_GO" name="GO" processRef="Process_GO"/>
+    <participant id="Participant_MSP" name="MSP" processRef="Process_MSP"/>
+
+    <messageFlow id="MF_FinalReadingValues" sourceRef="Task_SendFinalReading" targetRef="StartEvent_GO"/>
+    <messageFlow id="MF_DeviceChangeInfo" sourceRef="Task_TellGO" targetRef="IntermediateCatchEvent_GO"/>
+    <messageFlow id="MF_MSPNotification" sourceRef="Task_NotifyMSP" targetRef="StartEvent_MSP"/>
+  </collaboration>
+
+  <!-- ===================== MPON / MPOO POOL ===================== -->
+  <process id="Process_MPON_MPOO" name="Equipment Change - MPON/MPOO" isExecutable="false">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_MPON" name="MPON">
+        <flowNodeRef>StartEvent_1</flowNodeRef>
+        <flowNodeRef>Task_NotifyMPOO</flowNodeRef>
+        <flowNodeRef>Task_3B</flowNodeRef>
+        <flowNodeRef>Task_4B</flowNodeRef>
+        <flowNodeRef>Gateway_Merge</flowNodeRef>
+        <flowNodeRef>Task_MountNewDevice</flowNodeRef>
+        <flowNodeRef>Task_ReadMeterCount</flowNodeRef>
+        <flowNodeRef>Task_SendFinalReading</flowNodeRef>
+        <flowNodeRef>Task_TellGO</flowNodeRef>
+        <flowNodeRef>EndEvent_1</flowNodeRef>
+      </lane>
+      <lane id="Lane_MPOO" name="MPOO">
+        <flowNodeRef>Gateway_Decision</flowNodeRef>
+        <flowNodeRef>Task_AnnounceSelfDismount</flowNodeRef>
+        <flowNodeRef>Task_NotifyNoSelfDismount</flowNodeRef>
+        <flowNodeRef>Task_3A</flowNodeRef>
+        <flowNodeRef>Task_4A</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <startEvent id="StartEvent_1" name="Start">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_NotifyMPOO" name="Notify MPOO about equipment change intentions">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Decision" name="Self dismounting?">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_A1</outgoing>
+      <outgoing>Flow_B1</outgoing>
+    </exclusiveGateway>
+
+    <!-- Path A: MPOO self dismounts -->
+    <task id="Task_AnnounceSelfDismount" name="Announce self dismounting to MPON">
+      <incoming>Flow_A1</incoming>
+      <outgoing>Flow_A2</outgoing>
+    </task>
+
+    <task id="Task_3A" name="Perform final reading (MPOO)">
+      <incoming>Flow_A2</incoming>
+      <outgoing>Flow_A3</outgoing>
+    </task>
+
+    <task id="Task_4A" name="Dismount old equipment (MPOO)">
+      <incoming>Flow_A3</incoming>
+      <outgoing>Flow_A4</outgoing>
+    </task>
+
+    <!-- Path B: MPON dismounts -->
+    <task id="Task_NotifyNoSelfDismount" name="Notify MPON about no self-dismounting">
+      <incoming>Flow_B1</incoming>
+      <outgoing>Flow_B2</outgoing>
+    </task>
+
+    <task id="Task_3B" name="Perform final reading (MPON)">
+      <incoming>Flow_B2</incoming>
+      <outgoing>Flow_B3</outgoing>
+    </task>
+
+    <task id="Task_4B" name="Dismount old equipment (MPON)">
+      <incoming>Flow_B3</incoming>
+      <outgoing>Flow_B4</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Merge" name="Dismounting completed">
+      <incoming>Flow_A4</incoming>
+      <incoming>Flow_B4</incoming>
+      <outgoing>Flow_Merge1</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_MountNewDevice" name="Mount new device">
+      <incoming>Flow_Merge1</incoming>
+      <outgoing>Flow_5</outgoing>
+    </task>
+
+    <task id="Task_ReadMeterCount" name="Read meter count from installed meter">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <task id="Task_SendFinalReading" name="Send final reading values to GO">
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+
+    <task id="Task_TellGO" name="Tell GO about device changes, master data and meter count at installation">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_1" name="End">
+      <incoming>Flow_8</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_NotifyMPOO"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_NotifyMPOO" targetRef="Gateway_Decision"/>
+
+    <sequenceFlow id="Flow_A1" name="Self dismounting" sourceRef="Gateway_Decision" targetRef="Task_AnnounceSelfDismount"/>
+    <sequenceFlow id="Flow_A2" sourceRef="Task_AnnounceSelfDismount" targetRef="Task_3A"/>
+    <sequenceFlow id="Flow_A3" sourceRef="Task_3A" targetRef="Task_4A"/>
+    <sequenceFlow id="Flow_A4" sourceRef="Task_4A" targetRef="Gateway_Merge"/>
+
+    <sequenceFlow id="Flow_B1" name="No self dismounting" sourceRef="Gateway_Decision" targetRef="Task_NotifyNoSelfDismount"/>
+    <sequenceFlow id="Flow_B2" sourceRef="Task_NotifyNoSelfDismount" targetRef="Task_3B"/>
+    <sequenceFlow id="Flow_B3" sourceRef="Task_3B" targetRef="Task_4B"/>
+    <sequenceFlow id="Flow_B4" sourceRef="Task_4B" targetRef="Gateway_Merge"/>
+
+    <sequenceFlow id="Flow_Merge1" sourceRef="Gateway_Merge" targetRef="Task_MountNewDevice"/>
+    <sequenceFlow id="Flow_5" sourceRef="Task_MountNewDevice" targetRef="Task_ReadMeterCount"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_ReadMeterCount" targetRef="Task_SendFinalReading"/>
+    <sequenceFlow id="Flow_7" sourceRef="Task_SendFinalReading" targetRef="Task_TellGO"/>
+    <sequenceFlow id="Flow_8" sourceRef="Task_TellGO" targetRef="EndEvent_1"/>
+
+  </process>
+
+  <!-- ===================== GO POOL ===================== -->
+  <process id="Process_GO" name="GO Process" isExecutable="false">
+
+    <startEvent id="StartEvent_GO" name="Final reading values received">
+      <messageEventDefinition id="MsgDef_FinalReading"/>
+      <outgoing>Flow_GO1</outgoing>
+    </startEvent>
+
+    <intermediateCatchEvent id="IntermediateCatchEvent_GO" name="Device change info received">
+      <incoming>Flow_GO1</incoming>
+      <outgoing>Flow_GO2</outgoing>
+      <messageEventDefinition id="MsgDef_DeviceChangeInfo"/>
+    </intermediateCatchEvent>
+
+    <task id="Task_NotifyMSP" name="Notify MSP about device changes, master data, meter count at dismounting and installation">
+      <incoming>Flow_GO2</incoming>
+      <outgoing>Flow_GO3</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_GO" name="End">
+      <incoming>Flow_GO3</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_GO1" sourceRef="StartEvent_GO" targetRef="IntermediateCatchEvent_GO"/>
+    <sequenceFlow id="Flow_GO2" sourceRef="IntermediateCatchEvent_GO" targetRef="Task_NotifyMSP"/>
+    <sequenceFlow id="Flow_GO3" sourceRef="Task_NotifyMSP" targetRef="EndEvent_GO"/>
+
+  </process>
+
+  <!-- ===================== MSP POOL ===================== -->
+  <process id="Process_MSP" name="MSP Process" isExecutable="false">
+
+    <startEvent id="StartEvent_MSP" name="Notification received">
+      <messageEventDefinition id="MsgDef_MSPNotification"/>
+      <outgoing>Flow_MSP1</outgoing>
+    </startEvent>
+
+    <endEvent id="EndEvent_MSP" name="End">
+      <incoming>Flow_MSP1</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_MSP1" sourceRef="StartEvent_MSP" targetRef="EndEvent_MSP"/>
+
+  </process>
+
+</definitions>

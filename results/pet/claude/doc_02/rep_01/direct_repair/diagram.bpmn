@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_Customer" name="Customer" processRef="Process_Customer"/>
+    <participant id="Participant_CRS" name="Computer Repair Service (CRS)" processRef="Process_CRS"/>
+
+    <messageFlow id="MF_1" name="Defective Computer" sourceRef="Task_SendComputer" targetRef="StartEvent_CRS"/>
+    <messageFlow id="MF_2" name="Repair Cost Calculation" sourceRef="Task_SendCostCalc" targetRef="Task_ReceiveCostCalc"/>
+    <messageFlow id="MF_3" name="Customer Decision" sourceRef="Task_SendDecision" targetRef="Task_ReceiveDecision"/>
+    <messageFlow id="MF_4" name="Repaired Computer Notification" sourceRef="Task_NotifyCustomer" targetRef="Task_ReceiveNotification"/>
+  </collaboration>
+
+  <!-- ================= CUSTOMER PROCESS ================= -->
+  <process id="Process_Customer" name="Customer" isExecutable="false">
+
+    <startEvent id="StartEvent_Customer" name="Defective computer identified">
+      <outgoing>Flow_C1</outgoing>
+    </startEvent>
+
+    <sendTask id="Task_SendComputer" name="Bring defective computer to CRS">
+      <incoming>Flow_C1</incoming>
+      <outgoing>Flow_C2</outgoing>
+    </sendTask>
+
+    <receiveTask id="Task_ReceiveCostCalc" name="Receive repair cost calculation">
+      <incoming>Flow_C2</incoming>
+      <outgoing>Flow_C3</outgoing>
+    </receiveTask>
+
+    <exclusiveGateway id="Gateway_CostsOK" name="Costs acceptable?">
+      <incoming>Flow_C3</incoming>
+      <outgoing>Flow_C4_Yes</outgoing>
+      <outgoing>Flow_C5_No</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="Task_SendDecision" name="Confirm repair acceptance">
+      <incoming>Flow_C4_Yes</incoming>
+      <outgoing>Flow_C6</outgoing>
+    </sendTask>
+
+    <endEvent id="EndEvent_Unrepaired" name="Take computer home unrepaired">
+      <incoming>Flow_C5_No</incoming>
+    </endEvent>
+
+    <receiveTask id="Task_ReceiveNotification" name="Receive repaired computer notification">
+      <incoming>Flow_C6</incoming>
+      <outgoing>Flow_C7</outgoing>
+    </receiveTask>
+
+    <endEvent id="EndEvent_Collected" name="Computer collected">
+      <incoming>Flow_C7</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_C1" sourceRef="StartEvent_Customer" targetRef="Task_SendComputer"/>
+    <sequenceFlow id="Flow_C2" sourceRef="Task_SendComputer" targetRef="Task_ReceiveCostCalc"/>
+    <sequenceFlow id="Flow_C3" sourceRef="Task_ReceiveCostCalc" targetRef="Gateway_CostsOK"/>
+    <sequenceFlow id="Flow_C4_Yes" name="Yes" sourceRef="Gateway_CostsOK" targetRef="Task_SendDecision"/>
+    <sequenceFlow id="Flow_C5_No" name="No" sourceRef="Gateway_CostsOK" targetRef="EndEvent_Unrepaired"/>
+    <sequenceFlow id="Flow_C6" sourceRef="Task_SendDecision" targetRef="Task_ReceiveNotification"/>
+    <sequenceFlow id="Flow_C7" sourceRef="Task_ReceiveNotification" targetRef="EndEvent_Collected"/>
+
+  </process>
+
+  <!-- ================= CRS PROCESS ================= -->
+  <process id="Process_CRS" name="CRS" isExecutable="false">
+
+    <startEvent id="StartEvent_CRS" name="Computer received">
+      <outgoing>Flow_R1</outgoing>
+    </startEvent>
+
+    <task id="Task_CheckDefect" name="Check defect">
+      <incoming>Flow_R1</incoming>
+      <outgoing>Flow_R2</outgoing>
+    </task>
+
+    <task id="Task_CalcCost" name="Calculate repair costs">
+      <incoming>Flow_R2</incoming>
+      <outgoing>Flow_R3</outgoing>
+    </task>
+
+    <sendTask id="Task_SendCostCalc" name="Send repair cost calculation">
+      <incoming>Flow_R3</incoming>
+      <outgoing>Flow_R4</outgoing>
+    </sendTask>
+
+    <receiveTask id="Task_ReceiveDecision" name="Receive customer decision">
+      <incoming>Flow_R4</incoming>
+      <outgoing>Flow_R5</outgoing>
+    </receiveTask>
+
+    <exclusiveGateway id="Gateway_DecisionCheck" name="Repair accepted?">
+      <incoming>Flow_R5</incoming>
+      <outgoing>Flow_R6_Accepted</outgoing>
+      <outgoing>Flow_R7_Declined</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="EndEvent_Declined" name="Repair declined">
+      <incoming>Flow_R7_Declined</incoming>
+    </endEvent>
+
+    <parallelGateway id="Gateway_SplitRepair" name="Split repair tasks">
+      <incoming>Flow_R6_Accepted</incoming>
+      <incoming>Flow_R_Loop</incoming>
+      <outgoing>Flow_R8_HW</outgoing>
+      <outgoing>Flow_R9_SW</outgoing>
+    </parallelGateway>
+
+    <task id="Task_RepairHW" name="Check and repair hardware">
+      <incoming>Flow_R8_HW</incoming>
+      <outgoing>Flow_R10_HW</outgoing>
+    </task>
+
+    <task id="Task_TestHW" name="Test system functionality (HW)">
+      <incoming>Flow_R10_HW</incoming>
+      <outgoing>Flow_R11_HW</outgoing>
+    </task>
+
+    <task id="Task_RepairSW" name="Check and configure software">
+      <incoming>Flow_R9_SW</incoming>
+      <outgoing>Flow_R10_SW</outgoing>
+    </task>
+
+    <task id="Task_TestSW" name="Test system functionality (SW)">
+      <incoming>Flow_R10_SW</incoming>
+      <outgoing>Flow_R11_SW</outgoing>
+    </task>
+
+    <parallelGateway id="Gateway_JoinRepair" name="Join repair tasks">
+      <incoming>Flow_R11_HW</incoming>
+      <incoming>Flow_R11_SW</incoming>
+      <outgoing>Flow_R12</outgoing>
+    </parallelGateway>
+
+    <exclusiveGateway id="Gateway_ErrorDetected" name="Error detected?">
+      <incoming>Flow_R12</incoming>
+      <outgoing>Flow_R_Loop</outgoing>
+      <outgoing>Flow_R13_NoError</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_FinishRepair" name="Finish repair">
+      <incoming>Flow_R13_NoError</incoming>
+      <outgoing>Flow_R14</outgoing>
+    </task>
+
+    <sendTask id="Task_NotifyCustomer" name="Notify customer: computer ready">
+      <incoming>Flow_R14</incoming>
+      <outgoing>Flow_R15</outgoing>
+    </sendTask>
+
+    <endEvent id="EndEvent_RepairComplete" name="Repair process complete">
+      <incoming>Flow_R15</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_R1" sourceRef="StartEvent_CRS" targetRef="Task_CheckDefect"/>
+    <sequenceFlow id="Flow_R2" sourceRef="Task_CheckDefect" targetRef="Task_CalcCost"/>
+    <sequenceFlow id="Flow_R3" sourceRef="Task_CalcCost" targetRef="Task_SendCostCalc"/>
+    <sequenceFlow id="Flow_R4" sourceRef="Task_SendCostCalc" targetRef="Task_ReceiveDecision"/>
+    <sequenceFlow id="Flow_R5" sourceRef="Task_ReceiveDecision" targetRef="Gateway_DecisionCheck"/>
+    <sequenceFlow id="Flow_R6_Accepted" name="Accepted" sourceRef="Gateway_DecisionCheck" targetRef="Gateway_SplitRepair"/>
+    <sequenceFlow id="Flow_R7_Declined" name="Declined" sourceRef="Gateway_DecisionCheck" targetRef="EndEvent_Declined"/>
+
+    <sequenceFlow id="Flow_R8_HW" sourceRef="Gateway_SplitRepair" targetRef="Task_RepairHW"/>
+    <sequenceFlow id="Flow_R9_SW" sourceRef="Gateway_SplitRepair" targetRef="Task_RepairSW"/>
+    <sequenceFlow id="Flow_R10_HW" sourceRef="Task_RepairHW" targetRef="Task_TestHW"/>
+    <sequenceFlow id="Flow_R10_SW" sourceRef="Task_RepairSW" targetRef="Task_TestSW"/>
+    <sequenceFlow id="Flow_R11_HW" sourceRef="Task_TestHW" targetRef="Gateway_JoinRepair"/>
+    <sequenceFlow id="Flow_R11_SW" sourceRef="Task_TestSW" targetRef="Gateway_JoinRepair"/>
+    <sequenceFlow id="Flow_R12" sourceRef="Gateway_JoinRepair" targetRef="Gateway_ErrorDetected"/>
+    <sequenceFlow id="Flow_R_Loop" name="Yes" sourceRef="Gateway_ErrorDetected" targetRef="Gateway_SplitRepair"/>
+    <sequenceFlow id="Flow_R13_NoError" name="No" sourceRef="Gateway_ErrorDetected" targetRef="Task_FinishRepair"/>
+    <sequenceFlow id="Flow_R14" sourceRef="Task_FinishRepair" targetRef="Task_NotifyCustomer"/>
+    <sequenceFlow id="Flow_R15" sourceRef="Task_NotifyCustomer" targetRef="EndEvent_RepairComplete"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

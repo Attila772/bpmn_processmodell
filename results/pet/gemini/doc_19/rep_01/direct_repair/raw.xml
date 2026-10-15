@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_VacancyProcess"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:collaboration id="Collaboration_01">
+    <bpmn:participant id="Participant_FunctionalDepartment" name="Head of Functional Department" processRef="Process_FunctionalDepartment" />
+    <bpmn:participant id="Participant_HRDepartment" name="Personnel Department (HR)" />
+    <bpmn:messageFlow id="MessageFlow_ReportVacancy" name="Vacancy Report" sourceRef="Task_ReportVacancy" targetRef="Participant_HRDepartment" />
+    <bpmn:messageFlow id="MessageFlow_HRQuestion" name="Clarification Question" sourceRef="Participant_HRDepartment" targetRef="Event_HRQuestionReceived" />
+    <bpmn:messageFlow id="MessageFlow_ClarificationAnswer" name="Clarification Answer" sourceRef="Task_AnswerHRQuestions" targetRef="Participant_HRDepartment" />
+    <bpmn:messageFlow id="MessageFlow_JobDescription" name="Job Description" sourceRef="Participant_HRDepartment" targetRef="Event_JobDescriptionReceived" />
+    <bpmn:messageFlow id="MessageFlow_CorrectionRequest" name="Correction Request" sourceRef="Task_RequestCorrections" targetRef="Participant_HRDepartment" />
+    <bpmn:messageFlow id="MessageFlow_Approval" name="Approval" sourceRef="Task_ApproveJobDescription" targetRef="Participant_HRDepartment" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_FunctionalDepartment" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_PersonnelRequirementDetected" name="Personnel Requirements Detected">
+      <bpmn:outgoing>SequenceFlow_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sendTask id="Task_ReportVacancy" name="Report Vacancy to Personnel Department">
+      <bpmn:incoming>SequenceFlow_01</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_02</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:eventBasedGateway id="EventBasedGateway_WaitFeedback" name="Wait for HR Feedback">
+      <bpmn:incoming>SequenceFlow_02</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_LoopClarification</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_LoopCorrection</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ToHRQuestion</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_ToJobDescription</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="Event_HRQuestionReceived" name="HR Question Received">
+      <bpmn:incoming>SequenceFlow_ToHRQuestion</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_03</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_HRQuestion" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:userTask id="Task_AnswerHRQuestions" name="Answer HR Questions / Clarify Tasks &amp; Requirements">
+      <bpmn:incoming>SequenceFlow_03</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_LoopClarification</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:intermediateCatchEvent id="Event_JobDescriptionReceived" name="Job Description Received for Review">
+      <bpmn:incoming>SequenceFlow_ToJobDescription</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_04</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_JobDescription" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:userTask id="Task_ReviewJobDescription" name="Review Job Description">
+      <bpmn:incoming>SequenceFlow_04</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_05</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_ApprovalDecision" name="Job Description Acceptable?">
+      <bpmn:incoming>SequenceFlow_05</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_NeedsCorrection</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sendTask id="Task_RequestCorrections" name="Request Corrections">
+      <bpmn:incoming>SequenceFlow_NeedsCorrection</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_LoopCorrection</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="Task_ApproveJobDescription" name="Approve Job Description">
+      <bpmn:incoming>SequenceFlow_Approved</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_06</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_JobDescriptionApproved" name="Job Description Approved">
+      <bpmn:incoming>SequenceFlow_06</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SequenceFlow_01" sourceRef="StartEvent_PersonnelRequirementDetected" targetRef="Task_ReportVacancy" />
+    <bpmn:sequenceFlow id="SequenceFlow_02" sourceRef="Task_ReportVacancy" targetRef="EventBasedGateway_WaitFeedback" />
+    <bpmn:sequenceFlow id="SequenceFlow_ToHRQuestion" sourceRef="EventBasedGateway_WaitFeedback" targetRef="Event_HRQuestionReceived" />
+    <bpmn:sequenceFlow id="SequenceFlow_ToJobDescription" sourceRef="EventBasedGateway_WaitFeedback" targetRef="Event_JobDescriptionReceived" />
+    <bpmn:sequenceFlow id="SequenceFlow_03" sourceRef="Event_HRQuestionReceived" targetRef="Task_AnswerHRQuestions" />
+    <bpmn:sequenceFlow id="SequenceFlow_LoopClarification" sourceRef="Task_AnswerHRQuestions" targetRef="EventBasedGateway_WaitFeedback" />
+    <bpmn:sequenceFlow id="SequenceFlow_04" sourceRef="Event_JobDescriptionReceived" targetRef="Task_ReviewJobDescription" />
+    <bpmn:sequenceFlow id="SequenceFlow_05" sourceRef="Task_ReviewJobDescription" targetRef="ExclusiveGateway_ApprovalDecision" />
+    <bpmn:sequenceFlow id="SequenceFlow_Approved" name="Yes (Approved)" sourceRef="ExclusiveGateway_ApprovalDecision" targetRef="Task_ApproveJobDescription" />
+    <bpmn:sequenceFlow id="SequenceFlow_NeedsCorrection" name="No (Corrections needed)" sourceRef="ExclusiveGateway_ApprovalDecision" targetRef="Task_RequestCorrections" />
+    <bpmn:sequenceFlow id="SequenceFlow_LoopCorrection" sourceRef="Task_RequestCorrections" targetRef="EventBasedGateway_WaitFeedback" />
+    <bpmn:sequenceFlow id="SequenceFlow_06" sourceRef="Task_ApproveJobDescription" targetRef="EndEvent_JobDescriptionApproved" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_01">
+      <bpmndi:BPMNShape id="Participant_HRDepartment_di" bpmnElement="Participant_HRDepartment" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1220" height="100" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_FunctionalDepartment_di" bpmnElement="Participant_FunctionalDepartment" isHorizontal="true">
+        <dc:Bounds x="160" y="230" width="1220" height="380" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_PersonnelRequirementDetected_di" bpmnElement="StartEvent_PersonnelRequirementDetected">
+        <dc:Bounds x="222" y="362" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="205" y="405" width="71" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReportVacancy_di" bpmnElement="Task_ReportVacancy">
+        <dc:Bounds x="300" y="340" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EventBasedGateway_WaitFeedback_di" bpmnElement="EventBasedGateway_WaitFeedback" isMarkerVisible="true">
+        <dc:Bounds x="445" y="355" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="439" y="412" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_HRQuestionReceived_di" bpmnElement="Event_HRQuestionReceived">
+        <dc:Bounds x="542" y="272" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="528" y="315" width="65" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AnswerHRQuestions_di" bpmnElement="Task_AnswerHRQuestions">
+        <dc:Bounds x="630" y="250" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_JobDescriptionReceived_di" bpmnElement="Event_JobDescriptionReceived">
+        <dc:Bounds x="542" y="452" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="522" y="495" width="77" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReviewJobDescription_di" bpmnElement="Task_ReviewJobDescription">
+        <dc:Bounds x="630" y="430" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="ExclusiveGateway_ApprovalDecision_di" bpmnElement="ExclusiveGateway_ApprovalDecision" isMarkerVisible="true">
+        <dc:Bounds x="785" y="445" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="772" y="502" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RequestCorrections_di" bpmnElement="Task_RequestCorrections">
+        <dc:Bounds x="890" y="340" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ApproveJobDescription_di" bpmnElement="Task_ApproveJobDescription">
+        <dc:Bounds x="890" y="430" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_JobDescriptionApproved_di" bpmnElement="EndEvent_JobDescriptionApproved">
+        <dc:Bounds x="1052" y="452" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1032" y="495" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_01_di" bpmnElement="SequenceFlow_01">
+        <di:waypoint x="258" y="380" />
+        <di:waypoint x="300" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_02_di" bpmnElement="SequenceFlow_02">
+        <di:waypoint x="400" y="380" />
+        <di:waypoint x="445" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ToHRQuestion_di" bpmnElement="SequenceFlow_ToHRQuestion">
+        <di:waypoint x="470" y="355" />
+        <di:waypoint x="470" y="290" />
+        <di:waypoint x="542" y="290" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ToJobDescription_di" bpmnElement="SequenceFlow_ToJobDescription">
+        <di:waypoint x="470" y="405" />
+        <di:waypoint x="470" y="470" />
+        <di:waypoint x="542" y="470" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_03_di" bpmnElement="SequenceFlow_03">
+        <di:waypoint x="578" y="290" />
+        <di:waypoint x="630" y="290" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_LoopClarification_di" bpmnElement="SequenceFlow_LoopClarification">
+        <di:waypoint x="680" y="250" />
+        <di:waypoint x="680" y="235" />
+        <di:waypoint x="470" y="235" />
+        <di:waypoint x="470" y="355" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_04_di" bpmnElement="SequenceFlow_04">
+        <di:waypoint x="578" y="470" />
+        <di:waypoint x="630" y="470" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_05_di" bpmnElement="SequenceFlow_05">
+        <di:waypoint x="730" y="470" />
+        <di:waypoint x="785" y="470" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Approved_di" bpmnElement="SequenceFlow_Approved">
+        <di:waypoint x="835" y="470" />
+        <di:waypoint x="890" y="470" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="826" y="452" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_NeedsCorrection_di" bpmnElement="SequenceFlow_NeedsCorrection">
+        <di:waypoint x="810" y="445" />
+        <di:waypoint x="810" y="380" />
+        <di:waypoint x="890" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="813" y="396" width="61" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_LoopCorrection_di" bpmnElement="SequenceFlow_LoopCorrection">
+        <di:waypoint x="940" y="340" />
+        <di:waypoint x="940" y="235" />
+        <di:waypoint x="470" y="235" />
+        <di:waypoint x="470" y="355" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_06_di" bpmnElement="SequenceFlow_06">
+        <di:waypoint x="990" y="470" />
+        <di:waypoint x="1052" y="470" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_ReportVacancy_di" bpmnElement="MessageFlow_ReportVacancy">
+        <di:waypoint x="350" y="340" />
+        <di:waypoint x="350" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="359" y="203" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_HRQuestion_di" bpmnElement="MessageFlow_HRQuestion">
+        <di:waypoint x="560" y="180" />
+        <di:waypoint x="560" y="272" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="569" y="203" width="61" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_ClarificationAnswer_di" bpmnElement="MessageFlow_ClarificationAnswer">
+        <di:waypoint x="680" y="250" />
+        <di:waypoint x="680" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="688" y="203" width="57" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_JobDescription_di" bpmnElement="MessageFlow_JobDescription">
+        <di:waypoint x="560" y="180" />
+        <di:waypoint x="560" y="452" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="471" y="203" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_CorrectionRequest_di" bpmnElement="MessageFlow_CorrectionRequest">
+        <di:waypoint x="940" y="340" />
+        <di:waypoint x="940" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="948" y="203" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Approval_di" bpmnElement="MessageFlow_Approval">
+        <di:waypoint x="990" y="470" />
+        <di:waypoint x="1100" y="470" />
+        <di:waypoint x="1100" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1058" y="203" width="43" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

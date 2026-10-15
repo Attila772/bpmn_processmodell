@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_LoanProcess"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+  <bpmn:process id="LoanApprovalProcess" name="Loan Approval Process" isExecutable="true">
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_LoanRequested" name="Loan Request Received">
+      <bpmn:outgoing>SequenceFlow_To_RiskAssessment</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" />
+    </bpmn:startEvent>
+
+    <!-- Task 1: Risk Assessment Web Service -->
+    <bpmn:serviceTask id="Task_RiskAssessment" name="Assess Risk (Web Service)" implementation="##WebService">
+      <bpmn:incoming>SequenceFlow_To_RiskAssessment</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_RiskGateway</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Sequence Flow: Start -> Risk Assessment -->
+    <bpmn:sequenceFlow id="SequenceFlow_To_RiskAssessment" sourceRef="StartEvent_LoanRequested" targetRef="Task_RiskAssessment" />
+
+    <!-- Exclusive Gateway: Risk & Amount Evaluation -->
+    <bpmn:exclusiveGateway id="Gateway_RiskEvaluation" name="Evaluate Risk and Amount">
+      <bpmn:incoming>SequenceFlow_To_RiskGateway</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_Denied</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_FurtherReview</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Sequence Flow: Assessment -> Gateway -->
+    <bpmn:sequenceFlow id="SequenceFlow_To_RiskGateway" sourceRef="Task_RiskAssessment" targetRef="Gateway_RiskEvaluation" />
+
+    <!-- Path 1: Low Risk & Small Amount (< $10,000) -->
+    <bpmn:sequenceFlow id="SequenceFlow_Approved" name="Low Risk &amp; Amount &lt; $10k" sourceRef="Gateway_RiskEvaluation" targetRef="Task_AssessorApproval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${risk == 'LOW' &amp;&amp; amount &lt; 10000}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Path 2: High Risk -->
+    <bpmn:sequenceFlow id="SequenceFlow_Denied" name="High Risk" sourceRef="Gateway_RiskEvaluation" targetRef="Task_AssessorDenial">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${risk == 'HIGH'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Path 3: Further Review Needed OR Amount >= $10,000 -->
+    <bpmn:sequenceFlow id="SequenceFlow_FurtherReview" name="Further Review or Amount &gt;= $10k" sourceRef="Gateway_RiskEvaluation" targetRef="Task_ApproverWebService">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${risk == 'MEDIUM' || amount &gt;= 10000}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Assessor Feedback Tasks -->
+    <bpmn:sendTask id="Task_AssessorApproval" name="Send Assessor Approval Feedback" implementation="##WebService">
+      <bpmn:incoming>SequenceFlow_Approved</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_AssessorAppToEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="Task_AssessorDenial" name="Send Assessor Denial Feedback" implementation="##WebService">
+      <bpmn:incoming>SequenceFlow_Denied</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_AssessorDenToEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <!-- Approver Web Service Task -->
+    <bpmn:serviceTask id="Task_ApproverWebService" name="Evaluate via Approver (Web Service)" implementation="##WebService">
+      <bpmn:incoming>SequenceFlow_FurtherReview</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_SendApproverFeedback</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Approver Feedback Task -->
+    <bpmn:sendTask id="Task_SendApproverFeedback" name="Send Approver Feedback" implementation="##WebService">
+      <bpmn:incoming>SequenceFlow_To_SendApproverFeedback</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ApproverToFinished</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sequenceFlow id="SequenceFlow_To_SendApproverFeedback" sourceRef="Task_ApproverWebService" targetRef="Task_SendApproverFeedback" />
+
+    <!-- End Events -->
+    <bpmn:endEvent id="EndEvent_ApprovedByAssessor" name="Loan Approved by Assessor">
+      <bpmn:incoming>SequenceFlow_AssessorAppToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_DeniedByAssessor" name="Loan Denied by Assessor">
+      <bpmn:incoming>SequenceFlow_AssessorDenToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_ProcessedByApprover" name="Loan Processed by Approver">
+      <bpmn:incoming>SequenceFlow_ApproverToFinished</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SequenceFlow_AssessorAppToEnd" sourceRef="Task_AssessorApproval" targetRef="EndEvent_ApprovedByAssessor" />
+    <bpmn:sequenceFlow id="SequenceFlow_AssessorDenToEnd" sourceRef="Task_AssessorDenial" targetRef="EndEvent_DeniedByAssessor" />
+    <bpmn:sequenceFlow id="SequenceFlow_ApproverToFinished" sourceRef="Task_SendApproverFeedback" targetRef="EndEvent_ProcessedByApprover" />
+  </bpmn:process>
+
+  <!-- Diagram Layout Information -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_LoanProcess">
+    <bpmndi:BPMNPlane id="BPMNPlane_LoanProcess" bpmnElement="LoanApprovalProcess">
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_LoanRequested_di" bpmnElement="StartEvent_LoanRequested">
+        <dc:Bounds x="152" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="134" y="265" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task: Risk Assessment -->
+      <bpmndi:BPMNShape id="Task_RiskAssessment_di" bpmnElement="Task_RiskAssessment">
+        <dc:Bounds x="240" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway: Risk Evaluation -->
+      <bpmndi:BPMNShape id="Gateway_RiskEvaluation_di" bpmnElement="Gateway_RiskEvaluation" isMarkerVisible="true">
+        <dc:Bounds x="395" y="215" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="323" y="190" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task: Assessor Approval -->
+      <bpmndi:BPMNShape id="Task_AssessorApproval_di" bpmnElement="Task_AssessorApproval">
+        <dc:Bounds x="530" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Task: Assessor Denial -->
+      <bpmndi:BPMNShape id="Task_AssessorDenial_di" bpmnElement="Task_AssessorDenial">
+        <dc:Bounds x="530" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Task: Approver Web Service -->
+      <bpmndi:BPMNShape id="Task_ApproverWebService_di" bpmnElement="Task_ApproverWebService">
+        <dc:Bounds x="530" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Task: Send Approver Feedback -->
+      <bpmndi:BPMNShape id="Task_SendApproverFeedback_di" bpmnElement="Task_SendApproverFeedback">
+        <dc:Bounds x="680" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Events -->
+      <bpmndi:BPMNShape id="EndEvent_ApprovedByAssessor_di" bpmnElement="EndEvent_ApprovedByAssessor">
+        <dc:Bounds x="832" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="813" y="145" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_DeniedByAssessor_di" bpmnElement="EndEvent_DeniedByAssessor">
+        <dc:Bounds x="832" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="819" y="265" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_ProcessedByApprover_di" bpmnElement="EndEvent_ProcessedByApprover">
+        <dc:Bounds x="832" y="342" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="810" y="385" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="SequenceFlow_To_RiskAssessment_di" bpmnElement="SequenceFlow_To_RiskAssessment">
+        <di:waypoint x="188" y="240" />
+        <di:waypoint x="240" y="240" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_RiskGateway_di" bpmnElement="SequenceFlow_To_RiskGateway">
+        <di:waypoint x="340" y="240" />
+        <di:waypoint x="395" y="240" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Approved_di" bpmnElement="SequenceFlow_Approved">
+        <di:waypoint x="420" y="215" />
+        <di:waypoint x="420" y="120" />
+        <di:waypoint x="530" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="428" y="136" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Denied_di" bpmnElement="SequenceFlow_Denied">
+        <di:waypoint x="445" y="240" />
+        <di:waypoint x="530" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="464" y="222" width="48" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_FurtherReview_di" bpmnElement="SequenceFlow_FurtherReview">
+        <di:waypoint x="420" y="265" />
+        <di:waypoint x="420" y="360" />
+        <di:waypoint x="530" y="360" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="427" y="326" width="86" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_SendApproverFeedback_di" bpmnElement="SequenceFlow_To_SendApproverFeedback">
+        <di:waypoint x="630" y="360" />
+        <di:waypoint x="680" y="360" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_AssessorAppToEnd_di" bpmnElement="SequenceFlow_AssessorAppToEnd">
+        <di:waypoint x="630" y="120" />
+        <di:waypoint x="832" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_AssessorDenToEnd_di" bpmnElement="SequenceFlow_AssessorDenToEnd">
+        <di:waypoint x="630" y="240" />
+        <di:waypoint x="832" y="240" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ApproverToFinished_di" bpmnElement="SequenceFlow_ApproverToFinished">
+        <di:waypoint x="780" y="360" />
+        <di:waypoint x="832" y="360" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

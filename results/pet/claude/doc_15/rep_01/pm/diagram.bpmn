@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_cu_part" name="Coordination Unit (Town Planning Authority)" processRef="pool_cu_proc" />
+    <bpmn:participant id="pool_so_part" name="Support Officer" processRef="pool_so_proc" />
+    <bpmn:participant id="pool_cm_part" name="Committee Members" processRef="pool_cm_proc" />
+    <bpmn:messageFlow id="mf1" sourceRef="end_send_schedule" targetRef="event_so_receive" name="Draft schedule" />
+    <bpmn:messageFlow id="mf2" sourceRef="end_so_send" targetRef="event_cu_receive_mods" name="Suggested modifications" />
+    <bpmn:messageFlow id="mf3" sourceRef="end_send_final" targetRef="event_cm_receive" name="Final schedule" />
+    <bpmn:messageFlow id="mf4" sourceRef="end_cm_send" targetRef="event_cu_receive_conflicts" name="Diary conflicts" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_cu_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_draft_schedule" name="Draft Schedule of Meetings" dataObjectRef="doc_draft_schedule_do" />
+    <bpmn:dataObject id="doc_draft_schedule_do" />
+    <bpmn:dataObjectReference id="doc_suggested_mods_p1" name="Suggested Modifications" dataObjectRef="doc_suggested_mods_p1_do" />
+    <bpmn:dataObject id="doc_suggested_mods_p1_do" />
+    <bpmn:dataObjectReference id="doc_final_schedule" name="Final Schedule of Meeting Dates" dataObjectRef="doc_final_schedule_do" />
+    <bpmn:dataObject id="doc_final_schedule_do" />
+    <bpmn:startEvent id="start1" name="November - start of annual scheduling">
+      <bpmn:outgoing>sf1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_send_schedule" name="Draft schedule sent to Support Officer">
+      <bpmn:incoming>sf2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_send_schedule_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="event_cu_receive_mods" name="Suggested modifications received">
+      <bpmn:outgoing>sf5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_cu_receive_mods_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_send_final" name="Final schedule sent by email">
+      <bpmn:incoming>sf6</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_send_final_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="event_cu_receive_conflicts" name="Conflicts received">
+      <bpmn:outgoing>sf9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_cu_receive_conflicts_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end2" name="Process complete">
+      <bpmn:incoming>sf9</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_draft" name="Draft schedule of meetings and add draft dates to all calendars">
+      <bpmn:incoming>sf1</bpmn:incoming>
+      <bpmn:outgoing>sf2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_draft_doa0">
+        <bpmn:targetRef>doc_draft_schedule</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_recheck" name="Recheck all dates and look for potential conflicts">
+      <bpmn:incoming>sf5</bpmn:incoming>
+      <bpmn:outgoing>sf6</bpmn:outgoing>
+      <bpmn:property id="task_recheck_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_recheck_dia0">
+        <bpmn:sourceRef>doc_suggested_mods_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_recheck_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_recheck_doa0">
+        <bpmn:targetRef>doc_final_schedule</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf1" sourceRef="start1" targetRef="task_draft" />
+    <bpmn:sequenceFlow id="sf2" sourceRef="task_draft" targetRef="end_send_schedule" />
+    <bpmn:sequenceFlow id="sf5" sourceRef="event_cu_receive_mods" targetRef="task_recheck" />
+    <bpmn:sequenceFlow id="sf6" sourceRef="task_recheck" targetRef="end_send_final" />
+    <bpmn:sequenceFlow id="sf9" sourceRef="event_cu_receive_conflicts" targetRef="end2" />
+  </bpmn:process>
+  <bpmn:process id="pool_so_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_draft_schedule_p1" name="Draft Schedule of Meetings" dataObjectRef="doc_draft_schedule_p1_do" />
+    <bpmn:dataObject id="doc_draft_schedule_p1_do" />
+    <bpmn:dataObjectReference id="doc_suggested_mods" name="Suggested Modifications" dataObjectRef="doc_suggested_mods_do" />
+    <bpmn:dataObject id="doc_suggested_mods_do" />
+    <bpmn:startEvent id="event_so_receive" name="Draft schedule received">
+      <bpmn:outgoing>sf3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_so_receive_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_so_send" name="Suggested modifications sent">
+      <bpmn:incoming>sf4</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_so_send_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_check_dates" name="Check dates and suggest modifications">
+      <bpmn:incoming>sf3</bpmn:incoming>
+      <bpmn:outgoing>sf4</bpmn:outgoing>
+      <bpmn:property id="task_check_dates_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_dates_dia0">
+        <bpmn:sourceRef>doc_draft_schedule_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_dates_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_check_dates_doa0">
+        <bpmn:targetRef>doc_suggested_mods</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf3" sourceRef="event_so_receive" targetRef="task_check_dates" />
+    <bpmn:sequenceFlow id="sf4" sourceRef="task_check_dates" targetRef="end_so_send" />
+  </bpmn:process>
+  <bpmn:process id="pool_cm_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_final_schedule_p1" name="Final Schedule of Meeting Dates" dataObjectRef="doc_final_schedule_p1_do" />
+    <bpmn:dataObject id="doc_final_schedule_p1_do" />
+    <bpmn:startEvent id="event_cm_receive" name="Final schedule received">
+      <bpmn:outgoing>sf7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_cm_receive_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_cm_send" name="Conflicts advised">
+      <bpmn:incoming>sf8</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_cm_send_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_check_diary" name="Check diaries and advise Coordination Unit of any conflicts">
+      <bpmn:incoming>sf7</bpmn:incoming>
+      <bpmn:outgoing>sf8</bpmn:outgoing>
+      <bpmn:property id="task_check_diary_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_diary_dia0">
+        <bpmn:sourceRef>doc_final_schedule_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_diary_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf7" sourceRef="event_cm_receive" targetRef="task_check_diary" />
+    <bpmn:sequenceFlow id="sf8" sourceRef="task_check_diary" targetRef="end_cm_send" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_cu_part_di" bpmnElement="pool_cu_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="700" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_so_part_di" bpmnElement="pool_so_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_cm_part_di" bpmnElement="pool_cm_part" isHorizontal="true">
+        <dc:Bounds x="120" y="960" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end2_di" bpmnElement="end2">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_cm_send_di" bpmnElement="end_cm_send">
+        <dc:Bounds x="540" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_send_final_di" bpmnElement="end_send_final">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_send_schedule_di" bpmnElement="end_send_schedule">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_so_send_di" bpmnElement="end_so_send">
+        <dc:Bounds x="540" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_cm_receive_di" bpmnElement="event_cm_receive">
+        <dc:Bounds x="160" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_cu_receive_conflicts_di" bpmnElement="event_cu_receive_conflicts">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_cu_receive_mods_di" bpmnElement="event_cu_receive_mods">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_so_receive_di" bpmnElement="event_so_receive">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start1_di" bpmnElement="start1">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_dates_di" bpmnElement="task_check_dates">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_diary_di" bpmnElement="task_check_diary">
+        <dc:Bounds x="350" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_draft_di" bpmnElement="task_draft">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_recheck_di" bpmnElement="task_recheck">
+        <dc:Bounds x="160" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_draft_schedule_di" bpmnElement="doc_draft_schedule">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_suggested_mods_p1_di" bpmnElement="doc_suggested_mods_p1">
+        <dc:Bounds x="180" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_final_schedule_di" bpmnElement="doc_final_schedule">
+        <dc:Bounds x="180" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_draft_schedule_p1_di" bpmnElement="doc_draft_schedule_p1">
+        <dc:Bounds x="370" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_suggested_mods_di" bpmnElement="doc_suggested_mods">
+        <dc:Bounds x="370" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_final_schedule_p1_di" bpmnElement="doc_final_schedule_p1">
+        <dc:Bounds x="370" y="1160" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf1_di" bpmnElement="sf1">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf2_di" bpmnElement="sf2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="118" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf3_di" bpmnElement="sf3">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf4_di" bpmnElement="sf4">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="558" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf5_di" bpmnElement="sf5">
+        <di:waypoint x="118" y="118" />
+        <di:waypoint x="210" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf6_di" bpmnElement="sf6">
+        <di:waypoint x="210" y="390" />
+        <di:waypoint x="118" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf7_di" bpmnElement="sf7">
+        <di:waypoint x="178" y="1038" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf8_di" bpmnElement="sf8">
+        <di:waypoint x="400" y="1060" />
+        <di:waypoint x="558" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf9_di" bpmnElement="sf9">
+        <di:waypoint x="118" y="118" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf1_di" bpmnElement="mf1">
+        <di:waypoint x="118" y="118" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf2_di" bpmnElement="mf2">
+        <di:waypoint x="558" y="703" />
+        <di:waypoint x="118" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf3_di" bpmnElement="mf3">
+        <di:waypoint x="118" y="118" />
+        <di:waypoint x="178" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf4_di" bpmnElement="mf4">
+        <di:waypoint x="558" y="1038" />
+        <di:waypoint x="118" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_draft_doa0_di" bpmnElement="task_draft_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_dates_dia0_di" bpmnElement="task_check_dates_dia0">
+        <di:waypoint x="388" y="850" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_dates_doa0_di" bpmnElement="task_check_dates_doa0">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="388" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_recheck_dia0_di" bpmnElement="task_recheck_dia0">
+        <di:waypoint x="198" y="515" />
+        <di:waypoint x="210" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_recheck_doa0_di" bpmnElement="task_recheck_doa0">
+        <di:waypoint x="210" y="390" />
+        <di:waypoint x="198" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_diary_dia0_di" bpmnElement="task_check_diary_dia0">
+        <di:waypoint x="388" y="1185" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

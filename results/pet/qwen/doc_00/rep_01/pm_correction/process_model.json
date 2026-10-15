@@ -1,0 +1,250 @@
+{
+  "name": "MPON Dismissal Process",
+  "resources": [
+    {
+      "name": "MPON",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "MPOO",
+      "capacity": 1,
+      "resource_type": "department"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_mpon",
+      "name": "Start MPON Process",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_mpon_send",
+      "name": "Dismissal Sent",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Dismissal Document"
+    },
+    {
+      "id": "evt_start_mpo_receive",
+      "name": "Receive Dismissal",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Dismissal Document"
+    },
+    {
+      "id": "evt_end_mpo_review",
+      "name": "Review Completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_mpon_send",
+      "name": "Send dismissal to MPOO",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "MPON",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_dismissal"
+      ]
+    },
+    {
+      "id": "task_mpo_review",
+      "name": "Review the dismissal",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPOO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_dismissal"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_mpo_oppose",
+      "name": "Oppose the dismissal",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPOO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_mpo_confirm",
+      "name": "Confirm the dismissal",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPOO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_decision",
+      "name": "Decision on Dismissal",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_to_oppose",
+          "condition": "Oppose"
+        },
+        {
+          "flow_id": "flow_to_confirm",
+          "condition": "Confirm"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start_mpon",
+      "target_id": "task_mpon_send",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_mpon_send",
+      "target_id": "evt_end_mpon_send",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "evt_start_mpo_receive",
+      "target_id": "task_mpo_review",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_mpo_review",
+      "target_id": "gw_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_oppose",
+      "source_id": "gw_decision",
+      "target_id": "task_mpo_oppose",
+      "condition_name": "Oppose"
+    },
+    {
+      "id": "flow_to_confirm",
+      "source_id": "gw_decision",
+      "target_id": "task_mpo_confirm",
+      "condition_name": "Confirm"
+    },
+    {
+      "id": "flow_oppose_end",
+      "source_id": "task_mpo_oppose",
+      "target_id": "evt_end_mpo_review",
+      "condition_name": null
+    },
+    {
+      "id": "flow_confirm_end",
+      "source_id": "task_mpo_confirm",
+      "target_id": "evt_end_mpo_review",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_mpon",
+      "name": "MPON",
+      "element_ids": [
+        "evt_start_mpon",
+        "task_mpon_send",
+        "evt_end_mpon_send"
+      ]
+    },
+    {
+      "id": "pool_mpo",
+      "name": "MPOO",
+      "element_ids": [
+        "evt_start_mpo_receive",
+        "task_mpo_review",
+        "gw_decision",
+        "task_mpo_oppose",
+        "task_mpo_confirm",
+        "evt_end_mpo_review"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_1",
+      "source_id": "evt_end_mpon_send",
+      "target_id": "evt_start_mpo_receive",
+      "name": "Dismissal Document"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_dismissal",
+      "name": "Dismissal"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

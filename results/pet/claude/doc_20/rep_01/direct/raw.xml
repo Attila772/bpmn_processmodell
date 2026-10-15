@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="Process_OrderHandling" name="Order Handling Process" isExecutable="false">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Master" name="Master">
+        <flowNodeRef>StartEvent_NewOrder</flowNodeRef>
+        <flowNodeRef>Task_DetermineParts</flowNodeRef>
+        <flowNodeRef>Task_EnterDataPPS</flowNodeRef>
+        <flowNodeRef>Task_TransferERP</flowNodeRef>
+      </lane>
+      <lane id="Lane_PPS" name="PPS System">
+        <flowNodeRef>Task_OptimizeProduction</flowNodeRef>
+        <flowNodeRef>Task_CreateProcurementList</flowNodeRef>
+      </lane>
+      <lane id="Lane_ERP" name="ERP System">
+        <flowNodeRef>Gateway_PartsMissing</flowNodeRef>
+        <flowNodeRef>Task_ProcureParts</flowNodeRef>
+        <flowNodeRef>Gateway_Merge</flowNodeRef>
+        <flowNodeRef>IntermediateEvent_ProductionStart</flowNodeRef>
+      </lane>
+      <lane id="Lane_Employee" name="Employee">
+        <flowNodeRef>Task_ImplementProduction</flowNodeRef>
+        <flowNodeRef>Task_CheckQuality</flowNodeRef>
+        <flowNodeRef>EndEvent_OrderCompleted</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <startEvent id="StartEvent_NewOrder" name="New order received from sales department">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_DetermineParts" name="Determine necessary parts, quantities and delivery date">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <task id="Task_EnterDataPPS" name="Enter data into PPS">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <task id="Task_OptimizeProduction" name="Optimize production process and create uniform work packages">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </task>
+
+    <task id="Task_CreateProcurementList" name="Create list of parts to be procured">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_5</outgoing>
+    </task>
+
+    <task id="Task_TransferERP" name="Transfer data manually to ERP system">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_PartsMissing" name="Parts missing?">
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_Yes</outgoing>
+      <outgoing>Flow_No</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_ProcureParts" name="Procure missing parts">
+      <incoming>Flow_Yes</incoming>
+      <outgoing>Flow_FromProcure</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Merge" name="Merge">
+      <incoming>Flow_No</incoming>
+      <incoming>Flow_FromProcure</incoming>
+      <outgoing>Flow_7</outgoing>
+    </exclusiveGateway>
+
+    <intermediateCatchEvent id="IntermediateEvent_ProductionStart" name="Notice: production scheduled to start">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_8</outgoing>
+      <messageEventDefinition id="MessageEventDefinition_1"/>
+    </intermediateCatchEvent>
+
+    <task id="Task_ImplementProduction" name="Employee implements production">
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_9</outgoing>
+    </task>
+
+    <task id="Task_CheckQuality" name="Check order for quality">
+      <incoming>Flow_9</incoming>
+      <outgoing>Flow_10</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_OrderCompleted" name="Order completed">
+      <incoming>Flow_10</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_NewOrder" targetRef="Task_DetermineParts"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_DetermineParts" targetRef="Task_EnterDataPPS"/>
+    <sequenceFlow id="Flow_3" sourceRef="Task_EnterDataPPS" targetRef="Task_OptimizeProduction"/>
+    <sequenceFlow id="Flow_4" sourceRef="Task_OptimizeProduction" targetRef="Task_CreateProcurementList"/>
+    <sequenceFlow id="Flow_5" sourceRef="Task_CreateProcurementList" targetRef="Task_TransferERP"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_TransferERP" targetRef="Gateway_PartsMissing"/>
+    <sequenceFlow id="Flow_Yes" name="Yes" sourceRef="Gateway_PartsMissing" targetRef="Task_ProcureParts"/>
+    <sequenceFlow id="Flow_No" name="No" sourceRef="Gateway_PartsMissing" targetRef="Gateway_Merge"/>
+    <sequenceFlow id="Flow_FromProcure" sourceRef="Task_ProcureParts" targetRef="Gateway_Merge"/>
+    <sequenceFlow id="Flow_7" sourceRef="Gateway_Merge" targetRef="IntermediateEvent_ProductionStart"/>
+    <sequenceFlow id="Flow_8" sourceRef="IntermediateEvent_ProductionStart" targetRef="Task_ImplementProduction"/>
+    <sequenceFlow id="Flow_9" sourceRef="Task_ImplementProduction" targetRef="Task_CheckQuality"/>
+    <sequenceFlow id="Flow_10" sourceRef="Task_CheckQuality" targetRef="EndEvent_OrderCompleted"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_OrderHandling">
+
+      <bpmndi:BPMNShape id="StartEvent_NewOrder_di" bpmnElement="StartEvent_NewOrder">
+        <omgdc:Bounds x="80" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_DetermineParts_di" bpmnElement="Task_DetermineParts">
+        <omgdc:Bounds x="160" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_EnterDataPPS_di" bpmnElement="Task_EnterDataPPS">
+        <omgdc:Bounds x="300" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_OptimizeProduction_di" bpmnElement="Task_OptimizeProduction">
+        <omgdc:Bounds x="440" y="90" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CreateProcurementList_di" bpmnElement="Task_CreateProcurementList">
+        <omgdc:Bounds x="580" y="90" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TransferERP_di" bpmnElement="Task_TransferERP">
+        <omgdc:Bounds x="720" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_PartsMissing_di" bpmnElement="Gateway_PartsMissing" isMarkerVisible="true">
+        <omgdc:Bounds x="860" y="285" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProcureParts_di" bpmnElement="Task_ProcureParts">
+        <omgdc:Bounds x="950" y="260" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Merge_di" bpmnElement="Gateway_Merge" isMarkerVisible="true">
+        <omgdc:Bounds x="1100" y="285" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="IntermediateEvent_ProductionStart_di" bpmnElement="IntermediateEvent_ProductionStart">
+        <omgdc:Bounds x="1190" y="292" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ImplementProduction_di" bpmnElement="Task_ImplementProduction">
+        <omgdc:Bounds x="1270" y="420" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckQuality_di" bpmnElement="Task_CheckQuality">
+        <omgdc:Bounds x="1410" y="420" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_OrderCompleted_di" bpmnElement="EndEvent_OrderCompleted">
+        <omgdc:Bounds x="1550" y="442" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="116" y="218"/>
+        <omgdi:waypoint x="160" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="260" y="218"/>
+        <omgdi:waypoint x="300" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <omgdi:waypoint x="350" y="178"/>
+        <omgdi:waypoint x="350" y="130"/>
+        <omgdi:waypoint x="440" y="130"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <omgdi:waypoint x="540" y="130"/>
+        <omgdi:waypoint x="580" y="130"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <omgdi:waypoint x="630" y="170"/>
+        <omgdi:waypoint x="630" y="218"/>
+        <omgdi:waypoint x="720" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <omgdi:waypoint x="820" y="218"/>
+        <omgdi:waypoint x="885" y="218"/>
+        <omgdi:waypoint x="885" y="285"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Yes_di" bpmnElement="Flow_Yes">
+        <omgdi:waypoint x="910" y="310"/>
+        <omgdi:waypoint x="950" y="300"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_No_di" bpmnElement="Flow_No">
+        <omgdi:waypoint x="885" y="335"/>
+        <omgdi:waypoint x="885" y="400"/>
+        <omgdi:waypoint x="1125" y="400"/>
+        <omgdi:waypoint x="1125" y="335"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FromProcure_di" bpmnElement="Flow_FromProcure">
+        <omgdi:waypoint x="1050" y="300"/>
+        <omgdi:waypoint x="1100" y="310"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <omgdi:waypoint x="1150" y="310"/>
+        <omgdi:waypoint x="1190" y="310"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <omgdi:waypoint x="1208" y="328"/>
+        <omgdi:waypoint x="1208" y="460"/>
+        <omgdi:waypoint x="1270" y="460"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <omgdi:waypoint x="1370" y="460"/>
+        <omgdi:waypoint x="1410" y="460"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <omgdi:waypoint x="1510" y="460"/>
+        <omgdi:waypoint x="1550" y="460"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

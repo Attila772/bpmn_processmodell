@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="ServiceDegradationProcess" name="Service Degradation Process" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_CustomerPerceives" name="Customer perceives service degradation">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_CustomerPerceives" targetRef="Task_SendProblemParams" />
+    <bpmn:task id="Task_SendProblemParams" name="Send problem parameters to Customer Service">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_SendProblemParams" targetRef="Task_EnterProblemReport" />
+    <bpmn:task id="Task_EnterProblemReport" name="Enter problem report into system T">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_EnterProblemReport" targetRef="Task_CompareSLA" />
+    <bpmn:task id="Task_CompareSLA" name="Compare problem report to customer SLA">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_CompareSLA" targetRef="Task_DetermineCounterMeasures" />
+    <bpmn:task id="Task_DetermineCounterMeasures" name="Determine necessary counter measures and priorities">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_DetermineCounterMeasures" targetRef="Task_DetermineSignificance" />
+    <bpmn:task id="Task_DetermineSignificance" name="Electronic service determines customer significance">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_DetermineSignificance" targetRef="Gateway_PremiumCheck" />
+    <bpmn:exclusiveGateway id="Gateway_PremiumCheck" name="Is Customer Premium?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_PremiumYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_PremiumNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_PremiumYes" name="Yes" sourceRef="Gateway_PremiumCheck" targetRef="CallActivity_PremiumFix" />
+    <bpmn:callActivity id="CallActivity_PremiumFix" name="Extra Problem Fix Process">
+      <bpmn:incoming>Flow_PremiumYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_PremiumReturn</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="Flow_PremiumReturn" sourceRef="CallActivity_PremiumFix" targetRef="Gateway_SignificanceCheck" />
+    <bpmn:sequenceFlow id="Flow_PremiumNo" name="No" sourceRef="Gateway_PremiumCheck" targetRef="Gateway_SignificanceCheck" />
+    <bpmn:exclusiveGateway id="Gateway_SignificanceCheck" name="Does significance affect counter measures?">
+      <bpmn:incoming>Flow_PremiumReturn</bpmn:incoming>
+      <bpmn:incoming>Flow_PremiumNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reprioritize</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Continue</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_Reprioritize" name="Yes" sourceRef="Gateway_SignificanceCheck" targetRef="Task_DetermineCounterMeasures" />
+    <bpmn:sequenceFlow id="Flow_Continue" name="No" sourceRef="Gateway_SignificanceCheck" targetRef="Task_CreateDetailedReport" />
+    <bpmn:task id="Task_CreateDetailedReport" name="Create detailed problem report (contract + prioritized actions)">
+      <bpmn:incoming>Flow_Continue</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_CreateDetailedReport" targetRef="Task_SendToServiceMgmt" />
+    <bpmn:task id="Task_SendToServiceMgmt" name="Send detailed problem report to Service Management">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_SendToServiceMgmt" targetRef="Gateway_AnalyzableBySM" />
+    <bpmn:exclusiveGateway id="Gateway_AnalyzableBySM" name="Analyzable by Service Management?">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_SMAnalyze</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SendToRP</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_SMAnalyze" name="Yes" sourceRef="Gateway_AnalyzableBySM" targetRef="Task_SMAnalyze" />
+    <bpmn:task id="Task_SMAnalyze" name="Service Management performs analysis">
+      <bpmn:incoming>Flow_SMAnalyze</bpmn:incoming>
+      <bpmn:outgoing>Flow_SMCreateTrouble</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SMCreateTrouble" sourceRef="Task_SMAnalyze" targetRef="Task_SMCreateTroubleReport" />
+    <bpmn:task id="Task_SMCreateTroubleReport" name="Create trouble report (type of problem)">
+      <bpmn:incoming>Flow_SMCreateTrouble</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToStatusMerge</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SendToRP" name="No" sourceRef="Gateway_AnalyzableBySM" targetRef="Task_RPReceiveReport" />
+    <bpmn:task id="Task_RPReceiveReport" name="Resource Provisioning receives detailed problem report">
+      <bpmn:incoming>Flow_SendToRP</bpmn:incoming>
+      <bpmn:outgoing>Flow_RPCheckProblems</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_RPCheckProblems" sourceRef="Task_RPReceiveReport" targetRef="Gateway_RPProblemsDetected" />
+    <bpmn:exclusiveGateway id="Gateway_RPProblemsDetected" name="Problems detected?">
+      <bpmn:incoming>Flow_RPCheckProblems</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoProblems</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ProblemsDetected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_NoProblems" name="No" sourceRef="Gateway_RPProblemsDetected" targetRef="Task_CreateNormalNotification" />
+    <bpmn:task id="Task_CreateNormalNotification" name="Create notification about normal service execution">
+      <bpmn:incoming>Flow_NoProblems</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToStatusMerge</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ProblemsDetected" name="Yes" sourceRef="Gateway_RPProblemsDetected" targetRef="Task_RPAnalyze" />
+    <bpmn:task id="Task_RPAnalyze" name="Resource Provisioning analyzes problem">
+      <bpmn:incoming>Flow_ProblemsDetected</bpmn:incoming>
+      <bpmn:outgoing>Flow_RPCreateTrouble</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_RPCreateTrouble" sourceRef="Task_RPAnalyze" targetRef="Task_RPCreateTroubleReport" />
+    <bpmn:task id="Task_RPCreateTroubleReport" name="Create trouble report">
+      <bpmn:incoming>Flow_RPCreateTrouble</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToStatusMerge</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:parallelGateway id="Gateway_StatusMerge" name="Merge Status Inputs">
+      <bpmn:incoming>Flow_ToStatusMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreateStatusReport</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="Flow_CreateStatusReport" sourceRef="Gateway_StatusMerge" targetRef="Task_CreateStatusReport" />
+    <bpmn:task id="Task_CreateStatusReport" name="Include in status report and send back to Service Management">
+      <bpmn:incoming>Flow_CreateStatusReport</bpmn:incoming>
+      <bpmn:outgoing>Flow_SMPrepareFinal</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SMPrepareFinal" sourceRef="Task_CreateStatusReport" targetRef="Task_SMPrepareFinalStatus" />
+    <bpmn:task id="Task_SMPrepareFinalStatus" name="Service Management prepares final status report">
+      <bpmn:incoming>Flow_SMPrepareFinal</bpmn:incoming>
+      <bpmn:outgoing>Flow_DetermineCounterMeasuresFinal</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_DetermineCounterMeasuresFinal" sourceRef="Task_SMPrepareFinalStatus" targetRef="Gateway_FinalDecision" />
+    <bpmn:exclusiveGateway id="Gateway_FinalDecision" name="Determine Counter Measures">
+      <bpmn:incoming>Flow_DetermineCounterMeasuresFinal</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoProblem</bpmn:outgoing>
+      <bpmn:outgoing>Flow_MinorCorrective</bpmn:outgoing>
+      <bpmn:outgoing>Flow_AutoRestoration</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Path 1: No Problem -->
+    <bpmn:sequenceFlow id="Flow_NoProblem" name="No problem detected" sourceRef="Gateway_FinalDecision" targetRef="Task_SendPerformanceToCS" />
+    <bpmn:task id="Task_SendPerformanceToCS" name="Send actual service performance to Customer Service">
+      <bpmn:incoming>Flow_NoProblem</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCSMerge</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Path 2: Minor Corrective Actions -->
+    <bpmn:sequenceFlow id="Flow_MinorCorrective" name="Minor corrective actions required" sourceRef="Gateway_FinalDecision" targetRef="Task_SMUndertakeActions" />
+    <bpmn:task id="Task_SMUndertakeActions" name="Service Management undertakes corrective actions">
+      <bpmn:incoming>Flow_MinorCorrective</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreateResolutionReport</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_CreateResolutionReport" sourceRef="Task_SMUndertakeActions" targetRef="Task_CreateProblemResolutionReport" />
+    <bpmn:task id="Task_CreateProblemResolutionReport" name="Create problem resolution report">
+      <bpmn:incoming>Flow_CreateResolutionReport</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendResolutionToCS</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SendResolutionToCS" sourceRef="Task_CreateProblemResolutionReport" targetRef="Task_SendResolutionToCS" />
+    <bpmn:task id="Task_SendResolutionToCS" name="Send problem resolution report to Customer Service">
+      <bpmn:incoming>Flow_SendResolutionToCS</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCSMerge</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Path 3: Automatic Resource Restoration -->
+    <bpmn:sequenceFlow id="Flow_AutoRestoration" name="Automatic resource restoration required" sourceRef="Gateway_FinalDecision" targetRef="Task_SMCreateRestorationRequest" />
+    <bpmn:task id="Task_SMCreateRestorationRequest" name="Service Management creates request for automatic resource restoration">
+      <bpmn:incoming>Flow_AutoRestoration</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendRestorationReq</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SendRestorationReq" sourceRef="Task_SMCreateRestorationRequest" targetRef="Task_SendRestorationToRP" />
+    <bpmn:task id="Task_SendRestorationToRP" name="Send restoration request to Resource Provisioning">
+      <bpmn:incoming>Flow_SendRestorationReq</bpmn:incoming>
+      <bpmn:outgoing>Flow_RPWait</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_RPWait" name="Wait for restoration request (max 2 days)">
+      <bpmn:incoming>Flow_RPWait</bpmn:incoming>
+      <bpmn:outgoing>Flow_RPReceived</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration>PT2D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_RPReceived" sourceRef="Event_RPWait" targetRef="Task_RPTrackErrors" />
+    <bpmn:task id="Task_RPTrackErrors" name="Resource Provisioning tracks all possible errors">
+      <bpmn:incoming>Flow_RPReceived</bpmn:incoming>
+      <bpmn:outgoing>Flow_RPCorrectiveActions</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_RPCorrectiveActions" sourceRef="Task_RPTrackErrors" targetRef="Task_RPUndertakeActions" />
+    <bpmn:task id="Task_RPUndertakeActions" name="Resource Provisioning undertakes necessary corrective actions">
+      <bpmn:incoming>Flow_RPCorrectiveActions</bpmn:incoming>
+      <bpmn:outgoing>Flow_RPCreateTroubleshoot</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_RPCreateTroubleshoot" sourceRef="Task_RPUndertakeActions" targetRef="Task_RPCreateTroubleshootReport" />
+    <bpmn:task id="Task_RPCreateTroubleshootReport" name="Create trouble-shooting report">
+      <bpmn:incoming>Flow_RPCreateTroubleshoot</bpmn:incoming>
+      <bpmn:outgoing>Flow_RPSendToSM</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_RPSendToSM" sourceRef="Task_RPCreateTroubleshootReport" targetRef="Task_RPSendTroubleshootToSM" />
+    <bpmn:task id="Task_RPSendTroubleshootToSM" name="Send trouble-shooting report to Service Management">
+      <bpmn:incoming>Flow_RPSendToSM</bpmn:incoming>
+      <bpmn:outgoing>Flow_SMReceiveTroubleshoot</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SMReceiveTroubleshoot" sourceRef="Task_RPSendTroubleshootToSM" targetRef="Task_SMUseForResolution" />
+    <bpmn:task id="Task_SMUseForResolution" name="Service Management uses info for problem resolution report">
+      <bpmn:incoming>Flow_SMReceiveTroubleshoot</bpmn:incoming>
+      <bpmn:outgoing>Flow_SMCreateFinalResolution</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SMCreateFinalResolution" sourceRef="Task_SMUseForResolution" targetRef="Task_SMCreateFinalResolutionReport" />
+    <bpmn:task id="Task_SMCreateFinalResolutionReport" name="Create problem resolution report">
+      <bpmn:incoming>Flow_SMCreateFinalResolution</bpmn:incoming>
+      <bpmn:outgoing>Flow_SMSendFinalResolution</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SMSendFinalResolution" sourceRef="Task_SMCreateFinalResolutionReport" targetRef="Task_SMSendFinalResolutionToCS" />
+    <bpmn:task id="Task_SMSendFinalResolutionToCS" name="Send problem resolution report to Customer Service">
+      <bpmn:incoming>Flow_SMSendFinalResolution</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCSMerge</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Merge to Customer Service -->
+    <bpmn:parallelGateway id="Gateway_CSMerge" name="Merge to Customer Service">
+      <bpmn:incoming>Flow_ToCSMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_CSParallelStart</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="Flow_ToCSMerge" sourceRef="Task_SendPerformanceToCS" targetRef="Gateway_CSMerge" />
+    <bpmn:sequenceFlow id="Flow_ToCSMerge2" sourceRef="Task_SendResolutionToCS" targetRef="Gateway_CSMerge" />
+    <bpmn:sequenceFlow id="Flow_ToCSMerge3" sourceRef="Task_SMSendFinalResolutionToCS" targetRef="Gateway_CSMerge" />
+    
+    <bpmn:sequenceFlow id="Flow_CSParallelStart" sourceRef="Gateway_CSMerge" targetRef="Gateway_CSParallelSplit" />
+    <bpmn:parallelGateway id="Gateway_CSParallelSplit" name="Split Concurrent Activities">
+      <bpmn:incoming>Flow_CSParallelStart</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreateCustomerReport</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ReportRebate</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <bpmn:sequenceFlow id="Flow_CreateCustomerReport" sourceRef="Gateway_CSParallelSplit" targetRef="Task_CreateCustomerReport" />
+    <bpmn:task id="Task_CreateCustomerReport" name="Create report for customer (service performance + resolution)">
+      <bpmn:incoming>Flow_CreateCustomerReport</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendCustomerReport</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SendCustomerReport" sourceRef="Task_CreateCustomerReport" targetRef="Task_SendReportToCustomer" />
+    <bpmn:task id="Task_SendReportToCustomer" name="Send report to customer">
+      <bpmn:incoming>Flow_SendCustomerReport</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCSEndMerge</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_ReportRebate" sourceRef="Gateway_CSParallelSplit" targetRef="Task_ReportRebate" />
+    <bpmn:task id="Task_ReportRebate" name="Report SLA violation rebate to Billing &amp; Collections">
+      <bpmn:incoming>Flow_ReportRebate</bpmn:incoming>
+      <bpmn:outgoing>Flow_BillingAdjust</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_BillingAdjust" sourceRef="Task_ReportRebate" targetRef="Task_BillingAdjust" />
+    <bpmn:task id="Task_BillingAdjust" name="Billing &amp; Collections adjusts billing">
+      <bpmn:incoming>Flow_BillingAdjust</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCSEndMerge</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:parallelGateway id="Gateway_CSEndMerge" name="End Merge">
+      <bpmn:incoming>Flow_ToCSEndMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEnd</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="Flow_ToCSEndMerge" sourceRef="Task_SendReportToCustomer" targetRef="Gateway_CSEndMerge" />
+    <bpmn:sequenceFlow id="Flow_ToCSEndMerge2" sourceRef="Task_BillingAdjust" targetRef="Gateway_CSEndMerge" />
+    
+    <bpmn:sequenceFlow id="Flow_ToEnd" sourceRef="Gateway_CSEndMerge" targetRef="EndEvent_ProcessEnd" />
+    <bpmn:endEvent id="EndEvent_ProcessEnd" name="Process Ends">
+      <bpmn:incoming>Flow_ToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_Evanstonian_RoomService"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- Collaboration definition with Pools and Lanes -->
+  <bpmn:collaboration id="Collaboration_RoomService">
+    <bpmn:participant id="Participant_Hotel" name="The Evanstonian - Room Service Process" processRef="Process_RoomService" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_RoomService" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Manager" name="Room-Service Manager">
+        <bpmn:flowNodeRef>StartEvent_OrderReceived</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TakeOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ForkManagerTasks</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SubmitKitchenOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_AlcoholicBev</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_OrderWine</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_MergeManagerTasks</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AssignWaiter</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Kitchen" name="Kitchen">
+        <bpmn:flowNodeRef>Task_PrepareFood</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Sommelier" name="Sommelier">
+        <bpmn:flowNodeRef>Task_FetchWine</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Waiter" name="Waiter">
+        <bpmn:flowNodeRef>Gateway_ForkParallelPrep</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReadyCart</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PrepareNonAlcoholic</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_JoinParallelPrep</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DeliverOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_DebitAccount</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_OrderCompleted</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Manager Nodes -->
+    <bpmn:startEvent id="StartEvent_OrderReceived" name="Guest order received">
+      <bpmn:outgoing>SequenceFlow_To_TakeOrder</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_TakeOrder" name="Take down order">
+      <bpmn:incoming>SequenceFlow_To_TakeOrder</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_ForkManagerTasks</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:parallelGateway id="Gateway_ForkManagerTasks">
+      <bpmn:incoming>SequenceFlow_To_ForkManagerTasks</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_SubmitKitchen</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_To_AlcoholicCheck</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:task id="Task_SubmitKitchenOrder" name="Submit order ticket to kitchen">
+      <bpmn:incoming>SequenceFlow_To_SubmitKitchen</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_PrepareFood</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_AlcoholicBev" name="Includes alcoholic beverages?">
+      <bpmn:incoming>SequenceFlow_To_AlcoholicCheck</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_AlcoholicYes</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_AlcoholicNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_OrderWine" name="Give order to sommelier">
+      <bpmn:incoming>SequenceFlow_AlcoholicYes</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_FetchWine</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_MergeManagerTasks">
+      <bpmn:incoming>SequenceFlow_From_FetchWine</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_AlcoholicNo</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_JoinManagerTasks</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_AssignWaiter" name="Assign order to waiter">
+      <bpmn:incoming>SequenceFlow_To_JoinManagerTasks</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_ForkParallelPrep</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Kitchen Nodes -->
+    <bpmn:task id="Task_PrepareFood" name="Prepare food">
+      <bpmn:incoming>SequenceFlow_To_PrepareFood</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_From_PrepareFood</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Sommelier Nodes -->
+    <bpmn:task id="Task_FetchWine" name="Fetch wine and prepare alcoholic drinks">
+      <bpmn:incoming>SequenceFlow_To_FetchWine</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_From_FetchWine</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Waiter Nodes -->
+    <bpmn:parallelGateway id="Gateway_ForkParallelPrep">
+      <bpmn:incoming>SequenceFlow_To_ForkParallelPrep</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_ReadyCart</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_To_PrepNonAlc</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:task id="Task_ReadyCart" name="Ready cart (tablecloth &#38; silverware)">
+      <bpmn:incoming>SequenceFlow_To_ReadyCart</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_From_ReadyCart</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_PrepareNonAlcoholic" name="Prepare nonalcoholic drinks">
+      <bpmn:incoming>SequenceFlow_To_PrepNonAlc</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_From_PrepNonAlc</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:parallelGateway id="Gateway_JoinParallelPrep">
+      <bpmn:incoming>SequenceFlow_From_PrepareFood</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_From_ReadyCart</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_From_PrepNonAlc</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_DeliverOrder</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:task id="Task_DeliverOrder" name="Deliver order to guest's room">
+      <bpmn:incoming>SequenceFlow_To_DeliverOrder</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_DebitAccount</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_DebitAccount" name="Debit guest's account">
+      <bpmn:incoming>SequenceFlow_To_DebitAccount</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_To_EndEvent</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_OrderCompleted" name="Order completed">
+      <bpmn:incoming>SequenceFlow_To_EndEvent</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="SequenceFlow_To_TakeOrder" sourceRef="StartEvent_OrderReceived" targetRef="Task_TakeOrder" />
+    <bpmn:sequenceFlow id="SequenceFlow_To_ForkManagerTasks" sourceRef="Task_TakeOrder" targetRef="Gateway_ForkManagerTasks" />
+    
+    <!-- Manager Parallel Paths -->
+    <bpmn:sequenceFlow id="SequenceFlow_To_SubmitKitchen" sourceRef="Gateway_ForkManagerTasks" targetRef="Task_SubmitKitchenOrder" />
+    <bpmn:sequenceFlow id="SequenceFlow_To_AlcoholicCheck" sourceRef="Gateway_ForkManagerTasks" targetRef="Gateway_AlcoholicBev" />
+    
+    <!-- Kitchen Path -->
+    <bpmn:sequenceFlow id="SequenceFlow_To_PrepareFood" sourceRef="Task_SubmitKitchenOrder" targetRef="Task_PrepareFood" />
+    <bpmn:sequenceFlow id="SequenceFlow_From_PrepareFood" sourceRef="Task_PrepareFood" targetRef="Gateway_JoinParallelPrep" />
+
+    <!-- Alcoholic Beverage Decision Paths -->
+    <bpmn:sequenceFlow id="SequenceFlow_AlcoholicYes" name="Yes (80%)" sourceRef="Gateway_AlcoholicBev" targetRef="Task_OrderWine">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_AlcoholicNo" name="No (20%)" sourceRef="Gateway_AlcoholicBev" targetRef="Gateway_MergeManagerTasks">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Sommelier Path -->
+    <bpmn:sequenceFlow id="SequenceFlow_To_FetchWine" sourceRef="Task_OrderWine" targetRef="Task_FetchWine" />
+    <bpmn:sequenceFlow id="SequenceFlow_From_FetchWine" sourceRef="Task_FetchWine" targetRef="Gateway_MergeManagerTasks" />
+    
+    <!-- Manager Assign Waiter Path -->
+    <bpmn:sequenceFlow id="SequenceFlow_To_JoinManagerTasks" sourceRef="Gateway_MergeManagerTasks" targetRef="Task_AssignWaiter" />
+    <bpmn:sequenceFlow id="SequenceFlow_To_ForkParallelPrep" sourceRef="Task_AssignWaiter" targetRef="Gateway_ForkParallelPrep" />
+
+    <!-- Waiter Paths -->
+    <bpmn:sequenceFlow id="SequenceFlow_To_ReadyCart" sourceRef="Gateway_ForkParallelPrep" targetRef="Task_ReadyCart" />
+    <bpmn:sequenceFlow id="SequenceFlow_To_PrepNonAlc" sourceRef="Gateway_ForkParallelPrep" targetRef="Task_PrepareNonAlcoholic" />
+    
+    <bpmn:sequenceFlow id="SequenceFlow_From_ReadyCart" sourceRef="Task_ReadyCart" targetRef="Gateway_JoinParallelPrep" />
+    <bpmn:sequenceFlow id="SequenceFlow_From_PrepNonAlc" sourceRef="Task_PrepareNonAlcoholic" targetRef="Gateway_JoinParallelPrep" />
+
+    <bpmn:sequenceFlow id="SequenceFlow_To_DeliverOrder" sourceRef="Gateway_JoinParallelPrep" targetRef="Task_DeliverOrder" />
+    <bpmn:sequenceFlow id="SequenceFlow_To_DebitAccount" sourceRef="Task_DeliverOrder" targetRef="Task_DebitAccount" />
+    <bpmn:sequenceFlow id="SequenceFlow_To_EndEvent" sourceRef="Task_DebitAccount" targetRef="EndEvent_OrderCompleted" />
+
+  </bpmn:process>
+
+  <!-- BPMN Diagram Layout -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_RoomService">
+      <bpmndi:BPMNShape id="Participant_Hotel_di" bpmnElement="Participant_Hotel" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1440" height="700" />
+      </bpmndi:BPMNShape>
+
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1410" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Kitchen_di" bpmnElement="Lane_Kitchen" isHorizontal="true">
+        <dc:Bounds x="190" y="280" width="1410" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Sommelier_di" bpmnElement="Lane_Sommelier" isHorizontal="true">
+        <dc:Bounds x="190" y="430" width="1410" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Waiter_di" bpmnElement="Lane_Waiter" isHorizontal="true">
+        <dc:Bounds x="190" y="580" width="1410" height="200" />
+      </bpmndi:BPMNShape>
+
+      <!-- Manager Elements -->
+      <bpmndi:BPMNShape id="StartEvent_OrderReceived_di" bpmnElement="StartEvent_OrderReceived">
+        <dc:Bounds x="232" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="221" y="195" width="59" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TakeOrder_di" bpmnElement="Task_TakeOrder">
+        <dc:Bounds x="310" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ForkManagerTasks_di" bpmnElement="Gateway_ForkManagerTasks" isMarkerVisible="true">
+        <dc:Bounds x="445" y="145" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SubmitKitchenOrder_di" bpmnElement="Task_SubmitKitchenOrder">
+        <dc:Bounds x="530" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_AlcoholicBev_di" bpmnElement="Gateway_AlcoholicBev" isMarkerVisible="true">
+        <dc:Bounds x="535" y="185" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="525" y="242" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_OrderWine_di" bpmnElement="Task_OrderWine">
+        <dc:Bounds x="630" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MergeManagerTasks_di" bpmnElement="Gateway_MergeManagerTasks" isMarkerVisible="true">
+        <dc:Bounds x="765" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AssignWaiter_di" bpmnElement="Task_AssignWaiter">
+        <dc:Bounds x="840" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Kitchen Elements -->
+      <bpmndi:BPMNShape id="Task_PrepareFood_di" bpmnElement="Task_PrepareFood">
+        <dc:Bounds x="670" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Sommelier Elements -->
+      <bpmndi:BPMNShape id="Task_FetchWine_di" bpmnElement="Task_FetchWine">
+        <dc:Bounds x="670" y="465" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Waiter Elements -->
+      <bpmndi:BPMNShape id="Gateway_ForkParallelPrep_di" bpmnElement="Gateway_ForkParallelPrep" isMarkerVisible="true">
+        <dc:Bounds x="865" y="655" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReadyCart_di" bpmnElement="Task_ReadyCart">
+        <dc:Bounds x="950" y="600" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PrepareNonAlcoholic_di" bpmnElement="Task_PrepareNonAlcoholic">
+        <dc:Bounds x="950" y="690" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_JoinParallelPrep_di" bpmnElement="Gateway_JoinParallelPrep" isMarkerVisible="true">
+        <dc:Bounds x="1105" y="655" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_DeliverOrder_di" bpmnElement="Task_DeliverOrder">
+        <dc:Bounds x="1200" y="640" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_DebitAccount_di" bpmnElement="Task_DebitAccount">
+        <dc:Bounds x="1340" y="640" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_OrderCompleted_di" bpmnElement="EndEvent_OrderCompleted">
+        <dc:Bounds x="1482" y="662" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1459" y="705" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Flow Edges -->
+      <bpmndi:BPMNEdge id="SequenceFlow_To_TakeOrder_di" bpmnElement="SequenceFlow_To_TakeOrder">
+        <di:waypoint x="268" y="170" />
+        <di:waypoint x="310" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_ForkManagerTasks_di" bpmnElement="SequenceFlow_To_ForkManagerTasks">
+        <di:waypoint x="410" y="170" />
+        <di:waypoint x="445" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_SubmitKitchen_di" bpmnElement="SequenceFlow_To_SubmitKitchen">
+        <di:waypoint x="470" y="145" />
+        <di:waypoint x="470" y="140" />
+        <di:waypoint x="530" y="140" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_AlcoholicCheck_di" bpmnElement="SequenceFlow_To_AlcoholicCheck">
+        <di:waypoint x="470" y="195" />
+        <di:waypoint x="470" y="210" />
+        <di:waypoint x="535" y="210" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_PrepareFood_di" bpmnElement="SequenceFlow_To_PrepareFood">
+        <di:waypoint x="630" y="140" />
+        <di:waypoint x="650" y="140" />
+        <di:waypoint x="650" y="350" />
+        <di:waypoint x="670" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_AlcoholicYes_di" bpmnElement="SequenceFlow_AlcoholicYes">
+        <di:waypoint x="585" y="210" />
+        <di:waypoint x="630" y="210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="581" y="192" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_AlcoholicNo_di" bpmnElement="SequenceFlow_AlcoholicNo">
+        <di:waypoint x="560" y="185" />
+        <di:waypoint x="560" y="160" />
+        <di:waypoint x="790" y="160" />
+        <di:waypoint x="790" y="185" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="567" y="142" width="45" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_FetchWine_di" bpmnElement="SequenceFlow_To_FetchWine">
+        <di:waypoint x="680" y="250" />
+        <di:waypoint x="680" y="358" />
+        <di:waypoint x="720" y="358" />
+        <di:waypoint x="720" y="465" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_From_FetchWine_di" bpmnElement="SequenceFlow_From_FetchWine">
+        <di:waypoint x="770" y="505" />
+        <di:waypoint x="790" y="505" />
+        <di:waypoint x="790" y="235" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_JoinManagerTasks_di" bpmnElement="SequenceFlow_To_JoinManagerTasks">
+        <di:waypoint x="815" y="210" />
+        <di:waypoint x="828" y="210" />
+        <di:waypoint x="828" y="170" />
+        <di:waypoint x="840" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_ForkParallelPrep_di" bpmnElement="SequenceFlow_To_ForkParallelPrep">
+        <di:waypoint x="890" y="210" />
+        <di:waypoint x="890" y="655" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_ReadyCart_di" bpmnElement="SequenceFlow_To_ReadyCart">
+        <di:waypoint x="890" y="655" />
+        <di:waypoint x="890" y="640" />
+        <di:waypoint x="950" y="640" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_PrepNonAlc_di" bpmnElement="SequenceFlow_To_PrepNonAlc">
+        <di:waypoint x="890" y="705" />
+        <di:waypoint x="890" y="730" />
+        <di:waypoint x="950" y="730" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_From_PrepareFood_di" bpmnElement="SequenceFlow_From_PrepareFood">
+        <di:waypoint x="770" y="350" />
+        <di:waypoint x="1130" y="350" />
+        <di:waypoint x="1130" y="655" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_From_ReadyCart_di" bpmnElement="SequenceFlow_From_ReadyCart">
+        <di:waypoint x="1050" y="640" />
+        <di:waypoint x="1130" y="640" />
+        <di:waypoint x="1130" y="655" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_From_PrepNonAlc_di" bpmnElement="SequenceFlow_From_PrepNonAlc">
+        <di:waypoint x="1050" y="730" />
+        <di:waypoint x="1130" y="730" />
+        <di:waypoint x="1130" y="705" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_DeliverOrder_di" bpmnElement="SequenceFlow_To_DeliverOrder">
+        <di:waypoint x="1155" y="680" />
+        <di:waypoint x="1200" y="680" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_DebitAccount_di" bpmnElement="SequenceFlow_To_DebitAccount">
+        <di:waypoint x="1300" y="680" />
+        <di:waypoint x="1340" y="680" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To_EndEvent_di" bpmnElement="SequenceFlow_To_EndEvent">
+        <di:waypoint x="1440" y="680" />
+        <di:waypoint x="1482" y="680" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_support_officer_part" name="Support Officer" processRef="pool_support_officer_proc" />
+    <bpmn:participant id="pool_committee_members_part" name="Committee Members" processRef="pool_committee_members_proc" />
+    <bpmn:participant id="pool_coordination_unit_part" name="Coordination Unit" processRef="pool_coordination_unit_proc" />
+    <bpmn:messageFlow id="msg_flow_1" sourceRef="evt_msg_meeting_prep_done" targetRef="evt_recv_meeting_prep_done" name="Meeting Prep Notification" />
+    <bpmn:messageFlow id="msg_flow_2" sourceRef="evt_msg_minutes_ready" targetRef="evt_recv_minutes_ready" name="Draft Minutes" />
+    <bpmn:messageFlow id="msg_flow_3" sourceRef="evt_msg_qa_approved" targetRef="evt_recv_qa_approved" name="Approved Minutes" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_support_officer_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_documents" name="Meeting Documents" dataObjectRef="data_documents_do" />
+    <bpmn:dataObject id="data_documents_do" />
+    <bpmn:dataObjectReference id="data_minutes_draft_p1" name="Draft Minutes with Action Points" dataObjectRef="data_minutes_draft_p1_do" />
+    <bpmn:dataObject id="data_minutes_draft_p1_do" />
+    <bpmn:dataObjectReference id="data_minutes_approved_p1" name="Approved Minutes" dataObjectRef="data_minutes_approved_p1_do" />
+    <bpmn:dataObject id="data_minutes_approved_p1_do" />
+    <bpmn:startEvent id="evt_start_dates_finalized" name="Dates Finalized">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_records_updated" name="Records Updated">
+      <bpmn:incoming>flow_12</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_meeting_prep_done" name="Meeting Preparation Complete">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_meeting_prep_done_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_minutes_ready" name="Minutes Ready for QA">
+      <bpmn:incoming>flow_7</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_minutes_ready_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_recv_qa_approved" name="Receive Approved Minutes">
+      <bpmn:outgoing>flow_11</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_recv_qa_approved_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:userTask id="task_update_calendars_folders" name="Update Calendars and Create Folders">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_update_calendars_folders_doa0">
+        <bpmn:targetRef>data_documents</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_upload_documents" name="Upload Documents to System">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:property id="task_upload_documents_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_upload_documents_dia0">
+        <bpmn:sourceRef>data_documents</bpmn:sourceRef>
+        <bpmn:targetRef>task_upload_documents_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_produce_minutes" name="Produce Minutes and Action Points">
+      <bpmn:incoming>flow_6</bpmn:incoming>
+      <bpmn:outgoing>flow_7</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_produce_minutes_doa0">
+        <bpmn:targetRef>data_minutes_draft_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_update_departmental_records" name="Update Departmental Records">
+      <bpmn:incoming>flow_11</bpmn:incoming>
+      <bpmn:outgoing>flow_12</bpmn:outgoing>
+      <bpmn:property id="task_update_departmental_records_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_update_departmental_records_dia0">
+        <bpmn:sourceRef>data_minutes_approved_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_update_departmental_records_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="evt_start_dates_finalized" targetRef="task_update_calendars_folders" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_update_calendars_folders" targetRef="task_upload_documents" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="task_upload_documents" targetRef="evt_msg_meeting_prep_done" />
+    <bpmn:sequenceFlow id="flow_7" sourceRef="task_produce_minutes" targetRef="evt_msg_minutes_ready" />
+    <bpmn:sequenceFlow id="flow_11" sourceRef="evt_recv_qa_approved" targetRef="task_update_departmental_records" />
+    <bpmn:sequenceFlow id="flow_12" sourceRef="task_update_departmental_records" targetRef="evt_end_records_updated" />
+  </bpmn:process>
+  <bpmn:process id="pool_committee_members_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_documents_p1" name="Meeting Documents" dataObjectRef="data_documents_p1_do" />
+    <bpmn:dataObject id="data_documents_p1_do" />
+    <bpmn:dataObjectReference id="data_minutes_draft" name="Draft Minutes with Action Points" dataObjectRef="data_minutes_draft_do" />
+    <bpmn:dataObject id="data_minutes_draft_do" />
+    <bpmn:intermediateThrowEvent id="evt_recv_meeting_prep_done" name="Receive Meeting Prep Notification">
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_recv_meeting_prep_done_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:manualTask id="task_read_documents" name="Read Related Documents">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+      <bpmn:outgoing>flow_5</bpmn:outgoing>
+      <bpmn:property id="task_read_documents_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_read_documents_dia0">
+        <bpmn:sourceRef>data_documents_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_read_documents_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_hold_meeting" name="Hold Committee Meeting">
+      <bpmn:incoming>flow_5</bpmn:incoming>
+      <bpmn:outgoing>flow_6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_hold_meeting_doa0">
+        <bpmn:targetRef>data_minutes_draft</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="flow_4" sourceRef="evt_recv_meeting_prep_done" targetRef="task_read_documents" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="task_read_documents" targetRef="task_hold_meeting" />
+  </bpmn:process>
+  <bpmn:process id="pool_coordination_unit_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_minutes_draft_p2" name="Draft Minutes with Action Points" dataObjectRef="data_minutes_draft_p2_do" />
+    <bpmn:dataObject id="data_minutes_draft_p2_do" />
+    <bpmn:dataObjectReference id="data_minutes_approved" name="Approved Minutes" dataObjectRef="data_minutes_approved_do" />
+    <bpmn:dataObject id="data_minutes_approved_do" />
+    <bpmn:intermediateThrowEvent id="evt_recv_minutes_ready" name="Receive Draft Minutes">
+      <bpmn:outgoing>flow_8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_recv_minutes_ready_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_qa_approved" name="QA Approved Minutes">
+      <bpmn:incoming>flow_10</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_qa_approved_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:userTask id="task_qa_check_minutes" name="Conduct QA Check on Minutes">
+      <bpmn:incoming>flow_8</bpmn:incoming>
+      <bpmn:outgoing>flow_9</bpmn:outgoing>
+      <bpmn:property id="task_qa_check_minutes_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_qa_check_minutes_dia0">
+        <bpmn:sourceRef>data_minutes_draft_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_qa_check_minutes_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_qa_check_minutes_doa0">
+        <bpmn:targetRef>data_minutes_approved</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_send_minutes_to_members" name="Send Minutes to Committee Members">
+      <bpmn:incoming>flow_9</bpmn:incoming>
+      <bpmn:outgoing>flow_10</bpmn:outgoing>
+      <bpmn:property id="task_send_minutes_to_members_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_send_minutes_to_members_dia0">
+        <bpmn:sourceRef>data_minutes_approved</bpmn:sourceRef>
+        <bpmn:targetRef>task_send_minutes_to_members_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="flow_8" sourceRef="evt_recv_minutes_ready" targetRef="task_qa_check_minutes" />
+    <bpmn:sequenceFlow id="flow_9" sourceRef="task_qa_check_minutes" targetRef="task_send_minutes_to_members" />
+    <bpmn:sequenceFlow id="flow_10" sourceRef="task_send_minutes_to_members" targetRef="evt_msg_qa_approved" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_support_officer_part_di" bpmnElement="pool_support_officer_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="950" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_committee_members_part_di" bpmnElement="pool_committee_members_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_coordination_unit_part_di" bpmnElement="pool_coordination_unit_part" isHorizontal="true">
+        <dc:Bounds x="120" y="960" width="950" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_records_updated_di" bpmnElement="evt_end_records_updated">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_meeting_prep_done_di" bpmnElement="evt_msg_meeting_prep_done">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_minutes_ready_di" bpmnElement="evt_msg_minutes_ready">
+        <dc:Bounds x="350" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_qa_approved_di" bpmnElement="evt_msg_qa_approved">
+        <dc:Bounds x="730" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_recv_meeting_prep_done_di" bpmnElement="evt_recv_meeting_prep_done">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_recv_minutes_ready_di" bpmnElement="evt_recv_minutes_ready">
+        <dc:Bounds x="160" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_recv_qa_approved_di" bpmnElement="evt_recv_qa_approved">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_dates_finalized_di" bpmnElement="evt_start_dates_finalized">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_hold_meeting_di" bpmnElement="task_hold_meeting">
+        <dc:Bounds x="540" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_produce_minutes_di" bpmnElement="task_produce_minutes">
+        <dc:Bounds x="160" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_qa_check_minutes_di" bpmnElement="task_qa_check_minutes">
+        <dc:Bounds x="350" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_read_documents_di" bpmnElement="task_read_documents">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_minutes_to_members_di" bpmnElement="task_send_minutes_to_members">
+        <dc:Bounds x="540" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_update_calendars_folders_di" bpmnElement="task_update_calendars_folders">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_update_departmental_records_di" bpmnElement="task_update_departmental_records">
+        <dc:Bounds x="350" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_upload_documents_di" bpmnElement="task_upload_documents">
+        <dc:Bounds x="540" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_documents_di" bpmnElement="data_documents">
+        <dc:Bounds x="465" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_minutes_draft_p1_di" bpmnElement="data_minutes_draft_p1">
+        <dc:Bounds x="180" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_minutes_approved_p1_di" bpmnElement="data_minutes_approved_p1">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_documents_p1_di" bpmnElement="data_documents_p1">
+        <dc:Bounds x="370" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_minutes_draft_di" bpmnElement="data_minutes_draft">
+        <dc:Bounds x="560" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_minutes_draft_p2_di" bpmnElement="data_minutes_draft_p2">
+        <dc:Bounds x="370" y="1160" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_minutes_approved_di" bpmnElement="data_minutes_approved">
+        <dc:Bounds x="465" y="1160" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="590" y="265" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="590" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="590" y="725" />
+        <di:waypoint x="210" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_7_di" bpmnElement="flow_7">
+        <di:waypoint x="210" y="390" />
+        <di:waypoint x="368" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_8_di" bpmnElement="flow_8">
+        <di:waypoint x="178" y="1038" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_9_di" bpmnElement="flow_9">
+        <di:waypoint x="400" y="1060" />
+        <di:waypoint x="590" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_10_di" bpmnElement="flow_10">
+        <di:waypoint x="590" y="1060" />
+        <di:waypoint x="748" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_11_di" bpmnElement="flow_11">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_12_di" bpmnElement="flow_12">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_1_di" bpmnElement="msg_flow_1">
+        <di:waypoint x="748" y="118" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_2_di" bpmnElement="msg_flow_2">
+        <di:waypoint x="368" y="118" />
+        <di:waypoint x="178" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_3_di" bpmnElement="msg_flow_3">
+        <di:waypoint x="748" y="1038" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_calendars_folders_doa0_di" bpmnElement="task_update_calendars_folders_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="483" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_upload_documents_dia0_di" bpmnElement="task_upload_documents_dia0">
+        <di:waypoint x="483" y="515" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_read_documents_dia0_di" bpmnElement="task_read_documents_dia0">
+        <di:waypoint x="388" y="850" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_hold_meeting_doa0_di" bpmnElement="task_hold_meeting_doa0">
+        <di:waypoint x="590" y="725" />
+        <di:waypoint x="578" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_produce_minutes_doa0_di" bpmnElement="task_produce_minutes_doa0">
+        <di:waypoint x="210" y="390" />
+        <di:waypoint x="198" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_qa_check_minutes_dia0_di" bpmnElement="task_qa_check_minutes_dia0">
+        <di:waypoint x="388" y="1185" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_qa_check_minutes_doa0_di" bpmnElement="task_qa_check_minutes_doa0">
+        <di:waypoint x="400" y="1060" />
+        <di:waypoint x="483" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_minutes_to_members_dia0_di" bpmnElement="task_send_minutes_to_members_dia0">
+        <di:waypoint x="483" y="1185" />
+        <di:waypoint x="590" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_departmental_records_dia0_di" bpmnElement="task_update_departmental_records_dia0">
+        <di:waypoint x="388" y="515" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

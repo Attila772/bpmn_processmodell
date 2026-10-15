@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_ExpenseProcess" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="ExpenseReimbursementProcess" name="Expense Reimbursement Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_SubmitReport" name="Submit Expense Report">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="EndEvent_PaymentConfirmed" name="Payment Confirmed">
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_AutoCheckRules" name="Automated Rule Check">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_RulesResult" name="Rules Result">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_SupervisorReview" name="Supervisor Review">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_SupervisorDecision" name="Supervisor Decision">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_EmployeeEdit" name="Employee Edit Report">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_SubmitReport" targetRef="Task_AutoCheckRules" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_AutoCheckRules" targetRef="Gateway_RulesResult" />
+    <bpmn:sequenceFlow id="Flow_3" name="Auto Approved" sourceRef="Task_AutoCheckRules" targetRef="Task_TreasurerCheck" />
+    <bpmn:sequenceFlow id="Flow_4" name="Approved by Rules" sourceRef="Gateway_RulesResult" targetRef="Task_TreasurerCheck" />
+    <bpmn:sequenceFlow id="Flow_5" name="Requires Manual Review" sourceRef="Gateway_RulesResult" targetRef="Task_SupervisorReview" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_SupervisorReview" targetRef="Gateway_SupervisorDecision" />
+    <bpmn:sequenceFlow id="Flow_7" name="Rejected" sourceRef="Gateway_SupervisorDecision" targetRef="Task_EmployeeEdit" />
+    <bpmn:sequenceFlow id="Flow_8" name="Approved" sourceRef="Gateway_SupervisorDecision" targetRef="Task_TreasurerCheck" />
+    <bpmn:sequenceFlow id="Flow_9" name="Sent Back for Correction" sourceRef="Gateway_SupervisorDecision" targetRef="Task_EmployeeEdit" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_EmployeeEdit" targetRef="Task_SupervisorReview" />
+    <bpmn:task id="Task_TreasurerCheck" name="Treasurer Checks Receipts">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_TreasurerDecision" name="Receipts Valid?">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_TreasurerCheck" targetRef="Gateway_TreasurerDecision" />
+    <bpmn:sequenceFlow id="Flow_12" name="Missing/Mismatch - Return to Supervisor Path" sourceRef="Gateway_TreasurerDecision" targetRef="Task_SupervisorReview" />
+    <bpmn:sequenceFlow id="Flow_13" name="All in Order" sourceRef="Gateway_TreasurerDecision" targetRef="Task_LinkToPaymentSystem" />
+    <bpmn:sequenceFlow id="Flow_14" name="Return to Employee" sourceRef="Gateway_TreasurerDecision" targetRef="Task_EmployeeEdit" />
+    <bpmn:task id="Task_LinkToPaymentSystem" name="Link to Payment System">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_WaitForPayment" name="Wait for Payment Confirmation">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_PaymentConfirmation" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_LinkToPaymentSystem" targetRef="Event_WaitForPayment" />
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="Event_WaitForPayment" targetRef="EndEvent_PaymentConfirmed" />
+  </bpmn:process>
+  <bpmn:message id="Message_PaymentConfirmation" name="Payment Confirmation" />
+</bpmn:definitions>

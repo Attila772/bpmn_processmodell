@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://www.example.org/bpmn"
+             id="EquipmentChangeDefinitions">
+
+  <collaboration id="collaboration_1">
+    <participant id="participant_mpon" name="MPON" processRef="process_mpon" />
+    <participant id="participant_mpoo" name="MPOO" processRef="process_mpoo" />
+    <participant id="participant_go" name="GO" processRef="process_go" />
+    <participant id="participant_msp" name="MSP" processRef="process_msp" />
+
+    <messageFlow id="mf_1" name="Equipment Change Intention" sourceRef="task_notify_intention" targetRef="start_mpoo" />
+    <messageFlow id="mf_2" name="Self-Dismounting Announcement" sourceRef="task_mpoo_announce_self" targetRef="event_rcv_dismount_response" />
+    <messageFlow id="mf_3" name="No Self-Dismounting Notification" sourceRef="task_mpoo_notify_no_self" targetRef="event_rcv_dismount_response" />
+    <messageFlow id="mf_4" name="Final Reading Values" sourceRef="task_mpon_send_final_reading" targetRef="event_go_rcv_final_reading" />
+    <messageFlow id="mf_5" name="Device Changes, Master Data &amp; Meter Count (Install)" sourceRef="task_mpon_tell_go_changes" targetRef="event_go_rcv_device_changes" />
+    <messageFlow id="mf_6" name="Device Changes, Master Data &amp; Meter Counts (Dismount &amp; Install)" sourceRef="task_go_notify_msp" targetRef="start_msp" />
+  </collaboration>
+
+  <process id="process_mpon" isExecutable="false">
+    <startEvent id="start_mpon" name="Equipment change required">
+      <outgoing">seq_mpon_1</outgoing>
+    </startEvent>
+
+    <sendTask id="task_notify_intention" name="Notify MPOO about equipment change intentions">
+      <incoming>seq_mpon_1</incoming>
+      <outgoing>seq_mpon_2</outgoing>
+    </sendTask>
+
+    <eventBasedGateway id="ev_gtw_dismount_resp" name="Wait for MPOO decision">
+      <incoming>seq_mpon_2</incoming>
+      <outgoing>seq_mpon_3</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="event_rcv_dismount_response" name="Receive dismounting decision">
+      <incoming>seq_mpon_3</incoming>
+      <outgoing>seq_mpon_5</outgoing>
+      <messageEventDefinition id="med_1" />
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="gtw_mpoo_dismounts" name="MPOO self dismounts?">
+      <incoming>seq_mpon_5</incoming>
+      <outgoing>seq_mpoo_dismounts_yes</outgoing>
+      <outgoing>seq_mpoo_dismounts_no</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_mpon_read" name="Perform final reading">
+      <incoming>seq_mpoo_dismounts_no</incoming>
+      <outgoing>seq_mpon_6</outgoing>
+    </task>
+
+    <task id="task_mpon_dismount" name="Dismount old equipment">
+      <incoming>seq_mpon_6</incoming>
+      <outgoing>seq_mpon_7</outgoing>
+    </task>
+
+    <exclusiveGateway id="gtw_dismount_merge">
+      <incoming>seq_mpoo_dismounts_yes</incoming>
+      <incoming>seq_mpon_7</incoming>
+      <outgoing>seq_mpon_8</outgoing>
+    </exclusiveGateway>
+
+    <task id="task_mpon_mount" name="Mount new device">
+      <incoming>seq_mpon_8</incoming>
+      <outgoing>seq_mpon_9</outgoing>
+    </task>
+
+    <task id="task_mpon_read_new" name="Read meter count from installed meter">
+      <incoming>seq_mpon_9</incoming>
+      <outgoing>seq_mpon_10</outgoing>
+    </task>
+
+    <sendTask id="task_mpon_send_final_reading" name="Send values of final reading to GO">
+      <incoming>seq_mpon_10</incoming>
+      <outgoing>seq_mpon_11</outgoing>
+    </sendTask>
+
+    <sendTask id="task_mpon_tell_go_changes" name="Tell GO about device changes, master data and meter count at installation">
+      <incoming>seq_mpon_11</incoming>
+      <outgoing>seq_mpon_12</outgoing>
+    </sendTask>
+
+    <endEvent id="end_mpon" name="Equipment change completed by MPON">
+      <incoming>seq_mpon_12</incoming>
+    </endEvent>
+
+    <sequenceFlow id="seq_mpon_1" sourceRef="start_mpon" targetRef="task_notify_intention" />
+    <sequenceFlow id="seq_mpon_2" sourceRef="task_notify_intention" targetRef="ev_gtw_dismount_resp" />
+    <sequenceFlow id="seq_mpon_3" sourceRef="ev_gtw_dismount_resp" targetRef="event_rcv_dismount_response" />
+    <sequenceFlow id="seq_mpon_5" sourceRef="event_rcv_dismount_response" targetRef="gtw_mpoo_dismounts" />
+    <sequenceFlow id="seq_mpoo_dismounts_yes" name="Yes" sourceRef="gtw_mpoo_dismounts" targetRef="gtw_dismount_merge" />
+    <sequenceFlow id="seq_mpoo_dismounts_no" name="No" sourceRef="gtw_mpoo_dismounts" targetRef="task_mpon_read" />
+    <sequenceFlow id="seq_mpon_6" sourceRef="task_mpon_read" targetRef="task_mpon_dismount" />
+    <sequenceFlow id="seq_mpon_7" sourceRef="task_mpon_dismount" targetRef="gtw_dismount_merge" />
+    <sequenceFlow id="seq_mpon_8" sourceRef="gtw_dismount_merge" targetRef="task_mpon_mount" />
+    <sequenceFlow id="seq_mpon_9" sourceRef="task_mpon_mount" targetRef="task_mpon_read_new" />
+    <sequenceFlow id="seq_mpon_10" sourceRef="task_mpon_read_new" targetRef="task_mpon_send_final_reading" />
+    <sequenceFlow id="seq_mpon_11" sourceRef="task_mpon_send_final_reading" targetRef="task_mpon_tell_go_changes" />
+    <sequenceFlow id="seq_mpon_12" sourceRef="task_mpon_tell_go_changes" targetRef="end_mpon" />
+  </process>
+
+  <process id="process_mpoo" isExecutable="false">
+    <startEvent id="start_mpoo" name="Equipment change intention received">
+      <outgoing>seq_mpoo_1</outgoing>
+      <messageEventDefinition id="med_2" />
+    </startEvent>
+
+    <exclusiveGateway id="gtw_mpoo_decision" name="Decide on self-dismounting">
+      <incoming>seq_mpoo_1</incoming>
+      <outgoing>seq_mpoo_self</outgoing>
+      <outgoing>seq_mpoo_noself</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="task_mpoo_announce_self" name="Announce self dismounting to MPON">
+      <incoming>seq_mpoo_self</incoming>
+      <outgoing>seq_mpoo_2</outgoing>
+    </sendTask>
+
+    <sendTask id="task_mpoo_notify_no_self" name="Notify MPON about no self-dismounting">
+      <incoming>seq_mpoo_noself</incoming>
+      <outgoing>seq_mpoo_3</outgoing>
+    </sendTask>
+
+    <task id="task_mpoo_read" name="Perform final reading">
+      <incoming>seq_mpoo_2</incoming>
+      <outgoing>seq_mpoo_4</outgoing>
+    </task>
+
+    <task id="task_mpoo_dismount" name="Dismount old equipment">
+      <incoming>seq_mpoo_4</incoming>
+      <outgoing>seq_mpoo_5</outgoing>
+    </task>
+
+    <exclusiveGateway id="gtw_mpoo_end">
+      <incoming>seq_mpoo_3</incoming>
+      <incoming>seq_mpoo_5</incoming>
+      <outgoing>seq_mpoo_6</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="end_mpoo" name="MPOO action finished">
+      <incoming>seq_mpoo_6</incoming>
+    </endEvent>
+
+    <sequenceFlow id="seq_mpoo_1" sourceRef="start_mpoo" targetRef="gtw_mpoo_decision" />
+    <sequenceFlow id="seq_mpoo_self" name="Self dismounting" sourceRef="gtw_mpoo_decision" targetRef="task_mpoo_announce_self" />
+    <sequenceFlow id="seq_mpoo_noself" name="No self dismounting" sourceRef="gtw_mpoo_decision" targetRef="task_mpoo_notify_no_self" />
+    <sequenceFlow id="seq_mpoo_2" sourceRef="task_mpoo_announce_self" targetRef="task_mpoo_read" />
+    <sequenceFlow id="seq_mpoo_3" sourceRef="task_mpoo_notify_no_self" targetRef="gtw_mpoo_end" />
+    <sequenceFlow id="seq_mpoo_4" sourceRef="task_mpoo_read" targetRef="task_mpoo_dismount" />
+    <sequenceFlow id="seq_mpoo_5" sourceRef="task_mpoo_dismount" targetRef="gtw_mpoo_end" />
+    <sequenceFlow id="seq_mpoo_6" sourceRef="gtw_mpoo_end" targetRef="end_mpoo" />
+  </process>
+
+  <process id="process_go" isExecutable="false">
+    <startEvent id="event_go_rcv_final_reading" name="Receive final reading values">
+      <outgoing>seq_go_1</outgoing>
+      <messageEventDefinition id="med_3" />
+    </startEvent>
+
+    <intermediateCatchEvent id="event_go_rcv_device_changes" name="Receive device changes, master data and meter count at installation">
+      <incoming>seq_go_1</incoming>
+      <outgoing>seq_go_2</outgoing>
+      <messageEventDefinition id="med_4" />
+    </intermediateCatchEvent>
+
+    <sendTask id="task_go_notify_msp" name="Notify MSP about device changes, master data, meter count at dismounting, and meter count at installation">
+      <incoming>seq_go_2</incoming>
+      <outgoing>seq_go_3</outgoing>
+    </sendTask>
+
+    <endEvent id="end_go" name="GO notifications processed">
+      <incoming>seq_go_3</incoming>
+    </endEvent>
+
+    <sequenceFlow id="seq_go_1" sourceRef="event_go_rcv_final_reading" targetRef="event_go_rcv_device_changes" />
+    <sequenceFlow id="seq_go_2" sourceRef="event_go_rcv_device_changes" targetRef="task_go_notify_msp" />
+    <sequenceFlow id="seq_go_3" sourceRef="task_go_notify_msp" targetRef="end_go" />
+  </process>
+
+  <process id="process_msp" isExecutable="false">
+    <startEvent id="start_msp" name="Receive device changes, master data, and meter counts">
+      <outgoing>seq_msp_1</outgoing>
+      <messageEventDefinition id="med_5" />
+    </startEvent>
+
+    <endEvent id="end_msp" name="MSP process completed">
+      <incoming>seq_msp_1</incoming>
+    </endEvent>
+
+    <sequenceFlow id="seq_msp_1" sourceRef="start_msp" targetRef="end_msp" />
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="collaboration_1">
+      <!-- MPON Pool -->
+      <bpmndi:BPMNShape id="shape_participant_mpon" bpmnElement="participant_mpon" isHorizontal="true">
+        <omgdc:Bounds x="160" y="80" width="1680" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_start_mpon" bpmnElement="start_mpon">
+        <omgdc:Bounds x="210" y="180" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="186" y="223" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_notify_intention" bpmnElement="task_notify_intention">
+        <omgdc:Bounds x="290" y="158" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_ev_gtw_dismount_resp" bpmnElement="ev_gtw_dismount_resp">
+        <omgdc:Bounds x="440" y="173" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="431" y="136" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_rcv_dismount_response" bpmnElement="event_rcv_dismount_response">
+        <omgdc:Bounds x="530" y="180" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="506" y="223" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gtw_mpoo_dismounts" bpmnElement="gtw_mpoo_dismounts" isMarkerVisible="true">
+        <omgdc:Bounds x="610" y="173" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="605" y="136" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_read" bpmnElement="task_mpon_read">
+        <omgdc:Bounds x="700" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_dismount" bpmnElement="task_mpon_dismount">
+        <omgdc:Bounds x="830" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gtw_dismount_merge" bpmnElement="gtw_dismount_merge" isMarkerVisible="true">
+        <omgdc:Bounds x="965" y="173" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_mount" bpmnElement="task_mpon_mount">
+        <omgdc:Bounds x="1050" y="158" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_read_new" bpmnElement="task_mpon_read_new">
+        <omgdc:Bounds x="1190" y="158" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_send_final_reading" bpmnElement="task_mpon_send_final_reading">
+        <omgdc:Bounds x="1340" y="158" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpon_tell_go_changes" bpmnElement="task_mpon_tell_go_changes">
+        <omgdc:Bounds x="1490" y="158" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_mpon" bpmnElement="end_mpon">
+        <omgdc:Bounds x="1660" y="180" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1635" y="223" width="87" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- MPOO Pool -->
+      <bpmndi:BPMNShape id="shape_participant_mpoo" bpmnElement="participant_mpoo" isHorizontal="true">
+        <omgdc:Bounds x="160" y="400" width="1680" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_start_mpoo" bpmnElement="start_mpoo">
+        <omgdc:Bounds x="327" y="500" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="303" y="543" width="85" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gtw_mpoo_decision" bpmnElement="gtw_mpoo_decision" isMarkerVisible="true">
+        <omgdc:Bounds x="415" y="493" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="401" y="550" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpoo_announce_self" bpmnElement="task_mpoo_announce_self">
+        <omgdc:Bounds x="510" y="420" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpoo_notify_no_self" bpmnElement="task_mpoo_notify_no_self">
+        <omgdc:Bounds x="510" y="540" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpoo_read" bpmnElement="task_mpoo_read">
+        <omgdc:Bounds x="660" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_mpoo_dismount" bpmnElement="task_mpoo_dismount">
+        <omgdc:Bounds x="790" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gtw_mpoo_end" bpmnElement="gtw_mpoo_end" isMarkerVisible="true">
+        <omgdc:Bounds x="925" y="493" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_mpoo" bpmnElement="end_mpoo">
+        <omgdc:Bounds x="1022" y="500" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1006" y="543" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- GO Pool -->
+      <bpmndi:BPMNShape id="shape_participant_go" bpmnElement="participant_go" isHorizontal="true">
+        <omgdc:Bounds x="160" y="700" width="1680" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_go_rcv_final_reading" bpmnElement="event_go_rcv_final_reading">
+        <omgdc:Bounds x="1377" y="780" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1361" y="823" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_event_go_rcv_device_changes" bpmnElement="event_go_rcv_device_changes">
+        <omgdc:Bounds x="1532" y="780" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1508" y="823" width="85" height="66" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_go_notify_msp" bpmnElement="task_go_notify_msp">
+        <omgdc:Bounds x="1610" y="758" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_go" bpmnElement="end_go">
+        <omgdc:Bounds x="1762" y="780" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1740" y="823" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- MSP Pool -->
+      <bpmndi:BPMNShape id="shape_participant_msp" bpmnElement="participant_msp" isHorizontal="true">
+        <omgdc:Bounds x="160" y="940" width="1680" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_start_msp" bpmnElement="start_msp">
+        <omgdc:Bounds x="1647" y="1010" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1624" y="1053" width="82" height="53" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_msp" bpmnElement="end_msp">
+        <omgdc:Bounds x="1742" y="1010" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1726" y="1053" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flows MPON -->
+      <bpmndi:BPMNEdge id="edge_seq_mpon_1" bpmnElement="seq_mpon_1">
+        <omgdi:waypoint x="246" y="198" />
+        <omgdi:waypoint x="290" y="198" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_2" bpmnElement="seq_mpon_2">
+        <omgdi:waypoint x="400" y="198" />
+        <omgdi:waypoint x="440" y="198" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_3" bpmnElement="seq_mpon_3">
+        <omgdi:waypoint x="490" y="198" />
+        <omgdi:waypoint x="530" y="198" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_5" bpmnElement="seq_mpon_5">
+        <omgdi:waypoint x="566" y="198" />
+        <omgdi:waypoint x="610" y="198" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_dismounts_yes" bpmnElement="seq_mpoo_dismounts_yes">
+        <omgdi:waypoint x="660" y="198" />
+        <omgdi:waypoint x="965" y="198" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="803" y="180" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_dismounts_no" bpmnElement="seq_mpoo_dismounts_no">
+        <omgdi:waypoint x="635" y="223" />
+        <omgdi:waypoint x="635" y="270" />
+        <omgdi:waypoint x="700" y="270" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="643" y="244" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_6" bpmnElement="seq_mpon_6">
+        <omgdi:waypoint x="800" y="270" />
+        <omgdi:waypoint x="830" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_7" bpmnElement="seq_mpon_7">
+        <omgdi:waypoint x="930" y="270" />
+        <omgdi:waypoint x="990" y="270" />
+        <omgdi:waypoint x="990" y="223" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_8" bpmnElement="seq_mpon_8">
+        <omgdi:waypoint x="1015" y="198" />
+        <omgdi:waypoint x="1050" y="198" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_9" bpmnElement="seq_mpon_9">
+        <omgdi:waypoint x="1150" y="198" />
+        <omgdi:waypoint x="1190" y="198" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_10" bpmnElement="seq_mpon_10">
+        <omgdi:waypoint x="1300" y="198" />
+        <omgdi:waypoint x="1340" y="198" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_11" bpmnElement="seq_mpon_11">
+        <omgdi:waypoint x="1450" y="198" />
+        <omgdi:waypoint x="1490" y="198" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpon_12" bpmnElement="seq_mpon_12">
+        <omgdi:waypoint x="1610" y="198" />
+        <omgdi:waypoint x="1660" y="198" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Sequence Flows MPOO -->
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_1" bpmnElement="seq_mpoo_1">
+        <omgdi:waypoint x="363" y="518" />
+        <omgdi:waypoint x="415" y="518" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_self" bpmnElement="seq_mpoo_self">
+        <omgdi:waypoint x="440" y="493" />
+        <omgdi:waypoint x="440" y="460" />
+        <omgdi:waypoint x="510" y="460" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="428" y="433" width="83" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_noself" bpmnElement="seq_mpoo_noself">
+        <omgdi:waypoint x="440" y="543" />
+        <omgdi:waypoint x="440" y="580" />
+        <omgdi:waypoint x="510" y="580" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="431" y="588" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_2" bpmnElement="seq_mpoo_2">
+        <omgdi:waypoint x="620" y="460" />
+        <omgdi:waypoint x="660" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_3" bpmnElement="seq_mpoo_3">
+        <omgdi:waypoint x="620" y="580" />
+        <omgdi:waypoint x="950" y="580" />
+        <omgdi:waypoint x="950" y="543" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_4" bpmnElement="seq_mpoo_4">
+        <omgdi:waypoint x="760" y="460" />
+        <omgdi:waypoint x="790" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_5" bpmnElement="seq_mpoo_5">
+        <omgdi:waypoint x="890" y="460" />
+        <omgdi:waypoint x="950" y="460" />
+        <omgdi:waypoint x="950" y="493" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_mpoo_6" bpmnElement="seq_mpoo_6">
+        <omgdi:waypoint x="975" y="518" />
+        <omgdi:waypoint x="1022" y="518" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Sequence Flows GO -->
+      <bpmndi:BPMNEdge id="edge_seq_go_1" bpmnElement="seq_go_1">
+        <omgdi:waypoint x="1413" y="798" />
+        <omgdi:waypoint x="1532" y="798" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_2" bpmnElement="seq_go_2">
+        <omgdi:waypoint x="1568" y="798" />
+        <omgdi:waypoint x="1610" y="798" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_seq_go_3" bpmnElement="seq_go_3">
+        <omgdi:waypoint x="1720" y="798" />
+        <omgdi:waypoint x="1762" y="798" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Sequence Flows MSP -->
+      <bpmndi:BPMNEdge id="edge_seq_msp_1" bpmnElement="seq_msp_1">
+        <omgdi:waypoint x="1683" y="1028" />
+        <omgdi:waypoint x="1742" y="1028" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Message Flows -->
+      <bpmndi:BPMNEdge id="edge_mf_1" bpmnElement="mf_1">
+        <omgdi:waypoint x="345" y="238" />
+        <omgdi:waypoint x="345" y="500" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="350" y="360" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_mf_2" bpmnElement="mf_2">
+        <omgdi:waypoint x="548" y="420" />
+        <omgdi:waypoint x="548" y="216" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="460" y="320" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_mf_3" bpmnElement="mf_3">
+        <omgdi:waypoint x="565" y="540" />
+        <omgdi:waypoint x="565" y="378" />
+        <omgdi:waypoint x="548" y="378" />
+        <omgdi:waypoint x="548" y="216" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="570" y="350" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_mf_4" bpmnElement="mf_4">
+        <omgdi:waypoint x="1395" y="238" />
+        <omgdi:waypoint x="1395" y="780" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1400" y="510" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_mf_5" bpmnElement="mf_5">
+        <omgdi:waypoint x="1550" y="238" />
+        <omgdi:waypoint x="1550" y="780" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1555" y="500" width="82" height="53" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_mf_6" bpmnElement="mf_6">
+        <omgdi:waypoint x="1665" y="838" />
+        <omgdi:waypoint x="1665" y="1010" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1670" y="910" width="82" height="53" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

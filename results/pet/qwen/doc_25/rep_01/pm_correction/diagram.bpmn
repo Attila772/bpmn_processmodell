@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_employee_part" name="Employee" processRef="pool_employee_proc" />
+    <bpmn:participant id="pool_supervisor_part" name="Supervisor" processRef="pool_supervisor_proc" />
+    <bpmn:participant id="pool_purchase_part" name="Purchase Department" processRef="pool_purchase_proc" />
+    <bpmn:messageFlow id="msg_flow_submit_to_register" sourceRef="task_submit_request" targetRef="task_register_request" name="Submit Request" />
+    <bpmn:messageFlow id="msg_flow_change_req" sourceRef="evt_msg_to_employee_change" targetRef="evt_msg_from_employee_change" name="Change Request Notification" />
+    <bpmn:messageFlow id="msg_flow_approved_req" sourceRef="evt_msg_to_purchase" targetRef="evt_msg_from_purchase" name="Approved Office Supply Request" />
+    <bpmn:messageFlow id="msg_flow_supervisor_change" sourceRef="gw_supervisor_decision" targetRef="evt_msg_to_employee_change" name="Ask for Change" />
+    <bpmn:messageFlow id="msg_flow_supervisor_approve" sourceRef="gw_supervisor_decision" targetRef="evt_msg_to_purchase" name="Approve" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_employee_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_request" name="Office Supply Request" dataObjectRef="data_request_do" />
+    <bpmn:dataObject id="data_request_do" />
+    <bpmn:startEvent id="evt_start_request" name="Request Submitted">
+      <bpmn:outgoing>flow_start_to_submit</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_to_employee_change" name="Send Change Request to Employee">
+      <bpmn:messageEventDefinition id="evt_msg_to_employee_change_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_from_employee_change" name="Receive Revised Request from Employee">
+      <bpmn:outgoing>flow_receive_change_to_review</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_employee_change_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:userTask id="task_submit_request" name="Submit Office Supply Request">
+      <bpmn:incoming>flow_start_to_submit</bpmn:incoming>
+      <bpmn:incoming>flow_review_to_submit_again</bpmn:incoming>
+      <bpmn:dataOutputAssociation id="task_submit_request_doa0">
+        <bpmn:targetRef>data_request</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_review_comments" name="Review Comments and Revise Request">
+      <bpmn:incoming>flow_receive_change_to_review</bpmn:incoming>
+      <bpmn:outgoing>flow_review_to_submit_again</bpmn:outgoing>
+      <bpmn:property id="task_review_comments_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_review_comments_dia0">
+        <bpmn:sourceRef>data_request</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_comments_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_review_comments_doa0">
+        <bpmn:targetRef>data_request</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_start_to_submit" sourceRef="evt_start_request" targetRef="task_submit_request" />
+    <bpmn:sequenceFlow id="flow_receive_change_to_review" sourceRef="evt_msg_from_employee_change" targetRef="task_review_comments" />
+    <bpmn:sequenceFlow id="flow_review_to_submit_again" sourceRef="task_review_comments" targetRef="task_submit_request" />
+  </bpmn:process>
+  <bpmn:process id="pool_supervisor_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_request_p1" name="Office Supply Request" dataObjectRef="data_request_p1_do" />
+    <bpmn:dataObject id="data_request_p1_do" />
+    <bpmn:endEvent id="evt_end_rejected" name="Process Ended (Rejected)">
+      <bpmn:incoming>flow_notify_to_end_rejected</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_register_request" name="Register Requirement">
+      <bpmn:outgoing>flow_register_to_supervisor</bpmn:outgoing>
+      <bpmn:property id="task_register_request_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_register_request_dia0">
+        <bpmn:sourceRef>data_request_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_register_request_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="task_supervisor_review" name="Review and Decide on Request">
+      <bpmn:incoming>flow_register_to_supervisor</bpmn:incoming>
+      <bpmn:outgoing>flow_supervisor_to_gw</bpmn:outgoing>
+      <bpmn:property id="task_supervisor_review_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_supervisor_review_dia0">
+        <bpmn:sourceRef>data_request_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_supervisor_review_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_send_notification_decision" name="Send Decision Notification">
+      <bpmn:incoming>flow_supervisor_reject</bpmn:incoming>
+      <bpmn:outgoing>flow_notify_to_end_rejected</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_supervisor_decision" name="Supervisor Decision" isMarkerVisible="true">
+      <bpmn:incoming>flow_supervisor_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_supervisor_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_register_to_supervisor" sourceRef="task_register_request" targetRef="task_supervisor_review" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_gw" sourceRef="task_supervisor_review" targetRef="gw_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_supervisor_reject" sourceRef="gw_supervisor_decision" targetRef="task_send_notification_decision" name="Reject" />
+    <bpmn:sequenceFlow id="flow_notify_to_end_rejected" sourceRef="task_send_notification_decision" targetRef="evt_end_rejected" />
+  </bpmn:process>
+  <bpmn:process id="pool_purchase_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_request_p2" name="Office Supply Request" dataObjectRef="data_request_p2_do" />
+    <bpmn:dataObject id="data_request_p2_do" />
+    <bpmn:dataObjectReference id="data_vendor_list" name="Quotation List" dataObjectRef="data_vendor_list_do" />
+    <bpmn:dataObject id="data_vendor_list_do" />
+    <bpmn:dataObjectReference id="data_selected_vendor" name="Selected Vendor" dataObjectRef="data_selected_vendor_do" />
+    <bpmn:dataObject id="data_selected_vendor_do" />
+    <bpmn:dataObjectReference id="data_purchase_order" name="Purchase Order" dataObjectRef="data_purchase_order_do" />
+    <bpmn:dataObject id="data_purchase_order_do" />
+    <bpmn:dataObjectReference id="data_invoice" name="Invoice" dataObjectRef="data_invoice_do" />
+    <bpmn:dataObject id="data_invoice_do" />
+    <bpmn:endEvent id="evt_end_completed" name="Process Completed">
+      <bpmn:incoming>flow_notify_to_end_completed</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_to_purchase" name="Send Approved Request to Purchase">
+      <bpmn:messageEventDefinition id="evt_msg_to_purchase_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_from_purchase" name="Receive Purchase Order Confirmation">
+      <bpmn:outgoing>flow_receive_purchase_to_quote</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_from_purchase_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:userTask id="task_make_quotations" name="Make Quotations">
+      <bpmn:incoming>flow_receive_purchase_to_quote</bpmn:incoming>
+      <bpmn:outgoing>flow_quote_to_select</bpmn:outgoing>
+      <bpmn:property id="task_make_quotations_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_make_quotations_dia0">
+        <bpmn:sourceRef>data_request_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_make_quotations_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_make_quotations_doa0">
+        <bpmn:targetRef>data_vendor_list</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_select_vendor" name="Select Vendor">
+      <bpmn:incoming>flow_quote_to_select</bpmn:incoming>
+      <bpmn:incoming>flow_vendor_invalid</bpmn:incoming>
+      <bpmn:outgoing>flow_select_to_validate</bpmn:outgoing>
+      <bpmn:property id="task_select_vendor_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_select_vendor_dia0">
+        <bpmn:sourceRef>data_vendor_list</bpmn:sourceRef>
+        <bpmn:targetRef>task_select_vendor_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_select_vendor_doa0">
+        <bpmn:targetRef>data_selected_vendor</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_validate_vendor" name="Validate Vendor in System">
+      <bpmn:incoming>flow_select_to_validate</bpmn:incoming>
+      <bpmn:outgoing>flow_validate_to_gw</bpmn:outgoing>
+      <bpmn:property id="task_validate_vendor_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_validate_vendor_dia0">
+        <bpmn:sourceRef>data_selected_vendor</bpmn:sourceRef>
+        <bpmn:targetRef>task_validate_vendor_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="task_generate_po" name="Generate and Send Purchase Order">
+      <bpmn:incoming>flow_vendor_valid</bpmn:incoming>
+      <bpmn:outgoing>flow_po_to_wait</bpmn:outgoing>
+      <bpmn:property id="task_generate_po_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_generate_po_dia0">
+        <bpmn:sourceRef>data_selected_vendor</bpmn:sourceRef>
+        <bpmn:targetRef>task_generate_po_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_generate_po_doa0">
+        <bpmn:targetRef>data_purchase_order</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:manualTask id="task_wait_delivery_invoice" name="Wait for Delivery and Invoice">
+      <bpmn:incoming>flow_po_to_wait</bpmn:incoming>
+      <bpmn:outgoing>flow_wait_to_notify</bpmn:outgoing>
+      <bpmn:property id="task_wait_delivery_invoice_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_wait_delivery_invoice_dia0">
+        <bpmn:sourceRef>data_purchase_order</bpmn:sourceRef>
+        <bpmn:targetRef>task_wait_delivery_invoice_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_wait_delivery_invoice_doa0">
+        <bpmn:targetRef>data_invoice</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:serviceTask id="task_send_final_notification" name="Send Final Result Notification">
+      <bpmn:incoming>flow_wait_to_notify</bpmn:incoming>
+      <bpmn:outgoing>flow_notify_to_end_completed</bpmn:outgoing>
+      <bpmn:property id="task_send_final_notification_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_send_final_notification_dia0">
+        <bpmn:sourceRef>data_invoice</bpmn:sourceRef>
+        <bpmn:targetRef>task_send_final_notification_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="gw_vendor_validity" name="Vendor Valid?" isMarkerVisible="true">
+      <bpmn:incoming>flow_validate_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_vendor_invalid</bpmn:outgoing>
+      <bpmn:outgoing>flow_vendor_valid</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_receive_purchase_to_quote" sourceRef="evt_msg_from_purchase" targetRef="task_make_quotations" />
+    <bpmn:sequenceFlow id="flow_quote_to_select" sourceRef="task_make_quotations" targetRef="task_select_vendor" />
+    <bpmn:sequenceFlow id="flow_select_to_validate" sourceRef="task_select_vendor" targetRef="task_validate_vendor" />
+    <bpmn:sequenceFlow id="flow_validate_to_gw" sourceRef="task_validate_vendor" targetRef="gw_vendor_validity" />
+    <bpmn:sequenceFlow id="flow_vendor_invalid" sourceRef="gw_vendor_validity" targetRef="task_select_vendor" name="Invalid" />
+    <bpmn:sequenceFlow id="flow_vendor_valid" sourceRef="gw_vendor_validity" targetRef="task_generate_po" name="Valid" />
+    <bpmn:sequenceFlow id="flow_po_to_wait" sourceRef="task_generate_po" targetRef="task_wait_delivery_invoice" />
+    <bpmn:sequenceFlow id="flow_wait_to_notify" sourceRef="task_wait_delivery_invoice" targetRef="task_send_final_notification" />
+    <bpmn:sequenceFlow id="flow_notify_to_end_completed" sourceRef="task_send_final_notification" targetRef="evt_end_completed" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_employee_part_di" bpmnElement="pool_employee_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_supervisor_part_di" bpmnElement="pool_supervisor_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="1140" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_purchase_part_di" bpmnElement="pool_purchase_part" isHorizontal="true">
+        <dc:Bounds x="120" y="960" width="1900" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_completed_di" bpmnElement="evt_end_completed">
+        <dc:Bounds x="1680" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_rejected_di" bpmnElement="evt_end_rejected">
+        <dc:Bounds x="920" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_employee_change_di" bpmnElement="evt_msg_from_employee_change">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_from_purchase_di" bpmnElement="evt_msg_from_purchase">
+        <dc:Bounds x="160" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_employee_change_di" bpmnElement="evt_msg_to_employee_change">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_purchase_di" bpmnElement="evt_msg_to_purchase">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_request_di" bpmnElement="evt_start_request">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_supervisor_decision_di" bpmnElement="gw_supervisor_decision">
+        <dc:Bounds x="540" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_vendor_validity_di" bpmnElement="gw_vendor_validity">
+        <dc:Bounds x="920" y="1020" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_generate_po_di" bpmnElement="task_generate_po">
+        <dc:Bounds x="1110" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_make_quotations_di" bpmnElement="task_make_quotations">
+        <dc:Bounds x="350" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_register_request_di" bpmnElement="task_register_request">
+        <dc:Bounds x="160" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_comments_di" bpmnElement="task_review_comments">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_select_vendor_di" bpmnElement="task_select_vendor">
+        <dc:Bounds x="1110" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_final_notification_di" bpmnElement="task_send_final_notification">
+        <dc:Bounds x="1490" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_notification_decision_di" bpmnElement="task_send_notification_decision">
+        <dc:Bounds x="730" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_submit_request_di" bpmnElement="task_submit_request">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_supervisor_review_di" bpmnElement="task_supervisor_review">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_validate_vendor_di" bpmnElement="task_validate_vendor">
+        <dc:Bounds x="730" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_wait_delivery_invoice_di" bpmnElement="task_wait_delivery_invoice">
+        <dc:Bounds x="1300" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_request_di" bpmnElement="data_request">
+        <dc:Bounds x="465" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_request_p1_di" bpmnElement="data_request_p1">
+        <dc:Bounds x="275" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_request_p2_di" bpmnElement="data_request_p2">
+        <dc:Bounds x="370" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_vendor_list_di" bpmnElement="data_vendor_list">
+        <dc:Bounds x="750" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_selected_vendor_di" bpmnElement="data_selected_vendor">
+        <dc:Bounds x="1003" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_purchase_order_di" bpmnElement="data_purchase_order">
+        <dc:Bounds x="1225" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_invoice_di" bpmnElement="data_invoice">
+        <dc:Bounds x="1415" y="1285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_submit_di" bpmnElement="flow_start_to_submit">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_register_to_supervisor_di" bpmnElement="flow_register_to_supervisor">
+        <di:waypoint x="210" y="725" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_to_gw_di" bpmnElement="flow_supervisor_to_gw">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="565" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_reject_di" bpmnElement="flow_supervisor_reject">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="780" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_notify_to_end_rejected_di" bpmnElement="flow_notify_to_end_rejected">
+        <di:waypoint x="780" y="725" />
+        <di:waypoint x="938" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_receive_change_to_review_di" bpmnElement="flow_receive_change_to_review">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_review_to_submit_again_di" bpmnElement="flow_review_to_submit_again">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_receive_purchase_to_quote_di" bpmnElement="flow_receive_purchase_to_quote">
+        <di:waypoint x="178" y="1038" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_quote_to_select_di" bpmnElement="flow_quote_to_select">
+        <di:waypoint x="400" y="1060" />
+        <di:waypoint x="1160" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_select_to_validate_di" bpmnElement="flow_select_to_validate">
+        <di:waypoint x="1160" y="1185" />
+        <di:waypoint x="780" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_validate_to_gw_di" bpmnElement="flow_validate_to_gw">
+        <di:waypoint x="780" y="1060" />
+        <di:waypoint x="945" y="1045" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_vendor_invalid_di" bpmnElement="flow_vendor_invalid">
+        <di:waypoint x="945" y="1045" />
+        <di:waypoint x="1160" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_vendor_valid_di" bpmnElement="flow_vendor_valid">
+        <di:waypoint x="945" y="1045" />
+        <di:waypoint x="1160" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_po_to_wait_di" bpmnElement="flow_po_to_wait">
+        <di:waypoint x="1160" y="1060" />
+        <di:waypoint x="1350" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_wait_to_notify_di" bpmnElement="flow_wait_to_notify">
+        <di:waypoint x="1350" y="1060" />
+        <di:waypoint x="1540" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_notify_to_end_completed_di" bpmnElement="flow_notify_to_end_completed">
+        <di:waypoint x="1540" y="1060" />
+        <di:waypoint x="1698" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_submit_to_register_di" bpmnElement="msg_flow_submit_to_register">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="210" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_change_req_di" bpmnElement="msg_flow_change_req">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_approved_req_di" bpmnElement="msg_flow_approved_req">
+        <di:waypoint x="178" y="1163" />
+        <di:waypoint x="178" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_supervisor_change_di" bpmnElement="msg_flow_supervisor_change">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_supervisor_approve_di" bpmnElement="msg_flow_supervisor_approve">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_request_doa0_di" bpmnElement="task_submit_request_doa0">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="483" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_request_dia0_di" bpmnElement="task_register_request_dia0">
+        <di:waypoint x="293" y="850" />
+        <di:waypoint x="210" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_supervisor_review_dia0_di" bpmnElement="task_supervisor_review_dia0">
+        <di:waypoint x="293" y="850" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_comments_dia0_di" bpmnElement="task_review_comments_dia0">
+        <di:waypoint x="483" y="515" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_comments_doa0_di" bpmnElement="task_review_comments_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="483" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_make_quotations_dia0_di" bpmnElement="task_make_quotations_dia0">
+        <di:waypoint x="388" y="1310" />
+        <di:waypoint x="400" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_make_quotations_doa0_di" bpmnElement="task_make_quotations_doa0">
+        <di:waypoint x="400" y="1060" />
+        <di:waypoint x="768" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_select_vendor_dia0_di" bpmnElement="task_select_vendor_dia0">
+        <di:waypoint x="768" y="1310" />
+        <di:waypoint x="1160" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_select_vendor_doa0_di" bpmnElement="task_select_vendor_doa0">
+        <di:waypoint x="1160" y="1185" />
+        <di:waypoint x="1021" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_validate_vendor_dia0_di" bpmnElement="task_validate_vendor_dia0">
+        <di:waypoint x="1021" y="1310" />
+        <di:waypoint x="780" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_generate_po_dia0_di" bpmnElement="task_generate_po_dia0">
+        <di:waypoint x="1021" y="1310" />
+        <di:waypoint x="1160" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_generate_po_doa0_di" bpmnElement="task_generate_po_doa0">
+        <di:waypoint x="1160" y="1060" />
+        <di:waypoint x="1243" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_wait_delivery_invoice_dia0_di" bpmnElement="task_wait_delivery_invoice_dia0">
+        <di:waypoint x="1243" y="1310" />
+        <di:waypoint x="1350" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_wait_delivery_invoice_doa0_di" bpmnElement="task_wait_delivery_invoice_doa0">
+        <di:waypoint x="1350" y="1060" />
+        <di:waypoint x="1433" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_final_notification_dia0_di" bpmnElement="task_send_final_notification_dia0">
+        <di:waypoint x="1433" y="1310" />
+        <di:waypoint x="1540" y="1060" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

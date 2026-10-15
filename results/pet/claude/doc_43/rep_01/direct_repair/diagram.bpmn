@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn"
+             exporter="BPMN Expert" exporterVersion="1.0">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_Expense" name="Expense Reimbursement Process" processRef="Process_Expense"/>
+  </collaboration>
+
+  <process id="Process_Expense" isExecutable="true">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Employee" name="Employee">
+        <flowNodeRef>StartEvent_1</flowNodeRef>
+        <flowNodeRef>Task_Purchase</flowNodeRef>
+        <flowNodeRef>Task_SubmitReport</flowNodeRef>
+        <flowNodeRef>Task_EditReport</flowNodeRef>
+      </lane>
+      <lane id="Lane_Supervisor" name="Supervisor">
+        <flowNodeRef>BRTask_EvaluateRules</flowNodeRef>
+        <flowNodeRef>Gateway_AutoDecision</flowNodeRef>
+        <flowNodeRef>UserTask_ManualReview</flowNodeRef>
+        <flowNodeRef>Gateway_ManualDecision</flowNodeRef>
+      </lane>
+      <lane id="Lane_Treasurer" name="Treasurer">
+        <flowNodeRef>Task_CheckReceipts</flowNodeRef>
+        <flowNodeRef>Gateway_ReceiptsMatch</flowNodeRef>
+        <flowNodeRef>Task_AcceptExpenses</flowNodeRef>
+      </lane>
+      <lane id="Lane_PaymentSystem" name="Payment System">
+        <flowNodeRef>ServiceTask_SubmitPayment</flowNodeRef>
+        <flowNodeRef>IntermediateCatchEvent_PaymentConfirmed</flowNodeRef>
+        <flowNodeRef>EndEvent_1</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <startEvent id="StartEvent_1" name="Need to Purchase">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_Purchase" name="Purchase product/service (e.g. rent a car)">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <task id="Task_SubmitReport" name="Submit expense report with receipts">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <businessRuleTask id="BRTask_EvaluateRules" name="Evaluate report against company expense rules">
+      <incoming>Flow_3</incoming>
+      <incoming>Flow_Loop</incoming>
+      <outgoing>Flow_4</outgoing>
+    </businessRuleTask>
+
+    <exclusiveGateway id="Gateway_AutoDecision" name="Automated decision?">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_Approved_Auto</outgoing>
+      <outgoing>Flow_Rejected_Auto</outgoing>
+      <outgoing>Flow_ManualNeeded</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="UserTask_ManualReview" name="Supervisor manually reviews expense report">
+      <incoming>Flow_ManualNeeded</incoming>
+      <outgoing>Flow_5</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="Gateway_ManualDecision" name="Manual decision?">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_Approved_Manual</outgoing>
+      <outgoing>Flow_Rejected_Manual</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_EditReport" name="Edit expense report">
+      <incoming>Flow_Rejected_Auto</incoming>
+      <incoming>Flow_Rejected_Manual</incoming>
+      <incoming>Flow_NoMatch</incoming>
+      <outgoing>Flow_Loop</outgoing>
+    </task>
+
+    <task id="Task_CheckReceipts" name="Check receipts match items on report">
+      <incoming>Flow_Approved_Auto</incoming>
+      <incoming>Flow_Approved_Manual</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_ReceiptsMatch" name="All receipts match?">
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_Match</outgoing>
+      <outgoing>Flow_NoMatch</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_AcceptExpenses" name="Accept expenses for processing (payment, accounting)">
+      <incoming>Flow_Match</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+
+    <serviceTask id="ServiceTask_SubmitPayment" name="Submit payment request to payment system">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_8</outgoing>
+    </serviceTask>
+
+    <intermediateCatchEvent id="IntermediateCatchEvent_PaymentConfirmed" name="Payment confirmation received">
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_9</outgoing>
+      <messageEventDefinition id="MessageEventDefinition_1"/>
+    </intermediateCatchEvent>
+
+    <endEvent id="EndEvent_1" name="Process ends">
+      <incoming>Flow_9</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Purchase"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_Purchase" targetRef="Task_SubmitReport"/>
+    <sequenceFlow id="Flow_3" sourceRef="Task_SubmitReport" targetRef="BRTask_EvaluateRules"/>
+    <sequenceFlow id="Flow_4" sourceRef="BRTask_EvaluateRules" targetRef="Gateway_AutoDecision"/>
+
+    <sequenceFlow id="Flow_Approved_Auto" name="Approved" sourceRef="Gateway_AutoDecision" targetRef="Task_CheckReceipts"/>
+    <sequenceFlow id="Flow_Rejected_Auto" name="Rejected" sourceRef="Gateway_AutoDecision" targetRef="Task_EditReport"/>
+    <sequenceFlow id="Flow_ManualNeeded" name="Requires manual review" sourceRef="Gateway_AutoDecision" targetRef="UserTask_ManualReview"/>
+
+    <sequenceFlow id="Flow_5" sourceRef="UserTask_ManualReview" targetRef="Gateway_ManualDecision"/>
+    <sequenceFlow id="Flow_Approved_Manual" name="Approved" sourceRef="Gateway_ManualDecision" targetRef="Task_CheckReceipts"/>
+    <sequenceFlow id="Flow_Rejected_Manual" name="Rejected" sourceRef="Gateway_ManualDecision" targetRef="Task_EditReport"/>
+
+    <sequenceFlow id="Flow_Loop" sourceRef="Task_EditReport" targetRef="BRTask_EvaluateRules"/>
+
+    <sequenceFlow id="Flow_6" sourceRef="Task_CheckReceipts" targetRef="Gateway_ReceiptsMatch"/>
+    <sequenceFlow id="Flow_Match" name="Yes" sourceRef="Gateway_ReceiptsMatch" targetRef="Task_AcceptExpenses"/>
+    <sequenceFlow id="Flow_NoMatch" name="No - missing/mismatched receipts" sourceRef="Gateway_ReceiptsMatch" targetRef="Task_EditReport"/>
+
+    <sequenceFlow id="Flow_7" sourceRef="Task_AcceptExpenses" targetRef="ServiceTask_SubmitPayment"/>
+    <sequenceFlow id="Flow_8" sourceRef="ServiceTask_SubmitPayment" targetRef="IntermediateCatchEvent_PaymentConfirmed"/>
+    <sequenceFlow id="Flow_9" sourceRef="IntermediateCatchEvent_PaymentConfirmed" targetRef="EndEvent_1"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Participant_Expense_di" bpmnElement="Participant_Expense" isHorizontal="true">
+        <omgdc:Bounds x="20" y="0" width="1650" height="700"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Employee_di" bpmnElement="Lane_Employee" isHorizontal="true">
+        <omgdc:Bounds x="50" y="0" width="1620" height="150"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Supervisor_di" bpmnElement="Lane_Supervisor" isHorizontal="true">
+        <omgdc:Bounds x="50" y="150" width="1620" height="170"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Treasurer_di" bpmnElement="Lane_Treasurer" isHorizontal="true">
+        <omgdc:Bounds x="50" y="320" width="1620" height="170"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_PaymentSystem_di" bpmnElement="Lane_PaymentSystem" isHorizontal="true">
+        <omgdc:Bounds x="50" y="490" width="1620" height="150"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="80" y="52" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Purchase_di" bpmnElement="Task_Purchase">
+        <omgdc:Bounds x="150" y="40" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SubmitReport_di" bpmnElement="Task_SubmitReport">
+        <omgdc:Bounds x="290" y="40" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_EditReport_di" bpmnElement="Task_EditReport">
+        <omgdc:Bounds x="730" y="40" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BRTask_EvaluateRules_di" bpmnElement="BRTask_EvaluateRules">
+        <omgdc:Bounds x="450" y="180" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_AutoDecision_di" bpmnElement="Gateway_AutoDecision">
+        <omgdc:Bounds x="590" y="195" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="UserTask_ManualReview_di" bpmnElement="UserTask_ManualReview">
+        <omgdc:Bounds x="670" y="180" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ManualDecision_di" bpmnElement="Gateway_ManualDecision">
+        <omgdc:Bounds x="810" y="195" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckReceipts_di" bpmnElement="Task_CheckReceipts">
+        <omgdc:Bounds x="1030" y="350" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ReceiptsMatch_di" bpmnElement="Gateway_ReceiptsMatch">
+        <omgdc:Bounds x="1170" y="365" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AcceptExpenses_di" bpmnElement="Task_AcceptExpenses">
+        <omgdc:Bounds x="1260" y="350" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="ServiceTask_SubmitPayment_di" bpmnElement="ServiceTask_SubmitPayment">
+        <omgdc:Bounds x="1400" y="520" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="IntermediateCatchEvent_PaymentConfirmed_di" bpmnElement="IntermediateCatchEvent_PaymentConfirmed">
+        <omgdc:Bounds x="1540" y="542" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <omgdc:Bounds x="1610" y="542" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="116" y="70"/>
+        <omgdi:waypoint x="150" y="80"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="250" y="80"/>
+        <omgdi:waypoint x="290" y="80"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <omgdi:waypoint x="340" y="120"/>
+        <omgdi:waypoint x="340" y="220"/>
+        <omgdi:waypoint x="450" y="220"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <omgdi:waypoint x="550" y="220"/>
+        <omgdi:waypoint x="590" y="220"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Approved_Auto_di" bpmnElement="Flow_Approved_Auto">
+        <omgdi:waypoint x="615" y="245"/>
+        <omgdi:waypoint x="615" y="390"/>
+        <omgdi:waypoint x="1030" y="390"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Rejected_Auto_di" bpmnElement="Flow_Rejected_Auto">
+        <omgdi:waypoint x="615" y="195"/>
+        <omgdi:waypoint x="615" y="80"/>
+        <omgdi:waypoint x="730" y="80"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ManualNeeded_di" bpmnElement="Flow_ManualNeeded">
+        <omgdi:waypoint x="640" y="220"/>
+        <omgdi:waypoint x="670" y="220"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <omgdi:waypoint x="770" y="220"/>
+        <omgdi:waypoint x="810" y="220"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Approved_Manual_di" bpmnElement="Flow_Approved_Manual">
+        <omgdi:waypoint x="835" y="245"/>
+        <omgdi:waypoint x="835" y="390"/>
+        <omgdi:waypoint x="1030" y="390"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Rejected_Manual_di" bpmnElement="Flow_Rejected_Manual">
+        <omgdi:waypoint x="835" y="195"/>
+        <omgdi:waypoint x="835" y="80"/>
+        <omgdi:waypoint x="830" y="80"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Loop_di" bpmnElement="Flow_Loop">
+        <omgdi:waypoint x="780" y="120"/>
+        <omgdi:waypoint x="780" y="150"/>
+        <omgdi:waypoint x="500" y="150"/>
+        <omgdi:waypoint x="500" y="180"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <omgdi:waypoint x="1130" y="390"/>
+        <omgdi:waypoint x="1170" y="390"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Match_di" bpmnElement="Flow_Match">
+        <omgdi:waypoint x="1220" y="390"/>
+        <omgdi:waypoint x="1260" y="390"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NoMatch_di" bpmnElement="Flow_NoMatch">
+        <omgdi:waypoint x="1195" y="365"/>
+        <omgdi:waypoint x="1195" y="80"/>
+        <omgdi:waypoint x="830" y="80"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <omgdi:waypoint x="1360" y="390"/>
+        <omgdi:waypoint x="1450" y="390"/>
+        <omgdi:waypoint x="1450" y="520"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <omgdi:waypoint x="1500" y="560"/>
+        <omgdi:waypoint x="1540" y="560"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <omgdi:waypoint x="1576" y="560"/>
+        <omgdi:waypoint x="1610" y="560"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

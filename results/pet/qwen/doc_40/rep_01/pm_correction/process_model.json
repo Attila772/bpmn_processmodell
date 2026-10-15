@@ -1,0 +1,240 @@
+{
+  "name": "SCT Warrant Possession Process",
+  "resources": [
+    {
+      "name": "Client Service Back Office",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "Queensland Police",
+      "capacity": 1,
+      "resource_type": "external_party"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_request",
+      "name": "Warrant possession request received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Warrant possession request"
+    },
+    {
+      "id": "evt_end_send_warrant",
+      "name": "SCT Warrant Possession sent to Police",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "SCT Warrant Possession"
+    },
+    {
+      "id": "evt_start_report_received",
+      "name": "Police report received",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Police Report"
+    },
+    {
+      "id": "evt_end_file_handover",
+      "name": "Physical SCT file handed over to internal staff",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_retrieve_sct",
+      "name": "Retrieve SCT file",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_sct_physical_file"
+      ]
+    },
+    {
+      "id": "task_store_awaiting_report",
+      "name": "Store SCT physical file awaiting report",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_sct_physical_file"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_retrieve_file_after_report",
+      "name": "Retrieve respective SCT file",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_sct_physical_file"
+      ]
+    },
+    {
+      "id": "task_attach_and_store",
+      "name": "Attach new SCT document and store expanded file",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Client Service Back Office",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_sct_physical_file",
+        "data_new_sct_document"
+      ],
+      "output_data_ids": [
+        "data_expanded_sct_physical_file"
+      ]
+    }
+  ],
+  "gateways": [],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start_request",
+      "target_id": "task_retrieve_sct",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_retrieve_sct",
+      "target_id": "task_store_awaiting_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "task_store_awaiting_report",
+      "target_id": "evt_start_report_received",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "evt_start_report_received",
+      "target_id": "task_retrieve_file_after_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_5",
+      "source_id": "task_retrieve_file_after_report",
+      "target_id": "task_attach_and_store",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "task_attach_and_store",
+      "target_id": "evt_end_file_handover",
+      "condition_name": null
+    },
+    {
+      "id": "flow_7",
+      "source_id": "task_retrieve_sct",
+      "target_id": "evt_end_send_warrant",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_back_office",
+      "name": "Client Service Back Office (Small Claims Registry Operations)",
+      "element_ids": [
+        "evt_start_request",
+        "task_retrieve_sct",
+        "task_store_awaiting_report",
+        "evt_end_send_warrant",
+        "evt_start_report_received",
+        "task_retrieve_file_after_report",
+        "task_attach_and_store",
+        "evt_end_file_handover"
+      ]
+    },
+    {
+      "id": "pool_police",
+      "name": "Queensland Police",
+      "element_ids": []
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_1",
+      "source_id": "evt_end_send_warrant",
+      "target_id": "evt_start_report_received",
+      "name": "SCT Warrant Possession / Police Report"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_sct_physical_file",
+      "name": "SCT physical file"
+    },
+    {
+      "id": "data_new_sct_document",
+      "name": "New SCT document"
+    },
+    {
+      "id": "data_expanded_sct_physical_file",
+      "name": "Expanded SCT physical file"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             id="definitions_IPO_Process"
+             targetNamespace="http://www.example.org/bpmn">
+
+  <collaboration id="collaboration_1">
+    <participant id="participant_company" name="Company" processRef="process_company" />
+    <participant id="participant_underwriters" name="Underwriters" processRef="process_underwriters" />
+    <participant id="participant_sec" name="SEC" />
+    
+    <messageFlow id="msg_1" name="Underwriter Selection" sourceRef="task_select_underwriters" targetRef="start_underwriter_process" />
+    <messageFlow id="msg_2" name="Registration Statement" sourceRef="task_prepare_reg_statement" targetRef="participant_sec" />
+    <messageFlow id="msg_3" name="SEC Clearance" sourceRef="participant_sec" targetRef="event_sec_clearance_received" />
+  </collaboration>
+
+  <process id="process_company" isExecutable="false">
+    <startEvent id="start_company" name="Decision to Go Public Made">
+      <outgoing>seq_c1</outgoing>
+    </startEvent>
+    <task id="task_select_underwriters" name="Select Underwriters">
+      <incoming>seq_c1</incoming>
+      <outgoing>seq_c2</outgoing>
+    </task>
+    <endEvent id="end_company" name="Company Process Completed">
+      <incoming>seq_c2</incoming>
+    </endEvent>
+
+    <sequenceFlow id="seq_c1" sourceRef="start_company" targetRef="task_select_underwriters" />
+    <sequenceFlow id="seq_c2" sourceRef="task_select_underwriters" targetRef="end_company" />
+  </process>
+
+  <process id="process_underwriters" isExecutable="false">
+    <startEvent id="start_underwriter_process" name="Engaged by Company">
+      <outgoing>seq_u1</outgoing>
+    </startEvent>
+
+    <task id="task_provide_advice" name="Provide Procedural and Financial Advice">
+      <incoming>seq_u1</incoming>
+      <outgoing>seq_u2</outgoing>
+    </task>
+
+    <task id="task_assess_issue" name="Assess Issue Fairness &amp; Reputation Risk">
+      <incoming>seq_u2</incoming>
+      <outgoing>seq_u3</outgoing>
+    </task>
+
+    <exclusiveGateway id="gateway_reputation_check" name="Issue Facts Fairly Presented?">
+      <incoming>seq_u3</incoming>
+      <outgoing>seq_fair_yes</outgoing>
+      <outgoing>seq_fair_no</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="end_rejected" name="Refuse to Handle Issue">
+      <incoming>seq_fair_no</incoming>
+    </endEvent>
+
+    <parallelGateway id="gateway_prep_split" name="Split Preparation Work">
+      <incoming>seq_fair_yes</incoming>
+      <outgoing>seq_p1</outgoing>
+      <outgoing>seq_p2</outgoing>
+    </parallelGateway>
+
+    <task id="task_prepare_reg_statement" name="Prepare and Submit SEC Registration Statement">
+      <incoming>seq_p1</incoming>
+      <outgoing>seq_p3</outgoing>
+    </task>
+
+    <task id="task_check_blue_sky" name="Check Compliance with State Blue-Sky Laws">
+      <incoming>seq_p2</incoming>
+      <outgoing>seq_p4</outgoing>
+    </task>
+
+    <parallelGateway id="gateway_prep_join" name="Join Preparation Work">
+      <incoming>seq_p3</incoming>
+      <incoming>seq_p4</incoming>
+      <outgoing>seq_u4</outgoing>
+    </parallelGateway>
+
+    <parallelGateway id="gateway_approval_split" name="Split Approval Phase">
+      <incoming>seq_u4</incoming>
+      <outgoing>seq_a1</outgoing>
+      <outgoing>seq_a2</outgoing>
+    </parallelGateway>
+
+    <intermediateCatchEvent id="event_sec_clearance_received" name="Receive SEC Clearance">
+      <incoming>seq_a1</incoming>
+      <outgoing>seq_a3</outgoing>
+      <messageEventDefinition id="msg_def_sec" />
+    </intermediateCatchEvent>
+
+    <task id="task_firm_up_price" name="Firm Up Issue Price &amp; Arrange Road Show">
+      <incoming>seq_a2</incoming>
+      <outgoing>seq_a4</outgoing>
+    </task>
+
+    <parallelGateway id="gateway_approval_join" name="Join Approval Phase">
+      <incoming>seq_a3</incoming>
+      <incoming>seq_a4</incoming>
+      <outgoing>seq_u5</outgoing>
+    </parallelGateway>
+
+    <task id="task_fix_issue_price" name="Fix Issue Price Immediately">
+      <incoming>seq_u5</incoming>
+      <outgoing>seq_u6</outgoing>
+    </task>
+
+    <exclusiveGateway id="gateway_final_review" name="Reason Not to Proceed Found?">
+      <incoming>seq_u6</incoming>
+      <outgoing>seq_proceed_yes</outgoing>
+      <outgoing>seq_proceed_no</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="end_aborted" name="Abort Issue Handling">
+      <incoming>seq_proceed_no</incoming>
+    </endEvent>
+
+    <task id="task_buy_stock" name="Enter Firm Commitment to Buy Stock">
+      <incoming>seq_proceed_yes</incoming>
+      <outgoing>seq_u7</outgoing>
+    </task>
+
+    <task id="task_resell_public" name="Offer and Resell Stock to Public">
+      <incoming>seq_u7</incoming>
+      <outgoing>seq_u8</outgoing>
+    </task>
+
+    <endEvent id="end_completed" name="Public Offering Completed">
+      <incoming>seq_u8</incoming>
+    </endEvent>
+
+    <sequenceFlow id="seq_u1" sourceRef="start_underwriter_process" targetRef="task_provide_advice" />
+    <sequenceFlow id="seq_u2" sourceRef="task_provide_advice" targetRef="task_assess_issue" />
+    <sequenceFlow id="seq_u3" sourceRef="task_assess_issue" targetRef="gateway_reputation_check" />
+    <sequenceFlow id="seq_fair_yes" name="Yes" sourceRef="gateway_reputation_check" targetRef="gateway_prep_split" />
+    <sequenceFlow id="seq_fair_no" name="No" sourceRef="gateway_reputation_check" targetRef="end_rejected" />
+    <sequenceFlow id="seq_p1" sourceRef="gateway_prep_split" targetRef="task_prepare_reg_statement" />
+    <sequenceFlow id="seq_p2" sourceRef="gateway_prep_split" targetRef="task_check_blue_sky" />
+    <sequenceFlow id="seq_p3" sourceRef="task_prepare_reg_statement" targetRef="gateway_prep_join" />
+    <sequenceFlow id="seq_p4" sourceRef="task_check_blue_sky" targetRef="gateway_prep_join" />
+    <sequenceFlow id="seq_u4" sourceRef="gateway_prep_join" targetRef="gateway_approval_split" />
+    <sequenceFlow id="seq_a1" sourceRef="gateway_approval_split" targetRef="event_sec_clearance_received" />
+    <sequenceFlow id="seq_a2" sourceRef="gateway_approval_split" targetRef="task_firm_up_price" />
+    <sequenceFlow id="seq_a3" sourceRef="event_sec_clearance_received" targetRef="gateway_approval_join" />
+    <sequenceFlow id="seq_a4" sourceRef="task_firm_up_price" targetRef="gateway_approval_join" />
+    <sequenceFlow id="seq_u5" sourceRef="gateway_approval_join" targetRef="task_fix_issue_price" />
+    <sequenceFlow id="seq_u6" sourceRef="task_fix_issue_price" targetRef="gateway_final_review" />
+    <sequenceFlow id="seq_proceed_yes" name="No Reasons Found" sourceRef="gateway_final_review" targetRef="task_buy_stock" />
+    <sequenceFlow id="seq_proceed_no" name="Reason Found" sourceRef="gateway_final_review" targetRef="end_aborted" />
+    <sequenceFlow id="seq_u7" sourceRef="task_buy_stock" targetRef="task_resell_public" />
+    <sequenceFlow id="seq_u8" sourceRef="task_resell_public" targetRef="end_completed" />
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="collaboration_1">
+      <bpmndi:BPMNShape id="participant_company_di" bpmnElement="participant_company" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1680" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_company_di" bpmnElement="start_company">
+        <dc:Bounds x="212" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="193" y="185" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_select_underwriters_di" bpmnElement="task_select_underwriters">
+        <dc:Bounds x="300" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_company_di" bpmnElement="end_company">
+        <dc:Bounds x="452" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="426" y="185" width="89" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="seq_c1_di" bpmnElement="seq_c1">
+        <di:waypoint x="248" y="160" />
+        <di:waypoint x="300" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_c2_di" bpmnElement="seq_c2">
+        <di:waypoint x="400" y="160" />
+        <di:waypoint x="452" y="160" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNShape id="participant_underwriters_di" bpmnElement="participant_underwriters" isHorizontal="true">
+        <dc:Bounds x="160" y="280" width="1680" height="380" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_underwriter_process_di" bpmnElement="start_underwriter_process">
+        <dc:Bounds x="222" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="211" y="425" width="59" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_provide_advice_di" bpmnElement="task_provide_advice">
+        <dc:Bounds x="300" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assess_issue_di" bpmnElement="task_assess_issue">
+        <dc:Bounds x="430" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_reputation_check_di" bpmnElement="gateway_reputation_check" isMarkerVisible="true">
+        <dc:Bounds x="565" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="552" y="338" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_rejected_di" bpmnElement="end_rejected">
+        <dc:Bounds x="572" y="502" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="551" y="545" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_prep_split_di" bpmnElement="gateway_prep_split">
+        <dc:Bounds x="655" y="375" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_reg_statement_di" bpmnElement="task_prepare_reg_statement">
+        <dc:Bounds x="740" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_blue_sky_di" bpmnElement="task_check_blue_sky">
+        <dc:Bounds x="740" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_prep_join_di" bpmnElement="gateway_prep_join">
+        <dc:Bounds x="875" y="375" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_approval_split_di" bpmnElement="gateway_approval_split">
+        <dc:Bounds x="965" y="375" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_sec_clearance_received_di" bpmnElement="event_sec_clearance_received">
+        <dc:Bounds x="1052" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1037" y="375" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_firm_up_price_di" bpmnElement="task_firm_up_price">
+        <dc:Bounds x="1040" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_approval_join_di" bpmnElement="gateway_approval_join">
+        <dc:Bounds x="1175" y="375" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_fix_issue_price_di" bpmnElement="task_fix_issue_price">
+        <dc:Bounds x="1260" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_final_review_di" bpmnElement="gateway_final_review" isMarkerVisible="true">
+        <dc:Bounds x="1395" y="375" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1382" y="338" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_aborted_di" bpmnElement="end_aborted">
+        <dc:Bounds x="1402" y="502" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1389" y="545" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_buy_stock_di" bpmnElement="task_buy_stock">
+        <dc:Bounds x="1490" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_resell_public_di" bpmnElement="task_resell_public">
+        <dc:Bounds x="1620" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_completed_di" bpmnElement="end_completed">
+        <dc:Bounds x="1762" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1743" y="425" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="seq_u1_di" bpmnElement="seq_u1">
+        <di:waypoint x="258" y="400" />
+        <di:waypoint x="300" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_u2_di" bpmnElement="seq_u2">
+        <di:waypoint x="400" y="400" />
+        <di:waypoint x="430" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_u3_di" bpmnElement="seq_u3">
+        <di:waypoint x="530" y="400" />
+        <di:waypoint x="565" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_fair_yes_di" bpmnElement="seq_fair_yes">
+        <di:waypoint x="615" y="400" />
+        <di:waypoint x="655" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="626" y="382" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_fair_no_di" bpmnElement="seq_fair_no">
+        <di:waypoint x="590" y="425" />
+        <di:waypoint x="590" y="502" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="598" y="461" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_p1_di" bpmnElement="seq_p1">
+        <di:waypoint x="680" y="375" />
+        <di:waypoint x="680" y="350" />
+        <di:waypoint x="740" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_p2_di" bpmnElement="seq_p2">
+        <di:waypoint x="680" y="425" />
+        <di:waypoint x="680" y="470" />
+        <di:waypoint x="740" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_p3_di" bpmnElement="seq_p3">
+        <di:waypoint x="840" y="350" />
+        <di:waypoint x="900" y="350" />
+        <di:waypoint x="900" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_p4_di" bpmnElement="seq_p4">
+        <di:waypoint x="840" y="470" />
+        <di:waypoint x="900" y="470" />
+        <di:waypoint x="900" y="425" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_u4_di" bpmnElement="seq_u4">
+        <di:waypoint x="925" y="400" />
+        <di:waypoint x="965" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_a1_di" bpmnElement="seq_a1">
+        <di:waypoint x="990" y="375" />
+        <di:waypoint x="990" y="350" />
+        <di:waypoint x="1052" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_a2_di" bpmnElement="seq_a2">
+        <di:waypoint x="990" y="425" />
+        <di:waypoint x="990" y="470" />
+        <di:waypoint x="1040" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_a3_di" bpmnElement="seq_a3">
+        <di:waypoint x="1088" y="350" />
+        <di:waypoint x="1200" y="350" />
+        <di:waypoint x="1200" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_a4_di" bpmnElement="seq_a4">
+        <di:waypoint x="1140" y="470" />
+        <di:waypoint x="1200" y="470" />
+        <di:waypoint x="1200" y="425" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_u5_di" bpmnElement="seq_u5">
+        <di:waypoint x="1225" y="400" />
+        <di:waypoint x="1260" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_u6_di" bpmnElement="seq_u6">
+        <di:waypoint x="1360" y="400" />
+        <di:waypoint x="1395" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_proceed_yes_di" bpmnElement="seq_proceed_yes">
+        <di:waypoint x="1445" y="400" />
+        <di:waypoint x="1490" y="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1438" y="368" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_proceed_no_di" bpmnElement="seq_proceed_no">
+        <di:waypoint x="1420" y="425" />
+        <di:waypoint x="1420" y="502" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1425" y="461" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_u7_di" bpmnElement="seq_u7">
+        <di:waypoint x="1590" y="400" />
+        <di:waypoint x="1620" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="seq_u8_di" bpmnElement="seq_u8">
+        <di:waypoint x="1720" y="400" />
+        <di:waypoint x="1762" y="400" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNShape id="participant_sec_di" bpmnElement="participant_sec" isHorizontal="true">
+        <dc:Bounds x="650" y="700" width="500" height="100" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="msg_1_di" bpmnElement="msg_1">
+        <di:waypoint x="350" y="200" />
+        <di:waypoint x="350" y="291" />
+        <di:waypoint x="240" y="291" />
+        <di:waypoint x="240" y="382" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="267" y="256" width="57" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_2_di" bpmnElement="msg_2">
+        <di:waypoint x="790" y="390" />
+        <di:waypoint x="790" y="700" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="798" y="656" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_3_di" bpmnElement="msg_3">
+        <di:waypoint x="1070" y="700" />
+        <di:waypoint x="1070" y="368" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1075" y="656" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

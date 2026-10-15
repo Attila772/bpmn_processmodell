@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_customer_part" name="Customer" processRef="pool_customer_proc" />
+    <bpmn:participant id="pool_notification_part" name="Notification department" processRef="pool_notification_proc" />
+    <bpmn:participant id="pool_handling_part" name="Handling department" processRef="pool_handling_proc" />
+    <bpmn:messageFlow id="mf_cust_to_notif" sourceRef="evt_end_cust_send" targetRef="evt_start_notif" name="Relevant documentation" />
+    <bpmn:messageFlow id="mf_notif_to_handling" sourceRef="evt_end_notif_send" targetRef="evt_start_handling" name="Registered claim" />
+    <bpmn:messageFlow id="mf_handling_to_cust" sourceRef="evt_end_handling_send" targetRef="evt_start_cust_recv" name="Letter" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_customer_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_doc" name="Relevant documentation" dataObjectRef="data_doc_do" />
+    <bpmn:dataObject id="data_doc_do" />
+    <bpmn:startEvent id="evt_start_cust" name="Submit claim">
+      <bpmn:outgoing>sf_cust_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_cust_send" name="Claim documentation sent">
+      <bpmn:incoming>sf_cust_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_cust_send_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_cust_recv" name="Outcome letter received">
+      <bpmn:outgoing>sf_cust_recv_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_cust_recv_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_cust" name="Process complete for customer">
+      <bpmn:incoming>sf_cust_recv_1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_submit_claim" name="Submit claim documentation">
+      <bpmn:incoming>sf_cust_1</bpmn:incoming>
+      <bpmn:outgoing>sf_cust_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_submit_claim_doa0">
+        <bpmn:targetRef>data_doc</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf_cust_1" sourceRef="evt_start_cust" targetRef="task_submit_claim" />
+    <bpmn:sequenceFlow id="sf_cust_2" sourceRef="task_submit_claim" targetRef="evt_end_cust_send" />
+    <bpmn:sequenceFlow id="sf_cust_recv_1" sourceRef="evt_start_cust_recv" targetRef="evt_end_cust" />
+  </bpmn:process>
+  <bpmn:process id="pool_notification_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_doc_p1" name="Relevant documentation" dataObjectRef="data_doc_p1_do" />
+    <bpmn:dataObject id="data_doc_p1_do" />
+    <bpmn:dataObjectReference id="data_claim" name="Claim registration record" dataObjectRef="data_claim_do" />
+    <bpmn:dataObject id="data_claim_do" />
+    <bpmn:startEvent id="evt_start_notif" name="Claim documentation received">
+      <bpmn:outgoing>sf_notif_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_notif_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_notif_send" name="Claim registered sent">
+      <bpmn:incoming>sf_notif_3</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_notif_send_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_check_completeness" name="Check documents upon completeness">
+      <bpmn:incoming>sf_notif_1</bpmn:incoming>
+      <bpmn:outgoing>sf_notif_2</bpmn:outgoing>
+      <bpmn:property id="task_check_completeness_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_completeness_dia0">
+        <bpmn:sourceRef>data_doc_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_completeness_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_register_claim" name="Register the claim">
+      <bpmn:incoming>sf_notif_2</bpmn:incoming>
+      <bpmn:outgoing>sf_notif_3</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_register_claim_doa0">
+        <bpmn:targetRef>data_claim</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="sf_notif_1" sourceRef="evt_start_notif" targetRef="task_check_completeness" />
+    <bpmn:sequenceFlow id="sf_notif_2" sourceRef="task_check_completeness" targetRef="task_register_claim" />
+    <bpmn:sequenceFlow id="sf_notif_3" sourceRef="task_register_claim" targetRef="evt_end_notif_send" />
+  </bpmn:process>
+  <bpmn:process id="pool_handling_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_claim_p1" name="Claim registration record" dataObjectRef="data_claim_p1_do" />
+    <bpmn:dataObject id="data_claim_p1_do" />
+    <bpmn:dataObjectReference id="data_letter" name="Outcome letter" dataObjectRef="data_letter_do" />
+    <bpmn:dataObject id="data_letter_do" />
+    <bpmn:startEvent id="evt_start_handling" name="Registered claim received">
+      <bpmn:outgoing>sf_hand_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_handling_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_handling_send" name="Letter sent to customer">
+      <bpmn:incoming>sf_hand_end</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_handling_send_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_check_insurance" name="Check the insurance">
+      <bpmn:incoming>sf_hand_1</bpmn:incoming>
+      <bpmn:outgoing>sf_hand_2</bpmn:outgoing>
+      <bpmn:property id="task_check_insurance_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_insurance_dia0">
+        <bpmn:sourceRef>data_claim_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_insurance_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_perform_assessment" name="Perform assessment">
+      <bpmn:incoming>sf_hand_2</bpmn:incoming>
+      <bpmn:outgoing>sf_hand_3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_phone_garage" name="Phone garage to authorise repairs">
+      <bpmn:incoming>sf_assess_pos</bpmn:incoming>
+      <bpmn:outgoing>sf_hand_pos_2</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_schedule_payment" name="Schedule the payment">
+      <bpmn:incoming>sf_hand_pos_2</bpmn:incoming>
+      <bpmn:outgoing>sf_hand_pos_3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_reject_claim" name="Reject the claim">
+      <bpmn:incoming>sf_assess_neg</bpmn:incoming>
+      <bpmn:outgoing>sf_hand_neg_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:task id="task_send_letter" name="Send letter to customer">
+      <bpmn:incoming>sf_hand_join</bpmn:incoming>
+      <bpmn:outgoing>sf_hand_end</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_letter_doa0">
+        <bpmn:targetRef>data_letter</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="xor_assessment" name="Assessment positive?" isMarkerVisible="true">
+      <bpmn:incoming>sf_hand_3</bpmn:incoming>
+      <bpmn:outgoing>sf_assess_pos</bpmn:outgoing>
+      <bpmn:outgoing>sf_assess_neg</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="xor_join_outcome" name="Merge outcome" isMarkerVisible="true">
+      <bpmn:incoming>sf_hand_pos_3</bpmn:incoming>
+      <bpmn:incoming>sf_hand_neg_2</bpmn:incoming>
+      <bpmn:outgoing>sf_hand_join</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_hand_1" sourceRef="evt_start_handling" targetRef="task_check_insurance" />
+    <bpmn:sequenceFlow id="sf_hand_2" sourceRef="task_check_insurance" targetRef="task_perform_assessment" />
+    <bpmn:sequenceFlow id="sf_hand_3" sourceRef="task_perform_assessment" targetRef="xor_assessment" />
+    <bpmn:sequenceFlow id="sf_assess_pos" sourceRef="xor_assessment" targetRef="task_phone_garage" name="Positive" />
+    <bpmn:sequenceFlow id="sf_hand_pos_2" sourceRef="task_phone_garage" targetRef="task_schedule_payment" />
+    <bpmn:sequenceFlow id="sf_hand_pos_3" sourceRef="task_schedule_payment" targetRef="xor_join_outcome" />
+    <bpmn:sequenceFlow id="sf_assess_neg" sourceRef="xor_assessment" targetRef="task_reject_claim" name="Negative" />
+    <bpmn:sequenceFlow id="sf_hand_neg_2" sourceRef="task_reject_claim" targetRef="xor_join_outcome" />
+    <bpmn:sequenceFlow id="sf_hand_join" sourceRef="xor_join_outcome" targetRef="task_send_letter" />
+    <bpmn:sequenceFlow id="sf_hand_end" sourceRef="task_send_letter" targetRef="evt_end_handling_send" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_customer_part_di" bpmnElement="pool_customer_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_notification_part_di" bpmnElement="pool_notification_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="950" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_handling_part_di" bpmnElement="pool_handling_part" isHorizontal="true">
+        <dc:Bounds x="120" y="835" width="1900" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_cust_di" bpmnElement="evt_end_cust">
+        <dc:Bounds x="350" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_cust_send_di" bpmnElement="evt_end_cust_send">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_handling_send_di" bpmnElement="evt_end_handling_send">
+        <dc:Bounds x="1680" y="895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_notif_send_di" bpmnElement="evt_end_notif_send">
+        <dc:Bounds x="730" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_cust_di" bpmnElement="evt_start_cust">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_cust_recv_di" bpmnElement="evt_start_cust_recv">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_handling_di" bpmnElement="evt_start_handling">
+        <dc:Bounds x="160" y="895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_notif_di" bpmnElement="evt_start_notif">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_completeness_di" bpmnElement="task_check_completeness">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_insurance_di" bpmnElement="task_check_insurance">
+        <dc:Bounds x="350" y="895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_perform_assessment_di" bpmnElement="task_perform_assessment">
+        <dc:Bounds x="540" y="895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_phone_garage_di" bpmnElement="task_phone_garage">
+        <dc:Bounds x="920" y="895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_register_claim_di" bpmnElement="task_register_claim">
+        <dc:Bounds x="540" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reject_claim_di" bpmnElement="task_reject_claim">
+        <dc:Bounds x="920" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_schedule_payment_di" bpmnElement="task_schedule_payment">
+        <dc:Bounds x="1110" y="895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_letter_di" bpmnElement="task_send_letter">
+        <dc:Bounds x="1490" y="895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_submit_claim_di" bpmnElement="task_submit_claim">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="xor_assessment_di" bpmnElement="xor_assessment">
+        <dc:Bounds x="730" y="895" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="xor_join_outcome_di" bpmnElement="xor_join_outcome">
+        <dc:Bounds x="1300" y="895" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_doc_di" bpmnElement="data_doc">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_doc_p1_di" bpmnElement="data_doc_p1">
+        <dc:Bounds x="370" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_claim_di" bpmnElement="data_claim">
+        <dc:Bounds x="560" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_claim_p1_di" bpmnElement="data_claim_p1">
+        <dc:Bounds x="370" y="1160" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_letter_di" bpmnElement="data_letter">
+        <dc:Bounds x="1510" y="1160" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_cust_1_di" bpmnElement="sf_cust_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_cust_2_di" bpmnElement="sf_cust_2">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_notif_1_di" bpmnElement="sf_notif_1">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_notif_2_di" bpmnElement="sf_notif_2">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="590" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_notif_3_di" bpmnElement="sf_notif_3">
+        <di:waypoint x="590" y="600" />
+        <di:waypoint x="748" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_hand_1_di" bpmnElement="sf_hand_1">
+        <di:waypoint x="178" y="913" />
+        <di:waypoint x="400" y="935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_hand_2_di" bpmnElement="sf_hand_2">
+        <di:waypoint x="400" y="935" />
+        <di:waypoint x="590" y="935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_hand_3_di" bpmnElement="sf_hand_3">
+        <di:waypoint x="590" y="935" />
+        <di:waypoint x="755" y="920" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_assess_pos_di" bpmnElement="sf_assess_pos">
+        <di:waypoint x="755" y="920" />
+        <di:waypoint x="970" y="935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_hand_pos_2_di" bpmnElement="sf_hand_pos_2">
+        <di:waypoint x="970" y="935" />
+        <di:waypoint x="1160" y="935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_hand_pos_3_di" bpmnElement="sf_hand_pos_3">
+        <di:waypoint x="1160" y="935" />
+        <di:waypoint x="1325" y="920" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_assess_neg_di" bpmnElement="sf_assess_neg">
+        <di:waypoint x="755" y="920" />
+        <di:waypoint x="970" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_hand_neg_2_di" bpmnElement="sf_hand_neg_2">
+        <di:waypoint x="970" y="1060" />
+        <di:waypoint x="1325" y="920" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_hand_join_di" bpmnElement="sf_hand_join">
+        <di:waypoint x="1325" y="920" />
+        <di:waypoint x="1540" y="935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_hand_end_di" bpmnElement="sf_hand_end">
+        <di:waypoint x="1540" y="935" />
+        <di:waypoint x="1698" y="913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_cust_recv_1_di" bpmnElement="sf_cust_recv_1">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="368" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_cust_to_notif_di" bpmnElement="mf_cust_to_notif">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_notif_to_handling_di" bpmnElement="mf_notif_to_handling">
+        <di:waypoint x="748" y="578" />
+        <di:waypoint x="178" y="913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_handling_to_cust_di" bpmnElement="mf_handling_to_cust">
+        <di:waypoint x="1698" y="913" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_claim_doa0_di" bpmnElement="task_submit_claim_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="388" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_completeness_dia0_di" bpmnElement="task_check_completeness_dia0">
+        <di:waypoint x="388" y="725" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_claim_doa0_di" bpmnElement="task_register_claim_doa0">
+        <di:waypoint x="590" y="600" />
+        <di:waypoint x="578" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_insurance_dia0_di" bpmnElement="task_check_insurance_dia0">
+        <di:waypoint x="388" y="1185" />
+        <di:waypoint x="400" y="935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_letter_doa0_di" bpmnElement="task_send_letter_doa0">
+        <di:waypoint x="1540" y="935" />
+        <di:waypoint x="1528" y="1185" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

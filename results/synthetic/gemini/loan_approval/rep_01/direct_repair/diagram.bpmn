@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:bpsim="http://www.bpsim.org/schemas/1.0"
+                  id="Definitions_LoanApproval"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- Resource Definitions -->
+  <bpmn:resource id="Resource_CreditAnalyst" name="Credit Analyst" />
+  <bpmn:resource id="Resource_LoanOfficer" name="Loan Officer" />
+
+  <!-- Process Definition -->
+  <bpmn:process id="Process_LoanApproval" name="Loan Approval Process" isExecutable="true">
+    
+    <bpmn:startEvent id="StartEvent_ApplicationReceived" name="Application Received">
+      <bpmn:outgoing>SequenceFlow_StartToReceive</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sequenceFlow id="SequenceFlow_StartToReceive" sourceRef="StartEvent_ApplicationReceived" targetRef="ServiceTask_ReceiveApplication" />
+
+    <bpmn:serviceTask id="ServiceTask_ReceiveApplication" name="Receive Application">
+      <bpmn:incoming>SequenceFlow_StartToReceive</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ReceiveToCredit</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="SequenceFlow_ReceiveToCredit" sourceRef="ServiceTask_ReceiveApplication" targetRef="ServiceTask_CreditCheck" />
+
+    <bpmn:serviceTask id="ServiceTask_CreditCheck" name="Credit Check">
+      <bpmn:incoming>SequenceFlow_ReceiveToCredit</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_CreditToGateway</bpmn:outgoing>
+      <bpmn:potentialOwner id="PotentialOwner_CreditAnalyst">
+        <bpmn:resourceRef>Resource_CreditAnalyst</bpmn:resourceRef>
+      </bpmn:potentialOwner>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="SequenceFlow_CreditToGateway" sourceRef="ServiceTask_CreditCheck" targetRef="Gateway_ReviewDecision" />
+
+    <bpmn:exclusiveGateway id="Gateway_ReviewDecision" name="Review Decision">
+      <bpmn:incoming>SequenceFlow_CreditToGateway</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sequenceFlow id="SequenceFlow_Approved" name="Approved (70%)" sourceRef="Gateway_ReviewDecision" targetRef="UserTask_PrepareOffer">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="SequenceFlow_Rejected" name="Rejected (30%)" sourceRef="Gateway_ReviewDecision" targetRef="ServiceTask_SendRejection">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:userTask id="UserTask_PrepareOffer" name="Prepare Offer">
+      <bpmn:incoming>SequenceFlow_Approved</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_OfferToClosed</bpmn:outgoing>
+      <bpmn:potentialOwner id="PotentialOwner_LoanOfficer">
+        <bpmn:resourceRef>Resource_LoanOfficer</bpmn:resourceRef>
+      </bpmn:potentialOwner>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="ServiceTask_SendRejection" name="Send Rejection">
+      <bpmn:incoming>SequenceFlow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_RejectionToClosed</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sequenceFlow id="SequenceFlow_OfferToClosed" sourceRef="UserTask_PrepareOffer" targetRef="EndEvent_ApplicationClosed" />
+    <bpmn:sequenceFlow id="SequenceFlow_RejectionToClosed" sourceRef="ServiceTask_SendRejection" targetRef="EndEvent_ApplicationClosed" />
+
+    <bpmn:endEvent id="EndEvent_ApplicationClosed" name="Application Closed">
+      <bpmn:incoming>SequenceFlow_OfferToClosed</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_RejectionToClosed</bpmn:incoming>
+    </bpmn:endEvent>
+
+  </bpmn:process>
+
+  <!-- BPMN Diagram Layout -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_LoanApproval">
+    <bpmndi:BPMNPlane id="BPMNPlane_LoanApproval" bpmnElement="Process_LoanApproval">
+      
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_ApplicationReceived_di" bpmnElement="StartEvent_ApplicationReceived">
+        <dc:Bounds x="152" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="143" y="225" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Receive Application -->
+      <bpmndi:BPMNShape id="ServiceTask_ReceiveApplication_di" bpmnElement="ServiceTask_ReceiveApplication">
+        <dc:Bounds x="240" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Credit Check -->
+      <bpmndi:BPMNShape id="ServiceTask_CreditCheck_di" bpmnElement="ServiceTask_CreditCheck">
+        <dc:Bounds x="390" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Exclusive Gateway -->
+      <bpmndi:BPMNShape id="Gateway_ReviewDecision_di" bpmnElement="Gateway_ReviewDecision" isMarkerVisible="true">
+        <dc:Bounds x="545" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="529" y="145" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Prepare Offer -->
+      <bpmndi:BPMNShape id="UserTask_PrepareOffer_di" bpmnElement="UserTask_PrepareOffer">
+        <dc:Bounds x="670" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Send Rejection -->
+      <bpmndi:BPMNShape id="ServiceTask_SendRejection_di" bpmnElement="ServiceTask_SendRejection">
+        <dc:Bounds x="670" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event -->
+      <bpmndi:BPMNShape id="EndEvent_ApplicationClosed_di" bpmnElement="EndEvent_ApplicationClosed">
+        <dc:Bounds x="832" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="823" y="225" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flows -->
+      <bpmndi:BPMNEdge id="SequenceFlow_StartToReceive_di" bpmnElement="SequenceFlow_StartToReceive">
+        <di:waypoint x="188" y="200" />
+        <di:waypoint x="240" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ReceiveToCredit_di" bpmnElement="SequenceFlow_ReceiveToCredit">
+        <di:waypoint x="340" y="200" />
+        <di:waypoint x="390" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_CreditToGateway_di" bpmnElement="SequenceFlow_CreditToGateway">
+        <di:waypoint x="490" y="200" />
+        <di:waypoint x="545" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Approved_di" bpmnElement="SequenceFlow_Approved">
+        <di:waypoint x="570" y="175" />
+        <di:waypoint x="570" y="140" />
+        <di:waypoint x="670" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="576" y="123" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Rejected_di" bpmnElement="SequenceFlow_Rejected">
+        <di:waypoint x="570" y="225" />
+        <di:waypoint x="570" y="280" />
+        <di:waypoint x="670" y="280" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="578" y="283" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_OfferToClosed_di" bpmnElement="SequenceFlow_OfferToClosed">
+        <di:waypoint x="770" y="140" />
+        <di:waypoint x="850" y="140" />
+        <di:waypoint x="850" y="182" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_RejectionToClosed_di" bpmnElement="SequenceFlow_RejectionToClosed">
+        <di:waypoint x="770" y="280" />
+        <di:waypoint x="850" y="280" />
+        <di:waypoint x="850" y="218" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+  <!-- BPSim Simulation Parameters -->
+  <bpmn:relationship type="BPSimData">
+    <bpmn:extensionElements>
+      <bpsim:BPSimData>
+        <bpsim:Scenario id="Scenario_1" name="Loan Approval 8-Hour Simulation">
+          <bpsim:ScenarioParameters duration="PT8H" timeUnit="min" />
+          
+          <!-- Inter-arrival Rate: Exponential mean 10 min -->
+          <bpsim:ElementParameters elementRef="StartEvent_ApplicationReceived">
+            <bpsim:TimeParameters>
+              <bpsim:WaitTime>
+                <bpsim:ExponentialDistribution mean="10.0" />
+              </bpsim:WaitTime>
+            </bpsim:TimeParameters>
+          </bpsim:ElementParameters>
+
+          <!-- 1. Receive Application: Fixed 2 min -->
+          <bpsim:ElementParameters elementRef="ServiceTask_ReceiveApplication">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime>
+                <bpsim:NormalDistribution mean="2.0" standardDeviation="0.0" />
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+          </bpsim:ElementParameters>
+
+          <!-- 2. Credit Check: Normal mean 15 min, std 3 min -->
+          <bpsim:ElementParameters elementRef="ServiceTask_CreditCheck">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime>
+                <bpsim:NormalDistribution mean="15.0" standardDeviation="3.0" />
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Selection>
+                <bpsim:Quantity>1</bpsim:Quantity>
+              </bpsim:Selection>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+
+          <!-- Branching Probabilities -->
+          <bpsim:ElementParameters elementRef="SequenceFlow_Approved">
+            <bpsim:ControlParameters>
+              <bpsim:Probability>0.70</bpsim:Probability>
+            </bpsim:ControlParameters>
+          </bpsim:ElementParameters>
+
+          <bpsim:ElementParameters elementRef="SequenceFlow_Rejected">
+            <bpsim:ControlParameters>
+              <bpsim:Probability>0.30</bpsim:Probability>
+            </bpsim:ControlParameters>
+          </bpsim:ElementParameters>
+
+          <!-- 4. Prepare Offer: Uniform 10-20 min -->
+          <bpsim:ElementParameters elementRef="UserTask_PrepareOffer">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime>
+                <bpsim:UniformDistribution min="10.0" max="20.0" />
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Selection>
+                <bpsim:Quantity>1</bpsim:Quantity>
+              </bpsim:Selection>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+
+          <!-- 5. Send Rejection: Fixed 5 min -->
+          <bpsim:ElementParameters elementRef="ServiceTask_SendRejection">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime>
+                <bpsim:NormalDistribution mean="5.0" standardDeviation="0.0" />
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+          </bpsim:ElementParameters>
+
+          <!-- Resources Availability -->
+          <bpsim:ElementParameters elementRef="Resource_CreditAnalyst">
+            <bpsim:ResourceParameters>
+              <bpsim:Amount>2</bpsim:Amount>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+
+          <bpsim:ElementParameters elementRef="Resource_LoanOfficer">
+            <bpsim:ResourceParameters>
+              <bpsim:Amount>1</bpsim:Amount>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+
+        </bpsim:Scenario>
+      </bpsim:BPSimData>
+    </bpmn:extensionElements>
+  </bpmn:relationship>
+
+</bpmn:definitions>

@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             targetNamespace="http://example.com/bpmn/leadprocess"
+             id="Definitions_1">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_Manager" name="Manager" processRef="Process_Manager"/>
+    <participant id="Participant_SalesAssistant" name="Sales Assistant" processRef="Process_SalesAssistant"/>
+    <messageFlow id="MessageFlow_TellAssistant" sourceRef="Task_TellAssistant" targetRef="StartEvent_SA"/>
+    <messageFlow id="MessageFlow_Note" sourceRef="Task_SendNote" targetRef="IntermediateCatchEvent_ReceiveNote"/>
+  </collaboration>
+
+  <!-- MANAGER PROCESS -->
+  <process id="Process_Manager" name="Manager Process" isExecutable="false">
+
+    <startEvent id="StartEvent_1" name="Start">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_CheckLeads" name="Check open leads">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <task id="Task_SelectTop5" name="Select top five leads">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <sendTask id="Task_TellAssistant" name="Tell Sales Assistant to call contacts">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </sendTask>
+
+    <intermediateCatchEvent id="IntermediateCatchEvent_ReceiveNote" name="Receive note (interested lead)">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_5</outgoing>
+      <messageEventDefinition id="MessageEventDefinition_1"/>
+    </intermediateCatchEvent>
+
+    <task id="Task_ProcessLead" name="Process the lead">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_1" name="End">
+      <incoming>Flow_6</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CheckLeads"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_CheckLeads" targetRef="Task_SelectTop5"/>
+    <sequenceFlow id="Flow_3" sourceRef="Task_SelectTop5" targetRef="Task_TellAssistant"/>
+    <sequenceFlow id="Flow_4" sourceRef="Task_TellAssistant" targetRef="IntermediateCatchEvent_ReceiveNote"/>
+    <sequenceFlow id="Flow_5" sourceRef="IntermediateCatchEvent_ReceiveNote" targetRef="Task_ProcessLead"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_ProcessLead" targetRef="EndEvent_1"/>
+
+  </process>
+
+  <!-- SALES ASSISTANT PROCESS -->
+  <process id="Process_SalesAssistant" name="Sales Assistant Process" isExecutable="false">
+
+    <startEvent id="StartEvent_SA" name="Receive instruction to call leads">
+      <outgoing>FlowSA_1</outgoing>
+      <messageEventDefinition id="MessageEventDefinition_2"/>
+    </startEvent>
+
+    <task id="Task_CallCustomer" name="Call customer">
+      <incoming>FlowSA_1</incoming>
+      <incoming>FlowSA_Loop</incoming>
+      <outgoing>FlowSA_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Interested" name="Interested?">
+      <incoming>FlowSA_2</incoming>
+      <outgoing>FlowSA_Yes</outgoing>
+      <outgoing>FlowSA_No</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="Task_SendNote" name="Send note to Manager">
+      <incoming>FlowSA_Yes</incoming>
+      <outgoing>FlowSA_3</outgoing>
+    </sendTask>
+
+    <endEvent id="EndEvent_SA" name="End">
+      <incoming>FlowSA_3</incoming>
+    </endEvent>
+
+    <sequenceFlow id="FlowSA_1" sourceRef="StartEvent_SA" targetRef="Task_CallCustomer"/>
+    <sequenceFlow id="FlowSA_2" sourceRef="Task_CallCustomer" targetRef="Gateway_Interested"/>
+    <sequenceFlow id="FlowSA_Yes" name="Yes" sourceRef="Gateway_Interested" targetRef="Task_SendNote"/>
+    <sequenceFlow id="FlowSA_No" name="No" sourceRef="Gateway_Interested" targetRef="Task_CallCustomer"/>
+    <sequenceFlow id="FlowSA_Loop" sourceRef="Gateway_Interested" targetRef="Task_CallCustomer"/>
+    <sequenceFlow id="FlowSA_3" sourceRef="Task_SendNote" targetRef="EndEvent_SA"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Participant_Manager_di" bpmnElement="Participant_Manager" isHorizontal="true">
+        <omgdc:Bounds x="100" y="60" width="800" height="200"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="140" y="140" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckLeads_di" bpmnElement="Task_CheckLeads">
+        <omgdc:Bounds x="220" y="120" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SelectTop5_di" bpmnElement="Task_SelectTop5">
+        <omgdc:Bounds x="360" y="120" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TellAssistant_di" bpmnElement="Task_TellAssistant">
+        <omgdc:Bounds x="500" y="120" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="IntermediateCatchEvent_ReceiveNote_di" bpmnElement="IntermediateCatchEvent_ReceiveNote">
+        <omgdc:Bounds x="650" y="140" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProcessLead_di" bpmnElement="Task_ProcessLead">
+        <omgdc:Bounds x="720" y="120" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <omgdc:Bounds x="860" y="140" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_SalesAssistant_di" bpmnElement="Participant_SalesAssistant" isHorizontal="true">
+        <omgdc:Bounds x="100" y="320" width="800" height="200"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_SA_di" bpmnElement="StartEvent_SA">
+        <omgdc:Bounds x="160" y="400" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CallCustomer_di" bpmnElement="Task_CallCustomer">
+        <omgdc:Bounds x="260" y="380" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Interested_di" bpmnElement="Gateway_Interested" isMarkerVisible="true">
+        <omgdc:Bounds x="420" y="395" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendNote_di" bpmnElement="Task_SendNote">
+        <omgdc:Bounds x="540" y="380" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_SA_di" bpmnElement="EndEvent_SA">
+        <omgdc:Bounds x="700" y="400" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="176" y="158"/>
+        <omgdi:waypoint x="220" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="320" y="160"/>
+        <omgdi:waypoint x="360" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <omgdi:waypoint x="460" y="160"/>
+        <omgdi:waypoint x="500" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <omgdi:waypoint x="600" y="160"/>
+        <omgdi:waypoint x="650" y="158"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <omgdi:waypoint x="686" y="158"/>
+        <omgdi:waypoint x="720" y="160"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <omgdi:waypoint x="820" y="160"/>
+        <omgdi:waypoint x="860" y="158"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="FlowSA_1_di" bpmnElement="FlowSA_1">
+        <omgdi:waypoint x="196" y="418"/>
+        <omgdi:waypoint x="260" y="420"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="FlowSA_2_di" bpmnElement="FlowSA_2">
+        <omgdi:waypoint x="360" y="420"/>
+        <omgdi:waypoint x="420" y="420"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="FlowSA_Yes_di" bpmnElement="FlowSA_Yes">
+        <omgdi:waypoint x="470" y="420"/>
+        <omgdi:waypoint x="540" y="420"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="FlowSA_No_di" bpmnElement="FlowSA_No">
+        <omgdi:waypoint x="445" y="445"/>
+        <omgdi:waypoint x="310" y="460"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="FlowSA_3_di" bpmnElement="FlowSA_3">
+        <omgdi:waypoint x="640" y="420"/>
+        <omgdi:waypoint x="700" y="418"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_TellAssistant_di" bpmnElement="MessageFlow_TellAssistant">
+        <omgdi:waypoint x="550" y="200"/>
+        <omgdi:waypoint x="178" y="400"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_Note_di" bpmnElement="MessageFlow_Note">
+        <omgdi:waypoint x="590" y="380"/>
+        <omgdi:waypoint x="668" y="176"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_spgo_part" name="SP / PU / GO" processRef="pool_spgo_proc" />
+    <bpmn:participant id="pool_mpo_part" name="MPO" processRef="pool_mpo_proc" />
+    <bpmn:messageFlow id="mf1" sourceRef="start_request" targetRef="task_review" name="Change Request" />
+    <bpmn:messageFlow id="mf2" sourceRef="task_report_success" targetRef="end_notify_success" name="Implementation Report" />
+    <bpmn:messageFlow id="mf3" sourceRef="task_report_failure" targetRef="end_notify_failure" name="Failure Notification" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_spgo_proc" isExecutable="false">
+    <bpmn:startEvent id="start_request" name="SP/PU/GO requests change">
+      <bpmn:messageEventDefinition id="start_request_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_notify_success" name="SP/PU/GO receives implementation report">
+      <bpmn:messageEventDefinition id="end_notify_success_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_notify_failure" name="SP/PU/GO receives failure notification">
+      <bpmn:messageEventDefinition id="end_notify_failure_msgdef" />
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmn:process id="pool_mpo_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_change_request" name="Change Request" dataObjectRef="data_change_request_do" />
+    <bpmn:dataObject id="data_change_request_do" />
+    <bpmn:dataObjectReference id="data_rejection_notice" name="Rejection Notice" dataObjectRef="data_rejection_notice_do" />
+    <bpmn:dataObject id="data_rejection_notice_do" />
+    <bpmn:dataObjectReference id="data_measuring_point_record" name="Measuring Point Record" dataObjectRef="data_measuring_point_record_do" />
+    <bpmn:dataObject id="data_measuring_point_record_do" />
+    <bpmn:dataObjectReference id="data_implementation_report" name="Implementation Report" dataObjectRef="data_implementation_report_do" />
+    <bpmn:dataObject id="data_implementation_report_do" />
+    <bpmn:dataObjectReference id="data_failure_notice" name="Failure Notice" dataObjectRef="data_failure_notice_do" />
+    <bpmn:dataObject id="data_failure_notice_do" />
+    <bpmn:startEvent id="start_mpo_change" name="MPO causes a change">
+      <bpmn:outgoing>sf1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_mpo" name="MPO process end">
+      <bpmn:incoming>sf3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_review" name="MPO reviews the change request">
+      <bpmn:incoming>sf1</bpmn:incoming>
+      <bpmn:outgoing>sf2</bpmn:outgoing>
+      <bpmn:property id="task_review_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_review_dia0">
+        <bpmn:sourceRef>data_change_request</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_reject" name="MPO rejects the change of the measuring point">
+      <bpmn:incoming>flow_reject</bpmn:incoming>
+      <bpmn:outgoing>sf3</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_reject_doa0">
+        <bpmn:targetRef>data_rejection_notice</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_perform_change" name="MPO performs the measuring point change">
+      <bpmn:incoming>flow_confirm</bpmn:incoming>
+      <bpmn:outgoing>sf4</bpmn:outgoing>
+      <bpmn:property id="task_perform_change_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_perform_change_dia0">
+        <bpmn:sourceRef>data_change_request</bpmn:sourceRef>
+        <bpmn:targetRef>task_perform_change_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_perform_change_doa0">
+        <bpmn:targetRef>data_measuring_point_record</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_report_success" name="MPO reports the implementation to the SP/PU/GO">
+      <bpmn:incoming>flow_success</bpmn:incoming>
+      <bpmn:property id="task_report_success_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_report_success_dia0">
+        <bpmn:sourceRef>data_measuring_point_record</bpmn:sourceRef>
+        <bpmn:targetRef>task_report_success_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_report_success_doa0">
+        <bpmn:targetRef>data_implementation_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_report_failure" name="MPO notifies the SP/PU/GO about the failure of the changes">
+      <bpmn:incoming>flow_failure</bpmn:incoming>
+      <bpmn:property id="task_report_failure_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_report_failure_dia0">
+        <bpmn:sourceRef>data_measuring_point_record</bpmn:sourceRef>
+        <bpmn:targetRef>task_report_failure_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_report_failure_doa0">
+        <bpmn:targetRef>data_failure_notice</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_decision" name="MPO reject or confirm request?" isMarkerVisible="true">
+      <bpmn:incoming>sf2</bpmn:incoming>
+      <bpmn:outgoing>flow_reject</bpmn:outgoing>
+      <bpmn:outgoing>flow_confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_outcome" name="Change implementation outcome" isMarkerVisible="true">
+      <bpmn:incoming>sf4</bpmn:incoming>
+      <bpmn:outgoing>flow_success</bpmn:outgoing>
+      <bpmn:outgoing>flow_failure</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf1" sourceRef="start_mpo_change" targetRef="task_review" />
+    <bpmn:sequenceFlow id="sf2" sourceRef="task_review" targetRef="gw_decision" />
+    <bpmn:sequenceFlow id="flow_reject" sourceRef="gw_decision" targetRef="task_reject" name="reject" />
+    <bpmn:sequenceFlow id="flow_confirm" sourceRef="gw_decision" targetRef="task_perform_change" name="confirm" />
+    <bpmn:sequenceFlow id="sf3" sourceRef="task_reject" targetRef="end_mpo" />
+    <bpmn:sequenceFlow id="sf4" sourceRef="task_perform_change" targetRef="gw_outcome" />
+    <bpmn:sequenceFlow id="flow_success" sourceRef="gw_outcome" targetRef="task_report_success" name="success" />
+    <bpmn:sequenceFlow id="flow_failure" sourceRef="gw_outcome" targetRef="task_report_failure" name="failure" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_spgo_part_di" bpmnElement="pool_spgo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="700" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpo_part_di" bpmnElement="pool_mpo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="1330" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_mpo_di" bpmnElement="end_mpo">
+        <dc:Bounds x="920" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_notify_failure_di" bpmnElement="end_notify_failure">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_notify_success_di" bpmnElement="end_notify_success">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_decision_di" bpmnElement="gw_decision">
+        <dc:Bounds x="540" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_outcome_di" bpmnElement="gw_outcome">
+        <dc:Bounds x="920" y="810" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_mpo_change_di" bpmnElement="start_mpo_change">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_request_di" bpmnElement="start_request">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_perform_change_di" bpmnElement="task_perform_change">
+        <dc:Bounds x="730" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reject_di" bpmnElement="task_reject">
+        <dc:Bounds x="730" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_report_failure_di" bpmnElement="task_report_failure">
+        <dc:Bounds x="1110" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_report_success_di" bpmnElement="task_report_success">
+        <dc:Bounds x="1110" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_di" bpmnElement="task_review">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_change_request_di" bpmnElement="data_change_request">
+        <dc:Bounds x="560" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_rejection_notice_di" bpmnElement="data_rejection_notice">
+        <dc:Bounds x="750" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_measuring_point_record_di" bpmnElement="data_measuring_point_record">
+        <dc:Bounds x="1003" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_implementation_report_di" bpmnElement="data_implementation_report">
+        <dc:Bounds x="1130" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_failure_notice_di" bpmnElement="data_failure_notice">
+        <dc:Bounds x="1130" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf1_di" bpmnElement="sf1">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf2_di" bpmnElement="sf2">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="565" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reject_di" bpmnElement="flow_reject">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="780" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confirm_di" bpmnElement="flow_confirm">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="780" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf3_di" bpmnElement="sf3">
+        <di:waypoint x="780" y="850" />
+        <di:waypoint x="938" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf4_di" bpmnElement="sf4">
+        <di:waypoint x="780" y="725" />
+        <di:waypoint x="945" y="835" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_success_di" bpmnElement="flow_success">
+        <di:waypoint x="945" y="835" />
+        <di:waypoint x="1160" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_failure_di" bpmnElement="flow_failure">
+        <di:waypoint x="945" y="835" />
+        <di:waypoint x="1160" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf1_di" bpmnElement="mf1">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf2_di" bpmnElement="mf2">
+        <di:waypoint x="1160" y="850" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf3_di" bpmnElement="mf3">
+        <di:waypoint x="1160" y="725" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_dia0_di" bpmnElement="task_review_dia0">
+        <di:waypoint x="578" y="975" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reject_doa0_di" bpmnElement="task_reject_doa0">
+        <di:waypoint x="780" y="850" />
+        <di:waypoint x="768" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_perform_change_dia0_di" bpmnElement="task_perform_change_dia0">
+        <di:waypoint x="578" y="975" />
+        <di:waypoint x="780" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_perform_change_doa0_di" bpmnElement="task_perform_change_doa0">
+        <di:waypoint x="780" y="725" />
+        <di:waypoint x="1021" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_report_success_dia0_di" bpmnElement="task_report_success_dia0">
+        <di:waypoint x="1021" y="975" />
+        <di:waypoint x="1160" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_report_success_doa0_di" bpmnElement="task_report_success_doa0">
+        <di:waypoint x="1160" y="850" />
+        <di:waypoint x="1148" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_report_failure_dia0_di" bpmnElement="task_report_failure_dia0">
+        <di:waypoint x="1021" y="975" />
+        <di:waypoint x="1160" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_report_failure_doa0_di" bpmnElement="task_report_failure_doa0">
+        <di:waypoint x="1160" y="725" />
+        <di:waypoint x="1148" y="975" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="MortgageOfferProcess" name="Mortgage Offer Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Receive Mortgage Application">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_SendOffer" name="Send Mortgage Offer to Customer">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_WaitForReply" name="Wait for Customer Reply">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Decision</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDef_Reply" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="Gateway_CheckReply" name="Check Reply Type">
+      <bpmn:incoming>Flow_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Decline</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Accept</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Decline Path -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_SendOffer" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_SendOffer" targetRef="Event_WaitForReply" />
+    <bpmn:sequenceFlow id="Flow_Decision" sourceRef="Event_WaitForReply" targetRef="Gateway_CheckReply" />
+    <bpmn:sequenceFlow id="Flow_Decline" name="Declined" sourceRef="Gateway_CheckReply" targetRef="Task_UpdateCaseDecline" />
+    <bpmn:task id="Task_UpdateCaseDecline" name="Update Case Details (Declined)">
+      <bpmn:incoming>Flow_Decline</bpmn:incoming>
+      <bpmn:outgoing>Flow_ArchiveDecline</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ArchiveDecline" sourceRef="Task_UpdateCaseDecline" targetRef="Task_ArchiveDecline" />
+    <bpmn:task id="Task_ArchiveDecline" name="Archive Work">
+      <bpmn:incoming>Flow_ArchiveDecline</bpmn:incoming>
+      <bpmn:outgoing>Flow_CancelDecline</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_CancelDecline" sourceRef="Task_ArchiveDecline" targetRef="EndEvent_Cancelled" />
+    <bpmn:endEvent id="EndEvent_Cancelled" name="Case Cancelled">
+      <bpmn:incoming>Flow_CancelDecline</bpmn:incoming>
+      <bpmn:incoming>Flow_CancelTimeout</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Accept Path -->
+    <bpmn:sequenceFlow id="Flow_Accept" name="Accepted / Documents Received" sourceRef="Gateway_CheckReply" targetRef="Gateway_CheckDocs" />
+    <bpmn:exclusiveGateway id="Gateway_CheckDocs" name="Check Prerequisite Docs">
+      <bpmn:incoming>Flow_Accept</bpmn:incoming>
+      <bpmn:outgoing>Flow_AllDocsPresent</bpmn:outgoing>
+      <bpmn:outgoing>Flow_DocsMissing</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- All Docs Present -->
+    <bpmn:sequenceFlow id="Flow_AllDocsPresent" name="All Docs Provided" sourceRef="Gateway_CheckDocs" targetRef="Task_MoveToAdmin" />
+    <bpmn:task id="Task_MoveToAdmin" name="Move to Administration for Completion">
+      <bpmn:incoming>Flow_AllDocsPresent</bpmn:incoming>
+      <bpmn:outgoing>Flow_Completed</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_Completed" sourceRef="Task_MoveToAdmin" targetRef="EndEvent_Completed" />
+    <bpmn:endEvent id="EndEvent_Completed" name="Completion Handover">
+      <bpmn:incoming>Flow_Completed</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Missing Docs Path -->
+    <bpmn:sequenceFlow id="Flow_DocsMissing" name="Docs Not Provided" sourceRef="Gateway_CheckDocs" targetRef="Task_RequestDocs" />
+    <bpmn:task id="Task_RequestDocs" name="Generate Message Requesting Outstanding Docs">
+      <bpmn:incoming>Flow_DocsMissing</bpmn:incoming>
+      <bpmn:outgoing>Flow_WaitForDocs</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_WaitForDocs" sourceRef="Task_RequestDocs" targetRef="Event_WaitForDocs" />
+    <bpmn:intermediateCatchEvent id="Event_WaitForDocs" name="Wait for Documents or Timeout">
+      <bpmn:incoming>Flow_WaitForDocs</bpmn:incoming>
+      <bpmn:outgoing>Flow_DocsReceived</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Timeout</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDef_Docs" />
+      <bpmn:timerEventDefinition id="TimerDef_2Weeks">
+        <bpmn:timeDuration>PT2W</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    
+    <!-- Loop back if docs received -->
+    <bpmn:sequenceFlow id="Flow_DocsReceived" name="Documents Received" sourceRef="Event_WaitForDocs" targetRef="Gateway_CheckDocs" />
+    
+    <!-- Timeout Path -->
+    <bpmn:sequenceFlow id="Flow_Timeout" name="No Answer After 2 Weeks" sourceRef="Event_WaitForDocs" targetRef="Task_UpdateCaseTimeout" />
+    <bpmn:task id="Task_UpdateCaseTimeout" name="Update Case Details (Timeout)">
+      <bpmn:incoming>Flow_Timeout</bpmn:incoming>
+      <bpmn:outgoing>Flow_ArchiveTimeout</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_ArchiveTimeout" sourceRef="Task_UpdateCaseTimeout" targetRef="Task_ArchiveTimeout" />
+    <bpmn:task id="Task_ArchiveTimeout" name="Archive Work">
+      <bpmn:incoming>Flow_ArchiveTimeout</bpmn:incoming>
+      <bpmn:outgoing>Flow_CancelTimeout</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_CancelTimeout" sourceRef="Task_ArchiveTimeout" targetRef="EndEvent_Cancelled" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="MortgageOfferProcess">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="159" y="142" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendOffer_di" bpmnElement="Task_SendOffer">
+        <dc:Bounds x="260" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_WaitForReply_di" bpmnElement="Event_WaitForReply" isMarkerVisible="true">
+        <dc:Bounds x="412" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="396" y="142" width="68" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CheckReply_di" bpmnElement="Gateway_CheckReply" isMarkerVisible="true">
+        <dc:Bounds x="502" y="82" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateCaseDecline_di" bpmnElement="Task_UpdateCaseDecline">
+        <dc:Bounds x="610" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ArchiveDecline_di" bpmnElement="Task_ArchiveDecline">
+        <dc:Bounds x="760" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Cancelled_di" bpmnElement="EndEvent_Cancelled">
+        <dc:Bounds x="912" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="896" y="142" width="68" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CheckDocs_di" bpmnElement="Gateway_CheckDocs" isMarkerVisible="true">
+        <dc:Bounds x="502" y="232" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_MoveToAdmin_di" bpmnElement="Task_MoveToAdmin">
+        <dc:Bounds x="610" y="230" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Completed_di" bpmnElement="EndEvent_Completed">
+        <dc:Bounds x="762" y="249" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="746" y="292" width="68" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RequestDocs_di" bpmnElement="Task_RequestDocs">
+        <dc:Bounds x="610" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_WaitForDocs_di" bpmnElement="Event_WaitForDocs" isMarkerVisible="true">
+        <dc:Bounds x="762" y="399" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="746" y="442" width="68" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateCaseTimeout_di" bpmnElement="Task_UpdateCaseTimeout">
+        <dc:Bounds x="850" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ArchiveTimeout_di" bpmnElement="Task_ArchiveTimeout">
+        <dc:Bounds x="1000" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="215" y="117" />
+        <di:waypoint x="260" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="360" y="120" />
+        <di:waypoint x="412" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Decision_di" bpmnElement="Flow_Decision">
+        <di:waypoint x="448" y="117" />
+        <di:waypoint x="502" y="107" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Decline_di" bpmnElement="Flow_Decline">
+        <di:waypoint x="552" y="107" />
+        <di:waypoint x="610" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="576" y="92" width="34" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ArchiveDecline_di" bpmnElement="Flow_ArchiveDecline">
+        <di:waypoint x="710" y="120" />
+        <di:waypoint x="760" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CancelDecline_di" bpmnElement="Flow_CancelDecline">
+        <di:waypoint x="860" y="120" />
+        <di:waypoint x="912" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Accept_di" bpmnElement="Flow_Accept">
+        <di:waypoint x="527" y="132" />
+        <di:waypoint x="527" y="232" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="537" y="182" width="100" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AllDocsPresent_di" bpmnElement="Flow_AllDocsPresent">
+        <di:waypoint x="552" y="257" />
+        <di:waypoint x="610" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="576" y="242" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Completed_di" bpmnElement="Flow_Completed">
+        <di:waypoint x="710" y="270" />
+        <di:waypoint x="762" y="267" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DocsMissing_di" bpmnElement="Flow_DocsMissing">
+        <di:waypoint x="527" y="282" />
+        <di:waypoint x="527" y="380" />
+        <di:waypoint x="610" y="420" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="537" y="332" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_WaitForDocs_di" bpmnElement="Flow_WaitForDocs">
+        <di:waypoint x="710" y="420" />
+        <di:waypoint x="762" y="417" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DocsReceived_di" bpmnElement="Flow_DocsReceived">
+        <di:waypoint x="762" y="399" />
+        <di:waypoint x="762" y="350" />
+        <di:waypoint x="527" y="350" />
+        <di:waypoint x="527" y="282" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="646" y="332" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Timeout_di" bpmnElement="Flow_Timeout">
+        <di:waypoint x="798" y="417" />
+        <di:waypoint x="850" y="420" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="808" y="392" width="100" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ArchiveTimeout_di" bpmnElement="Flow_ArchiveTimeout">
+        <di:waypoint x="950" y="420" />
+        <di:waypoint x="1000" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_CancelTimeout_di" bpmnElement="Flow_CancelTimeout">
+        <di:waypoint x="1100" y="420" />
+        <di:waypoint x="1150" y="420" />
+        <di:waypoint x="1150" y="117" />
+        <di:waypoint x="948" y="117" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

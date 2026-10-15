@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_inq_part" name="INQ" processRef="pool_inq_proc" />
+    <bpmn:participant id="pool_ip_part" name="IP" processRef="pool_ip_proc" />
+    <bpmn:messageFlow id="mf1" sourceRef="end_inq_send" targetRef="event_receive_request" name="Transaction Data Request" />
+    <bpmn:messageFlow id="mf2" sourceRef="end_ip_transmit" targetRef="event_receive_response" name="Data Transmission" />
+    <bpmn:messageFlow id="mf3" sourceRef="end_ip_reject" targetRef="event_receive_response" name="Rejection" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_inq_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_request" name="Transaction Data Request" dataObjectRef="data_request_do" />
+    <bpmn:dataObject id="data_request_do" />
+    <bpmn:startEvent id="start_inq" name="Start">
+      <bpmn:outgoing>flow1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_inq_send" name="Request Sent">
+      <bpmn:incoming>flow2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_inq_send_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="event_receive_response" name="Response Received">
+      <bpmn:outgoing>flow7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_receive_response_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end_inq" name="End">
+      <bpmn:incoming>flow7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_transmit_request" name="Transmit transaction data request">
+      <bpmn:incoming>flow1</bpmn:incoming>
+      <bpmn:outgoing>flow2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_transmit_request_doa0">
+        <bpmn:targetRef>data_request</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="flow1" sourceRef="start_inq" targetRef="task_transmit_request" />
+    <bpmn:sequenceFlow id="flow2" sourceRef="task_transmit_request" targetRef="end_inq_send" />
+    <bpmn:sequenceFlow id="flow7" sourceRef="event_receive_response" targetRef="end_inq" />
+  </bpmn:process>
+  <bpmn:process id="pool_ip_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_request_p1" name="Transaction Data Request" dataObjectRef="data_request_p1_do" />
+    <bpmn:dataObject id="data_request_p1_do" />
+    <bpmn:dataObjectReference id="data_examination_result" name="Examination Result" dataObjectRef="data_examination_result_do" />
+    <bpmn:dataObject id="data_examination_result_do" />
+    <bpmn:dataObjectReference id="data_transaction_data" name="Transaction Data" dataObjectRef="data_transaction_data_do" />
+    <bpmn:dataObject id="data_transaction_data_do" />
+    <bpmn:dataObjectReference id="data_rejection_notice" name="Rejection Notice" dataObjectRef="data_rejection_notice_do" />
+    <bpmn:dataObject id="data_rejection_notice_do" />
+    <bpmn:startEvent id="event_receive_request" name="Request Received">
+      <bpmn:outgoing>flow3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_receive_request_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_ip_transmit" name="Data Transmitted">
+      <bpmn:incoming>flow5</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_ip_transmit_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_ip_reject" name="Request Rejected">
+      <bpmn:incoming>flow6</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_ip_reject_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_check_request" name="Check the request of the INQ">
+      <bpmn:incoming>flow3</bpmn:incoming>
+      <bpmn:outgoing>flow4</bpmn:outgoing>
+      <bpmn:property id="task_check_request_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_request_dia0">
+        <bpmn:sourceRef>data_request_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_request_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_check_request_doa0">
+        <bpmn:targetRef>data_examination_result</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_transmit_data" name="Transmit data to INQ">
+      <bpmn:incoming>flow_to_transmit</bpmn:incoming>
+      <bpmn:outgoing>flow5</bpmn:outgoing>
+      <bpmn:property id="task_transmit_data_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_transmit_data_dia0">
+        <bpmn:sourceRef>data_examination_result</bpmn:sourceRef>
+        <bpmn:targetRef>task_transmit_data_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_transmit_data_doa0">
+        <bpmn:targetRef>data_transaction_data</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_reject" name="Reject request">
+      <bpmn:incoming>flow_to_reject</bpmn:incoming>
+      <bpmn:outgoing>flow6</bpmn:outgoing>
+      <bpmn:property id="task_reject_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_reject_dia0">
+        <bpmn:sourceRef>data_examination_result</bpmn:sourceRef>
+        <bpmn:targetRef>task_reject_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_reject_doa0">
+        <bpmn:targetRef>data_rejection_notice</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_decision" name="Examination outcome?" isMarkerVisible="true">
+      <bpmn:incoming>flow4</bpmn:incoming>
+      <bpmn:outgoing>flow_to_transmit</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow3" sourceRef="event_receive_request" targetRef="task_check_request" />
+    <bpmn:sequenceFlow id="flow4" sourceRef="task_check_request" targetRef="gw_decision" />
+    <bpmn:sequenceFlow id="flow_to_transmit" sourceRef="gw_decision" targetRef="task_transmit_data" name="request valid" />
+    <bpmn:sequenceFlow id="flow_to_reject" sourceRef="gw_decision" targetRef="task_reject" name="request invalid" />
+    <bpmn:sequenceFlow id="flow5" sourceRef="task_transmit_data" targetRef="end_ip_transmit" />
+    <bpmn:sequenceFlow id="flow6" sourceRef="task_reject" targetRef="end_ip_reject" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_inq_part_di" bpmnElement="pool_inq_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_ip_part_di" bpmnElement="pool_ip_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="1140" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_inq_di" bpmnElement="end_inq">
+        <dc:Bounds x="350" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_inq_send_di" bpmnElement="end_inq_send">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_ip_reject_di" bpmnElement="end_ip_reject">
+        <dc:Bounds x="920" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_ip_transmit_di" bpmnElement="end_ip_transmit">
+        <dc:Bounds x="920" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_receive_request_di" bpmnElement="event_receive_request">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_receive_response_di" bpmnElement="event_receive_response">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_decision_di" bpmnElement="gw_decision">
+        <dc:Bounds x="540" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_inq_di" bpmnElement="start_inq">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_request_di" bpmnElement="task_check_request">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reject_di" bpmnElement="task_reject">
+        <dc:Bounds x="730" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_transmit_data_di" bpmnElement="task_transmit_data">
+        <dc:Bounds x="730" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_transmit_request_di" bpmnElement="task_transmit_request">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_request_di" bpmnElement="data_request">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_request_p1_di" bpmnElement="data_request_p1">
+        <dc:Bounds x="370" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_examination_result_di" bpmnElement="data_examination_result">
+        <dc:Bounds x="623" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_transaction_data_di" bpmnElement="data_transaction_data">
+        <dc:Bounds x="750" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_rejection_notice_di" bpmnElement="data_rejection_notice">
+        <dc:Bounds x="750" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow1_di" bpmnElement="flow1">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow2_di" bpmnElement="flow2">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow3_di" bpmnElement="flow3">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow4_di" bpmnElement="flow4">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="565" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_transmit_di" bpmnElement="flow_to_transmit">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="780" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_reject_di" bpmnElement="flow_to_reject">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="780" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow5_di" bpmnElement="flow5">
+        <di:waypoint x="780" y="725" />
+        <di:waypoint x="938" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow6_di" bpmnElement="flow6">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="938" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow7_di" bpmnElement="flow7">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="368" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf1_di" bpmnElement="mf1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf2_di" bpmnElement="mf2">
+        <di:waypoint x="938" y="703" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf3_di" bpmnElement="mf3">
+        <di:waypoint x="938" y="578" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_transmit_request_doa0_di" bpmnElement="task_transmit_request_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="388" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_request_dia0_di" bpmnElement="task_check_request_dia0">
+        <di:waypoint x="388" y="850" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_request_doa0_di" bpmnElement="task_check_request_doa0">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="641" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_transmit_data_dia0_di" bpmnElement="task_transmit_data_dia0">
+        <di:waypoint x="641" y="850" />
+        <di:waypoint x="780" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_transmit_data_doa0_di" bpmnElement="task_transmit_data_doa0">
+        <di:waypoint x="780" y="725" />
+        <di:waypoint x="768" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reject_dia0_di" bpmnElement="task_reject_dia0">
+        <di:waypoint x="641" y="850" />
+        <di:waypoint x="780" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reject_doa0_di" bpmnElement="task_reject_doa0">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="768" y="850" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

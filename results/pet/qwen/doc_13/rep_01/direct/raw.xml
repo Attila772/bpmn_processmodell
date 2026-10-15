@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="ClaimsNotificationProcess" name="Claims Notification Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_ClaimReceived" name="Claim Received">
+      <bpmn:outgoing>Flow_CheckInsured</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_CheckInsured" name="Check if Claimant is Insured">
+      <bpmn:incoming>Flow_CheckInsured</bpmn:incoming>
+      <bpmn:outgoing>Flow_DecisionInsured</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_IsInsured" name="Is Insured?">
+      <bpmn:incoming>Flow_DecisionInsured</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoInsurance</bpmn:outgoing>
+      <bpmn:outgoing>Flow_YesInsurance</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_RejectClaim" name="Inform Claimant: Claim Rejected">
+      <bpmn:incoming>Flow_NoInsurance</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndRejected</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Claim Rejected">
+      <bpmn:incoming>Flow_EndRejected</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_EvaluateSeverity" name="Evaluate Severity of Claim">
+      <bpmn:incoming>Flow_YesInsurance</bpmn:incoming>
+      <bpmn:outgoing>Flow_DecisionSeverity</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_Severity" name="Severity Outcome">
+      <bpmn:incoming>Flow_DecisionSeverity</bpmn:incoming>
+      <bpmn:outgoing>Flow_SimpleForms</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ComplexForms</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_SendSimpleForms" name="Send Simple Forms">
+      <bpmn:incoming>Flow_SimpleForms</bpmn:incoming>
+      <bpmn:outgoing>Flow_WaitForReturn</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_SendComplexForms" name="Send Complex Forms">
+      <bpmn:incoming>Flow_ComplexForms</bpmn:incoming>
+      <bpmn:outgoing>Flow_WaitForReturn</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_FormsReturned" name="Forms Returned">
+      <bpmn:incoming>Flow_WaitForReturn</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckCompleteness</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_CheckCompleteness" name="Check Forms for Completeness">
+      <bpmn:incoming>Flow_CheckCompleteness</bpmn:incoming>
+      <bpmn:outgoing>Flow_DecisionComplete</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_Complete" name="Forms Complete?">
+      <bpmn:incoming>Flow_DecisionComplete</bpmn:incoming>
+      <bpmn:outgoing>Flow_CompleteYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CompleteNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_RegisterClaim" name="Register Claim in Claims Management System">
+      <bpmn:incoming>Flow_CompleteYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_EndRegistered</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Registered" name="Claim Registered">
+      <bpmn:incoming>Flow_EndRegistered</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_InformUpdate" name="Inform Claimant to Update Forms">
+      <bpmn:incoming>Flow_CompleteNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_WaitForUpdated</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="Event_UpdatedFormsReturned" name="Updated Forms Returned">
+      <bpmn:incoming>Flow_WaitForUpdated</bpmn:incoming>
+      <bpmn:outgoing>Flow_RecheckCompleteness</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_CheckInsured" sourceRef="StartEvent_ClaimReceived" targetRef="Task_CheckInsured" />
+    <bpmn:sequenceFlow id="Flow_DecisionInsured" sourceRef="Task_CheckInsured" targetRef="Gateway_IsInsured" />
+    <bpmn:sequenceFlow id="Flow_NoInsurance" name="No" sourceRef="Gateway_IsInsured" targetRef="Task_RejectClaim" />
+    <bpmn:sequenceFlow id="Flow_YesInsurance" name="Yes" sourceRef="Gateway_IsInsured" targetRef="Task_EvaluateSeverity" />
+    <bpmn:sequenceFlow id="Flow_EndRejected" sourceRef="Task_RejectClaim" targetRef="EndEvent_Rejected" />
+    <bpmn:sequenceFlow id="Flow_DecisionSeverity" sourceRef="Task_EvaluateSeverity" targetRef="Gateway_Severity" />
+    <bpmn:sequenceFlow id="Flow_SimpleForms" name="Simple" sourceRef="Gateway_Severity" targetRef="Task_SendSimpleForms" />
+    <bpmn:sequenceFlow id="Flow_ComplexForms" name="Complex" sourceRef="Gateway_Severity" targetRef="Task_SendComplexForms" />
+    <bpmn:sequenceFlow id="Flow_WaitForReturn" sourceRef="Task_SendSimpleForms" targetRef="Event_FormsReturned" />
+    <bpmn:sequenceFlow id="Flow_WaitForReturn_Complex" sourceRef="Task_SendComplexForms" targetRef="Event_FormsReturned" />
+    <bpmn:sequenceFlow id="Flow_CheckCompleteness" sourceRef="Event_FormsReturned" targetRef="Task_CheckCompleteness" />
+    <bpmn:sequenceFlow id="Flow_DecisionComplete" sourceRef="Task_CheckCompleteness" targetRef="Gateway_Complete" />
+    <bpmn:sequenceFlow id="Flow_CompleteYes" name="Yes" sourceRef="Gateway_Complete" targetRef="Task_RegisterClaim" />
+    <bpmn:sequenceFlow id="Flow_CompleteNo" name="No" sourceRef="Gateway_Complete" targetRef="Task_InformUpdate" />
+    <bpmn:sequenceFlow id="Flow_EndRegistered" sourceRef="Task_RegisterClaim" targetRef="EndEvent_Registered" />
+    <bpmn:sequenceFlow id="Flow_WaitForUpdated" sourceRef="Task_InformUpdate" targetRef="Event_UpdatedFormsReturned" />
+    <bpmn:sequenceFlow id="Flow_RecheckCompleteness" sourceRef="Event_UpdatedFormsReturned" targetRef="Task_CheckCompleteness" />
+  </bpmn:process>
+</bpmn:definitions>

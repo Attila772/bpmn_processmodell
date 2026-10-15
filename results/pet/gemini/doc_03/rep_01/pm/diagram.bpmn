@@ -1,0 +1,725 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mpon_part" name="MPON" processRef="pool_mpon_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_mpoo_part" name="MPOO" processRef="pool_mpoo_proc" />
+    <bpmn:participant id="pool_mspo_part" name="MSPO" processRef="pool_mspo_proc" />
+    <bpmn:participant id="pool_sp_part" name="SP" processRef="pool_sp_proc" />
+    <bpmn:messageFlow id="mf_1" sourceRef="msg_mpon_send_report" targetRef="start_go" name="Application of MPON" />
+    <bpmn:messageFlow id="mf_2" sourceRef="msg_go_send_mpon_reject" targetRef="msg_mpon_recv_conf" name="Rejection of Application" />
+    <bpmn:messageFlow id="mf_3" sourceRef="msg_go_send_mpon_conf" targetRef="msg_mpon_recv_conf" name="Confirmation of Application" />
+    <bpmn:messageFlow id="mf_4" sourceRef="msg_go_send_mpoo_conf" targetRef="start_mpoo_conf" name="Registration Confirmation" />
+    <bpmn:messageFlow id="mf_5" sourceRef="msg_go_send_mspo_conf" targetRef="start_mspo_conf" name="Registration Confirmation" />
+    <bpmn:messageFlow id="mf_6" sourceRef="msg_mpon_send_status" targetRef="msg_go_recv_status" name="Process Outcome Message" />
+    <bpmn:messageFlow id="mf_7" sourceRef="msg_go_send_mpon_timeout" targetRef="end_mpon_failed" name="Failure by Deadline Notification" />
+    <bpmn:messageFlow id="mf_8" sourceRef="msg_go_send_mpon_fail_ack" targetRef="msg_mpon_recv_final_ack" name="Confirmation of Failure of Assignment" />
+    <bpmn:messageFlow id="mf_9" sourceRef="msg_go_send_mpon_assign_ack" targetRef="msg_mpon_recv_final_ack" name="Confirmation of Assignment" />
+    <bpmn:messageFlow id="mf_10" sourceRef="msg_go_send_sp_assign" targetRef="start_sp" name="Assignment Notification" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mpon_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_application" name="Meter Operation Application" dataObjectRef="data_application_do" />
+    <bpmn:dataObject id="data_application_do" />
+    <bpmn:startEvent id="start_mpon" name="Start Meter Operation Process">
+      <bpmn:outgoing>sf_mpon_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_mpon_rejected" name="Application Rejected">
+      <bpmn:incoming>sf_mpon_app_rejected</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_mpon_failed" name="Process Failed">
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_mpon_assigned" name="Assignment Completed">
+      <bpmn:incoming>sf_mpon_7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="msg_mpon_send_report" name="Send Application to GO">
+      <bpmn:incoming>sf_mpon_2</bpmn:incoming>
+      <bpmn:outgoing>sf_mpon_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_mpon_send_report_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_mpon_recv_conf" name="Receive Confirmation/Rejection">
+      <bpmn:incoming>sf_mpon_3</bpmn:incoming>
+      <bpmn:outgoing>sf_mpon_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_mpon_recv_conf_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_mpon_send_status" name="Send Process Status to GO">
+      <bpmn:incoming>sf_mpon_exec_failed</bpmn:incoming>
+      <bpmn:incoming>sf_mpon_exec_success</bpmn:incoming>
+      <bpmn:outgoing>sf_mpon_6</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_mpon_send_status_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_mpon_recv_final_ack" name="Receive Final Confirmation">
+      <bpmn:incoming>sf_mpon_6</bpmn:incoming>
+      <bpmn:outgoing>sf_mpon_7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_mpon_recv_final_ack_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:task id="task_mpon_report" name="Report meter operation to GO">
+      <bpmn:incoming>sf_mpon_1</bpmn:incoming>
+      <bpmn:outgoing>sf_mpon_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_mpon_report_doa0">
+        <bpmn:targetRef>data_application</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:manualTask id="task_mpon_equip" name="Perform equipment acquisition and / or equipment changes">
+      <bpmn:incoming>sf_mpon_app_confirmed</bpmn:incoming>
+      <bpmn:outgoing>sf_mpon_5</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="gw_mpon_check_app" name="Application Confirmed?" isMarkerVisible="true">
+      <bpmn:incoming>sf_mpon_4</bpmn:incoming>
+      <bpmn:outgoing>sf_mpon_app_rejected</bpmn:outgoing>
+      <bpmn:outgoing>sf_mpon_app_confirmed</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_mpon_exec_status" name="Process Execution Result" isMarkerVisible="true">
+      <bpmn:incoming>sf_mpon_5</bpmn:incoming>
+      <bpmn:outgoing>sf_mpon_exec_failed</bpmn:outgoing>
+      <bpmn:outgoing>sf_mpon_exec_success</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_mpon_1" sourceRef="start_mpon" targetRef="task_mpon_report" />
+    <bpmn:sequenceFlow id="sf_mpon_2" sourceRef="task_mpon_report" targetRef="msg_mpon_send_report" />
+    <bpmn:sequenceFlow id="sf_mpon_3" sourceRef="msg_mpon_send_report" targetRef="msg_mpon_recv_conf" />
+    <bpmn:sequenceFlow id="sf_mpon_4" sourceRef="msg_mpon_recv_conf" targetRef="gw_mpon_check_app" />
+    <bpmn:sequenceFlow id="sf_mpon_app_rejected" sourceRef="gw_mpon_check_app" targetRef="end_mpon_rejected" name="Rejected" />
+    <bpmn:sequenceFlow id="sf_mpon_app_confirmed" sourceRef="gw_mpon_check_app" targetRef="task_mpon_equip" name="Confirmed" />
+    <bpmn:sequenceFlow id="sf_mpon_5" sourceRef="task_mpon_equip" targetRef="gw_mpon_exec_status" />
+    <bpmn:sequenceFlow id="sf_mpon_exec_failed" sourceRef="gw_mpon_exec_status" targetRef="msg_mpon_send_status" name="Failure of entire process" />
+    <bpmn:sequenceFlow id="sf_mpon_exec_success" sourceRef="gw_mpon_exec_status" targetRef="msg_mpon_send_status" name="Successful completion" />
+    <bpmn:sequenceFlow id="sf_mpon_6" sourceRef="msg_mpon_send_status" targetRef="msg_mpon_recv_final_ack" />
+    <bpmn:sequenceFlow id="sf_mpon_7" sourceRef="msg_mpon_recv_final_ack" targetRef="end_mpon_assigned" />
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_application_p1" name="Meter Operation Application" dataObjectRef="data_application_p1_do" />
+    <bpmn:dataObject id="data_application_p1_do" />
+    <bpmn:startEvent id="start_go" name="Meter Operation Reported">
+      <bpmn:outgoing>sf_go_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_go_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_go_rejected" name="Application Rejected Process End">
+      <bpmn:incoming>sf_go_3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_go_failed" name="Overall Process Failed">
+      <bpmn:incoming>sf_go_5</bpmn:incoming>
+      <bpmn:incoming>sf_go_7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_go_assigned" name="MPON Assigned Process End">
+      <bpmn:incoming>sf_go_9</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mpoo_conf" name="Inform MPOO about Registration Confirmation">
+      <bpmn:incoming>sf_go_p2</bpmn:incoming>
+      <bpmn:outgoing>sf_go_p5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mpoo_conf_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mspo_conf" name="Inform MSPO about Registration Confirmation">
+      <bpmn:incoming>sf_go_p3</bpmn:incoming>
+      <bpmn:outgoing>sf_go_p6</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mspo_conf_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mpon_conf" name="Inform MPON about Confirmation">
+      <bpmn:incoming>sf_go_p1</bpmn:incoming>
+      <bpmn:outgoing>sf_go_p4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mpon_conf_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mpon_reject" name="Inform MPON about Rejection">
+      <bpmn:incoming>sf_go_reject</bpmn:incoming>
+      <bpmn:outgoing>sf_go_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mpon_reject_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_recv_status" name="Receive Completion Status from MPON">
+      <bpmn:incoming>sf_go_msg_received</bpmn:incoming>
+      <bpmn:outgoing>sf_go_6</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_recv_status_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mpon_timeout" name="Inform MPON about Failure by Deadline">
+      <bpmn:incoming>sf_go_timeout</bpmn:incoming>
+      <bpmn:outgoing>sf_go_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mpon_timeout_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mpon_fail_ack" name="Confirm Failure of Assignment to MPON">
+      <bpmn:incoming>sf_go_ff1</bpmn:incoming>
+      <bpmn:outgoing>sf_go_ff4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mpon_fail_ack_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mpon_assign_ack" name="Confirm Assignment to MPON">
+      <bpmn:incoming>sf_go_fs1</bpmn:incoming>
+      <bpmn:outgoing>sf_go_fs5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mpon_assign_ack_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mpoo_fail" name="Inform MPOO about Failure of Assignment">
+      <bpmn:incoming>sf_go_ff2</bpmn:incoming>
+      <bpmn:outgoing>sf_go_ff5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mpoo_fail_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mpoo_assign" name="Inform MPOO about Assignment of MPON">
+      <bpmn:incoming>sf_go_fs2</bpmn:incoming>
+      <bpmn:outgoing>sf_go_fs6</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mpoo_assign_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mspo_fail" name="Inform MSPO about Failure of Assignment">
+      <bpmn:incoming>sf_go_ff3</bpmn:incoming>
+      <bpmn:outgoing>sf_go_ff6</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mspo_fail_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_mspo_assign" name="Inform MSPO about Assignment of MPON">
+      <bpmn:incoming>sf_go_fs3</bpmn:incoming>
+      <bpmn:outgoing>sf_go_fs7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_mspo_assign_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="msg_go_send_sp_assign" name="Inform SP about Assignment of MPON">
+      <bpmn:incoming>sf_go_fs4</bpmn:incoming>
+      <bpmn:outgoing>sf_go_fs8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_go_send_sp_assign_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:userTask id="task_go_examine" name="Examine application of MPON">
+      <bpmn:incoming>sf_go_1</bpmn:incoming>
+      <bpmn:outgoing>sf_go_2</bpmn:outgoing>
+      <bpmn:property id="task_go_examine_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_go_examine_dia0">
+        <bpmn:sourceRef>data_application_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_go_examine_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_go_assign" name="Assign MPON">
+      <bpmn:incoming>sf_go_status_success</bpmn:incoming>
+      <bpmn:outgoing>sf_go_8</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_go_app_decision" name="Application Decision" isMarkerVisible="true">
+      <bpmn:incoming>sf_go_2</bpmn:incoming>
+      <bpmn:outgoing>sf_go_reject</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_go_parallel_inform_start" name="Inform Parties Split">
+      <bpmn:incoming>sf_go_confirm</bpmn:incoming>
+      <bpmn:outgoing>sf_go_p1</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_p2</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_p3</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_go_parallel_inform_join" name="Inform Parties Join">
+      <bpmn:incoming>sf_go_p4</bpmn:incoming>
+      <bpmn:incoming>sf_go_p5</bpmn:incoming>
+      <bpmn:incoming>sf_go_p6</bpmn:incoming>
+      <bpmn:outgoing>sf_go_4</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:exclusiveGateway id="gw_go_receive_outcome" name="Message Received in Time?" isMarkerVisible="true">
+      <bpmn:incoming>sf_go_4</bpmn:incoming>
+      <bpmn:outgoing>sf_go_timeout</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_msg_received</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_go_status_check" name="Execution Outcome from MPON" isMarkerVisible="true">
+      <bpmn:incoming>sf_go_6</bpmn:incoming>
+      <bpmn:outgoing>sf_go_status_failure</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_status_success</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_go_parallel_final_fail_start" name="Parallel Fail Inform Split">
+      <bpmn:incoming>sf_go_status_failure</bpmn:incoming>
+      <bpmn:outgoing>sf_go_ff1</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_ff2</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_ff3</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_go_parallel_final_fail_join" name="Parallel Fail Inform Join">
+      <bpmn:incoming>sf_go_ff4</bpmn:incoming>
+      <bpmn:incoming>sf_go_ff5</bpmn:incoming>
+      <bpmn:incoming>sf_go_ff6</bpmn:incoming>
+      <bpmn:outgoing>sf_go_7</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_go_parallel_final_succ_start" name="Parallel Success Inform Split">
+      <bpmn:incoming>sf_go_8</bpmn:incoming>
+      <bpmn:outgoing>sf_go_fs1</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_fs2</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_fs3</bpmn:outgoing>
+      <bpmn:outgoing>sf_go_fs4</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_go_parallel_final_succ_join" name="Parallel Success Inform Join">
+      <bpmn:incoming>sf_go_fs5</bpmn:incoming>
+      <bpmn:incoming>sf_go_fs6</bpmn:incoming>
+      <bpmn:incoming>sf_go_fs7</bpmn:incoming>
+      <bpmn:incoming>sf_go_fs8</bpmn:incoming>
+      <bpmn:outgoing>sf_go_9</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="sf_go_1" sourceRef="start_go" targetRef="task_go_examine" />
+    <bpmn:sequenceFlow id="sf_go_2" sourceRef="task_go_examine" targetRef="gw_go_app_decision" />
+    <bpmn:sequenceFlow id="sf_go_reject" sourceRef="gw_go_app_decision" targetRef="msg_go_send_mpon_reject" name="Reject application" />
+    <bpmn:sequenceFlow id="sf_go_3" sourceRef="msg_go_send_mpon_reject" targetRef="end_go_rejected" />
+    <bpmn:sequenceFlow id="sf_go_confirm" sourceRef="gw_go_app_decision" targetRef="gw_go_parallel_inform_start" name="Confirm application" />
+    <bpmn:sequenceFlow id="sf_go_p1" sourceRef="gw_go_parallel_inform_start" targetRef="msg_go_send_mpon_conf" />
+    <bpmn:sequenceFlow id="sf_go_p2" sourceRef="gw_go_parallel_inform_start" targetRef="msg_go_send_mpoo_conf" />
+    <bpmn:sequenceFlow id="sf_go_p3" sourceRef="gw_go_parallel_inform_start" targetRef="msg_go_send_mspo_conf" />
+    <bpmn:sequenceFlow id="sf_go_p4" sourceRef="msg_go_send_mpon_conf" targetRef="gw_go_parallel_inform_join" />
+    <bpmn:sequenceFlow id="sf_go_p5" sourceRef="msg_go_send_mpoo_conf" targetRef="gw_go_parallel_inform_join" />
+    <bpmn:sequenceFlow id="sf_go_p6" sourceRef="msg_go_send_mspo_conf" targetRef="gw_go_parallel_inform_join" />
+    <bpmn:sequenceFlow id="sf_go_4" sourceRef="gw_go_parallel_inform_join" targetRef="gw_go_receive_outcome" />
+    <bpmn:sequenceFlow id="sf_go_timeout" sourceRef="gw_go_receive_outcome" targetRef="msg_go_send_mpon_timeout" name="No message after maximum time limit" />
+    <bpmn:sequenceFlow id="sf_go_5" sourceRef="msg_go_send_mpon_timeout" targetRef="end_go_failed" />
+    <bpmn:sequenceFlow id="sf_go_msg_received" sourceRef="gw_go_receive_outcome" targetRef="msg_go_recv_status" name="Message received" />
+    <bpmn:sequenceFlow id="sf_go_6" sourceRef="msg_go_recv_status" targetRef="gw_go_status_check" />
+    <bpmn:sequenceFlow id="sf_go_status_failure" sourceRef="gw_go_status_check" targetRef="gw_go_parallel_final_fail_start" name="Failure of entire process" />
+    <bpmn:sequenceFlow id="sf_go_ff1" sourceRef="gw_go_parallel_final_fail_start" targetRef="msg_go_send_mpon_fail_ack" />
+    <bpmn:sequenceFlow id="sf_go_ff2" sourceRef="gw_go_parallel_final_fail_start" targetRef="msg_go_send_mpoo_fail" />
+    <bpmn:sequenceFlow id="sf_go_ff3" sourceRef="gw_go_parallel_final_fail_start" targetRef="msg_go_send_mspo_fail" />
+    <bpmn:sequenceFlow id="sf_go_ff4" sourceRef="msg_go_send_mpon_fail_ack" targetRef="gw_go_parallel_final_fail_join" />
+    <bpmn:sequenceFlow id="sf_go_ff5" sourceRef="msg_go_send_mpoo_fail" targetRef="gw_go_parallel_final_fail_join" />
+    <bpmn:sequenceFlow id="sf_go_ff6" sourceRef="msg_go_send_mspo_fail" targetRef="gw_go_parallel_final_fail_join" />
+    <bpmn:sequenceFlow id="sf_go_7" sourceRef="gw_go_parallel_final_fail_join" targetRef="end_go_failed" />
+    <bpmn:sequenceFlow id="sf_go_status_success" sourceRef="gw_go_status_check" targetRef="task_go_assign" name="Successful completion" />
+    <bpmn:sequenceFlow id="sf_go_8" sourceRef="task_go_assign" targetRef="gw_go_parallel_final_succ_start" />
+    <bpmn:sequenceFlow id="sf_go_fs1" sourceRef="gw_go_parallel_final_succ_start" targetRef="msg_go_send_mpon_assign_ack" />
+    <bpmn:sequenceFlow id="sf_go_fs2" sourceRef="gw_go_parallel_final_succ_start" targetRef="msg_go_send_mpoo_assign" />
+    <bpmn:sequenceFlow id="sf_go_fs3" sourceRef="gw_go_parallel_final_succ_start" targetRef="msg_go_send_mspo_assign" />
+    <bpmn:sequenceFlow id="sf_go_fs4" sourceRef="gw_go_parallel_final_succ_start" targetRef="msg_go_send_sp_assign" />
+    <bpmn:sequenceFlow id="sf_go_fs5" sourceRef="msg_go_send_mpon_assign_ack" targetRef="gw_go_parallel_final_succ_join" />
+    <bpmn:sequenceFlow id="sf_go_fs6" sourceRef="msg_go_send_mpoo_assign" targetRef="gw_go_parallel_final_succ_join" />
+    <bpmn:sequenceFlow id="sf_go_fs7" sourceRef="msg_go_send_mspo_assign" targetRef="gw_go_parallel_final_succ_join" />
+    <bpmn:sequenceFlow id="sf_go_fs8" sourceRef="msg_go_send_sp_assign" targetRef="gw_go_parallel_final_succ_join" />
+    <bpmn:sequenceFlow id="sf_go_9" sourceRef="gw_go_parallel_final_succ_join" targetRef="end_go_assigned" />
+  </bpmn:process>
+  <bpmn:process id="pool_mpoo_proc" isExecutable="false">
+    <bpmn:startEvent id="start_mpoo_conf" name="Registration Confirmation Received">
+      <bpmn:outgoing>sf_mpoo_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_mpoo_conf_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_mpoo" name="MPOO Process End">
+      <bpmn:incoming>sf_mpoo_2</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_mpoo_equip" name="Perform equipment acquisition and / or equipment changes">
+      <bpmn:incoming>sf_mpoo_1</bpmn:incoming>
+      <bpmn:outgoing>sf_mpoo_2</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="sf_mpoo_1" sourceRef="start_mpoo_conf" targetRef="task_mpoo_equip" />
+    <bpmn:sequenceFlow id="sf_mpoo_2" sourceRef="task_mpoo_equip" targetRef="end_mpoo" />
+  </bpmn:process>
+  <bpmn:process id="pool_mspo_proc" isExecutable="false">
+    <bpmn:startEvent id="start_mspo_conf" name="Registration Confirmation Received">
+      <bpmn:outgoing>sf_mspo_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_mspo_conf_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_mspo" name="MSPO Process End">
+      <bpmn:incoming>sf_mspo_1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="sf_mspo_1" sourceRef="start_mspo_conf" targetRef="end_mspo" />
+  </bpmn:process>
+  <bpmn:process id="pool_sp_proc" isExecutable="false">
+    <bpmn:startEvent id="start_sp" name="Assignment Notification Received">
+      <bpmn:outgoing>sf_sp_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_sp_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_sp" name="SP Process End">
+      <bpmn:incoming>sf_sp_1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="sf_sp_1" sourceRef="start_sp" targetRef="end_sp" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mpon_part_di" bpmnElement="pool_mpon_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="2090" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="2850" height="775" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpoo_part_di" bpmnElement="pool_mpoo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1335" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mspo_part_di" bpmnElement="pool_mspo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1670" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_sp_part_di" bpmnElement="pool_sp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="2005" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_go_assigned_di" bpmnElement="end_go_assigned">
+        <dc:Bounds x="2630" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_go_failed_di" bpmnElement="end_go_failed">
+        <dc:Bounds x="2440" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_go_rejected_di" bpmnElement="end_go_rejected">
+        <dc:Bounds x="920" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_mpon_assigned_di" bpmnElement="end_mpon_assigned">
+        <dc:Bounds x="1870" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_mpon_failed_di" bpmnElement="end_mpon_failed">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_mpon_rejected_di" bpmnElement="end_mpon_rejected">
+        <dc:Bounds x="1110" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_mpoo_di" bpmnElement="end_mpoo">
+        <dc:Bounds x="540" y="1395" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_mspo_di" bpmnElement="end_mspo">
+        <dc:Bounds x="350" y="1730" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_sp_di" bpmnElement="end_sp">
+        <dc:Bounds x="350" y="2065" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_app_decision_di" bpmnElement="gw_go_app_decision">
+        <dc:Bounds x="540" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_parallel_final_fail_join_di" bpmnElement="gw_go_parallel_final_fail_join">
+        <dc:Bounds x="2250" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_parallel_final_fail_start_di" bpmnElement="gw_go_parallel_final_fail_start">
+        <dc:Bounds x="1870" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_parallel_final_succ_join_di" bpmnElement="gw_go_parallel_final_succ_join">
+        <dc:Bounds x="2440" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_parallel_final_succ_start_di" bpmnElement="gw_go_parallel_final_succ_start">
+        <dc:Bounds x="2060" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_parallel_inform_join_di" bpmnElement="gw_go_parallel_inform_join">
+        <dc:Bounds x="1110" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_parallel_inform_start_di" bpmnElement="gw_go_parallel_inform_start">
+        <dc:Bounds x="730" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_receive_outcome_di" bpmnElement="gw_go_receive_outcome">
+        <dc:Bounds x="1300" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_go_status_check_di" bpmnElement="gw_go_status_check">
+        <dc:Bounds x="1680" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_mpon_check_app_di" bpmnElement="gw_mpon_check_app">
+        <dc:Bounds x="920" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_mpon_exec_status_di" bpmnElement="gw_mpon_exec_status">
+        <dc:Bounds x="1300" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_recv_status_di" bpmnElement="msg_go_recv_status">
+        <dc:Bounds x="1490" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mpon_assign_ack_di" bpmnElement="msg_go_send_mpon_assign_ack">
+        <dc:Bounds x="2250" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mpon_conf_di" bpmnElement="msg_go_send_mpon_conf">
+        <dc:Bounds x="920" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mpon_fail_ack_di" bpmnElement="msg_go_send_mpon_fail_ack">
+        <dc:Bounds x="2060" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mpon_reject_di" bpmnElement="msg_go_send_mpon_reject">
+        <dc:Bounds x="730" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mpon_timeout_di" bpmnElement="msg_go_send_mpon_timeout">
+        <dc:Bounds x="1490" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mpoo_assign_di" bpmnElement="msg_go_send_mpoo_assign">
+        <dc:Bounds x="2250" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mpoo_conf_di" bpmnElement="msg_go_send_mpoo_conf">
+        <dc:Bounds x="920" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mpoo_fail_di" bpmnElement="msg_go_send_mpoo_fail">
+        <dc:Bounds x="2060" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mspo_assign_di" bpmnElement="msg_go_send_mspo_assign">
+        <dc:Bounds x="2250" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mspo_conf_di" bpmnElement="msg_go_send_mspo_conf">
+        <dc:Bounds x="920" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_mspo_fail_di" bpmnElement="msg_go_send_mspo_fail">
+        <dc:Bounds x="2060" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_go_send_sp_assign_di" bpmnElement="msg_go_send_sp_assign">
+        <dc:Bounds x="2250" y="1060" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_mpon_recv_conf_di" bpmnElement="msg_mpon_recv_conf">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_mpon_recv_final_ack_di" bpmnElement="msg_mpon_recv_final_ack">
+        <dc:Bounds x="1680" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_mpon_send_report_di" bpmnElement="msg_mpon_send_report">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_mpon_send_status_di" bpmnElement="msg_mpon_send_status">
+        <dc:Bounds x="1490" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_go_di" bpmnElement="start_go">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_mpon_di" bpmnElement="start_mpon">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_mpoo_conf_di" bpmnElement="start_mpoo_conf">
+        <dc:Bounds x="160" y="1395" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_mspo_conf_di" bpmnElement="start_mspo_conf">
+        <dc:Bounds x="160" y="1730" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_sp_di" bpmnElement="start_sp">
+        <dc:Bounds x="160" y="2065" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_assign_di" bpmnElement="task_go_assign">
+        <dc:Bounds x="1870" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_go_examine_di" bpmnElement="task_go_examine">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_equip_di" bpmnElement="task_mpon_equip">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_report_di" bpmnElement="task_mpon_report">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpoo_equip_di" bpmnElement="task_mpoo_equip">
+        <dc:Bounds x="350" y="1395" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_application_di" bpmnElement="data_application">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_application_p1_di" bpmnElement="data_application_p1">
+        <dc:Bounds x="370" y="1200" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_mpon_1_di" bpmnElement="sf_mpon_1">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_2_di" bpmnElement="sf_mpon_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_3_di" bpmnElement="sf_mpon_3">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_4_di" bpmnElement="sf_mpon_4">
+        <di:waypoint x="748" y="118" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_app_rejected_di" bpmnElement="sf_mpon_app_rejected">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_app_confirmed_di" bpmnElement="sf_mpon_app_confirmed">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_5_di" bpmnElement="sf_mpon_5">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_exec_failed_di" bpmnElement="sf_mpon_exec_failed">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1508" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_exec_success_di" bpmnElement="sf_mpon_exec_success">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1508" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_6_di" bpmnElement="sf_mpon_6">
+        <di:waypoint x="1508" y="118" />
+        <di:waypoint x="1698" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpon_7_di" bpmnElement="sf_mpon_7">
+        <di:waypoint x="1698" y="118" />
+        <di:waypoint x="1888" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_1_di" bpmnElement="sf_go_1">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_2_di" bpmnElement="sf_go_2">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="565" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_reject_di" bpmnElement="sf_go_reject">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="748" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_3_di" bpmnElement="sf_go_3">
+        <di:waypoint x="748" y="703" />
+        <di:waypoint x="938" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_confirm_di" bpmnElement="sf_go_confirm">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="755" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_p1_di" bpmnElement="sf_go_p1">
+        <di:waypoint x="755" y="585" />
+        <di:waypoint x="938" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_p2_di" bpmnElement="sf_go_p2">
+        <di:waypoint x="755" y="585" />
+        <di:waypoint x="938" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_p3_di" bpmnElement="sf_go_p3">
+        <di:waypoint x="755" y="585" />
+        <di:waypoint x="938" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_p4_di" bpmnElement="sf_go_p4">
+        <di:waypoint x="938" y="703" />
+        <di:waypoint x="1135" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_p5_di" bpmnElement="sf_go_p5">
+        <di:waypoint x="938" y="828" />
+        <di:waypoint x="1135" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_p6_di" bpmnElement="sf_go_p6">
+        <di:waypoint x="938" y="953" />
+        <di:waypoint x="1135" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_4_di" bpmnElement="sf_go_4">
+        <di:waypoint x="1135" y="585" />
+        <di:waypoint x="1325" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_timeout_di" bpmnElement="sf_go_timeout">
+        <di:waypoint x="1325" y="585" />
+        <di:waypoint x="1508" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_5_di" bpmnElement="sf_go_5">
+        <di:waypoint x="1508" y="703" />
+        <di:waypoint x="2458" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_msg_received_di" bpmnElement="sf_go_msg_received">
+        <di:waypoint x="1325" y="585" />
+        <di:waypoint x="1508" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_6_di" bpmnElement="sf_go_6">
+        <di:waypoint x="1508" y="578" />
+        <di:waypoint x="1705" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_status_failure_di" bpmnElement="sf_go_status_failure">
+        <di:waypoint x="1705" y="585" />
+        <di:waypoint x="1895" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_ff1_di" bpmnElement="sf_go_ff1">
+        <di:waypoint x="1895" y="585" />
+        <di:waypoint x="2078" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_ff2_di" bpmnElement="sf_go_ff2">
+        <di:waypoint x="1895" y="585" />
+        <di:waypoint x="2078" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_ff3_di" bpmnElement="sf_go_ff3">
+        <di:waypoint x="1895" y="585" />
+        <di:waypoint x="2078" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_ff4_di" bpmnElement="sf_go_ff4">
+        <di:waypoint x="2078" y="703" />
+        <di:waypoint x="2275" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_ff5_di" bpmnElement="sf_go_ff5">
+        <di:waypoint x="2078" y="828" />
+        <di:waypoint x="2275" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_ff6_di" bpmnElement="sf_go_ff6">
+        <di:waypoint x="2078" y="953" />
+        <di:waypoint x="2275" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_7_di" bpmnElement="sf_go_7">
+        <di:waypoint x="2275" y="585" />
+        <di:waypoint x="2458" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_status_success_di" bpmnElement="sf_go_status_success">
+        <di:waypoint x="1705" y="585" />
+        <di:waypoint x="1920" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_8_di" bpmnElement="sf_go_8">
+        <di:waypoint x="1920" y="725" />
+        <di:waypoint x="2085" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_fs1_di" bpmnElement="sf_go_fs1">
+        <di:waypoint x="2085" y="585" />
+        <di:waypoint x="2268" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_fs2_di" bpmnElement="sf_go_fs2">
+        <di:waypoint x="2085" y="585" />
+        <di:waypoint x="2268" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_fs3_di" bpmnElement="sf_go_fs3">
+        <di:waypoint x="2085" y="585" />
+        <di:waypoint x="2268" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_fs4_di" bpmnElement="sf_go_fs4">
+        <di:waypoint x="2085" y="585" />
+        <di:waypoint x="2268" y="1078" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_fs5_di" bpmnElement="sf_go_fs5">
+        <di:waypoint x="2268" y="703" />
+        <di:waypoint x="2465" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_fs6_di" bpmnElement="sf_go_fs6">
+        <di:waypoint x="2268" y="828" />
+        <di:waypoint x="2465" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_fs7_di" bpmnElement="sf_go_fs7">
+        <di:waypoint x="2268" y="953" />
+        <di:waypoint x="2465" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_fs8_di" bpmnElement="sf_go_fs8">
+        <di:waypoint x="2268" y="1078" />
+        <di:waypoint x="2465" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_go_9_di" bpmnElement="sf_go_9">
+        <di:waypoint x="2465" y="710" />
+        <di:waypoint x="2648" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpoo_1_di" bpmnElement="sf_mpoo_1">
+        <di:waypoint x="178" y="1413" />
+        <di:waypoint x="400" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mpoo_2_di" bpmnElement="sf_mpoo_2">
+        <di:waypoint x="400" y="1435" />
+        <di:waypoint x="558" y="1413" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_mspo_1_di" bpmnElement="sf_mspo_1">
+        <di:waypoint x="178" y="1748" />
+        <di:waypoint x="368" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sp_1_di" bpmnElement="sf_sp_1">
+        <di:waypoint x="178" y="2083" />
+        <di:waypoint x="368" y="2083" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_1_di" bpmnElement="mf_1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_2_di" bpmnElement="mf_2">
+        <di:waypoint x="748" y="703" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_3_di" bpmnElement="mf_3">
+        <di:waypoint x="938" y="703" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_4_di" bpmnElement="mf_4">
+        <di:waypoint x="938" y="828" />
+        <di:waypoint x="178" y="1413" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_5_di" bpmnElement="mf_5">
+        <di:waypoint x="938" y="953" />
+        <di:waypoint x="178" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_6_di" bpmnElement="mf_6">
+        <di:waypoint x="1508" y="118" />
+        <di:waypoint x="1508" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_7_di" bpmnElement="mf_7">
+        <di:waypoint x="1508" y="703" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_8_di" bpmnElement="mf_8">
+        <di:waypoint x="2078" y="703" />
+        <di:waypoint x="1698" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_9_di" bpmnElement="mf_9">
+        <di:waypoint x="2268" y="703" />
+        <di:waypoint x="1698" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_10_di" bpmnElement="mf_10">
+        <di:waypoint x="2268" y="1078" />
+        <di:waypoint x="178" y="2083" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_report_doa0_di" bpmnElement="task_mpon_report_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_go_examine_dia0_di" bpmnElement="task_go_examine_dia0">
+        <di:waypoint x="388" y="1225" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

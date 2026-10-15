@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+  
+  <!-- Collaboration Diagram defining Message Flows between Pools -->
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_INQ" name="INQ" processRef="Process_INQ" />
+    <bpmn:participant id="Participant_IP" name="IP" processRef="Process_IP" />
+    <bpmn:messageFlow id="MessageFlow_Request" name="Transaction Data Request" sourceRef="Task_INQ_TransmitRequest" targetRef="StartEvent_IP_Received" />
+    <bpmn:messageFlow id="MessageFlow_Data" name="Transaction Data" sourceRef="Task_IP_TransmitData" targetRef="Task_INQ_ReceiveResponse" />
+    <bpmn:messageFlow id="MessageFlow_Rejection" name="Rejection Notification" sourceRef="Task_IP_RejectRequest" targetRef="Task_INQ_ReceiveResponse" />
+  </bpmn:collaboration>
+
+  <!-- Process for INQ -->
+  <bpmn:process id="Process_INQ" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_INQ" name="Data Needed">
+      <bpmn:outgoing>Flow_INQ_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sendTask id="Task_INQ_TransmitRequest" name="Transmit Transaction Data Request">
+      <bpmn:incoming>Flow_INQ_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_INQ_2</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:receiveTask id="Task_INQ_ReceiveResponse" name="Receive Response">
+      <bpmn:incoming>Flow_INQ_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_INQ_3</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:endEvent id="EndEvent_INQ" name="Process Finished">
+      <bpmn:incoming>Flow_INQ_3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_INQ_1" sourceRef="StartEvent_INQ" targetRef="Task_INQ_TransmitRequest" />
+    <bpmn:sequenceFlow id="Flow_INQ_2" sourceRef="Task_INQ_TransmitRequest" targetRef="Task_INQ_ReceiveResponse" />
+    <bpmn:sequenceFlow id="Flow_INQ_3" sourceRef="Task_INQ_ReceiveResponse" targetRef="EndEvent_INQ" />
+  </bpmn:process>
+
+  <!-- Process for IP -->
+  <bpmn:process id="Process_IP" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_IP_Received" name="Request Received">
+      <bpmn:outgoing>Flow_IP_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" />
+    </bpmn:startEvent>
+    <bpmn:task id="Task_IP_CheckRequest" name="Check Request of INQ">
+      <bpmn:incoming>Flow_IP_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_IP_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_CheckOutcome" name="Outcome of Examination?">
+      <bpmn:incoming>Flow_IP_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_IP_Accepted</bpmn:outgoing>
+      <bpmn:outgoing>Flow_IP_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="Task_IP_TransmitData" name="Transmit Transaction Data">
+      <bpmn:incoming>Flow_IP_Accepted</bpmn:incoming>
+      <bpmn:outgoing>Flow_IP_3</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sendTask id="Task_IP_RejectRequest" name="Reject Request">
+      <bpmn:incoming>Flow_IP_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_IP_4</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="Gateway_Merge">
+      <bpmn:incoming>Flow_IP_3</bpmn:incoming>
+      <bpmn:incoming>Flow_IP_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_IP_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_IP" name="Request Handled">
+      <bpmn:incoming>Flow_IP_5</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_IP_1" sourceRef="StartEvent_IP_Received" targetRef="Task_IP_CheckRequest" />
+    <bpmn:sequenceFlow id="Flow_IP_2" sourceRef="Task_IP_CheckRequest" targetRef="Gateway_CheckOutcome" />
+    <bpmn:sequenceFlow id="Flow_IP_Accepted" name="Accepted" sourceRef="Gateway_CheckOutcome" targetRef="Task_IP_TransmitData" />
+    <bpmn:sequenceFlow id="Flow_IP_Rejected" name="Rejected" sourceRef="Gateway_CheckOutcome" targetRef="Task_IP_RejectRequest" />
+    <bpmn:sequenceFlow id="Flow_IP_3" sourceRef="Task_IP_TransmitData" targetRef="Gateway_Merge" />
+    <bpmn:sequenceFlow id="Flow_IP_4" sourceRef="Task_IP_RejectRequest" targetRef="Gateway_Merge" />
+    <bpmn:sequenceFlow id="Flow_IP_5" sourceRef="Gateway_Merge" targetRef="EndEvent_IP" />
+  </bpmn:process>
+
+  <!-- BPMN Diagram Layout Information -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <!-- Participant INQ Visual -->
+      <bpmndi:BPMNShape id="Participant_INQ_di" bpmnElement="Participant_INQ" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="780" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_INQ_di" bpmnElement="StartEvent_INQ">
+        <dc:Bounds x="212" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="198" y="195" width="65" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_INQ_TransmitRequest_di" bpmnElement="Task_INQ_TransmitRequest">
+        <dc:Bounds x="300" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_INQ_ReceiveResponse_di" bpmnElement="Task_INQ_ReceiveResponse">
+        <dc:Bounds x="670" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_INQ_di" bpmnElement="EndEvent_INQ">
+        <dc:Bounds x="832" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="808" y="195" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_INQ_1_di" bpmnElement="Flow_INQ_1">
+        <di:waypoint x="248" y="170" />
+        <di:waypoint x="300" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_INQ_2_di" bpmnElement="Flow_INQ_2">
+        <di:waypoint x="400" y="170" />
+        <di:waypoint x="670" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_INQ_3_di" bpmnElement="Flow_INQ_3">
+        <di:waypoint x="770" y="170" />
+        <di:waypoint x="832" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Participant IP Visual -->
+      <bpmndi:BPMNShape id="Participant_IP_di" bpmnElement="Participant_IP" isHorizontal="true">
+        <dc:Bounds x="160" y="320" width="780" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_IP_Received_di" bpmnElement="StartEvent_IP_Received">
+        <dc:Bounds x="212" y="422" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="186" y="465" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IP_CheckRequest_di" bpmnElement="Task_IP_CheckRequest">
+        <dc:Bounds x="300" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_CheckOutcome_di" bpmnElement="Gateway_CheckOutcome" isMarkerVisible="true">
+        <dc:Bounds x="445" y="415" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="435" y="472" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IP_TransmitData_di" bpmnElement="Task_IP_TransmitData">
+        <dc:Bounds x="550" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IP_RejectRequest_di" bpmnElement="Task_IP_RejectRequest">
+        <dc:Bounds x="550" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Merge_di" bpmnElement="Gateway_Merge" isMarkerVisible="true">
+        <dc:Bounds x="695" y="415" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_IP_di" bpmnElement="EndEvent_IP">
+        <dc:Bounds x="792" y="422" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="768" y="465" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_IP_1_di" bpmnElement="Flow_IP_1">
+        <di:waypoint x="248" y="440" />
+        <di:waypoint x="300" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_2_di" bpmnElement="Flow_IP_2">
+        <di:waypoint x="400" y="440" />
+        <di:waypoint x="445" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_Accepted_di" bpmnElement="Flow_IP_Accepted">
+        <di:waypoint x="470" y="415" />
+        <di:waypoint x="470" y="380" />
+        <di:waypoint x="550" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="487" y="362" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_Rejected_di" bpmnElement="Flow_IP_Rejected">
+        <di:waypoint x="470" y="465" />
+        <di:waypoint x="470" y="500" />
+        <di:waypoint x="550" y="500" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="488" y="508" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_3_di" bpmnElement="Flow_IP_3">
+        <di:waypoint x="650" y="380" />
+        <di:waypoint x="720" y="380" />
+        <di:waypoint x="720" y="415" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_4_di" bpmnElement="Flow_IP_4">
+        <di:waypoint x="650" y="500" />
+        <di:waypoint x="720" y="500" />
+        <di:waypoint x="720" y="465" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_5_di" bpmnElement="Flow_IP_5">
+        <di:waypoint x="745" y="440" />
+        <di:waypoint x="792" y="440" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Message Flows Visual -->
+      <bpmndi:BPMNEdge id="MessageFlow_Request_di" bpmnElement="MessageFlow_Request">
+        <di:waypoint x="350" y="210" />
+        <di:waypoint x="350" y="316" />
+        <di:waypoint x="230" y="316" />
+        <di:waypoint x="230" y="422" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="249" y="280" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_Data_di" bpmnElement="MessageFlow_Data">
+        <di:waypoint x="600" y="340" />
+        <di:waypoint x="600" y="275" />
+        <di:waypoint x="700" y="275" />
+        <di:waypoint x="700" y="210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="608" y="257" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_Rejection_di" bpmnElement="MessageFlow_Rejection">
+        <di:waypoint x="650" y="500" />
+        <di:waypoint x="740" y="500" />
+        <di:waypoint x="740" y="210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="668" y="482" width="55" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

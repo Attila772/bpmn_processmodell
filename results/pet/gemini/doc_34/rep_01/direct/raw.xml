@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_ExpenseProcess"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <bpmn:process id="ExpenseReimbursementProcess" name="Expense Reimbursement Process" isExecutable="true">
+
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_ReportReceived" name="Expense Report Received">
+      <bpmn:outgoing>SequenceFlow_StartToAccountGateway</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Account Verification Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_HasAccount" name="Employee has account?">
+      <bpmn:incoming>SequenceFlow_StartToAccountGateway</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_NoAccount</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_HasAccount</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Create Account Task -->
+    <bpmn:serviceTask id="Task_CreateAccount" name="Create New Account">
+      <bpmn:incoming>SequenceFlow_NoAccount</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_AccountCreated</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Account Merge Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_AccountMerge">
+      <bpmn:incoming>SequenceFlow_HasAccount</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_AccountCreated</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ToAutoApprovalCheck</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Review for Automatic Approval Task -->
+    <bpmn:scriptTask id="Task_ReviewAutoApproval" name="Review for Automatic Approval">
+      <bpmn:incoming>SequenceFlow_ToAutoApprovalCheck</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ToAmountGateway</bpmn:outgoing>
+    </bpmn:scriptTask>
+
+    <!-- Amount Check Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_AmountCheck" name="Amount Check">
+      <bpmn:incoming>SequenceFlow_ToAmountGateway</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_Under200</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_200OrMore</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Supervisor Approval Task -->
+    <bpmn:userTask id="Task_SupervisorApproval" name="Supervisor Approval">
+      <bpmn:incoming>SequenceFlow_200OrMore</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ToSupervisorApprovalGateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Supervisor Decision Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_SupervisorDecision" name="Approved by Supervisor?">
+      <bpmn:incoming>SequenceFlow_ToSupervisorApprovalGateway</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_SupervisorApproved</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_SupervisorRejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Approval Merge Gateway -->
+    <bpmn:exclusiveGateway id="Gateway_ApprovalMerge">
+      <bpmn:incoming>SequenceFlow_Under200</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_SupervisorApproved</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ToReimbursement</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Direct Deposit Reimbursement Task -->
+    <bpmn:serviceTask id="Task_ProcessReimbursement" name="Reimburse via Direct Deposit">
+      <bpmn:incoming>SequenceFlow_ToReimbursement</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ToApprovedEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Send Rejection Notice Task -->
+    <bpmn:sendTask id="Task_SendRejectionNotice" name="Send Rejection Email Notice">
+      <bpmn:incoming>SequenceFlow_SupervisorRejected</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ToRejectedEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <!-- End Events for Normal Paths -->
+    <bpmn:endEvent id="EndEvent_Reimbursed" name="Expense Reimbursed">
+      <bpmn:incoming>SequenceFlow_ToApprovedEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_Rejected" name="Expense Rejected">
+      <bpmn:incoming>SequenceFlow_ToRejectedEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Boundary Non-Interrupting Timer (7 Days) -->
+    <bpmn:boundaryEvent id="Timer_7Days" name="7 Days Elapsed" cancelActivity="false" attachedToRef="Task_SupervisorApproval">
+      <bpmn:outgoing>SequenceFlow_To7DaysEmail</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_7Days">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P7D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <!-- Send Approval In Progress Email Task -->
+    <bpmn:sendTask id="Task_SendProgressEmail" name="Send Approval In Progress Email">
+      <bpmn:incoming>SequenceFlow_To7DaysEmail</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ProgressEmailSent</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_ProgressNoticeSent" name="Progress Email Sent">
+      <bpmn:incoming>SequenceFlow_ProgressEmailSent</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Boundary Interrupting Timer (30 Days) -->
+    <bpmn:boundaryEvent id="Timer_30Days" name="30 Days Elapsed" cancelActivity="true" attachedToRef="Task_SupervisorApproval">
+      <bpmn:outgoing>SequenceFlow_To30DaysEmail</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_30Days">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P30D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <!-- Send Cancellation Email Task -->
+    <bpmn:sendTask id="Task_SendCancellationEmail" name="Send Email Cancellation Notice">
+      <bpmn:incoming>SequenceFlow_To30DaysEmail</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_ToCancelledEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_Cancelled" name="Process Stopped (Re-submit required)">
+      <bpmn:incoming>SequenceFlow_ToCancelledEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="SequenceFlow_StartToAccountGateway" sourceRef="StartEvent_ReportReceived" targetRef="Gateway_HasAccount" />
+    <bpmn:sequenceFlow id="SequenceFlow_NoAccount" name="No" sourceRef="Gateway_HasAccount" targetRef="Task_CreateAccount">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${!hasAccount}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_HasAccount" name="Yes" sourceRef="Gateway_HasAccount" targetRef="Gateway_AccountMerge">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${hasAccount}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_AccountCreated" sourceRef="Task_CreateAccount" targetRef="Gateway_AccountMerge" />
+    <bpmn:sequenceFlow id="SequenceFlow_ToAutoApprovalCheck" sourceRef="Gateway_AccountMerge" targetRef="Task_ReviewAutoApproval" />
+    <bpmn:sequenceFlow id="SequenceFlow_ToAmountGateway" sourceRef="Task_ReviewAutoApproval" targetRef="Gateway_AmountCheck" />
+    <bpmn:sequenceFlow id="SequenceFlow_Under200" name="Amount &lt; $200" sourceRef="Gateway_AmountCheck" targetRef="Gateway_ApprovalMerge">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${amount &lt; 200}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_200OrMore" name="Amount &gt;= $200" sourceRef="Gateway_AmountCheck" targetRef="Task_SupervisorApproval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${amount &gt;= 200}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_ToSupervisorApprovalGateway" sourceRef="Task_SupervisorApproval" targetRef="Gateway_SupervisorDecision" />
+    <bpmn:sequenceFlow id="SequenceFlow_SupervisorApproved" name="Approved" sourceRef="Gateway_SupervisorDecision" targetRef="Gateway_ApprovalMerge">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_SupervisorRejected" name="Rejected" sourceRef="Gateway_SupervisorDecision" targetRef="Task_SendRejectionNotice">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${!approved}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_ToReimbursement" sourceRef="Gateway_ApprovalMerge" targetRef="Task_ProcessReimbursement" />
+    <bpmn:sequenceFlow id="SequenceFlow_ToApprovedEnd" sourceRef="Task_ProcessReimbursement" targetRef="EndEvent_Reimbursed" />
+    <bpmn:sequenceFlow id="SequenceFlow_ToRejectedEnd" sourceRef="Task_SendRejectionNotice" targetRef="EndEvent_Rejected" />
+    <bpmn:sequenceFlow id="SequenceFlow_To7DaysEmail" sourceRef="Timer_7Days" targetRef="Task_SendProgressEmail" />
+    <bpmn:sequenceFlow id="SequenceFlow_ProgressEmailSent" sourceRef="Task_SendProgressEmail" targetRef="EndEvent_ProgressNoticeSent" />
+    <bpmn:sequenceFlow id="SequenceFlow_To30DaysEmail" sourceRef="Timer_30Days" targetRef="Task_SendCancellationEmail" />
+    <bpmn:sequenceFlow id="SequenceFlow_ToCancelledEnd" sourceRef="Task_SendCancellationEmail" targetRef="EndEvent_Cancelled" />
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_ExpenseProcess">
+    <bpmndi:BPMNPlane id="BPMNPlane_ExpenseProcess" bpmnElement="ExpenseReimbursementProcess">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_ReportReceived_di" bpmnElement="StartEvent_ReportReceived">
+        <dc:Bounds x="152" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="131" y="255" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Account Check Gateway -->
+      <bpmndi:BPMNShape id="Gateway_HasAccount_di" bpmnElement="Gateway_HasAccount" isMarkerVisible="true">
+        <dc:Bounds x="235" y="205" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="225" y="168" width="69" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Create Account Task -->
+      <bpmndi:BPMNShape id="Task_CreateAccount_di" bpmnElement="Task_CreateAccount">
+        <dc:Bounds x="340" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Account Merge Gateway -->
+      <bpmndi:BPMNShape id="Gateway_AccountMerge_di" bpmnElement="Gateway_AccountMerge" isMarkerVisible="true">
+        <dc:Bounds x="485" y="205" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Review Auto Approval Task -->
+      <bpmndi:BPMNShape id="Task_ReviewAutoApproval_di" bpmnElement="Task_ReviewAutoApproval">
+        <dc:Bounds x="580" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Amount Check Gateway -->
+      <bpmndi:BPMNShape id="Gateway_AmountCheck_di" bpmnElement="Gateway_AmountCheck" isMarkerVisible="true">
+        <dc:Bounds x="735" y="205" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="725" y="181" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Supervisor Approval Task -->
+      <bpmndi:BPMNShape id="Task_SupervisorApproval_di" bpmnElement="Task_SupervisorApproval">
+        <dc:Bounds x="850" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Supervisor Decision Gateway -->
+      <bpmndi:BPMNShape id="Gateway_SupervisorDecision_di" bpmnElement="Gateway_SupervisorDecision" isMarkerVisible="true">
+        <dc:Bounds x="1005" y="325" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="998" y="288" width="64" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Approval Merge Gateway -->
+      <bpmndi:BPMNShape id="Gateway_ApprovalMerge_di" bpmnElement="Gateway_ApprovalMerge" isMarkerVisible="true">
+        <dc:Bounds x="1105" y="205" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Process Reimbursement Task -->
+      <bpmndi:BPMNShape id="Task_ProcessReimbursement_di" bpmnElement="Task_ProcessReimbursement">
+        <dc:Bounds x="1210" y="190" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Send Rejection Notice Task -->
+      <bpmndi:BPMNShape id="Task_SendRejectionNotice_di" bpmnElement="Task_SendRejectionNotice">
+        <dc:Bounds x="1110" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Events -->
+      <bpmndi:BPMNShape id="EndEvent_Reimbursed_di" bpmnElement="EndEvent_Reimbursed">
+        <dc:Bounds x="1362" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1350" y="255" width="61" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="1262" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1236" y="375" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Timer Tasks & End Events -->
+      <bpmndi:BPMNShape id="Task_SendProgressEmail_di" bpmnElement="Task_SendProgressEmail">
+        <dc:Bounds x="980" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_ProgressNoticeSent_di" bpmnElement="EndEvent_ProgressNoticeSent">
+        <dc:Bounds x="1122" y="462" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1104" y="505" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendCancellationEmail_di" bpmnElement="Task_SendCancellationEmail">
+        <dc:Bounds x="980" y="550" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Cancelled_di" bpmnElement="EndEvent_Cancelled">
+        <dc:Bounds x="1122" y="572" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1098" y="615" width="84" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Boundary Events -->
+      <bpmndi:BPMNShape id="Timer_7Days_di" bpmnElement="Timer_7Days">
+        <dc:Bounds x="882" y="372" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="821" y="408" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Timer_30Days_di" bpmnElement="Timer_30Days">
+        <dc:Bounds x="932" y="372" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="948" y="408" width="83" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="SequenceFlow_StartToAccountGateway_di" bpmnElement="SequenceFlow_StartToAccountGateway">
+        <di:waypoint x="188" y="230" />
+        <di:waypoint x="235" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_NoAccount_di" bpmnElement="SequenceFlow_NoAccount">
+        <di:waypoint x="260" y="255" />
+        <di:waypoint x="260" y="350" />
+        <di:waypoint x="340" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="268" y="283" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_HasAccount_di" bpmnElement="SequenceFlow_HasAccount">
+        <di:waypoint x="285" y="230" />
+        <di:waypoint x="485" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="376" y="212" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_AccountCreated_di" bpmnElement="SequenceFlow_AccountCreated">
+        <di:waypoint x="440" y="350" />
+        <di:waypoint x="510" y="350" />
+        <di:waypoint x="510" y="255" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ToAutoApprovalCheck_di" bpmnElement="SequenceFlow_ToAutoApprovalCheck">
+        <di:waypoint x="535" y="230" />
+        <di:waypoint x="580" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ToAmountGateway_di" bpmnElement="SequenceFlow_ToAmountGateway">
+        <di:waypoint x="680" y="230" />
+        <di:waypoint x="735" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Under200_di" bpmnElement="SequenceFlow_Under200">
+        <di:waypoint x="785" y="230" />
+        <di:waypoint x="1105" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="908" y="212" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_200OrMore_di" bpmnElement="SequenceFlow_200OrMore">
+        <di:waypoint x="760" y="255" />
+        <di:waypoint x="760" y="350" />
+        <di:waypoint x="850" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="765" y="283" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ToSupervisorApprovalGateway_di" bpmnElement="SequenceFlow_ToSupervisorApprovalGateway">
+        <di:waypoint x="950" y="350" />
+        <di:waypoint x="1005" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_SupervisorApproved_di" bpmnElement="SequenceFlow_SupervisorApproved">
+        <di:waypoint x="1030" y="325" />
+        <di:waypoint x="1030" y="230" />
+        <di:waypoint x="1105" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1037" y="275" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_SupervisorRejected_di" bpmnElement="SequenceFlow_SupervisorRejected">
+        <di:waypoint x="1055" y="350" />
+        <di:waypoint x="1110" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1061" y="332" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ToReimbursement_di" bpmnElement="SequenceFlow_ToReimbursement">
+        <di:waypoint x="1155" y="230" />
+        <di:waypoint x="1210" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ToApprovedEnd_di" bpmnElement="SequenceFlow_ToApprovedEnd">
+        <di:waypoint x="1310" y="230" />
+        <di:waypoint x="1362" y="230" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ToRejectedEnd_di" bpmnElement="SequenceFlow_ToRejectedEnd">
+        <di:waypoint x="1210" y="350" />
+        <di:waypoint x="1262" y="350" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To7DaysEmail_di" bpmnElement="SequenceFlow_To7DaysEmail">
+        <di:waypoint x="900" y="408" />
+        <di:waypoint x="900" y="480" />
+        <di:waypoint x="980" y="480" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ProgressEmailSent_di" bpmnElement="SequenceFlow_ProgressEmailSent">
+        <di:waypoint x="1080" y="480" />
+        <di:waypoint x="1122" y="480" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_To30DaysEmail_di" bpmnElement="SequenceFlow_To30DaysEmail">
+        <di:waypoint x="950" y="408" />
+        <di:waypoint x="950" y="590" />
+        <di:waypoint x="980" y="590" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_ToCancelledEnd_di" bpmnElement="SequenceFlow_ToCancelledEnd">
+        <di:waypoint x="1080" y="590" />
+        <di:waypoint x="1122" y="590" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

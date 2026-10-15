@@ -1,0 +1,847 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_cs_part" name="Customer Service" processRef="pool_cs_proc" />
+    <bpmn:participant id="pool_grid_part" name="Grid Operator" processRef="pool_grid_proc" />
+    <bpmn:participant id="pool_old_supplier_part" name="Old Supplier" processRef="pool_old_supplier_proc" />
+    <bpmn:participant id="pool_customer_part" name="Customer" processRef="pool_customer_proc" />
+    <bpmn:messageFlow id="msg_flow_request_grid" sourceRef="evt_msg_to_grid" targetRef="evt_start_grid" name="Supplier Concurrence Check Request" />
+    <bpmn:messageFlow id="msg_flow_response_cs" sourceRef="evt_msg_to_cs_response" targetRef="evt_start_cs_response" name="Concurrence Check Result" />
+    <bpmn:messageFlow id="msg_flow_termination" sourceRef="evt_msg_to_old_supplier_termination" targetRef="evt_start_old_supplier_term" name="Sales Agreement Termination" />
+    <bpmn:messageFlow id="msg_flow_contract_customer" sourceRef="evt_msg_to_customer_contract" targetRef="evt_start_customer_review" name="Contract Documents for Review" />
+    <bpmn:messageFlow id="msg_flow_decision_cs" sourceRef="evt_msg_to_cs_decision" targetRef="evt_start_cs_decision" name="Contract Acceptance/Rejection" />
+    <bpmn:messageFlow id="msg_flow_meter_cs" sourceRef="evt_msg_meter_data_cs" targetRef="evt_start_cs_meter" name="Services Consumption Report" />
+    <bpmn:messageFlow id="msg_flow_meter_old" sourceRef="evt_msg_meter_data_old" targetRef="evt_start_old_supplier_meter" name="Services Consumption Report" />
+    <bpmn:messageFlow id="msg_flow_billing_old" sourceRef="evt_msg_billing_old" targetRef="evt_start_old_supplier_billing" name="Final Billing Calculation" />
+    <bpmn:messageFlow id="msg_flow_final_bill_customer" sourceRef="evt_msg_final_bill_customer" targetRef="evt_start_customer_bill" name="Final Invoice" />
+    <bpmn:messageFlow id="msg_flow_send_contract" sourceRef="task_send_contract_customer" targetRef="evt_msg_to_customer_contract" name="Contract Documents" />
+    <bpmn:messageFlow id="msg_flow_review_decision" sourceRef="task_customer_review" targetRef="evt_msg_to_cs_decision" name="Decision" />
+    <bpmn:messageFlow id="msg_flow_old_bill" sourceRef="task_old_supplier_create_bill" targetRef="evt_msg_final_bill_customer" name="Final Bill" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_cs_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_customer_raw" name="Customer Raw Data" dataObjectRef="data_customer_raw_do" />
+    <bpmn:dataObject id="data_customer_raw_do" />
+    <bpmn:dataObjectReference id="data_customer_object" name="Customer Object" dataObjectRef="data_customer_object_do" />
+    <bpmn:dataObject id="data_customer_object_do" />
+    <bpmn:dataObjectReference id="data_error_list" name="Error List" dataObjectRef="data_error_list_do" />
+    <bpmn:dataObject id="data_error_list_do" />
+    <bpmn:dataObjectReference id="doc_contract_draft" name="Contract Draft" dataObjectRef="doc_contract_draft_do" />
+    <bpmn:dataObject id="doc_contract_draft_do" />
+    <bpmn:dataObjectReference id="doc_final_contract" name="Final Contract Documents" dataObjectRef="doc_final_contract_do" />
+    <bpmn:dataObject id="doc_final_contract_do" />
+    <bpmn:dataObjectReference id="data_meter_report" name="Services Consumption Report" dataObjectRef="data_meter_report_do" />
+    <bpmn:dataObject id="data_meter_report_do" />
+    <bpmn:startEvent id="evt_start_cs" name="Switch-over Request Received">
+      <bpmn:outgoing>flow_start_to_enter</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_cs_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_cs_contract_rejected" name="Process Ends (Withdrawal)">
+      <bpmn:incoming>flow_withdraw</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_to_grid" name="Request Sent to Grid Operator">
+      <bpmn:incoming>flow_request_grid_to_evt_msg</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_to_grid_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_start_cs_response" name="Receive Response from Grid Operator">
+      <bpmn:outgoing>flow_resp_start_to_create_cis</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_cs_response_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_to_cs_decision" name="Decision Sent to Customer Service">
+      <bpmn:messageEventDefinition id="evt_msg_to_cs_decision_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_start_cs_decision" name="Receive Customer Decision">
+      <bpmn:outgoing>flow_dec_start_to_gw_dec</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_cs_decision_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_timer_acceptance" name="7 Days Elapsed (Implicit Acceptance)">
+      <bpmn:outgoing>flow_timer_to_merge</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="evt_timer_acceptance_timerdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_start_cs_meter" name="Receive Meter Data">
+      <bpmn:messageEventDefinition id="evt_start_cs_meter_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_cs_main" name="New Customer Winning Process End">
+      <bpmn:incoming>flow_import_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_enter_crm" name="Enter Customer Data into CRM">
+      <bpmn:incoming>flow_start_to_enter</bpmn:incoming>
+      <bpmn:outgoing>flow_enter_to_check</bpmn:outgoing>
+      <bpmn:property id="task_enter_crm_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_enter_crm_dia0">
+        <bpmn:sourceRef>data_customer_raw</bpmn:sourceRef>
+        <bpmn:targetRef>task_enter_crm_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_enter_crm_doa0">
+        <bpmn:targetRef>data_customer_object</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_check_data" name="Check Completeness and Plausibility">
+      <bpmn:incoming>flow_enter_to_check</bpmn:incoming>
+      <bpmn:outgoing>flow_check_to_gw_errors</bpmn:outgoing>
+      <bpmn:property id="task_check_data_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_data_dia0">
+        <bpmn:sourceRef>data_customer_object</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_data_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_correct_errors" name="Correct Errors based on Error List">
+      <bpmn:incoming>flow_errors_yes</bpmn:incoming>
+      <bpmn:outgoing>flow_correct_to_exists</bpmn:outgoing>
+      <bpmn:property id="task_correct_errors_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_correct_errors_dia0">
+        <bpmn:sourceRef>data_error_list</bpmn:sourceRef>
+        <bpmn:targetRef>task_correct_errors_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_correct_errors_doa0">
+        <bpmn:targetRef>data_customer_object</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_create_new_customer" name="Create New Customer Object">
+      <bpmn:incoming>flow_exists_no</bpmn:incoming>
+      <bpmn:outgoing>flow_create_to_prepare</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_create_new_customer_doa0">
+        <bpmn:targetRef>data_customer_object</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_prepare_contract" name="Prepare Contract Documents">
+      <bpmn:incoming>flow_exists_yes</bpmn:incoming>
+      <bpmn:incoming>flow_create_to_prepare</bpmn:incoming>
+      <bpmn:incoming>flow_analyze_to_prepare</bpmn:incoming>
+      <bpmn:outgoing>flow_prepare_to_auto_check</bpmn:outgoing>
+      <bpmn:property id="task_prepare_contract_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_prepare_contract_dia0">
+        <bpmn:sourceRef>data_customer_object</bpmn:sourceRef>
+        <bpmn:targetRef>task_prepare_contract_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_prepare_contract_doa0">
+        <bpmn:targetRef>doc_contract_draft</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_auto_check_cis" name="Automated Check of Contract Documents in CIS">
+      <bpmn:incoming>flow_prepare_to_auto_check</bpmn:incoming>
+      <bpmn:outgoing>flow_auto_check_to_gw_gen</bpmn:outgoing>
+      <bpmn:property id="task_auto_check_cis_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_auto_check_cis_dia0">
+        <bpmn:sourceRef>doc_contract_draft</bpmn:sourceRef>
+        <bpmn:targetRef>task_auto_check_cis_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="task_analyze_issues" name="Analyze and Resolve Issues">
+      <bpmn:incoming>flow_gen_fail</bpmn:incoming>
+      <bpmn:outgoing>flow_analyze_to_prepare</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_send_confirmation" name="Send Confirmation Document to Customer">
+      <bpmn:incoming>flow_gen_success</bpmn:incoming>
+      <bpmn:outgoing>flow_confirm_to_request_grid</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_request_grid" name="Send Request to Grid Operator via CIS">
+      <bpmn:incoming>flow_confirm_to_request_grid</bpmn:incoming>
+      <bpmn:outgoing>flow_request_grid_to_evt_msg</bpmn:outgoing>
+      <bpmn:property id="task_request_grid_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_request_grid_dia0">
+        <bpmn:sourceRef>data_customer_object</bpmn:sourceRef>
+        <bpmn:targetRef>task_request_grid_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="task_create_cis_contract" name="Create CIS Contract">
+      <bpmn:incoming>flow_resp_start_to_create_cis</bpmn:incoming>
+      <bpmn:outgoing>flow_create_cis_to_send_contract</bpmn:outgoing>
+      <bpmn:property id="task_create_cis_contract_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_create_cis_contract_dia0">
+        <bpmn:sourceRef>data_customer_object</bpmn:sourceRef>
+        <bpmn:targetRef>task_create_cis_contract_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_create_cis_contract_doa0">
+        <bpmn:targetRef>doc_final_contract</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_send_contract_customer" name="Send Contract Documents to Customer">
+      <bpmn:incoming>flow_create_cis_to_send_contract</bpmn:incoming>
+      <bpmn:property id="task_send_contract_customer_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_send_contract_customer_dia0">
+        <bpmn:sourceRef>doc_final_contract</bpmn:sourceRef>
+        <bpmn:targetRef>task_send_contract_customer_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_import_meter_data" name="Import Meter Data to Systems">
+      <bpmn:incoming>flow_merge_to_import</bpmn:incoming>
+      <bpmn:outgoing>flow_import_to_end</bpmn:outgoing>
+      <bpmn:property id="task_import_meter_data_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_import_meter_data_dia0">
+        <bpmn:sourceRef>data_meter_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_import_meter_data_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_data_errors" name="Data Errors?" isMarkerVisible="true">
+      <bpmn:incoming>flow_check_to_gw_errors</bpmn:incoming>
+      <bpmn:outgoing>flow_errors_yes</bpmn:outgoing>
+      <bpmn:outgoing>flow_errors_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_customer_exists" name="Customer Exists in DB?" isMarkerVisible="true">
+      <bpmn:incoming>flow_errors_no</bpmn:incoming>
+      <bpmn:incoming>flow_correct_to_exists</bpmn:incoming>
+      <bpmn:outgoing>flow_exists_yes</bpmn:outgoing>
+      <bpmn:outgoing>flow_exists_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_contract_gen_success" name="Contract Generation Successful?" isMarkerVisible="true">
+      <bpmn:incoming>flow_auto_check_to_gw_gen</bpmn:incoming>
+      <bpmn:outgoing>flow_gen_fail</bpmn:outgoing>
+      <bpmn:outgoing>flow_gen_success</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_customer_decision" name="Customer Decision" isMarkerVisible="true">
+      <bpmn:incoming>flow_dec_start_to_gw_dec</bpmn:incoming>
+      <bpmn:outgoing>flow_withdraw</bpmn:outgoing>
+      <bpmn:outgoing>flow_confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:inclusiveGateway id="gw_timer_merge" name="Acceptance Merge">
+      <bpmn:incoming>flow_confirm</bpmn:incoming>
+      <bpmn:incoming>flow_timer_to_merge</bpmn:incoming>
+      <bpmn:outgoing>flow_merge_to_import</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_to_enter" sourceRef="evt_start_cs" targetRef="task_enter_crm" />
+    <bpmn:sequenceFlow id="flow_enter_to_check" sourceRef="task_enter_crm" targetRef="task_check_data" />
+    <bpmn:sequenceFlow id="flow_check_to_gw_errors" sourceRef="task_check_data" targetRef="gw_data_errors" />
+    <bpmn:sequenceFlow id="flow_errors_yes" sourceRef="gw_data_errors" targetRef="task_correct_errors" name="Errors found" />
+    <bpmn:sequenceFlow id="flow_errors_no" sourceRef="gw_data_errors" targetRef="gw_customer_exists" name="No errors" />
+    <bpmn:sequenceFlow id="flow_correct_to_exists" sourceRef="task_correct_errors" targetRef="gw_customer_exists" />
+    <bpmn:sequenceFlow id="flow_exists_yes" sourceRef="gw_customer_exists" targetRef="task_prepare_contract" name="Exists" />
+    <bpmn:sequenceFlow id="flow_exists_no" sourceRef="gw_customer_exists" targetRef="task_create_new_customer" name="Does not exist" />
+    <bpmn:sequenceFlow id="flow_create_to_prepare" sourceRef="task_create_new_customer" targetRef="task_prepare_contract" />
+    <bpmn:sequenceFlow id="flow_prepare_to_auto_check" sourceRef="task_prepare_contract" targetRef="task_auto_check_cis" />
+    <bpmn:sequenceFlow id="flow_auto_check_to_gw_gen" sourceRef="task_auto_check_cis" targetRef="gw_contract_gen_success" />
+    <bpmn:sequenceFlow id="flow_gen_fail" sourceRef="gw_contract_gen_success" targetRef="task_analyze_issues" name="Negative response" />
+    <bpmn:sequenceFlow id="flow_gen_success" sourceRef="gw_contract_gen_success" targetRef="task_send_confirmation" name="Positive response" />
+    <bpmn:sequenceFlow id="flow_analyze_to_prepare" sourceRef="task_analyze_issues" targetRef="task_prepare_contract" />
+    <bpmn:sequenceFlow id="flow_confirm_to_request_grid" sourceRef="task_send_confirmation" targetRef="task_request_grid" />
+    <bpmn:sequenceFlow id="flow_request_grid_to_evt_msg" sourceRef="task_request_grid" targetRef="evt_msg_to_grid" />
+    <bpmn:sequenceFlow id="flow_resp_start_to_create_cis" sourceRef="evt_start_cs_response" targetRef="task_create_cis_contract" />
+    <bpmn:sequenceFlow id="flow_create_cis_to_send_contract" sourceRef="task_create_cis_contract" targetRef="task_send_contract_customer" />
+    <bpmn:sequenceFlow id="flow_dec_start_to_gw_dec" sourceRef="evt_start_cs_decision" targetRef="gw_customer_decision" />
+    <bpmn:sequenceFlow id="flow_withdraw" sourceRef="gw_customer_decision" targetRef="evt_end_cs_contract_rejected" name="Withdraw" />
+    <bpmn:sequenceFlow id="flow_confirm" sourceRef="gw_customer_decision" targetRef="gw_timer_merge" name="Confirm" />
+    <bpmn:sequenceFlow id="flow_timer_to_merge" sourceRef="evt_timer_acceptance" targetRef="gw_timer_merge" />
+    <bpmn:sequenceFlow id="flow_merge_to_import" sourceRef="gw_timer_merge" targetRef="task_import_meter_data" />
+    <bpmn:sequenceFlow id="flow_import_to_end" sourceRef="task_import_meter_data" targetRef="evt_end_cs_main" />
+  </bpmn:process>
+  <bpmn:process id="pool_grid_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_meter_report_p1" name="Services Consumption Report" dataObjectRef="data_meter_report_p1_do" />
+    <bpmn:dataObject id="data_meter_report_p1_do" />
+    <bpmn:dataObjectReference id="doc_final_billing_grid" name="Final Billing Calculation" dataObjectRef="doc_final_billing_grid_do" />
+    <bpmn:dataObject id="doc_final_billing_grid_do" />
+    <bpmn:startEvent id="evt_start_grid" name="Receive Request from CIS">
+      <bpmn:outgoing>flow_grid_start_to_check</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_grid_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_to_cs_response" name="Response Sent to Customer Service">
+      <bpmn:incoming>flow_terminate_to_evt_msg_resp</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_to_cs_response_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_meter_data_cs" name="Meter Data Sent to CS">
+      <bpmn:incoming>flow_grid_meter_to_evt_msg_cs</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_meter_data_cs_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_meter_data_old" name="Meter Data Sent to Old Supplier">
+      <bpmn:incoming>flow_grid_meter_to_evt_msg_old</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_meter_data_old_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_billing_old" name="Final Billing Sent to Old Supplier">
+      <bpmn:incoming>flow_grid_billing_to_evt_msg_old</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_msg_billing_old_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="evt_end_grid" name="Grid Operator Process End">
+      <bpmn:incoming>flow_grid_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_grid_check_concurrence" name="Check for Supplier Concurrence">
+      <bpmn:incoming>flow_grid_start_to_check</bpmn:incoming>
+      <bpmn:outgoing>flow_check_to_gw_concurrence</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_grid_resolve_conflict" name="Inform Suppliers and Demand Resolution">
+      <bpmn:incoming>flow_concurrence_yes</bpmn:incoming>
+      <bpmn:outgoing>flow_resolve_to_terminate</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_grid_terminate_old" name="Terminate Sales Agreement with Old Supplier">
+      <bpmn:incoming>flow_concurrence_no</bpmn:incoming>
+      <bpmn:incoming>flow_resolve_to_terminate</bpmn:incoming>
+      <bpmn:outgoing>flow_terminate_to_evt_msg_resp</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_grid_compute_billing" name="Compute Final Billing">
+      <bpmn:outgoing>flow_grid_meter_to_evt_msg_cs</bpmn:outgoing>
+      <bpmn:outgoing>flow_grid_meter_to_evt_msg_old</bpmn:outgoing>
+      <bpmn:outgoing>flow_grid_billing_to_evt_msg_old</bpmn:outgoing>
+      <bpmn:outgoing>flow_grid_end</bpmn:outgoing>
+      <bpmn:property id="task_grid_compute_billing_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_grid_compute_billing_dia0">
+        <bpmn:sourceRef>data_meter_report_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_grid_compute_billing_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_grid_compute_billing_doa0">
+        <bpmn:targetRef>doc_final_billing_grid</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_concurrence" name="Supplier Concurrence?" isMarkerVisible="true">
+      <bpmn:incoming>flow_check_to_gw_concurrence</bpmn:incoming>
+      <bpmn:outgoing>flow_concurrence_yes</bpmn:outgoing>
+      <bpmn:outgoing>flow_concurrence_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_grid_start_to_check" sourceRef="evt_start_grid" targetRef="task_grid_check_concurrence" />
+    <bpmn:sequenceFlow id="flow_check_to_gw_concurrence" sourceRef="task_grid_check_concurrence" targetRef="gw_concurrence" />
+    <bpmn:sequenceFlow id="flow_concurrence_yes" sourceRef="gw_concurrence" targetRef="task_grid_resolve_conflict" name="Concurrence exists" />
+    <bpmn:sequenceFlow id="flow_concurrence_no" sourceRef="gw_concurrence" targetRef="task_grid_terminate_old" name="No objections" />
+    <bpmn:sequenceFlow id="flow_resolve_to_terminate" sourceRef="task_grid_resolve_conflict" targetRef="task_grid_terminate_old" />
+    <bpmn:sequenceFlow id="flow_terminate_to_evt_msg_resp" sourceRef="task_grid_terminate_old" targetRef="evt_msg_to_cs_response" />
+    <bpmn:sequenceFlow id="flow_grid_meter_to_evt_msg_cs" sourceRef="task_grid_compute_billing" targetRef="evt_msg_meter_data_cs" />
+    <bpmn:sequenceFlow id="flow_grid_meter_to_evt_msg_old" sourceRef="task_grid_compute_billing" targetRef="evt_msg_meter_data_old" />
+    <bpmn:sequenceFlow id="flow_grid_billing_to_evt_msg_old" sourceRef="task_grid_compute_billing" targetRef="evt_msg_billing_old" />
+    <bpmn:sequenceFlow id="flow_grid_end" sourceRef="task_grid_compute_billing" targetRef="evt_end_grid" />
+  </bpmn:process>
+  <bpmn:process id="pool_old_supplier_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_meter_report_p2" name="Services Consumption Report" dataObjectRef="data_meter_report_p2_do" />
+    <bpmn:dataObject id="data_meter_report_p2_do" />
+    <bpmn:dataObjectReference id="doc_final_invoice_customer" name="Final Invoice" dataObjectRef="doc_final_invoice_customer_do" />
+    <bpmn:dataObject id="doc_final_invoice_customer_do" />
+    <bpmn:intermediateThrowEvent id="evt_msg_to_old_supplier_termination" name="Termination Notice Sent">
+      <bpmn:messageEventDefinition id="evt_msg_to_old_supplier_termination_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_start_old_supplier_term" name="Receive Termination Notice">
+      <bpmn:outgoing>flow_old_start_term_to_end</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_old_supplier_term_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_old_supplier_meter" name="Receive Meter Data">
+      <bpmn:outgoing>flow_old_start_meter_to_create_bill</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_old_supplier_meter_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_old_supplier_billing" name="Receive Final Billing">
+      <bpmn:outgoing>flow_old_start_billing_to_end</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_old_supplier_billing_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_old_supplier" name="Old Supplier Process End">
+      <bpmn:incoming>flow_old_start_term_to_end</bpmn:incoming>
+      <bpmn:incoming>flow_old_start_billing_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_old_supplier_create_bill" name="Create and Send Final Billing to Customer">
+      <bpmn:incoming>flow_old_start_meter_to_create_bill</bpmn:incoming>
+      <bpmn:property id="task_old_supplier_create_bill_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_old_supplier_create_bill_dia0">
+        <bpmn:sourceRef>data_meter_report_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_old_supplier_create_bill_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_old_supplier_create_bill_doa0">
+        <bpmn:targetRef>doc_final_invoice_customer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_old_start_term_to_end" sourceRef="evt_start_old_supplier_term" targetRef="evt_end_old_supplier" />
+    <bpmn:sequenceFlow id="flow_old_start_meter_to_create_bill" sourceRef="evt_start_old_supplier_meter" targetRef="task_old_supplier_create_bill" />
+    <bpmn:sequenceFlow id="flow_old_start_billing_to_end" sourceRef="evt_start_old_supplier_billing" targetRef="evt_end_old_supplier" />
+  </bpmn:process>
+  <bpmn:process id="pool_customer_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="doc_final_contract_p1" name="Final Contract Documents" dataObjectRef="doc_final_contract_p1_do" />
+    <bpmn:dataObject id="doc_final_contract_p1_do" />
+    <bpmn:intermediateThrowEvent id="evt_msg_to_customer_contract" name="Contract Documents Sent">
+      <bpmn:messageEventDefinition id="evt_msg_to_customer_contract_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_start_customer_review" name="Receive Contract Documents">
+      <bpmn:outgoing>flow_cust_start_to_review</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_customer_review_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_final_bill_customer" name="Final Bill Sent to Customer">
+      <bpmn:messageEventDefinition id="evt_msg_final_bill_customer_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_start_customer_bill" name="Receive Final Bill">
+      <bpmn:outgoing>flow_cust_start_bill_to_end</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_customer_bill_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_customer" name="Customer Process End">
+      <bpmn:incoming>flow_cust_start_bill_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_customer_review" name="Check Contract Details">
+      <bpmn:incoming>flow_cust_start_to_review</bpmn:incoming>
+      <bpmn:property id="task_customer_review_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_customer_review_dia0">
+        <bpmn:sourceRef>doc_final_contract_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_customer_review_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_cust_start_to_review" sourceRef="evt_start_customer_review" targetRef="task_customer_review" />
+    <bpmn:sequenceFlow id="flow_cust_start_bill_to_end" sourceRef="evt_start_customer_bill" targetRef="evt_end_customer" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_cs_part_di" bpmnElement="pool_cs_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="2470" height="775" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_grid_part_di" bpmnElement="pool_grid_part" isHorizontal="true">
+        <dc:Bounds x="120" y="875" width="1330" height="775" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_old_supplier_part_di" bpmnElement="pool_old_supplier_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1710" width="700" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_customer_part_di" bpmnElement="pool_customer_part" isHorizontal="true">
+        <dc:Bounds x="120" y="2420" width="700" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_cs_contract_rejected_di" bpmnElement="evt_end_cs_contract_rejected">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_cs_main_di" bpmnElement="evt_end_cs_main">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_customer_di" bpmnElement="evt_end_customer">
+        <dc:Bounds x="350" y="2480" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_grid_di" bpmnElement="evt_end_grid">
+        <dc:Bounds x="350" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_old_supplier_di" bpmnElement="evt_end_old_supplier">
+        <dc:Bounds x="350" y="1770" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_billing_old_di" bpmnElement="evt_msg_billing_old">
+        <dc:Bounds x="350" y="1060" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_final_bill_customer_di" bpmnElement="evt_msg_final_bill_customer">
+        <dc:Bounds x="160" y="2480" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_meter_data_cs_di" bpmnElement="evt_msg_meter_data_cs">
+        <dc:Bounds x="350" y="1185" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_meter_data_old_di" bpmnElement="evt_msg_meter_data_old">
+        <dc:Bounds x="350" y="1310" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_cs_decision_di" bpmnElement="evt_msg_to_cs_decision">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_cs_response_di" bpmnElement="evt_msg_to_cs_response">
+        <dc:Bounds x="1110" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_customer_contract_di" bpmnElement="evt_msg_to_customer_contract">
+        <dc:Bounds x="160" y="2605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_grid_di" bpmnElement="evt_msg_to_grid">
+        <dc:Bounds x="2250" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_to_old_supplier_termination_di" bpmnElement="evt_msg_to_old_supplier_termination">
+        <dc:Bounds x="160" y="1770" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_cs_di" bpmnElement="evt_start_cs">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_cs_decision_di" bpmnElement="evt_start_cs_decision">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_cs_meter_di" bpmnElement="evt_start_cs_meter">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_cs_response_di" bpmnElement="evt_start_cs_response">
+        <dc:Bounds x="160" y="475" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_customer_bill_di" bpmnElement="evt_start_customer_bill">
+        <dc:Bounds x="160" y="2730" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_customer_review_di" bpmnElement="evt_start_customer_review">
+        <dc:Bounds x="160" y="2855" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_grid_di" bpmnElement="evt_start_grid">
+        <dc:Bounds x="160" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_old_supplier_billing_di" bpmnElement="evt_start_old_supplier_billing">
+        <dc:Bounds x="160" y="1895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_old_supplier_meter_di" bpmnElement="evt_start_old_supplier_meter">
+        <dc:Bounds x="160" y="2020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_old_supplier_term_di" bpmnElement="evt_start_old_supplier_term">
+        <dc:Bounds x="160" y="2145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_timer_acceptance_di" bpmnElement="evt_timer_acceptance">
+        <dc:Bounds x="160" y="600" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_concurrence_di" bpmnElement="gw_concurrence">
+        <dc:Bounds x="540" y="935" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_contract_gen_success_di" bpmnElement="gw_contract_gen_success">
+        <dc:Bounds x="1680" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_customer_decision_di" bpmnElement="gw_customer_decision">
+        <dc:Bounds x="350" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_customer_exists_di" bpmnElement="gw_customer_exists">
+        <dc:Bounds x="1110" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_data_errors_di" bpmnElement="gw_data_errors">
+        <dc:Bounds x="730" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_timer_merge_di" bpmnElement="gw_timer_merge">
+        <dc:Bounds x="540" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_analyze_issues_di" bpmnElement="task_analyze_issues">
+        <dc:Bounds x="1870" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_auto_check_cis_di" bpmnElement="task_auto_check_cis">
+        <dc:Bounds x="1490" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_data_di" bpmnElement="task_check_data">
+        <dc:Bounds x="540" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_correct_errors_di" bpmnElement="task_correct_errors">
+        <dc:Bounds x="920" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_cis_contract_di" bpmnElement="task_create_cis_contract">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_new_customer_di" bpmnElement="task_create_new_customer">
+        <dc:Bounds x="1300" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_customer_review_di" bpmnElement="task_customer_review">
+        <dc:Bounds x="350" y="2605" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_enter_crm_di" bpmnElement="task_enter_crm">
+        <dc:Bounds x="350" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_grid_check_concurrence_di" bpmnElement="task_grid_check_concurrence">
+        <dc:Bounds x="350" y="1435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_grid_compute_billing_di" bpmnElement="task_grid_compute_billing">
+        <dc:Bounds x="160" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_grid_resolve_conflict_di" bpmnElement="task_grid_resolve_conflict">
+        <dc:Bounds x="730" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_grid_terminate_old_di" bpmnElement="task_grid_terminate_old">
+        <dc:Bounds x="920" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_import_meter_data_di" bpmnElement="task_import_meter_data">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_old_supplier_create_bill_di" bpmnElement="task_old_supplier_create_bill">
+        <dc:Bounds x="350" y="1895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_contract_di" bpmnElement="task_prepare_contract">
+        <dc:Bounds x="2060" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_request_grid_di" bpmnElement="task_request_grid">
+        <dc:Bounds x="2060" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_confirmation_di" bpmnElement="task_send_confirmation">
+        <dc:Bounds x="1870" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_contract_customer_di" bpmnElement="task_send_contract_customer">
+        <dc:Bounds x="540" y="475" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_customer_raw_di" bpmnElement="data_customer_raw">
+        <dc:Bounds x="370" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_customer_object_di" bpmnElement="data_customer_object">
+        <dc:Bounds x="1102" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_error_list_di" bpmnElement="data_error_list">
+        <dc:Bounds x="940" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_contract_draft_di" bpmnElement="doc_contract_draft">
+        <dc:Bounds x="1795" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_final_contract_di" bpmnElement="doc_final_contract">
+        <dc:Bounds x="465" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_meter_report_di" bpmnElement="data_meter_report">
+        <dc:Bounds x="750" y="740" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_meter_report_p1_di" bpmnElement="data_meter_report_p1">
+        <dc:Bounds x="180" y="1575" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_final_billing_grid_di" bpmnElement="doc_final_billing_grid">
+        <dc:Bounds x="180" y="1575" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_meter_report_p2_di" bpmnElement="data_meter_report_p2">
+        <dc:Bounds x="370" y="2285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_final_invoice_customer_di" bpmnElement="doc_final_invoice_customer">
+        <dc:Bounds x="370" y="2285" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="doc_final_contract_p1_di" bpmnElement="doc_final_contract_p1">
+        <dc:Bounds x="370" y="2995" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_enter_di" bpmnElement="flow_start_to_enter">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_enter_to_check_di" bpmnElement="flow_enter_to_check">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="590" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_check_to_gw_errors_di" bpmnElement="flow_check_to_gw_errors">
+        <di:waypoint x="590" y="390" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_errors_yes_di" bpmnElement="flow_errors_yes">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="970" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_errors_no_di" bpmnElement="flow_errors_no">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_correct_to_exists_di" bpmnElement="flow_correct_to_exists">
+        <di:waypoint x="970" y="265" />
+        <di:waypoint x="1135" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_exists_yes_di" bpmnElement="flow_exists_yes">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="2110" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_exists_no_di" bpmnElement="flow_exists_no">
+        <di:waypoint x="1135" y="125" />
+        <di:waypoint x="1350" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_create_to_prepare_di" bpmnElement="flow_create_to_prepare">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="2110" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_prepare_to_auto_check_di" bpmnElement="flow_prepare_to_auto_check">
+        <di:waypoint x="2110" y="140" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_auto_check_to_gw_gen_di" bpmnElement="flow_auto_check_to_gw_gen">
+        <di:waypoint x="1540" y="140" />
+        <di:waypoint x="1705" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gen_fail_di" bpmnElement="flow_gen_fail">
+        <di:waypoint x="1705" y="125" />
+        <di:waypoint x="1920" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gen_success_di" bpmnElement="flow_gen_success">
+        <di:waypoint x="1705" y="125" />
+        <di:waypoint x="1920" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_analyze_to_prepare_di" bpmnElement="flow_analyze_to_prepare">
+        <di:waypoint x="1920" y="140" />
+        <di:waypoint x="2110" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confirm_to_request_grid_di" bpmnElement="flow_confirm_to_request_grid">
+        <di:waypoint x="1920" y="265" />
+        <di:waypoint x="2110" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_request_grid_to_evt_msg_di" bpmnElement="flow_request_grid_to_evt_msg">
+        <di:waypoint x="2110" y="265" />
+        <di:waypoint x="2268" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_grid_start_to_check_di" bpmnElement="flow_grid_start_to_check">
+        <di:waypoint x="178" y="953" />
+        <di:waypoint x="400" y="1475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_check_to_gw_concurrence_di" bpmnElement="flow_check_to_gw_concurrence">
+        <di:waypoint x="400" y="1475" />
+        <di:waypoint x="565" y="960" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_concurrence_yes_di" bpmnElement="flow_concurrence_yes">
+        <di:waypoint x="565" y="960" />
+        <di:waypoint x="780" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_concurrence_no_di" bpmnElement="flow_concurrence_no">
+        <di:waypoint x="565" y="960" />
+        <di:waypoint x="970" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_resolve_to_terminate_di" bpmnElement="flow_resolve_to_terminate">
+        <di:waypoint x="780" y="975" />
+        <di:waypoint x="970" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_terminate_to_evt_msg_resp_di" bpmnElement="flow_terminate_to_evt_msg_resp">
+        <di:waypoint x="970" y="975" />
+        <di:waypoint x="1128" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_resp_start_to_create_cis_di" bpmnElement="flow_resp_start_to_create_cis">
+        <di:waypoint x="178" y="493" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_create_cis_to_send_contract_di" bpmnElement="flow_create_cis_to_send_contract">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="590" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cust_start_to_review_di" bpmnElement="flow_cust_start_to_review">
+        <di:waypoint x="178" y="2873" />
+        <di:waypoint x="400" y="2645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_dec_start_to_gw_dec_di" bpmnElement="flow_dec_start_to_gw_dec">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="375" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_withdraw_di" bpmnElement="flow_withdraw">
+        <di:waypoint x="375" y="125" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confirm_di" bpmnElement="flow_confirm">
+        <di:waypoint x="375" y="125" />
+        <di:waypoint x="565" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_timer_to_merge_di" bpmnElement="flow_timer_to_merge">
+        <di:waypoint x="178" y="618" />
+        <di:waypoint x="565" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_merge_to_import_di" bpmnElement="flow_merge_to_import">
+        <di:waypoint x="565" y="250" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_import_to_end_di" bpmnElement="flow_import_to_end">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_grid_meter_to_evt_msg_cs_di" bpmnElement="flow_grid_meter_to_evt_msg_cs">
+        <di:waypoint x="210" y="1100" />
+        <di:waypoint x="368" y="1203" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_grid_meter_to_evt_msg_old_di" bpmnElement="flow_grid_meter_to_evt_msg_old">
+        <di:waypoint x="210" y="1100" />
+        <di:waypoint x="368" y="1328" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_grid_billing_to_evt_msg_old_di" bpmnElement="flow_grid_billing_to_evt_msg_old">
+        <di:waypoint x="210" y="1100" />
+        <di:waypoint x="368" y="1078" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_grid_end_di" bpmnElement="flow_grid_end">
+        <di:waypoint x="210" y="1100" />
+        <di:waypoint x="368" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_old_start_term_to_end_di" bpmnElement="flow_old_start_term_to_end">
+        <di:waypoint x="178" y="2163" />
+        <di:waypoint x="368" y="1788" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_old_start_meter_to_create_bill_di" bpmnElement="flow_old_start_meter_to_create_bill">
+        <di:waypoint x="178" y="2038" />
+        <di:waypoint x="400" y="1935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_old_start_billing_to_end_di" bpmnElement="flow_old_start_billing_to_end">
+        <di:waypoint x="178" y="1913" />
+        <di:waypoint x="368" y="1788" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cust_start_bill_to_end_di" bpmnElement="flow_cust_start_bill_to_end">
+        <di:waypoint x="178" y="2748" />
+        <di:waypoint x="368" y="2498" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_request_grid_di" bpmnElement="msg_flow_request_grid">
+        <di:waypoint x="2268" y="118" />
+        <di:waypoint x="178" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_response_cs_di" bpmnElement="msg_flow_response_cs">
+        <di:waypoint x="1128" y="953" />
+        <di:waypoint x="178" y="493" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_termination_di" bpmnElement="msg_flow_termination">
+        <di:waypoint x="178" y="1788" />
+        <di:waypoint x="178" y="2163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_contract_customer_di" bpmnElement="msg_flow_contract_customer">
+        <di:waypoint x="178" y="2623" />
+        <di:waypoint x="178" y="2873" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_decision_cs_di" bpmnElement="msg_flow_decision_cs">
+        <di:waypoint x="118" y="118" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_meter_cs_di" bpmnElement="msg_flow_meter_cs">
+        <di:waypoint x="368" y="1203" />
+        <di:waypoint x="178" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_meter_old_di" bpmnElement="msg_flow_meter_old">
+        <di:waypoint x="368" y="1328" />
+        <di:waypoint x="178" y="2038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_billing_old_di" bpmnElement="msg_flow_billing_old">
+        <di:waypoint x="368" y="1078" />
+        <di:waypoint x="178" y="1913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_final_bill_customer_di" bpmnElement="msg_flow_final_bill_customer">
+        <di:waypoint x="178" y="2498" />
+        <di:waypoint x="178" y="2748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_send_contract_di" bpmnElement="msg_flow_send_contract">
+        <di:waypoint x="590" y="515" />
+        <di:waypoint x="178" y="2623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_review_decision_di" bpmnElement="msg_flow_review_decision">
+        <di:waypoint x="400" y="2645" />
+        <di:waypoint x="118" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_old_bill_di" bpmnElement="msg_flow_old_bill">
+        <di:waypoint x="400" y="1935" />
+        <di:waypoint x="178" y="2498" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_enter_crm_dia0_di" bpmnElement="task_enter_crm_dia0">
+        <di:waypoint x="388" y="765" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_enter_crm_doa0_di" bpmnElement="task_enter_crm_doa0">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="1120" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_data_dia0_di" bpmnElement="task_check_data_dia0">
+        <di:waypoint x="1120" y="765" />
+        <di:waypoint x="590" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_correct_errors_dia0_di" bpmnElement="task_correct_errors_dia0">
+        <di:waypoint x="958" y="765" />
+        <di:waypoint x="970" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_correct_errors_doa0_di" bpmnElement="task_correct_errors_doa0">
+        <di:waypoint x="970" y="265" />
+        <di:waypoint x="1120" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_new_customer_doa0_di" bpmnElement="task_create_new_customer_doa0">
+        <di:waypoint x="1350" y="140" />
+        <di:waypoint x="1120" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_contract_dia0_di" bpmnElement="task_prepare_contract_dia0">
+        <di:waypoint x="1120" y="765" />
+        <di:waypoint x="2110" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_contract_doa0_di" bpmnElement="task_prepare_contract_doa0">
+        <di:waypoint x="2110" y="140" />
+        <di:waypoint x="1813" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_auto_check_cis_dia0_di" bpmnElement="task_auto_check_cis_dia0">
+        <di:waypoint x="1813" y="765" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_request_grid_dia0_di" bpmnElement="task_request_grid_dia0">
+        <di:waypoint x="1120" y="765" />
+        <di:waypoint x="2110" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_cis_contract_dia0_di" bpmnElement="task_create_cis_contract_dia0">
+        <di:waypoint x="1120" y="765" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_cis_contract_doa0_di" bpmnElement="task_create_cis_contract_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="483" y="765" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_contract_customer_dia0_di" bpmnElement="task_send_contract_customer_dia0">
+        <di:waypoint x="483" y="765" />
+        <di:waypoint x="590" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_customer_review_dia0_di" bpmnElement="task_customer_review_dia0">
+        <di:waypoint x="388" y="3020" />
+        <di:waypoint x="400" y="2645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_import_meter_data_dia0_di" bpmnElement="task_import_meter_data_dia0">
+        <di:waypoint x="768" y="765" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_grid_compute_billing_dia0_di" bpmnElement="task_grid_compute_billing_dia0">
+        <di:waypoint x="198" y="1600" />
+        <di:waypoint x="210" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_grid_compute_billing_doa0_di" bpmnElement="task_grid_compute_billing_doa0">
+        <di:waypoint x="210" y="1100" />
+        <di:waypoint x="198" y="1600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_old_supplier_create_bill_dia0_di" bpmnElement="task_old_supplier_create_bill_dia0">
+        <di:waypoint x="388" y="2310" />
+        <di:waypoint x="400" y="1935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_old_supplier_create_bill_doa0_di" bpmnElement="task_old_supplier_create_bill_doa0">
+        <di:waypoint x="400" y="1935" />
+        <di:waypoint x="388" y="2310" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

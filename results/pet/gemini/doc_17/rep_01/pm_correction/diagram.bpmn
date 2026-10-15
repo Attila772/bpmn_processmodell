@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_hr_part" name="HR Clerk" processRef="pool_hr_proc" />
+    <bpmn:participant id="pool_department_part" name="Department" processRef="pool_department_proc" />
+    <bpmn:messageFlow id="msg_submit_jd" sourceRef="task_submit_jd" targetRef="start_dept" name="Job Description for Consideration" />
+    <bpmn:messageFlow id="msg_approval_resp" sourceRef="end_dept_approved" targetRef="gw_approval_outcome" name="Approval Notification" />
+    <bpmn:messageFlow id="msg_rejection_resp" sourceRef="end_dept_rejected" targetRef="gw_approval_outcome" name="Rejection &amp; Correction Request" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_hr_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_job_description" name="Job Description" dataObjectRef="data_job_description_do" />
+    <bpmn:dataObject id="data_job_description_do" />
+    <bpmn:startEvent id="start_event" name="Vacancy reported">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_event_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_clarification_sent" name="Clarification requested">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_clarification_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_job_posted" name="Job posted successfully">
+      <bpmn:incoming>flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_create_jd" name="Create job description">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_create_jd_doa0">
+        <bpmn:targetRef>data_job_description</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_ask_dept" name="Ask Department for clarification">
+      <bpmn:incoming>flow_to_ask</bpmn:incoming>
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_submit_jd" name="Submit job description for consideration">
+      <bpmn:incoming>flow_to_submit</bpmn:incoming>
+      <bpmn:incoming>flow_5</bpmn:incoming>
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+      <bpmn:property id="task_submit_jd_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_submit_jd_dia0">
+        <bpmn:sourceRef>data_job_description</bpmn:sourceRef>
+        <bpmn:targetRef>task_submit_jd_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_correct_jd" name="Correct job description">
+      <bpmn:incoming>flow_rejected</bpmn:incoming>
+      <bpmn:outgoing>flow_5</bpmn:outgoing>
+      <bpmn:property id="task_correct_jd_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_correct_jd_dia0">
+        <bpmn:sourceRef>data_job_description</bpmn:sourceRef>
+        <bpmn:targetRef>task_correct_jd_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_correct_jd_doa0">
+        <bpmn:targetRef>data_job_description</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_post_job" name="Post the job">
+      <bpmn:incoming>flow_approved</bpmn:incoming>
+      <bpmn:outgoing>flow_6</bpmn:outgoing>
+      <bpmn:property id="task_post_job_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_post_job_dia0">
+        <bpmn:sourceRef>data_job_description</bpmn:sourceRef>
+        <bpmn:targetRef>task_post_job_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_confusion" name="Is there confusion in the message?" isMarkerVisible="true">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:outgoing>flow_to_ask</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_submit</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_approval_outcome" name="Is job description approved?" isMarkerVisible="true">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+      <bpmn:outgoing>flow_approved</bpmn:outgoing>
+      <bpmn:outgoing>flow_rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start_event" targetRef="task_create_jd" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_create_jd" targetRef="gw_confusion" />
+    <bpmn:sequenceFlow id="flow_to_ask" sourceRef="gw_confusion" targetRef="task_ask_dept" name="Yes" />
+    <bpmn:sequenceFlow id="flow_to_submit" sourceRef="gw_confusion" targetRef="task_submit_jd" name="No" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="task_ask_dept" targetRef="end_clarification_sent" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="task_submit_jd" targetRef="gw_approval_outcome" />
+    <bpmn:sequenceFlow id="flow_approved" sourceRef="gw_approval_outcome" targetRef="task_post_job" name="Approved" />
+    <bpmn:sequenceFlow id="flow_rejected" sourceRef="gw_approval_outcome" targetRef="task_correct_jd" name="Rejected" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="task_correct_jd" targetRef="task_submit_jd" />
+    <bpmn:sequenceFlow id="flow_6" sourceRef="task_post_job" targetRef="end_job_posted" />
+  </bpmn:process>
+  <bpmn:process id="pool_department_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_job_description_p1" name="Job Description" dataObjectRef="data_job_description_p1_do" />
+    <bpmn:dataObject id="data_job_description_p1_do" />
+    <bpmn:startEvent id="start_dept" name="Job description received for review">
+      <bpmn:outgoing>flow_dept_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="start_dept_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_dept_approved" name="Approval sent">
+      <bpmn:incoming>flow_dept_approve</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_dept_approved_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_dept_rejected" name="Rejection and correction request sent">
+      <bpmn:incoming>flow_dept_reject</bpmn:incoming>
+      <bpmn:messageEventDefinition id="end_dept_rejected_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_review_jd" name="Consider and review job description">
+      <bpmn:incoming>flow_dept_1</bpmn:incoming>
+      <bpmn:outgoing>flow_dept_2</bpmn:outgoing>
+      <bpmn:property id="task_review_jd_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_review_jd_dia0">
+        <bpmn:sourceRef>data_job_description_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_jd_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_dept_decision" name="Department decision?" isMarkerVisible="true">
+      <bpmn:incoming>flow_dept_2</bpmn:incoming>
+      <bpmn:outgoing>flow_dept_approve</bpmn:outgoing>
+      <bpmn:outgoing>flow_dept_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_dept_1" sourceRef="start_dept" targetRef="task_review_jd" />
+    <bpmn:sequenceFlow id="flow_dept_2" sourceRef="task_review_jd" targetRef="gw_dept_decision" />
+    <bpmn:sequenceFlow id="flow_dept_approve" sourceRef="gw_dept_decision" targetRef="end_dept_approved" name="Approve" />
+    <bpmn:sequenceFlow id="flow_dept_reject" sourceRef="gw_dept_decision" targetRef="end_dept_rejected" name="Reject" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_hr_part_di" bpmnElement="pool_hr_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1520" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_department_part_di" bpmnElement="pool_department_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="950" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_clarification_sent_di" bpmnElement="end_clarification_sent">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_dept_approved_di" bpmnElement="end_dept_approved">
+        <dc:Bounds x="730" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_dept_rejected_di" bpmnElement="end_dept_rejected">
+        <dc:Bounds x="730" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_job_posted_di" bpmnElement="end_job_posted">
+        <dc:Bounds x="1300" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_approval_outcome_di" bpmnElement="gw_approval_outcome">
+        <dc:Bounds x="920" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_confusion_di" bpmnElement="gw_confusion">
+        <dc:Bounds x="540" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_dept_decision_di" bpmnElement="gw_dept_decision">
+        <dc:Bounds x="540" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_dept_di" bpmnElement="start_dept">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_event_di" bpmnElement="start_event">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ask_dept_di" bpmnElement="task_ask_dept">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_correct_jd_di" bpmnElement="task_correct_jd">
+        <dc:Bounds x="1110" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_jd_di" bpmnElement="task_create_jd">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_post_job_di" bpmnElement="task_post_job">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_jd_di" bpmnElement="task_review_jd">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_submit_jd_di" bpmnElement="task_submit_jd">
+        <dc:Bounds x="1300" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_job_description_di" bpmnElement="data_job_description">
+        <dc:Bounds x="987" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_job_description_p1_di" bpmnElement="data_job_description_p1">
+        <dc:Bounds x="370" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="565" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_ask_di" bpmnElement="flow_to_ask">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_submit_di" bpmnElement="flow_to_submit">
+        <di:waypoint x="565" y="125" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="1350" y="265" />
+        <di:waypoint x="945" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_approved_di" bpmnElement="flow_approved">
+        <di:waypoint x="945" y="250" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_rejected_di" bpmnElement="flow_rejected">
+        <di:waypoint x="945" y="250" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1318" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_dept_1_di" bpmnElement="flow_dept_1">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_dept_2_di" bpmnElement="flow_dept_2">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="565" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_dept_approve_di" bpmnElement="flow_dept_approve">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="748" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_dept_reject_di" bpmnElement="flow_dept_reject">
+        <di:waypoint x="565" y="585" />
+        <di:waypoint x="748" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_submit_jd_di" bpmnElement="msg_submit_jd">
+        <di:waypoint x="1350" y="265" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_approval_resp_di" bpmnElement="msg_approval_resp">
+        <di:waypoint x="748" y="578" />
+        <di:waypoint x="945" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_rejection_resp_di" bpmnElement="msg_rejection_resp">
+        <di:waypoint x="748" y="703" />
+        <di:waypoint x="945" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_jd_doa0_di" bpmnElement="task_create_jd_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="1005" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_jd_dia0_di" bpmnElement="task_submit_jd_dia0">
+        <di:waypoint x="1005" y="390" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_correct_jd_dia0_di" bpmnElement="task_correct_jd_dia0">
+        <di:waypoint x="1005" y="390" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_correct_jd_doa0_di" bpmnElement="task_correct_jd_doa0">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1005" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_post_job_dia0_di" bpmnElement="task_post_job_dia0">
+        <di:waypoint x="1005" y="390" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_jd_dia0_di" bpmnElement="task_review_jd_dia0">
+        <di:waypoint x="388" y="850" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

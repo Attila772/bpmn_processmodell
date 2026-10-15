@@ -1,0 +1,327 @@
+{
+  "name": "Master Data Change Process",
+  "resources": [
+    {
+      "name": "EC",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "INQ",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "IP",
+      "capacity": 1,
+      "resource_type": "department"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_ec",
+      "name": "Start: EC initiates change",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_ec_notify_inq",
+      "name": "End: Notify INQ",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Master Data Change Notification"
+    },
+    {
+      "id": "evt_start_inq_receive",
+      "name": "Start: Receive from EC",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Master Data Change Notification"
+    },
+    {
+      "id": "evt_end_inq_notify_ip",
+      "name": "End: Notify IP",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Change Request to IP"
+    },
+    {
+      "id": "evt_start_ip_receive",
+      "name": "Start: Receive from INQ",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Change Request to IP"
+    },
+    {
+      "id": "evt_end_ip_response",
+      "name": "End: Send Response",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Change Decision"
+    },
+    {
+      "id": "evt_start_inq_receive_response",
+      "name": "Start: Receive Response",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Change Decision"
+    },
+    {
+      "id": "evt_end_process",
+      "name": "Process Completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_ec_prepare",
+      "name": "Prepare Master Data Change",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "EC",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_master_data_change"
+      ]
+    },
+    {
+      "id": "task_inq_forward",
+      "name": "Forward Change to IP",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "INQ",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_master_data_change"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_ip_check",
+      "name": "Check Feasibility of Change",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "IP",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_master_data_change"
+      ],
+      "output_data_ids": [
+        "data_feasibility_result"
+      ]
+    },
+    {
+      "id": "task_inq_handle_response",
+      "name": "Handle IP Response",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "INQ",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_feasibility_result"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_ip_decision",
+      "name": "Decision: Confirm or Reject",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_ip_confirm",
+          "condition": "Confirm"
+        },
+        {
+          "flow_id": "flow_ip_reject",
+          "condition": "Reject"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_ec_start_to_prepare",
+      "source_id": "evt_start_ec",
+      "target_id": "task_ec_prepare",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ec_prepare_to_end",
+      "source_id": "task_ec_prepare",
+      "target_id": "evt_end_ec_notify_inq",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_start_to_forward",
+      "source_id": "evt_start_inq_receive",
+      "target_id": "task_inq_forward",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_forward_to_end",
+      "source_id": "task_inq_forward",
+      "target_id": "evt_end_inq_notify_ip",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_start_to_check",
+      "source_id": "evt_start_ip_receive",
+      "target_id": "task_ip_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_check_to_gw",
+      "source_id": "task_ip_check",
+      "target_id": "gw_ip_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_confirm",
+      "source_id": "gw_ip_decision",
+      "target_id": "evt_end_ip_response",
+      "condition_name": "Confirm"
+    },
+    {
+      "id": "flow_ip_reject",
+      "source_id": "gw_ip_decision",
+      "target_id": "evt_end_ip_response",
+      "condition_name": "Reject"
+    },
+    {
+      "id": "flow_inq_resp_start_to_handle",
+      "source_id": "evt_start_inq_receive_response",
+      "target_id": "task_inq_handle_response",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_handle_to_end",
+      "source_id": "task_inq_handle_response",
+      "target_id": "evt_end_process",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_ec",
+      "name": "EC",
+      "element_ids": [
+        "evt_start_ec",
+        "task_ec_prepare",
+        "evt_end_ec_notify_inq"
+      ]
+    },
+    {
+      "id": "pool_inq",
+      "name": "INQ",
+      "element_ids": [
+        "evt_start_inq_receive",
+        "task_inq_forward",
+        "evt_end_inq_notify_ip",
+        "evt_start_inq_receive_response",
+        "task_inq_handle_response",
+        "evt_end_process"
+      ]
+    },
+    {
+      "id": "pool_ip",
+      "name": "IP",
+      "element_ids": [
+        "evt_start_ip_receive",
+        "task_ip_check",
+        "gw_ip_decision",
+        "evt_end_ip_response"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_ec_to_inq",
+      "source_id": "evt_end_ec_notify_inq",
+      "target_id": "evt_start_inq_receive",
+      "name": "Master Data Change Notification"
+    },
+    {
+      "id": "msg_flow_inq_to_ip",
+      "source_id": "evt_end_inq_notify_ip",
+      "target_id": "evt_start_ip_receive",
+      "name": "Change Request to IP"
+    },
+    {
+      "id": "msg_flow_ip_to_inq",
+      "source_id": "evt_end_ip_response",
+      "target_id": "evt_start_inq_receive_response",
+      "name": "Change Decision"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_master_data_change",
+      "name": "Master Data Change Details"
+    },
+    {
+      "id": "data_feasibility_result",
+      "name": "Feasibility Check Result"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

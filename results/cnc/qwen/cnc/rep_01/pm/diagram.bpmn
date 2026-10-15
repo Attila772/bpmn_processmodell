@@ -1,0 +1,721 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_darabol_part" name="Daraboló üzem" processRef="pool_darabol_proc" />
+    <bpmn:participant id="pool_elokeszit_part" name="Forgácsoló gyártáselőkészítő" processRef="pool_elokeszit_proc" />
+    <bpmn:participant id="pool_programozo_part" name="CNC Programozó" processRef="pool_programozo_proc" />
+    <bpmn:participant id="pool_cnc_part" name="Forgácsoló üzem (CNC)" processRef="pool_cnc_proc" />
+    <bpmn:messageFlow id="msg_darabol_to_elokeszit" sourceRef="evt_end_darabol" targetRef="evt_start_elokeszit" name="Darabolt alkatrész és műhelyrajz átadása" />
+    <bpmn:messageFlow id="msg_elokeszit_to_cnc" sourceRef="evt_end_elokeszit" targetRef="evt_start_cnc_prep" name="Alkatrész átadása CNC megmunkálásra" />
+    <bpmn:messageFlow id="msg_elokeszit_to_programozo" sourceRef="evt_msg_program_hiany" targetRef="task_programoz" name="Program kérés" />
+    <bpmn:messageFlow id="msg_programozo_to_elokeszit" sourceRef="task_programoz" targetRef="evt_msg_program_kesz" name="Program átadás" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_darabol_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_muhelyrajz" name="Műhelyrajz" dataObjectRef="data_muhelyrajz_do" />
+    <bpmn:dataObject id="data_muhelyrajz_do" />
+    <bpmn:dataObjectReference id="data_nyersanyag" name="Nyersanyag" dataObjectRef="data_nyersanyag_do" />
+    <bpmn:dataObject id="data_nyersanyag_do" />
+    <bpmn:dataObjectReference id="data_darabolt_alkatresz" name="Darabolt alkatrész" dataObjectRef="data_darabolt_alkatresz_do" />
+    <bpmn:dataObject id="data_darabolt_alkatresz_do" />
+    <bpmn:startEvent id="evt_start_darabol" name="Nyersanyag érkezés">
+      <bpmn:outgoing>flow_start_to_vag</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_darabol" name="Darabolás kész">
+      <bpmn:incoming>flow_mes_to_end_darabol</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_darabol_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_vag" name="Nyersanyag méretre vágása">
+      <bpmn:incoming>flow_start_to_vag</bpmn:incoming>
+      <bpmn:outgoing>flow_vag_to_scan</bpmn:outgoing>
+      <bpmn:property id="task_vag_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_vag_dia0">
+        <bpmn:sourceRef>data_muhelyrajz</bpmn:sourceRef>
+        <bpmn:targetRef>task_vag_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_vag_dia1">
+        <bpmn:sourceRef>data_nyersanyag</bpmn:sourceRef>
+        <bpmn:targetRef>task_vag_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_vag_doa0">
+        <bpmn:targetRef>data_darabolt_alkatresz</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_scan_darabol" name="Vonalkód beolvasása (nyomonkövetés)">
+      <bpmn:incoming>flow_vag_to_scan</bpmn:incoming>
+      <bpmn:outgoing>flow_scan_to_mes</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_mes_darabol" name="Státusz rögzítése MES-ben (darabolás)">
+      <bpmn:incoming>flow_scan_to_mes</bpmn:incoming>
+      <bpmn:outgoing>flow_mes_to_end_darabol</bpmn:outgoing>
+      <bpmn:property id="task_mes_darabol_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mes_darabol_dia0">
+        <bpmn:sourceRef>data_darabolt_alkatresz</bpmn:sourceRef>
+        <bpmn:targetRef>task_mes_darabol_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_start_to_vag" sourceRef="evt_start_darabol" targetRef="task_vag" />
+    <bpmn:sequenceFlow id="flow_vag_to_scan" sourceRef="task_vag" targetRef="task_scan_darabol" />
+    <bpmn:sequenceFlow id="flow_scan_to_mes" sourceRef="task_scan_darabol" targetRef="task_mes_darabol" />
+    <bpmn:sequenceFlow id="flow_mes_to_end_darabol" sourceRef="task_mes_darabol" targetRef="evt_end_darabol" />
+  </bpmn:process>
+  <bpmn:process id="pool_elokeszit_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_muhelyrajz_p1" name="Műhelyrajz" dataObjectRef="data_muhelyrajz_p1_do" />
+    <bpmn:dataObject id="data_muhelyrajz_p1_do" />
+    <bpmn:dataObjectReference id="data_darabolt_alkatresz_p1" name="Darabolt alkatrész" dataObjectRef="data_darabolt_alkatresz_p1_do" />
+    <bpmn:dataObject id="data_darabolt_alkatresz_p1_do" />
+    <bpmn:dataObjectReference id="data_alkatresz_jegyzek" name="Alkatrészjegyzék" dataObjectRef="data_alkatresz_jegyzek_do" />
+    <bpmn:dataObject id="data_alkatresz_jegyzek_do" />
+    <bpmn:dataStoreReference id="data_store_program_server" name="CNC programszerver" />
+    <bpmn:startEvent id="evt_start_elokeszit" name="Műhelyrajz és alkatrész fogadása">
+      <bpmn:outgoing>flow_start_elokeszit_to_vizsgal</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_elokeszit_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_elokeszit" name="Előkészítés kész">
+      <bpmn:incoming>flow_to_cnc_prep</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_elokeszit_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_program_hiany" name="Program hiány értesítés">
+      <bpmn:incoming>flow_program_hiany</bpmn:incoming>
+      <bpmn:outgoing>flow_msg_hiany_to_programoz</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_program_hiany_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="evt_msg_program_kesz" name="Program elkészült">
+      <bpmn:incoming>flow_programoz_to_msg_kesz</bpmn:incoming>
+      <bpmn:outgoing>flow_msg_kesz_to_betoltes</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_msg_program_kesz_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:userTask id="task_vizsgal_tipus" name="Megmunkálási típus vizsgálata és meghatározása">
+      <bpmn:incoming>flow_start_elokeszit_to_vizsgal</bpmn:incoming>
+      <bpmn:outgoing>flow_vizsgal_to_reg</bpmn:outgoing>
+      <bpmn:property id="task_vizsgal_tipus_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_vizsgal_tipus_dia0">
+        <bpmn:sourceRef>data_muhelyrajz_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_vizsgal_tipus_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_vizsgal_tipus_dia1">
+        <bpmn:sourceRef>data_darabolt_alkatresz_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_vizsgal_tipus_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_reg_alaktr_jegyzek" name="Darabolt alkatrészjegyzék rögzítése">
+      <bpmn:incoming>flow_vizsgal_to_reg</bpmn:incoming>
+      <bpmn:outgoing>flow_reg_to_mes_elokeszit</bpmn:outgoing>
+      <bpmn:property id="task_reg_alaktr_jegyzek_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_reg_alaktr_jegyzek_dia0">
+        <bpmn:sourceRef>data_darabolt_alkatresz_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_reg_alaktr_jegyzek_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_reg_alaktr_jegyzek_doa0">
+        <bpmn:targetRef>data_alkatresz_jegyzek</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_mes_elokeszit" name="Státusz váltás MES-ben (előkészítés)">
+      <bpmn:incoming>flow_reg_to_mes_elokeszit</bpmn:incoming>
+      <bpmn:outgoing>flow_mes_elokeszit_to_valaszt</bpmn:outgoing>
+      <bpmn:property id="task_mes_elokeszit_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mes_elokeszit_dia0">
+        <bpmn:sourceRef>data_alkatresz_jegyzek</bpmn:sourceRef>
+        <bpmn:targetRef>task_mes_elokeszit_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_valaszt_tipus" name="Megmunkálás típusának kiválasztása (CNC)">
+      <bpmn:incoming>flow_mes_elokeszit_to_valaszt</bpmn:incoming>
+      <bpmn:outgoing>flow_valaszt_to_gw_tipus</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_ellenoriz_program" name="CNC program meglétének ellenőrzése">
+      <bpmn:incoming>flow_start_cnc_prep_to_ellenoriz_prog</bpmn:incoming>
+      <bpmn:outgoing>flow_ellenoriz_prog_to_gw_prog</bpmn:outgoing>
+      <bpmn:property id="task_ellenoriz_program_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_ellenoriz_program_dia0">
+        <bpmn:sourceRef>data_store_program_server</bpmn:sourceRef>
+        <bpmn:targetRef>task_ellenoriz_program_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_tipus_valasztas" name="Megmunkálási típus választása" isMarkerVisible="true">
+      <bpmn:incoming>flow_valaszt_to_gw_tipus</bpmn:incoming>
+      <bpmn:outgoing>flow_to_cnc_prep</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_program_megelte" name="CNC program megléte?" isMarkerVisible="true">
+      <bpmn:incoming>flow_ellenoriz_prog_to_gw_prog</bpmn:incoming>
+      <bpmn:outgoing>flow_program_hiany</bpmn:outgoing>
+      <bpmn:outgoing>flow_program_van</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_elokeszit_to_vizsgal" sourceRef="evt_start_elokeszit" targetRef="task_vizsgal_tipus" />
+    <bpmn:sequenceFlow id="flow_vizsgal_to_reg" sourceRef="task_vizsgal_tipus" targetRef="task_reg_alaktr_jegyzek" />
+    <bpmn:sequenceFlow id="flow_reg_to_mes_elokeszit" sourceRef="task_reg_alaktr_jegyzek" targetRef="task_mes_elokeszit" />
+    <bpmn:sequenceFlow id="flow_mes_elokeszit_to_valaszt" sourceRef="task_mes_elokeszit" targetRef="task_valaszt_tipus" />
+    <bpmn:sequenceFlow id="flow_valaszt_to_gw_tipus" sourceRef="task_valaszt_tipus" targetRef="gw_tipus_valasztas" />
+    <bpmn:sequenceFlow id="flow_to_cnc_prep" sourceRef="gw_tipus_valasztas" targetRef="evt_end_elokeszit" name="CNC" />
+    <bpmn:sequenceFlow id="flow_ellenoriz_prog_to_gw_prog" sourceRef="task_ellenoriz_program" targetRef="gw_program_megelte" />
+    <bpmn:sequenceFlow id="flow_program_hiany" sourceRef="gw_program_megelte" targetRef="evt_msg_program_hiany" name="Hiányzik program" />
+  </bpmn:process>
+  <bpmn:process id="pool_programozo_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_muhelyrajz_p2" name="Műhelyrajz" dataObjectRef="data_muhelyrajz_p2_do" />
+    <bpmn:dataObject id="data_muhelyrajz_p2_do" />
+    <bpmn:dataObjectReference id="data_cnc_program" name="CNC program" dataObjectRef="data_cnc_program_do" />
+    <bpmn:dataObject id="data_cnc_program_do" />
+    <bpmn:userTask id="task_programoz" name="CNC program írása">
+      <bpmn:incoming>flow_msg_hiany_to_programoz</bpmn:incoming>
+      <bpmn:outgoing>flow_programoz_to_msg_kesz</bpmn:outgoing>
+      <bpmn:property id="task_programoz_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_programoz_dia0">
+        <bpmn:sourceRef>data_muhelyrajz_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_programoz_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_programoz_doa0">
+        <bpmn:targetRef>data_cnc_program</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+  </bpmn:process>
+  <bpmn:process id="pool_cnc_proc" isExecutable="false">
+    <bpmn:dataStoreReference id="data_store_program_server_p1" name="CNC programszerver" />
+    <bpmn:dataObjectReference id="data_cnc_program_p1" name="CNC program" dataObjectRef="data_cnc_program_p1_do" />
+    <bpmn:dataObject id="data_cnc_program_p1_do" />
+    <bpmn:dataObjectReference id="data_darabolt_alkatresz_p2" name="Darabolt alkatrész" dataObjectRef="data_darabolt_alkatresz_p2_do" />
+    <bpmn:dataObject id="data_darabolt_alkatresz_p2_do" />
+    <bpmn:dataObjectReference id="data_megmunkalt_termek" name="Megmunkált termék" dataObjectRef="data_megmunkalt_termek_do" />
+    <bpmn:dataObject id="data_megmunkalt_termek_do" />
+    <bpmn:startEvent id="evt_start_cnc_prep" name="Alkatrész fogadása CNC előkészítésre">
+      <bpmn:outgoing>flow_start_cnc_prep_to_ellenoriz_prog</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_cnc_prep_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_cnc" name="Megmunkálás kész">
+      <bpmn:incoming>flow_mes_veges_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="task_betoltes_program" name="CNC program letöltése programszerverről">
+      <bpmn:incoming>flow_program_van</bpmn:incoming>
+      <bpmn:incoming>flow_msg_kesz_to_betoltes</bpmn:incoming>
+      <bpmn:outgoing>flow_betoltes_to_beazonositas</bpmn:outgoing>
+      <bpmn:property id="task_betoltes_program_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_betoltes_program_dia0">
+        <bpmn:sourceRef>data_store_program_server_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_betoltes_program_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_betoltes_program_doa0">
+        <bpmn:targetRef>data_cnc_program_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="task_beazonositas" name="Beazonosítás vonalkód olvasással">
+      <bpmn:incoming>flow_betoltes_to_beazonositas</bpmn:incoming>
+      <bpmn:outgoing>flow_beazonositas_to_ellenoriz_satut</bpmn:outgoing>
+      <bpmn:property id="task_beazonositas_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_beazonositas_dia0">
+        <bpmn:sourceRef>data_darabolt_alkatresz_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_beazonositas_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_ellenoriz_satut" name="Satu ellenőrzése">
+      <bpmn:incoming>flow_beazonositas_to_ellenoriz_satut</bpmn:incoming>
+      <bpmn:outgoing>flow_ellenoriz_satut_to_gw_satut</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_csere_satut" name="Satu cseréje">
+      <bpmn:incoming>flow_satut_csere_igen</bpmn:incoming>
+      <bpmn:outgoing>flow_csere_satut_to_rogzit</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_rogzit_alapanyag" name="Alapanyag rögzítése a satuban">
+      <bpmn:incoming>flow_satut_csere_nem</bpmn:incoming>
+      <bpmn:incoming>flow_csere_satut_to_rogzit</bpmn:incoming>
+      <bpmn:outgoing>flow_rogzit_to_ellenoriz_szerszam</bpmn:outgoing>
+      <bpmn:property id="task_rogzit_alapanyag_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_rogzit_alapanyag_dia0">
+        <bpmn:sourceRef>data_darabolt_alkatresz_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_rogzit_alapanyag_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_ellenoriz_szerszam" name="Szerszámlista ellenőrzése (CNC program alapján)">
+      <bpmn:incoming>flow_rogzit_to_ellenoriz_szerszam</bpmn:incoming>
+      <bpmn:outgoing>flow_ellenoriz_szerszam_to_gw_szerszam</bpmn:outgoing>
+      <bpmn:property id="task_ellenoriz_szerszam_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_ellenoriz_szerszam_dia0">
+        <bpmn:sourceRef>data_cnc_program_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_ellenoriz_szerszam_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_csere_szerszam" name="Új szerszám rögzítése és korrekciók felvétele">
+      <bpmn:incoming>flow_szerszam_csere_igen</bpmn:incoming>
+      <bpmn:outgoing>flow_csere_szerszam_to_zar</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_zar_ajtajat" name="CNC gép ajtajának zárása">
+      <bpmn:incoming>flow_szerszam_csere_nem</bpmn:incoming>
+      <bpmn:incoming>flow_csere_szerszam_to_zar</bpmn:incoming>
+      <bpmn:incoming>flow_loop_back</bpmn:incoming>
+      <bpmn:outgoing>flow_zar_to_forgacsoles</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:serviceTask id="task_forgacsoles" name="Alapanyag forgácsolása">
+      <bpmn:incoming>flow_zar_to_forgacsoles</bpmn:incoming>
+      <bpmn:outgoing>flow_forgacsoles_to_nyit</bpmn:outgoing>
+      <bpmn:property id="task_forgacsoles_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_forgacsoles_dia0">
+        <bpmn:sourceRef>data_cnc_program_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_forgacsoles_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_forgacsoles_dia1">
+        <bpmn:sourceRef>data_darabolt_alkatresz_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_forgacsoles_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_forgacsoles_doa0">
+        <bpmn:targetRef>data_megmunkalt_termek</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:manualTask id="task_nyit_ajtajat" name="Ajtó nyitása és satu oldása">
+      <bpmn:incoming>flow_forgacsoles_to_nyit</bpmn:incoming>
+      <bpmn:outgoing>flow_nyit_to_vizsgal</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_vizsgal_elkeszulseg" name="Megmunkálás elkészültségének vizsgálata">
+      <bpmn:incoming>flow_nyit_to_vizsgal</bpmn:incoming>
+      <bpmn:outgoing>flow_vizsgal_to_gw_ujabb</bpmn:outgoing>
+      <bpmn:property id="task_vizsgal_elkeszulseg_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_vizsgal_elkeszulseg_dia0">
+        <bpmn:sourceRef>data_megmunkalt_termek</bpmn:sourceRef>
+        <bpmn:targetRef>task_vizsgal_elkeszulseg_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_mes_veges" name="Termék elkészültségének jelzése státusz váltással MES-ben">
+      <bpmn:incoming>flow_to_finish</bpmn:incoming>
+      <bpmn:outgoing>flow_mes_veges_to_end</bpmn:outgoing>
+      <bpmn:property id="task_mes_veges_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mes_veges_dia0">
+        <bpmn:sourceRef>data_megmunkalt_termek</bpmn:sourceRef>
+        <bpmn:targetRef>task_mes_veges_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_satut_csere" name="Szükség van satu csereére?" isMarkerVisible="true">
+      <bpmn:incoming>flow_ellenoriz_satut_to_gw_satut</bpmn:incoming>
+      <bpmn:outgoing>flow_satut_csere_igen</bpmn:outgoing>
+      <bpmn:outgoing>flow_satut_csere_nem</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_szerszam_csere" name="Szükség van szerszám csereére?" isMarkerVisible="true">
+      <bpmn:incoming>flow_ellenoriz_szerszam_to_gw_szerszam</bpmn:incoming>
+      <bpmn:outgoing>flow_szerszam_csere_igen</bpmn:outgoing>
+      <bpmn:outgoing>flow_szerszam_csere_nem</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_ujabb_megmunkalas" name="Szükség van újabb megmunkálásra?" isMarkerVisible="true">
+      <bpmn:incoming>flow_vizsgal_to_gw_ujabb</bpmn:incoming>
+      <bpmn:outgoing>flow_loop_back</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_finish</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_betoltes_to_beazonositas" sourceRef="task_betoltes_program" targetRef="task_beazonositas" />
+    <bpmn:sequenceFlow id="flow_beazonositas_to_ellenoriz_satut" sourceRef="task_beazonositas" targetRef="task_ellenoriz_satut" />
+    <bpmn:sequenceFlow id="flow_ellenoriz_satut_to_gw_satut" sourceRef="task_ellenoriz_satut" targetRef="gw_satut_csere" />
+    <bpmn:sequenceFlow id="flow_satut_csere_igen" sourceRef="gw_satut_csere" targetRef="task_csere_satut" name="Igen" />
+    <bpmn:sequenceFlow id="flow_satut_csere_nem" sourceRef="gw_satut_csere" targetRef="task_rogzit_alapanyag" name="Nem" />
+    <bpmn:sequenceFlow id="flow_csere_satut_to_rogzit" sourceRef="task_csere_satut" targetRef="task_rogzit_alapanyag" />
+    <bpmn:sequenceFlow id="flow_rogzit_to_ellenoriz_szerszam" sourceRef="task_rogzit_alapanyag" targetRef="task_ellenoriz_szerszam" />
+    <bpmn:sequenceFlow id="flow_ellenoriz_szerszam_to_gw_szerszam" sourceRef="task_ellenoriz_szerszam" targetRef="gw_szerszam_csere" />
+    <bpmn:sequenceFlow id="flow_szerszam_csere_igen" sourceRef="gw_szerszam_csere" targetRef="task_csere_szerszam" name="Igen" />
+    <bpmn:sequenceFlow id="flow_szerszam_csere_nem" sourceRef="gw_szerszam_csere" targetRef="task_zar_ajtajat" name="Nem" />
+    <bpmn:sequenceFlow id="flow_csere_szerszam_to_zar" sourceRef="task_csere_szerszam" targetRef="task_zar_ajtajat" />
+    <bpmn:sequenceFlow id="flow_zar_to_forgacsoles" sourceRef="task_zar_ajtajat" targetRef="task_forgacsoles" />
+    <bpmn:sequenceFlow id="flow_forgacsoles_to_nyit" sourceRef="task_forgacsoles" targetRef="task_nyit_ajtajat" />
+    <bpmn:sequenceFlow id="flow_nyit_to_vizsgal" sourceRef="task_nyit_ajtajat" targetRef="task_vizsgal_elkeszulseg" />
+    <bpmn:sequenceFlow id="flow_vizsgal_to_gw_ujabb" sourceRef="task_vizsgal_elkeszulseg" targetRef="gw_ujabb_megmunkalas" />
+    <bpmn:sequenceFlow id="flow_loop_back" sourceRef="gw_ujabb_megmunkalas" targetRef="task_zar_ajtajat" name="Igen" />
+    <bpmn:sequenceFlow id="flow_to_finish" sourceRef="gw_ujabb_megmunkalas" targetRef="task_mes_veges" name="Nem" />
+    <bpmn:sequenceFlow id="flow_mes_veges_to_end" sourceRef="task_mes_veges" targetRef="evt_end_cnc" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_darabol_part_di" bpmnElement="pool_darabol_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1140" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_elokeszit_part_di" bpmnElement="pool_elokeszit_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="1520" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_programozo_part_di" bpmnElement="pool_programozo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="960" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_cnc_part_di" bpmnElement="pool_cnc_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1295" width="3230" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_cnc_di" bpmnElement="evt_end_cnc">
+        <dc:Bounds x="3010" y="1355" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_darabol_di" bpmnElement="evt_end_darabol">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_elokeszit_di" bpmnElement="evt_end_elokeszit">
+        <dc:Bounds x="1300" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_program_hiany_di" bpmnElement="evt_msg_program_hiany">
+        <dc:Bounds x="540" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_msg_program_kesz_di" bpmnElement="evt_msg_program_kesz">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_cnc_prep_di" bpmnElement="evt_start_cnc_prep">
+        <dc:Bounds x="160" y="1355" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_darabol_di" bpmnElement="evt_start_darabol">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_elokeszit_di" bpmnElement="evt_start_elokeszit">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_program_megelte_di" bpmnElement="gw_program_megelte">
+        <dc:Bounds x="350" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_satut_csere_di" bpmnElement="gw_satut_csere">
+        <dc:Bounds x="730" y="1355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_szerszam_csere_di" bpmnElement="gw_szerszam_csere">
+        <dc:Bounds x="1490" y="1355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_tipus_valasztas_di" bpmnElement="gw_tipus_valasztas">
+        <dc:Bounds x="1110" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_ujabb_megmunkalas_di" bpmnElement="gw_ujabb_megmunkalas">
+        <dc:Bounds x="2630" y="1355" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_beazonositas_di" bpmnElement="task_beazonositas">
+        <dc:Bounds x="350" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_betoltes_program_di" bpmnElement="task_betoltes_program">
+        <dc:Bounds x="160" y="1480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_csere_satut_di" bpmnElement="task_csere_satut">
+        <dc:Bounds x="920" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_csere_szerszam_di" bpmnElement="task_csere_szerszam">
+        <dc:Bounds x="1680" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ellenoriz_program_di" bpmnElement="task_ellenoriz_program">
+        <dc:Bounds x="160" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ellenoriz_satut_di" bpmnElement="task_ellenoriz_satut">
+        <dc:Bounds x="540" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ellenoriz_szerszam_di" bpmnElement="task_ellenoriz_szerszam">
+        <dc:Bounds x="1300" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_forgacsoles_di" bpmnElement="task_forgacsoles">
+        <dc:Bounds x="2060" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mes_darabol_di" bpmnElement="task_mes_darabol">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mes_elokeszit_di" bpmnElement="task_mes_elokeszit">
+        <dc:Bounds x="730" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mes_veges_di" bpmnElement="task_mes_veges">
+        <dc:Bounds x="2820" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_nyit_ajtajat_di" bpmnElement="task_nyit_ajtajat">
+        <dc:Bounds x="2250" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_programoz_di" bpmnElement="task_programoz">
+        <dc:Bounds x="160" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reg_alaktr_jegyzek_di" bpmnElement="task_reg_alaktr_jegyzek">
+        <dc:Bounds x="540" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_rogzit_alapanyag_di" bpmnElement="task_rogzit_alapanyag">
+        <dc:Bounds x="1110" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_scan_darabol_di" bpmnElement="task_scan_darabol">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_vag_di" bpmnElement="task_vag">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_valaszt_tipus_di" bpmnElement="task_valaszt_tipus">
+        <dc:Bounds x="920" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_vizsgal_elkeszulseg_di" bpmnElement="task_vizsgal_elkeszulseg">
+        <dc:Bounds x="2440" y="1355" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_vizsgal_tipus_di" bpmnElement="task_vizsgal_tipus">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_zar_ajtajat_di" bpmnElement="task_zar_ajtajat">
+        <dc:Bounds x="2820" y="1480" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_muhelyrajz_di" bpmnElement="data_muhelyrajz">
+        <dc:Bounds x="370" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_nyersanyag_di" bpmnElement="data_nyersanyag">
+        <dc:Bounds x="370" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_darabolt_alkatresz_di" bpmnElement="data_darabolt_alkatresz">
+        <dc:Bounds x="560" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_muhelyrajz_p1_di" bpmnElement="data_muhelyrajz_p1">
+        <dc:Bounds x="370" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_darabolt_alkatresz_p1_di" bpmnElement="data_darabolt_alkatresz_p1">
+        <dc:Bounds x="465" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_alkatresz_jegyzek_di" bpmnElement="data_alkatresz_jegyzek">
+        <dc:Bounds x="655" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_store_program_server_di" bpmnElement="data_store_program_server">
+        <dc:Bounds x="180" y="825" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_muhelyrajz_p2_di" bpmnElement="data_muhelyrajz_p2">
+        <dc:Bounds x="180" y="1160" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_cnc_program_di" bpmnElement="data_cnc_program">
+        <dc:Bounds x="180" y="1160" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_store_program_server_p1_di" bpmnElement="data_store_program_server_p1">
+        <dc:Bounds x="180" y="1620" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_cnc_program_p1_di" bpmnElement="data_cnc_program_p1">
+        <dc:Bounds x="1193" y="1620" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_darabolt_alkatresz_p2_di" bpmnElement="data_darabolt_alkatresz_p2">
+        <dc:Bounds x="1193" y="1620" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_megmunkalt_termek_di" bpmnElement="data_megmunkalt_termek">
+        <dc:Bounds x="2460" y="1620" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_vag_di" bpmnElement="flow_start_to_vag">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_vag_to_scan_di" bpmnElement="flow_vag_to_scan">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_scan_to_mes_di" bpmnElement="flow_scan_to_mes">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mes_to_end_darabol_di" bpmnElement="flow_mes_to_end_darabol">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_elokeszit_to_vizsgal_di" bpmnElement="flow_start_elokeszit_to_vizsgal">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_vizsgal_to_reg_di" bpmnElement="flow_vizsgal_to_reg">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="590" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reg_to_mes_elokeszit_di" bpmnElement="flow_reg_to_mes_elokeszit">
+        <di:waypoint x="590" y="600" />
+        <di:waypoint x="780" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mes_elokeszit_to_valaszt_di" bpmnElement="flow_mes_elokeszit_to_valaszt">
+        <di:waypoint x="780" y="475" />
+        <di:waypoint x="970" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_valaszt_to_gw_tipus_di" bpmnElement="flow_valaszt_to_gw_tipus">
+        <di:waypoint x="970" y="475" />
+        <di:waypoint x="1135" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_cnc_prep_di" bpmnElement="flow_to_cnc_prep">
+        <di:waypoint x="1135" y="460" />
+        <di:waypoint x="1318" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_cnc_prep_to_ellenoriz_prog_di" bpmnElement="flow_start_cnc_prep_to_ellenoriz_prog">
+        <di:waypoint x="178" y="1373" />
+        <di:waypoint x="210" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ellenoriz_prog_to_gw_prog_di" bpmnElement="flow_ellenoriz_prog_to_gw_prog">
+        <di:waypoint x="210" y="725" />
+        <di:waypoint x="375" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_program_hiany_di" bpmnElement="flow_program_hiany">
+        <di:waypoint x="375" y="460" />
+        <di:waypoint x="558" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_program_van_di" bpmnElement="flow_program_van">
+        <di:waypoint x="375" y="460" />
+        <di:waypoint x="210" y="1520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_hiany_to_programoz_di" bpmnElement="flow_msg_hiany_to_programoz">
+        <di:waypoint x="558" y="453" />
+        <di:waypoint x="210" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_programoz_to_msg_kesz_di" bpmnElement="flow_programoz_to_msg_kesz">
+        <di:waypoint x="210" y="1060" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_msg_kesz_to_betoltes_di" bpmnElement="flow_msg_kesz_to_betoltes">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="210" y="1520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_betoltes_to_beazonositas_di" bpmnElement="flow_betoltes_to_beazonositas">
+        <di:waypoint x="210" y="1520" />
+        <di:waypoint x="400" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_beazonositas_to_ellenoriz_satut_di" bpmnElement="flow_beazonositas_to_ellenoriz_satut">
+        <di:waypoint x="400" y="1395" />
+        <di:waypoint x="590" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ellenoriz_satut_to_gw_satut_di" bpmnElement="flow_ellenoriz_satut_to_gw_satut">
+        <di:waypoint x="590" y="1395" />
+        <di:waypoint x="755" y="1380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_satut_csere_igen_di" bpmnElement="flow_satut_csere_igen">
+        <di:waypoint x="755" y="1380" />
+        <di:waypoint x="970" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_satut_csere_nem_di" bpmnElement="flow_satut_csere_nem">
+        <di:waypoint x="755" y="1380" />
+        <di:waypoint x="1160" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_csere_satut_to_rogzit_di" bpmnElement="flow_csere_satut_to_rogzit">
+        <di:waypoint x="970" y="1395" />
+        <di:waypoint x="1160" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_rogzit_to_ellenoriz_szerszam_di" bpmnElement="flow_rogzit_to_ellenoriz_szerszam">
+        <di:waypoint x="1160" y="1395" />
+        <di:waypoint x="1350" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ellenoriz_szerszam_to_gw_szerszam_di" bpmnElement="flow_ellenoriz_szerszam_to_gw_szerszam">
+        <di:waypoint x="1350" y="1395" />
+        <di:waypoint x="1515" y="1380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_szerszam_csere_igen_di" bpmnElement="flow_szerszam_csere_igen">
+        <di:waypoint x="1515" y="1380" />
+        <di:waypoint x="1730" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_szerszam_csere_nem_di" bpmnElement="flow_szerszam_csere_nem">
+        <di:waypoint x="1515" y="1380" />
+        <di:waypoint x="2870" y="1520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_csere_szerszam_to_zar_di" bpmnElement="flow_csere_szerszam_to_zar">
+        <di:waypoint x="1730" y="1395" />
+        <di:waypoint x="2870" y="1520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_zar_to_forgacsoles_di" bpmnElement="flow_zar_to_forgacsoles">
+        <di:waypoint x="2870" y="1520" />
+        <di:waypoint x="2110" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_forgacsoles_to_nyit_di" bpmnElement="flow_forgacsoles_to_nyit">
+        <di:waypoint x="2110" y="1395" />
+        <di:waypoint x="2300" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_nyit_to_vizsgal_di" bpmnElement="flow_nyit_to_vizsgal">
+        <di:waypoint x="2300" y="1395" />
+        <di:waypoint x="2490" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_vizsgal_to_gw_ujabb_di" bpmnElement="flow_vizsgal_to_gw_ujabb">
+        <di:waypoint x="2490" y="1395" />
+        <di:waypoint x="2655" y="1380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_loop_back_di" bpmnElement="flow_loop_back">
+        <di:waypoint x="2655" y="1380" />
+        <di:waypoint x="2870" y="1520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_finish_di" bpmnElement="flow_to_finish">
+        <di:waypoint x="2655" y="1380" />
+        <di:waypoint x="2870" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mes_veges_to_end_di" bpmnElement="flow_mes_veges_to_end">
+        <di:waypoint x="2870" y="1395" />
+        <di:waypoint x="3028" y="1373" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_darabol_to_elokeszit_di" bpmnElement="msg_darabol_to_elokeszit">
+        <di:waypoint x="938" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_elokeszit_to_cnc_di" bpmnElement="msg_elokeszit_to_cnc">
+        <di:waypoint x="1318" y="453" />
+        <di:waypoint x="178" y="1373" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_elokeszit_to_programozo_di" bpmnElement="msg_elokeszit_to_programozo">
+        <di:waypoint x="558" y="453" />
+        <di:waypoint x="210" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_programozo_to_elokeszit_di" bpmnElement="msg_programozo_to_elokeszit">
+        <di:waypoint x="210" y="1060" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_vag_dia0_di" bpmnElement="task_vag_dia0">
+        <di:waypoint x="388" y="265" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_vag_dia1_di" bpmnElement="task_vag_dia1">
+        <di:waypoint x="388" y="265" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_vag_doa0_di" bpmnElement="task_vag_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="578" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mes_darabol_dia0_di" bpmnElement="task_mes_darabol_dia0">
+        <di:waypoint x="578" y="265" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_vizsgal_tipus_dia0_di" bpmnElement="task_vizsgal_tipus_dia0">
+        <di:waypoint x="388" y="850" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_vizsgal_tipus_dia1_di" bpmnElement="task_vizsgal_tipus_dia1">
+        <di:waypoint x="483" y="850" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reg_alaktr_jegyzek_dia0_di" bpmnElement="task_reg_alaktr_jegyzek_dia0">
+        <di:waypoint x="483" y="850" />
+        <di:waypoint x="590" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_reg_alaktr_jegyzek_doa0_di" bpmnElement="task_reg_alaktr_jegyzek_doa0">
+        <di:waypoint x="590" y="600" />
+        <di:waypoint x="673" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mes_elokeszit_dia0_di" bpmnElement="task_mes_elokeszit_dia0">
+        <di:waypoint x="673" y="850" />
+        <di:waypoint x="780" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_ellenoriz_program_dia0_di" bpmnElement="task_ellenoriz_program_dia0">
+        <di:waypoint x="205" y="850" />
+        <di:waypoint x="210" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_programoz_dia0_di" bpmnElement="task_programoz_dia0">
+        <di:waypoint x="198" y="1185" />
+        <di:waypoint x="210" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_programoz_doa0_di" bpmnElement="task_programoz_doa0">
+        <di:waypoint x="210" y="1060" />
+        <di:waypoint x="198" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_betoltes_program_dia0_di" bpmnElement="task_betoltes_program_dia0">
+        <di:waypoint x="205" y="1645" />
+        <di:waypoint x="210" y="1520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_betoltes_program_doa0_di" bpmnElement="task_betoltes_program_doa0">
+        <di:waypoint x="210" y="1520" />
+        <di:waypoint x="1211" y="1645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_beazonositas_dia0_di" bpmnElement="task_beazonositas_dia0">
+        <di:waypoint x="1211" y="1645" />
+        <di:waypoint x="400" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_rogzit_alapanyag_dia0_di" bpmnElement="task_rogzit_alapanyag_dia0">
+        <di:waypoint x="1211" y="1645" />
+        <di:waypoint x="1160" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_ellenoriz_szerszam_dia0_di" bpmnElement="task_ellenoriz_szerszam_dia0">
+        <di:waypoint x="1211" y="1645" />
+        <di:waypoint x="1350" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_forgacsoles_dia0_di" bpmnElement="task_forgacsoles_dia0">
+        <di:waypoint x="1211" y="1645" />
+        <di:waypoint x="2110" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_forgacsoles_dia1_di" bpmnElement="task_forgacsoles_dia1">
+        <di:waypoint x="1211" y="1645" />
+        <di:waypoint x="2110" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_forgacsoles_doa0_di" bpmnElement="task_forgacsoles_doa0">
+        <di:waypoint x="2110" y="1395" />
+        <di:waypoint x="2478" y="1645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_vizsgal_elkeszulseg_dia0_di" bpmnElement="task_vizsgal_elkeszulseg_dia0">
+        <di:waypoint x="2478" y="1645" />
+        <di:waypoint x="2490" y="1395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mes_veges_dia0_di" bpmnElement="task_mes_veges_dia0">
+        <di:waypoint x="2478" y="1645" />
+        <di:waypoint x="2870" y="1395" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

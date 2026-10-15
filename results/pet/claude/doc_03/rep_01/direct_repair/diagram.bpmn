@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+                   id="Definitions_1"
+                   targetNamespace="http://example.org/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_MPON" name="MPON" processRef="Process_MPON"/>
+    <bpmn:participant id="Participant_GO" name="GO" processRef="Process_GO"/>
+    <bpmn:participant id="Participant_MPOO" name="MPOO" processRef="Process_MPOO"/>
+    <bpmn:participant id="Participant_MSPO" name="MSPO" processRef="Process_MSPO"/>
+    <bpmn:participant id="Participant_SP" name="SP" processRef="Process_SP"/>
+
+    <bpmn:messageFlow id="MF_Report" sourceRef="Task_ReportMeterOperation" targetRef="StartEvent_GO_1"/>
+    <bpmn:messageFlow id="MF_InformMPOOReg" sourceRef="SendTask_InformMPOORegistration" targetRef="StartEvent_MPOO_1"/>
+    <bpmn:messageFlow id="MF_InformMSPOReg" sourceRef="SendTask_InformMSPORegistration" targetRef="StartEvent_MSPO_1"/>
+    <bpmn:messageFlow id="MF_FailureToGO" sourceRef="SendTask_InformGOFailure" targetRef="IntermediateCatchEvent_GO_FailureMsg"/>
+    <bpmn:messageFlow id="MF_SuccessToGO" sourceRef="SendTask_InformGOSuccess" targetRef="IntermediateCatchEvent_GO_SuccessMsg"/>
+    <bpmn:messageFlow id="MF_DeadlineToMPON" sourceRef="SendTask_InformMPONDeadlineFailure" targetRef="IntermediateCatchEvent_DeadlineFailureMsg"/>
+    <bpmn:messageFlow id="MF_ConfirmFailureToMPON" sourceRef="SendTask_ConfirmFailureToMPON" targetRef="IntermediateCatchEvent_ConfirmFailure"/>
+    <bpmn:messageFlow id="MF_ConfirmAssignmentToMPON" sourceRef="SendTask_ConfirmAssignmentToMPON" targetRef="IntermediateCatchEvent_ConfirmAssignment"/>
+    <bpmn:messageFlow id="MF_InformMPOOFailure" sourceRef="SendTask_InformMPOOFailure" targetRef="IntermediateCatchEvent_MPOO_Failure"/>
+    <bpmn:messageFlow id="MF_InformMPOOAssignment" sourceRef="SendTask_InformMPOOAssignment" targetRef="IntermediateCatchEvent_MPOO_Assignment"/>
+    <bpmn:messageFlow id="MF_InformMSPOFailure" sourceRef="SendTask_InformMSPOFailure" targetRef="IntermediateCatchEvent_MSPO_Failure"/>
+    <bpmn:messageFlow id="MF_InformMSPOAssignment" sourceRef="SendTask_InformMSPOAssignment" targetRef="IntermediateCatchEvent_MSPO_Assignment"/>
+    <bpmn:messageFlow id="MF_InformSPAssignment" sourceRef="SendTask_InformSPAssignment" targetRef="StartEvent_SP_1"/>
+  </bpmn:collaboration>
+
+  <!-- ================= MPON PROCESS ================= -->
+  <bpmn:process id="Process_MPON" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_MPON_1" name="Start">
+      <bpmn:outgoing>SF_MPON_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sendTask id="Task_ReportMeterOperation" name="Report meter operation to GO">
+      <bpmn:incoming>SF_MPON_1</bpmn:incoming>
+      <bpmn:outgoing>SF_MPON_2</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:task id="Task_EquipmentAcquisitionMPON" name="Perform equipment acquisition / changes">
+      <bpmn:incoming>SF_MPON_2</bpmn:incoming>
+      <bpmn:outgoing>SF_MPON_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_MPON_Split" name="Outcome?">
+      <bpmn:incoming>SF_MPON_3</bpmn:incoming>
+      <bpmn:outgoing>SF_MPON_4</bpmn:outgoing>
+      <bpmn:outgoing>SF_MPON_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sendTask id="SendTask_InformGOFailure" name="Inform GO about failure of entire process">
+      <bpmn:incoming>SF_MPON_4</bpmn:incoming>
+      <bpmn:outgoing>SF_MPON_6</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="SendTask_InformGOSuccess" name="Inform GO about successful completion of entire process">
+      <bpmn:incoming>SF_MPON_5</bpmn:incoming>
+      <bpmn:outgoing>SF_MPON_11</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:eventBasedGateway id="EventBasedGateway_MPON_WaitFailureResp">
+      <bpmn:incoming>SF_MPON_6</bpmn:incoming>
+      <bpmn:outgoing>SF_MPON_7</bpmn:outgoing>
+      <bpmn:outgoing>SF_MPON_8</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_ConfirmFailure" name="Receive failure confirmation from GO">
+      <bpmn:incoming>SF_MPON_7</bpmn:incoming>
+      <bpmn:outgoing>SF_MPON_9</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_DeadlineFailureMsg" name="Receive deadline failure message from GO">
+      <bpmn:incoming>SF_MPON_8</bpmn:incoming>
+      <bpmn:outgoing>SF_MPON_10</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="EndEvent_MPON_FailureConfirmed" name="Failure confirmed">
+      <bpmn:incoming>SF_MPON_9</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_MPON_DeadlineFailure" name="Deadline failure">
+      <bpmn:incoming>SF_MPON_10</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_ConfirmAssignment" name="Receive assignment confirmation from GO">
+      <bpmn:incoming>SF_MPON_11</bpmn:incoming>
+      <bpmn:outgoing>SF_MPON_12</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="EndEvent_MPON_AssignmentConfirmed" name="Assignment confirmed">
+      <bpmn:incoming>SF_MPON_12</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF_MPON_1" sourceRef="StartEvent_MPON_1" targetRef="Task_ReportMeterOperation"/>
+    <bpmn:sequenceFlow id="SF_MPON_2" sourceRef="Task_ReportMeterOperation" targetRef="Task_EquipmentAcquisitionMPON"/>
+    <bpmn:sequenceFlow id="SF_MPON_3" sourceRef="Task_EquipmentAcquisitionMPON" targetRef="ExclusiveGateway_MPON_Split"/>
+    <bpmn:sequenceFlow id="SF_MPON_4" sourceRef="ExclusiveGateway_MPON_Split" targetRef="SendTask_InformGOFailure"/>
+    <bpmn:sequenceFlow id="SF_MPON_5" sourceRef="ExclusiveGateway_MPON_Split" targetRef="SendTask_InformGOSuccess"/>
+    <bpmn:sequenceFlow id="SF_MPON_6" sourceRef="SendTask_InformGOFailure" targetRef="EventBasedGateway_MPON_WaitFailureResp"/>
+    <bpmn:sequenceFlow id="SF_MPON_7" sourceRef="EventBasedGateway_MPON_WaitFailureResp" targetRef="IntermediateCatchEvent_ConfirmFailure"/>
+    <bpmn:sequenceFlow id="SF_MPON_8" sourceRef="EventBasedGateway_MPON_WaitFailureResp" targetRef="IntermediateCatchEvent_DeadlineFailureMsg"/>
+    <bpmn:sequenceFlow id="SF_MPON_9" sourceRef="IntermediateCatchEvent_ConfirmFailure" targetRef="EndEvent_MPON_FailureConfirmed"/>
+    <bpmn:sequenceFlow id="SF_MPON_10" sourceRef="IntermediateCatchEvent_DeadlineFailureMsg" targetRef="EndEvent_MPON_DeadlineFailure"/>
+    <bpmn:sequenceFlow id="SF_MPON_11" sourceRef="SendTask_InformGOSuccess" targetRef="IntermediateCatchEvent_ConfirmAssignment"/>
+    <bpmn:sequenceFlow id="SF_MPON_12" sourceRef="IntermediateCatchEvent_ConfirmAssignment" targetRef="EndEvent_MPON_AssignmentConfirmed"/>
+  </bpmn:process>
+
+  <!-- ================= GO PROCESS ================= -->
+  <bpmn:process id="Process_GO" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_GO_1" name="Receive meter operation report">
+      <bpmn:outgoing>SF_GO_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_ExamineApplication" name="Examine the application of the MPON">
+      <bpmn:incoming>SF_GO_1</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_GO_ApplicationDecision" name="Application OK?">
+      <bpmn:incoming>SF_GO_2</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_3</bpmn:outgoing>
+      <bpmn:outgoing>SF_GO_4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_RejectApplication" name="Reject application of the MPON">
+      <bpmn:incoming>SF_GO_3</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_GO_Rejected" name="Application rejected">
+      <bpmn:incoming>SF_GO_5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_ConfirmApplication" name="Confirm application of the MPON">
+      <bpmn:incoming>SF_GO_4</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_6</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sendTask id="SendTask_InformMPOORegistration" name="Inform MPOO about registration confirmation">
+      <bpmn:incoming>SF_GO_6</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_7</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="SendTask_InformMSPORegistration" name="Inform MSPO about registration confirmation">
+      <bpmn:incoming>SF_GO_7</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_8</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:eventBasedGateway id="EventBasedGateway_GO_WaitMPONMsg">
+      <bpmn:incoming>SF_GO_8</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_9</bpmn:outgoing>
+      <bpmn:outgoing>SF_GO_10</bpmn:outgoing>
+      <bpmn:outgoing>SF_GO_11</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_GO_FailureMsg" name="Receive failure message from MPON">
+      <bpmn:incoming>SF_GO_9</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_14</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_GO_SuccessMsg" name="Receive success message from MPON">
+      <bpmn:incoming>SF_GO_10</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_18</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_GO_Timer" name="Maximum time limit reached">
+      <bpmn:incoming>SF_GO_11</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_12</bpmn:outgoing>
+      <bpmn:timerEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:sendTask id="SendTask_InformMPONDeadlineFailure" name="Inform MPON about failure of overall transaction by deadline">
+      <bpmn:incoming>SF_GO_12</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_13</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_GO_DeadlineInformed" name="Deadline failure informed">
+      <bpmn:incoming>SF_GO_13</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sendTask id="SendTask_ConfirmFailureToMPON" name="Confirm failure of the assignment to MPON">
+      <bpmn:incoming>SF_GO_14</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_15</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="SendTask_InformMPOOFailure" name="Inform MPOO about failure of the assignment of the MPON">
+      <bpmn:incoming>SF_GO_15</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_16</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="SendTask_InformMSPOFailure" name="Inform MSPO about failure of the assignment of the MPON">
+      <bpmn:incoming>SF_GO_16</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_17</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_GO_FailureComplete" name="Failure process complete">
+      <bpmn:incoming>SF_GO_17</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_AssignMPON" name="Assign the MPON">
+      <bpmn:incoming>SF_GO_18</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_19</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sendTask id="SendTask_ConfirmAssignmentToMPON" name="Confirm the assignment to MPON">
+      <bpmn:incoming>SF_GO_19</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_20</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="SendTask_InformMPOOAssignment" name="Inform MPOO about the assignment of the MPON">
+      <bpmn:incoming>SF_GO_20</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_21</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="SendTask_InformMSPOAssignment" name="Inform MSPO about the assignment of the MPON">
+      <bpmn:incoming>SF_GO_21</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_22</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="SendTask_InformSPAssignment" name="Inform SP about the assignment of the MPON">
+      <bpmn:incoming>SF_GO_22</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_23</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_GO_SuccessComplete" name="Assignment process complete">
+      <bpmn:incoming>SF_GO_23</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF_GO_1" sourceRef="StartEvent_GO_1" targetRef="Task_ExamineApplication"/>
+    <bpmn:sequenceFlow id="SF_GO_2" sourceRef="Task_ExamineApplication" targetRef="ExclusiveGateway_GO_ApplicationDecision"/>
+    <bpmn:sequenceFlow id="SF_GO_3" sourceRef="ExclusiveGateway_GO_ApplicationDecision" targetRef="Task_RejectApplication"/>
+    <bpmn:sequenceFlow id="SF_GO_4" sourceRef="ExclusiveGateway_GO_ApplicationDecision" targetRef="Task_ConfirmApplication"/>
+    <bpmn:sequenceFlow id="SF_GO_5" sourceRef="Task_RejectApplication" targetRef="EndEvent_GO_Rejected"/>
+    <bpmn:sequenceFlow id="SF_GO_6" sourceRef="Task_ConfirmApplication" targetRef="SendTask_InformMPOORegistration"/>
+    <bpmn:sequenceFlow id="SF_GO_7" sourceRef="SendTask_InformMPOORegistration" targetRef="SendTask_InformMSPORegistration"/>
+    <bpmn:sequenceFlow id="SF_GO_8" sourceRef="SendTask_InformMSPORegistration" targetRef="EventBasedGateway_GO_WaitMPONMsg"/>
+    <bpmn:sequenceFlow id="SF_GO_9" sourceRef="EventBasedGateway_GO_WaitMPONMsg" targetRef="IntermediateCatchEvent_GO_FailureMsg"/>
+    <bpmn:sequenceFlow id="SF_GO_10" sourceRef="EventBasedGateway_GO_WaitMPONMsg" targetRef="IntermediateCatchEvent_GO_SuccessMsg"/>
+    <bpmn:sequenceFlow id="SF_GO_11" sourceRef="EventBasedGateway_GO_WaitMPONMsg" targetRef="IntermediateCatchEvent_GO_Timer"/>
+    <bpmn:sequenceFlow id="SF_GO_12" sourceRef="IntermediateCatchEvent_GO_Timer" targetRef="SendTask_InformMPONDeadlineFailure"/>
+    <bpmn:sequenceFlow id="SF_GO_13" sourceRef="SendTask_InformMPONDeadlineFailure" targetRef="EndEvent_GO_DeadlineInformed"/>
+    <bpmn:sequenceFlow id="SF_GO_14" sourceRef="IntermediateCatchEvent_GO_FailureMsg" targetRef="SendTask_ConfirmFailureToMPON"/>
+    <bpmn:sequenceFlow id="SF_GO_15" sourceRef="SendTask_ConfirmFailureToMPON" targetRef="SendTask_InformMPOOFailure"/>
+    <bpmn:sequenceFlow id="SF_GO_16" sourceRef="SendTask_InformMPOOFailure" targetRef="SendTask_InformMSPOFailure"/>
+    <bpmn:sequenceFlow id="SF_GO_17" sourceRef="SendTask_InformMSPOFailure" targetRef="EndEvent_GO_FailureComplete"/>
+    <bpmn:sequenceFlow id="SF_GO_18" sourceRef="IntermediateCatchEvent_GO_SuccessMsg" targetRef="Task_AssignMPON"/>
+    <bpmn:sequenceFlow id="SF_GO_19" sourceRef="Task_AssignMPON" targetRef="SendTask_ConfirmAssignmentToMPON"/>
+    <bpmn:sequenceFlow id="SF_GO_20" sourceRef="SendTask_ConfirmAssignmentToMPON" targetRef="SendTask_InformMPOOAssignment"/>
+    <bpmn:sequenceFlow id="SF_GO_21" sourceRef="SendTask_InformMPOOAssignment" targetRef="SendTask_InformMSPOAssignment"/>
+    <bpmn:sequenceFlow id="SF_GO_22" sourceRef="SendTask_InformMSPOAssignment" targetRef="SendTask_InformSPAssignment"/>
+    <bpmn:sequenceFlow id="SF_GO_23" sourceRef="SendTask_InformSPAssignment" targetRef="EndEvent_GO_SuccessComplete"/>
+  </bpmn:process>
+
+  <!-- ================= MPOO PROCESS ================= -->
+  <bpmn:process id="Process_MPOO" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_MPOO_1" name="Receive registration confirmation">
+      <bpmn:outgoing>SF_MPOO_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_EquipmentAcquisitionMPOO" name="Perform equipment acquisition / changes">
+      <bpmn:incoming>SF_MPOO_1</bpmn:incoming>
+      <bpmn:outgoing>SF_MPOO_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:eventBasedGateway id="EventBasedGateway_MPOO_WaitOutcome">
+      <bpmn:incoming>SF_MPOO_2</bpmn:incoming>
+      <bpmn:outgoing>SF_MPOO_3</bpmn:outgoing>
+      <bpmn:outgoing>SF_MPOO_4</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_MPOO_Failure" name="Receive failure of assignment">
+      <bpmn:incoming>SF_MPOO_3</bpmn:incoming>
+      <bpmn:outgoing>SF_MPOO_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_MPOO_Assignment" name="Receive assignment of the MPON">
+      <bpmn:incoming>SF_MPOO_4</bpmn:incoming>
+      <bpmn:outgoing>SF_MPOO_6</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="EndEvent_MPOO_Failure" name="Failure informed">
+      <bpmn:incoming>SF_MPOO_5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndEvent_MPOO_Assignment" name="Assignment informed">
+      <bpmn:incoming>SF_MPOO_6</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF_MPOO_1" sourceRef="StartEvent_MPOO_1" targetRef="Task_EquipmentAcquisitionMPOO"/>
+    <bpmn:sequenceFlow id="SF_MPOO_2" sourceRef="Task_EquipmentAcquisitionMPOO" targetRef="EventBasedGateway_MPOO_WaitOutcome"/>
+    <bpmn:sequenceFlow id="SF_MPOO_3" sourceRef="EventBasedGateway_MPOO_WaitOutcome" targetRef="IntermediateCatchEvent_MPOO_Failure"/>
+    <bpmn:sequenceFlow id="SF_MPOO_4" sourceRef="EventBasedGateway_MPOO_WaitOutcome" targetRef="IntermediateCatchEvent_MPOO_Assignment"/>
+    <bpmn:sequenceFlow id="SF_MPOO_5" sourceRef="IntermediateCatchEvent_MPOO_Failure" targetRef="EndEvent_MPOO_Failure"/>
+    <bpmn:sequenceFlow id="SF_MPOO_6" sourceRef="IntermediateCatchEvent_MPOO_Assignment" targetRef="EndEvent_MPOO_Assignment"/>
+  </bpmn:process>
+
+  <!-- ================= MSPO PROCESS ================= -->
+  <bpmn:process id="Process_MSPO" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_MSPO_1" name="Receive registration confirmation">
+      <bpmn:outgoing>SF_MSPO_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+
+    <bpmn:eventBasedGateway id="EventBasedGateway_MSPO_WaitOutcome">
+      <bpmn:incoming>SF_MSPO_1</bpmn:incoming>
+      <bpmn:outgoing>SF_MSPO_2</bpmn:outgoing>
+      <bpmn:outgoing>SF_MSPO_3</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_MSPO_Failure" name="Receive failure of assignment">
+      <bpmn:incoming>SF_MSPO_2</bpmn:incoming>
+      <bpmn:outgoing>SF_MSPO_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_MSPO_Assignment" name="Receive assignment of the MPON">
+      <bpmn:incoming>SF_MSPO_3</bpmn:incoming>
+      <bpmn

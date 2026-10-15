@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:bpsim="http://www.bpsim.org/schemas/1.0"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="Process_SyntheticProcess5" name="Synthetic Process 5" isExecutable="true">
+
+    <extensionElements>
+      <bpsim:BPSimData>
+        <bpsim:Scenario id="Scenario_1" name="Default Scenario">
+          <bpsim:ScenarioParameters>
+            <bpsim:Duration value="28800" unit="seconds"/>
+          </bpsim:ScenarioParameters>
+          <bpsim:ElementParameters elementRef="StartEvent_1">
+            <bpsim:TimeParameters>
+              <bpsim:InterTriggerTimer distributionType="Exponential">
+                <bpsim:Mean value="8.0" unit="min"/>
+              </bpsim:InterTriggerTimer>
+            </bpsim:TimeParameters>
+          </bpsim:ElementParameters>
+
+          <bpsim:ElementParameters elementRef="Task_ApproveTicket0">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime distributionType="Exponential">
+                <bpsim:Mean value="6.0" unit="min"/>
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Resource id="Worker1" name="Worker 1"/>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+
+          <bpsim:ElementParameters elementRef="Task_RegisterOrder1">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime distributionType="Uniform">
+                <bpsim:Min value="10.0" unit="min"/>
+                <bpsim:Max value="16.0" unit="min"/>
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Resource id="Worker1" name="Worker 1"/>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+
+          <bpsim:ElementParameters elementRef="Task_DispatchForm2">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime distributionType="Normal">
+                <bpsim:Mean value="18.0" unit="min"/>
+                <bpsim:StdDev value="3.0" unit="min"/>
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Resource id="Worker1" name="Worker 1"/>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+
+          <bpsim:ElementParameters elementRef="Task_DispatchTicket3">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime distributionType="Normal">
+                <bpsim:Mean value="8.0" unit="min"/>
+                <bpsim:StdDev value="1.0" unit="min"/>
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Resource id="Worker1" name="Worker 1"/>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+
+          <bpsim:ElementParameters elementRef="Task_InspectDocument4">
+            <bpsim:TimeParameters>
+              <bpsim:ProcessingTime distributionType="Uniform">
+                <bpsim:Min value="9.0" unit="min"/>
+                <bpsim:Max value="17.0" unit="min"/>
+              </bpsim:ProcessingTime>
+            </bpsim:TimeParameters>
+            <bpsim:ResourceParameters>
+              <bpsim:Resource id="Worker1" name="Worker 1"/>
+            </bpsim:ResourceParameters>
+          </bpsim:ElementParameters>
+
+          <bpsim:ElementParameters elementRef="Flow_ToRegisterOrder1">
+            <bpsim:ControlParameters>
+              <bpsim:Probability value="0.53"/>
+            </bpsim:ControlParameters>
+          </bpsim:ElementParameters>
+          <bpsim:ElementParameters elementRef="Flow_ToDispatchForm2">
+            <bpsim:ControlParameters>
+              <bpsim:Probability value="0.47"/>
+            </bpsim:ControlParameters>
+          </bpsim:ElementParameters>
+        </bpsim:Scenario>
+      </bpsim:BPSimData>
+    </extensionElements>
+
+    <startEvent id="StartEvent_1" name="New Case Arrival">
+      <outgoing>Flow_StartToApprove</outgoing>
+    </startEvent>
+
+    <serviceTask id="Task_ApproveTicket0" name="Approve ticket 0">
+      <incoming>Flow_StartToApprove</incoming>
+      <outgoing>Flow_ApproveToGateway</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="Gateway_Split" name="Decision">
+      <incoming>Flow_ApproveToGateway</incoming>
+      <outgoing>Flow_ToRegisterOrder1</outgoing>
+      <outgoing>Flow_ToDispatchForm2</outgoing>
+    </exclusiveGateway>
+
+    <serviceTask id="Task_RegisterOrder1" name="Register order 1">
+      <incoming>Flow_ToRegisterOrder1</incoming>
+      <outgoing>Flow_RegisterToMerge</outgoing>
+    </serviceTask>
+
+    <serviceTask id="Task_DispatchForm2" name="Dispatch form 2">
+      <incoming>Flow_ToDispatchForm2</incoming>
+      <outgoing>Flow_DispatchFormToMerge</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="Gateway_Merge" name="Merge">
+      <incoming>Flow_RegisterToMerge</incoming>
+      <incoming>Flow_DispatchFormToMerge</incoming>
+      <outgoing>Flow_MergeToDispatchTicket3</outgoing>
+    </exclusiveGateway>
+
+    <serviceTask id="Task_DispatchTicket3" name="Dispatch ticket 3">
+      <incoming>Flow_MergeToDispatchTicket3</incoming>
+      <outgoing>Flow_DispatchTicket3ToInspect</outgoing>
+    </serviceTask>
+
+    <serviceTask id="Task_InspectDocument4" name="Inspect document 4">
+      <incoming>Flow_DispatchTicket3ToInspect</incoming>
+      <outgoing>Flow_InspectToEnd</outgoing>
+    </serviceTask>
+
+    <endEvent id="EndEvent_1" name="Process End">
+      <incoming>Flow_InspectToEnd</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_StartToApprove" sourceRef="StartEvent_1" targetRef="Task_ApproveTicket0"/>
+    <sequenceFlow id="Flow_ApproveToGateway" sourceRef="Task_ApproveTicket0" targetRef="Gateway_Split"/>
+    <sequenceFlow id="Flow_ToRegisterOrder1" name="53%" sourceRef="Gateway_Split" targetRef="Task_RegisterOrder1"/>
+    <sequenceFlow id="Flow_ToDispatchForm2" name="47%" sourceRef="Gateway_Split" targetRef="Task_DispatchForm2"/>
+    <sequenceFlow id="Flow_RegisterToMerge" sourceRef="Task_RegisterOrder1" targetRef="Gateway_Merge"/>
+    <sequenceFlow id="Flow_DispatchFormToMerge" sourceRef="Task_DispatchForm2" targetRef="Gateway_Merge"/>
+    <sequenceFlow id="Flow_MergeToDispatchTicket3" sourceRef="Gateway_Merge" targetRef="Task_DispatchTicket3"/>
+    <sequenceFlow id="Flow_DispatchTicket3ToInspect" sourceRef="Task_DispatchTicket3" targetRef="Task_InspectDocument4"/>
+    <sequenceFlow id="Flow_InspectToEnd" sourceRef="Task_InspectDocument4" targetRef="EndEvent_1"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_SyntheticProcess5">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="100" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ApproveTicket0_di" bpmnElement="Task_ApproveTicket0">
+        <omgdc:Bounds x="180" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Split_di" bpmnElement="Gateway_Split" isMarkerVisible="true">
+        <omgdc:Bounds x="330" y="193" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RegisterOrder1_di" bpmnElement="Task_RegisterOrder1">
+        <omgdc:Bounds x="430" y="100" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DispatchForm2_di" bpmnElement="Task_DispatchForm2">
+        <omgdc:Bounds x="430" y="270" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Merge_di" bpmnElement="Gateway_Merge" isMarkerVisible="true">
+        <omgdc:Bounds x="580" y="193" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DispatchTicket3_di" bpmnElement="Task_DispatchTicket3">
+        <omgdc:Bounds x="680" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InspectDocument4_di" bpmnElement="Task_InspectDocument4">
+        <omgdc:Bounds x="830" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <omgdc:Bounds x="980" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_StartToApprove_di" bpmnElement="Flow_StartToApprove">
+        <omgdi:waypoint x="136" y="218"/>
+        <omgdi:waypoint x="180" y="218"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ApproveToGateway_di" bpmnElement="Flow_ApproveToGateway">
+        <omgdi:waypoint x="280" y="218"/>
+        <omgdi:waypoint x="330" y="218"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToRegisterOrder1_di" bpmnElement="Flow_ToRegisterOrder1">
+        <omgdi:waypoint x="355" y="193"/>
+        <omgdi:waypoint x="355" y="140"/>
+        <omgdi:waypoint x="430" y="140"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToDispatchForm2_di" bpmnElement="Flow_ToDispatchForm2">
+        <omgdi:waypoint x="355" y="243"/>
+        <omgdi:waypoint x="355" y="310"/>
+        <omgdi:waypoint x="430" y="310"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RegisterToMerge_di" bpmnElement="Flow_RegisterToMerge">
+        <omgdi:waypoint x="530" y="140"/>
+        <omgdi:waypoint x="605" y="140"/>
+        <omgdi:waypoint x="605" y="193"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DispatchFormToMerge_di" bpmnElement="Flow_DispatchFormToMerge">
+        <omgdi:waypoint x="530" y="310"/>
+        <omgdi:waypoint x="605" y="310"/>
+        <omgdi:waypoint x="605" y="243"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_MergeToDispatchTicket3_di" bpmnElement="Flow_MergeToDispatchTicket3">
+        <omgdi:waypoint x="630" y="218"/>
+        <omgdi:waypoint x="680" y="218"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_DispatchTicket3ToInspect_di" bpmnElement="Flow_DispatchTicket3ToInspect">
+        <omgdi:waypoint x="780" y="218"/>
+        <omgdi:waypoint x="830" y="218"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_InspectToEnd_di" bpmnElement="Flow_InspectToEnd">
+        <omgdi:waypoint x="930" y="218"/>
+        <omgdi:waypoint x="980" y="218"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

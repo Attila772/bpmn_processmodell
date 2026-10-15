@@ -1,0 +1,437 @@
+{
+  "name": "Customized Bicycle Manufacturing Process",
+  "resources": [
+    {
+      "name": "Sales Department",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "Storehouse",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "Engineering Department",
+      "capacity": 1,
+      "resource_type": "department"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_sales",
+      "name": "Order Received",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_rejected",
+      "name": "Order Rejected",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_msg_to_storehouse",
+      "name": "Inform Storehouse",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Order and Part List Notification"
+    },
+    {
+      "id": "evt_msg_to_engineering",
+      "name": "Inform Engineering",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Order and Part List Notification"
+    },
+    {
+      "id": "evt_start_storehouse",
+      "name": "Receive Order Info",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Order and Part List Notification"
+    },
+    {
+      "id": "evt_start_engineering_prep",
+      "name": "Receive Order Info",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Order and Part List Notification"
+    },
+    {
+      "id": "evt_all_parts_ready",
+      "name": "All Parts Reserved/Back-ordered",
+      "event_position": "intermediate",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_prep_finished",
+      "name": "Preparation Finished",
+      "event_position": "intermediate",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_assembly_complete",
+      "name": "Bicycle Assembled",
+      "event_position": "intermediate",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_shipped",
+      "name": "Process Finished",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_check_order",
+      "name": "Check Order",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Sales Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_order"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_process_part_item",
+      "name": "Process Part Item (Check Quantity & Reserve/Back-order)",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Storehouse",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": true,
+      "input_data_ids": [
+        "data_part_list"
+      ],
+      "output_data_ids": [
+        "data_inventory_status"
+      ]
+    },
+    {
+      "id": "task_prepare_assembly",
+      "name": "Prepare for Assembly",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Engineering Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_part_list"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_assemble_bike",
+      "name": "Assemble Bicycle",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Engineering Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_inventory_status"
+      ],
+      "output_data_ids": [
+        "data_assembled_bike"
+      ]
+    },
+    {
+      "id": "task_ship_bike",
+      "name": "Ship Bicycle to Customer",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Sales Department",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_assembled_bike"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_order_decision",
+      "name": "Accept or Reject Order?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_accept",
+          "condition": "Accepted"
+        },
+        {
+          "flow_id": "flow_reject",
+          "condition": "Rejected"
+        }
+      ]
+    },
+    {
+      "id": "gw_parts_loop",
+      "name": "More Items on Part List?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_next_item",
+          "condition": "Yes"
+        },
+        {
+          "flow_id": "flow_all_done",
+          "condition": "No"
+        }
+      ]
+    },
+    {
+      "id": "gw_sync_assembly",
+      "name": "Wait for Parts and Prep",
+      "gateway_type": "parallel",
+      "branch_probabilities": null,
+      "branch_conditions": null
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_to_check",
+      "source_id": "evt_start_sales",
+      "target_id": "task_check_order",
+      "condition_name": null
+    },
+    {
+      "id": "flow_check_to_gw",
+      "source_id": "task_check_order",
+      "target_id": "gw_order_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_reject",
+      "source_id": "gw_order_decision",
+      "target_id": "evt_end_rejected",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_accept",
+      "source_id": "gw_order_decision",
+      "target_id": "evt_msg_to_storehouse",
+      "condition_name": "Accepted"
+    },
+    {
+      "id": "flow_msg_to_eng",
+      "source_id": "evt_msg_to_storehouse",
+      "target_id": "evt_msg_to_engineering",
+      "condition_name": null
+    },
+    {
+      "id": "flow_storehouse_start",
+      "source_id": "evt_start_storehouse",
+      "target_id": "gw_parts_loop",
+      "condition_name": null
+    },
+    {
+      "id": "flow_next_item",
+      "source_id": "gw_parts_loop",
+      "target_id": "task_process_part_item",
+      "condition_name": "Yes"
+    },
+    {
+      "id": "flow_item_to_gw",
+      "source_id": "task_process_part_item",
+      "target_id": "gw_parts_loop",
+      "condition_name": null
+    },
+    {
+      "id": "flow_all_done",
+      "source_id": "gw_parts_loop",
+      "target_id": "evt_all_parts_ready",
+      "condition_name": "No"
+    },
+    {
+      "id": "flow_eng_prep_start",
+      "source_id": "evt_start_engineering_prep",
+      "target_id": "task_prepare_assembly",
+      "condition_name": null
+    },
+    {
+      "id": "flow_prep_to_evt",
+      "source_id": "task_prepare_assembly",
+      "target_id": "evt_prep_finished",
+      "condition_name": null
+    },
+    {
+      "id": "flow_sync_in_1",
+      "source_id": "evt_all_parts_ready",
+      "target_id": "gw_sync_assembly",
+      "condition_name": null
+    },
+    {
+      "id": "flow_sync_in_2",
+      "source_id": "evt_prep_finished",
+      "target_id": "gw_sync_assembly",
+      "condition_name": null
+    },
+    {
+      "id": "flow_sync_out",
+      "source_id": "gw_sync_assembly",
+      "target_id": "task_assemble_bike",
+      "condition_name": null
+    },
+    {
+      "id": "flow_assemble_to_evt",
+      "source_id": "task_assemble_bike",
+      "target_id": "evt_assembly_complete",
+      "condition_name": null
+    },
+    {
+      "id": "flow_assemble_to_ship",
+      "source_id": "evt_assembly_complete",
+      "target_id": "task_ship_bike",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ship_to_end",
+      "source_id": "task_ship_bike",
+      "target_id": "evt_shipped",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_sales",
+      "name": "Sales Department",
+      "element_ids": [
+        "evt_start_sales",
+        "task_check_order",
+        "gw_order_decision",
+        "evt_end_rejected",
+        "evt_msg_to_storehouse",
+        "evt_msg_to_engineering",
+        "task_ship_bike",
+        "evt_shipped"
+      ]
+    },
+    {
+      "id": "pool_storehouse",
+      "name": "Storehouse",
+      "element_ids": [
+        "evt_start_storehouse",
+        "gw_parts_loop",
+        "task_process_part_item",
+        "evt_all_parts_ready"
+      ]
+    },
+    {
+      "id": "pool_engineering",
+      "name": "Engineering Department",
+      "element_ids": [
+        "evt_start_engineering_prep",
+        "task_prepare_assembly",
+        "evt_prep_finished",
+        "gw_sync_assembly",
+        "task_assemble_bike",
+        "evt_assembly_complete"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_to_storehouse",
+      "source_id": "evt_msg_to_storehouse",
+      "target_id": "evt_start_storehouse",
+      "name": "Order and Part List Notification"
+    },
+    {
+      "id": "msg_flow_to_engineering",
+      "source_id": "evt_msg_to_engineering",
+      "target_id": "evt_start_engineering_prep",
+      "name": "Order and Part List Notification"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_order",
+      "name": "Order"
+    },
+    {
+      "id": "data_part_list",
+      "name": "Part List"
+    },
+    {
+      "id": "data_inventory_status",
+      "name": "Inventory Status (Reserved/Back-ordered)"
+    },
+    {
+      "id": "data_assembled_bike",
+      "name": "Assembled Bicycle"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

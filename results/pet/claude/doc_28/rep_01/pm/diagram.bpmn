@@ -1,0 +1,1076 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_familydoctor_part" name="Family Doctor" processRef="pool_familydoctor_proc" />
+    <bpmn:participant id="pool_secretary_part" name="Secretarial Office" processRef="pool_secretary_proc" />
+    <bpmn:participant id="pool_nursingofficer_part" name="Nursing Officer" processRef="pool_nursingofficer_proc" />
+    <bpmn:participant id="pool_teamleader_part" name="Team Leader" processRef="pool_teamleader_proc" />
+    <bpmn:participant id="pool_firstintaker_part" name="First Intaker (Social-Medical Worker)" processRef="pool_firstintaker_proc" />
+    <bpmn:participant id="pool_secondintaker_part" name="Second Intaker (Physician)" processRef="pool_secondintaker_proc" />
+    <bpmn:participant id="pool_psychiatrist_part" name="Psychiatrist" processRef="pool_psychiatrist_proc" />
+    <bpmn:messageFlow id="mf1" sourceRef="evt_connect_nursing" targetRef="evt_receive_call" name="Phone connection with doctor" />
+    <bpmn:messageFlow id="mf2" sourceRef="evt_hand_in_form" targetRef="evt_receive_form" name="Registration form" />
+    <bpmn:messageFlow id="mf3" sourceRef="evt_handover_assignment_list" targetRef="evt_assignmentlist_received" name="Assignment list" />
+    <bpmn:messageFlow id="mf4" sourceRef="evt_send_medfile_req" targetRef="evt_receive_medfile_req" name="Medical file request letter" />
+    <bpmn:messageFlow id="mf5" sourceRef="evt_medfile_sent" targetRef="evt_receive_medfile_copy" name="Medical file copy" />
+    <bpmn:messageFlow id="mf6" sourceRef="task_pass_cards" targetRef="evt_receive_card_first" name="Registration card" />
+    <bpmn:messageFlow id="mf7" sourceRef="task_pass_cards" targetRef="evt_receive_card_second" name="Registration card" />
+    <bpmn:messageFlow id="mf8" sourceRef="task_inform_second_intaker" targetRef="evt_wait_medfile_info" name="Medical info notification" />
+    <bpmn:messageFlow id="mf9" sourceRef="task_record_dictaphone" targetRef="task_type_tapes" name="Dictaphone tape" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_familydoctor_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_medical_file_copy_p1" name="Medical file copy" dataObjectRef="do_medical_file_copy_p1_do" />
+    <bpmn:dataObject id="do_medical_file_copy_p1_do" />
+    <bpmn:startEvent id="start_notice" name="Family doctor notices need for treatment">
+      <bpmn:outgoing>sf1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_send_medfile_req" name="Letter sent to family doctor">
+      <bpmn:incoming>sf21</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_send_medfile_req_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_receive_medfile_req" name="Family doctor receives request letter">
+      <bpmn:outgoing>sf22</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_medfile_req_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_medfile_sent" name="Family doctor sends medical file copy">
+      <bpmn:incoming>sf23</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_medfile_sent_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_call_office" name="Call secretarial office to notify need for treatment">
+      <bpmn:incoming>sf1</bpmn:incoming>
+      <bpmn:outgoing>sf2</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_send_medfile_copy" name="Send copy of medical file">
+      <bpmn:incoming>sf22</bpmn:incoming>
+      <bpmn:outgoing>sf23</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_medfile_copy_doa0">
+        <bpmn:targetRef>do_medical_file_copy_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="sf1" sourceRef="start_notice" targetRef="task_call_office" />
+    <bpmn:sequenceFlow id="sf22" sourceRef="evt_receive_medfile_req" targetRef="task_send_medfile_copy" />
+    <bpmn:sequenceFlow id="sf23" sourceRef="task_send_medfile_copy" targetRef="evt_medfile_sent" />
+  </bpmn:process>
+  <bpmn:process id="pool_secretary_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_registration_form_p1" name="Registration form" dataObjectRef="do_registration_form_p1_do" />
+    <bpmn:dataObject id="do_registration_form_p1_do" />
+    <bpmn:dataStoreReference id="ds_information_system" name="Institute Information System" />
+    <bpmn:dataObjectReference id="do_print" name="Information system print-out" dataObjectRef="do_print_do" />
+    <bpmn:dataObject id="do_print_do" />
+    <bpmn:dataObjectReference id="do_patient_file" name="Patient file" dataObjectRef="do_patient_file_do" />
+    <bpmn:dataObject id="do_patient_file_do" />
+    <bpmn:dataObjectReference id="do_registration_card" name="Registration card" dataObjectRef="do_registration_card_do" />
+    <bpmn:dataObject id="do_registration_card_do" />
+    <bpmn:dataObjectReference id="do_new_notices_list" name="List of new notices" dataObjectRef="do_new_notices_list_do" />
+    <bpmn:dataObject id="do_new_notices_list_do" />
+    <bpmn:dataObjectReference id="do_assignment_list_p1" name="Assignment list" dataObjectRef="do_assignment_list_p1_do" />
+    <bpmn:dataObject id="do_assignment_list_p1_do" />
+    <bpmn:dataObjectReference id="do_request_letter" name="Letter requesting medical file" dataObjectRef="do_request_letter_do" />
+    <bpmn:dataObject id="do_request_letter_do" />
+    <bpmn:dataObjectReference id="do_medical_file_copy" name="Medical file copy" dataObjectRef="do_medical_file_copy_do" />
+    <bpmn:dataObject id="do_medical_file_copy_do" />
+    <bpmn:dataObjectReference id="do_dictaphone_tape_p1" name="Dictaphone tape" dataObjectRef="do_dictaphone_tape_p1_do" />
+    <bpmn:dataObject id="do_dictaphone_tape_p1_do" />
+    <bpmn:dataObjectReference id="do_typed_dictation" name="Typed dictation" dataObjectRef="do_typed_dictation_do" />
+    <bpmn:dataObject id="do_typed_dictation_do" />
+    <bpmn:dataObjectReference id="do_ready_list" name="List of patients ready for treatment plan" dataObjectRef="do_ready_list_do" />
+    <bpmn:dataObject id="do_ready_list_do" />
+    <bpmn:intermediateThrowEvent id="evt_connect_nursing" name="Secretary connects doctor to nursing officer">
+      <bpmn:incoming>sf3</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_connect_nursing_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="evt_receive_form" name="Secretary receives registration form">
+      <bpmn:outgoing>sf7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_form_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_assignmentlist_received" name="Secretary receives assignment list">
+      <bpmn:outgoing>sf18</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_assignmentlist_received_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_receive_medfile_copy" name="Secretary receives medical file copy">
+      <bpmn:outgoing>sf24</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_medfile_copy_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_intake_secretary" name="Patient ready for treatment plan">
+      <bpmn:incoming>sf39</bpmn:incoming>
+      <bpmn:outgoing>sf40</bpmn:outgoing>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_inquire_name" name="Inquire name and residence of patient">
+      <bpmn:incoming>sf2</bpmn:incoming>
+      <bpmn:outgoing>sf3</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_store_info_system" name="Store registration form info in information system">
+      <bpmn:incoming>sf7</bpmn:incoming>
+      <bpmn:outgoing>sf8</bpmn:outgoing>
+      <bpmn:property id="task_store_info_system_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_store_info_system_dia0">
+        <bpmn:sourceRef>do_registration_form_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_store_info_system_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_store_info_system_doa0">
+        <bpmn:targetRef>ds_information_system</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_print_info" name="Print information from information system">
+      <bpmn:incoming>sf8</bpmn:incoming>
+      <bpmn:outgoing>sf9</bpmn:outgoing>
+      <bpmn:property id="task_print_info_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_print_info_dia0">
+        <bpmn:sourceRef>ds_information_system</bpmn:sourceRef>
+        <bpmn:targetRef>task_print_info_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_print_info_doa0">
+        <bpmn:targetRef>do_print</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:manualTask id="task_create_file" name="Create patient file for new patients">
+      <bpmn:incoming>sf_new_yes</bpmn:incoming>
+      <bpmn:outgoing>sf10</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_create_file_doa0">
+        <bpmn:targetRef>do_patient_file</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_store_docs_file" name="Store registration form and print in patient file">
+      <bpmn:incoming>sf_new_no</bpmn:incoming>
+      <bpmn:incoming>sf10</bpmn:incoming>
+      <bpmn:outgoing>sf11</bpmn:outgoing>
+      <bpmn:property id="task_store_docs_file_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_store_docs_file_dia0">
+        <bpmn:sourceRef>do_registration_form_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_store_docs_file_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_store_docs_file_dia1">
+        <bpmn:sourceRef>do_print</bpmn:sourceRef>
+        <bpmn:targetRef>task_store_docs_file_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_store_docs_file_doa0">
+        <bpmn:targetRef>do_patient_file</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_produce_cards" name="Produce two registration cards (first and second intaker)">
+      <bpmn:incoming>sf11</bpmn:incoming>
+      <bpmn:outgoing>sf12</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_produce_cards_doa0">
+        <bpmn:targetRef>do_registration_card</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_add_to_list" name="Add new patient to list of new notices">
+      <bpmn:incoming>sf12</bpmn:incoming>
+      <bpmn:outgoing>sf13</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_add_to_list_doa0">
+        <bpmn:targetRef>do_new_notices_list</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_store_assignment" name="Store assignment of each patient in information system">
+      <bpmn:incoming>sf18</bpmn:incoming>
+      <bpmn:outgoing>sf19</bpmn:outgoing>
+      <bpmn:property id="task_store_assignment_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_store_assignment_dia0">
+        <bpmn:sourceRef>do_assignment_list_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_store_assignment_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_store_assignment_doa0">
+        <bpmn:targetRef>ds_information_system</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_pass_cards" name="Pass registration cards to first and second intaker">
+      <bpmn:incoming>sf19</bpmn:incoming>
+      <bpmn:outgoing>sf20</bpmn:outgoing>
+      <bpmn:property id="task_pass_cards_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_pass_cards_dia0">
+        <bpmn:sourceRef>do_registration_card</bpmn:sourceRef>
+        <bpmn:targetRef>task_pass_cards_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_send_letter_doctor" name="Prepare and send letter to family doctor requesting medical file">
+      <bpmn:incoming>sf_medfile_yes</bpmn:incoming>
+      <bpmn:outgoing>sf21</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_letter_doctor_doa0">
+        <bpmn:targetRef>do_request_letter</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_inform_second_intaker" name="Inform second intaker that medical file copy received">
+      <bpmn:incoming>sf24</bpmn:incoming>
+      <bpmn:outgoing>sf25</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_add_medfile_copy" name="Add medical file copy to patient file">
+      <bpmn:incoming>sf25</bpmn:incoming>
+      <bpmn:outgoing>sf26</bpmn:outgoing>
+      <bpmn:property id="task_add_medfile_copy_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_add_medfile_copy_dia0">
+        <bpmn:sourceRef>do_medical_file_copy</bpmn:sourceRef>
+        <bpmn:targetRef>task_add_medfile_copy_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_add_medfile_copy_doa0">
+        <bpmn:targetRef>do_patient_file</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_type_tapes" name="Type out dictaphone tapes">
+      <bpmn:outgoing>sf36</bpmn:outgoing>
+      <bpmn:property id="task_type_tapes_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_type_tapes_dia0">
+        <bpmn:sourceRef>do_dictaphone_tape_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_type_tapes_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_type_tapes_doa0">
+        <bpmn:targetRef>do_typed_dictation</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_add_dictation_file" name="Add typed dictation information to patient file">
+      <bpmn:incoming>sf36</bpmn:incoming>
+      <bpmn:outgoing>sf37</bpmn:outgoing>
+      <bpmn:property id="task_add_dictation_file_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_add_dictation_file_dia0">
+        <bpmn:sourceRef>do_typed_dictation</bpmn:sourceRef>
+        <bpmn:targetRef>task_add_dictation_file_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_add_dictation_file_doa0">
+        <bpmn:targetRef>do_patient_file</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_put_on_ready_list" name="Put patient on list reaching intake-complete status">
+      <bpmn:incoming>sf_medfile_no</bpmn:incoming>
+      <bpmn:incoming>sf26</bpmn:incoming>
+      <bpmn:incoming>sf37</bpmn:incoming>
+      <bpmn:outgoing>sf38</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_put_on_ready_list_doa0">
+        <bpmn:targetRef>do_ready_list</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_provide_list_teamleader" name="Provide team-leader with list of ready patients">
+      <bpmn:incoming>sf38</bpmn:incoming>
+      <bpmn:outgoing>sf39</bpmn:outgoing>
+      <bpmn:property id="task_provide_list_teamleader_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_provide_list_teamleader_dia0">
+        <bpmn:sourceRef>do_ready_list</bpmn:sourceRef>
+        <bpmn:targetRef>task_provide_list_teamleader_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:exclusiveGateway id="gw_new_patient" name="New patient?" isMarkerVisible="true">
+      <bpmn:incoming>sf9</bpmn:incoming>
+      <bpmn:outgoing>sf_new_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_new_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_medfile_required" name="Medical file required?" isMarkerVisible="true">
+      <bpmn:incoming>sf20</bpmn:incoming>
+      <bpmn:outgoing>sf_medfile_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_medfile_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf3" sourceRef="task_inquire_name" targetRef="evt_connect_nursing" />
+    <bpmn:sequenceFlow id="sf7" sourceRef="evt_receive_form" targetRef="task_store_info_system" />
+    <bpmn:sequenceFlow id="sf8" sourceRef="task_store_info_system" targetRef="task_print_info" />
+    <bpmn:sequenceFlow id="sf9" sourceRef="task_print_info" targetRef="gw_new_patient" />
+    <bpmn:sequenceFlow id="sf_new_yes" sourceRef="gw_new_patient" targetRef="task_create_file" name="new patient" />
+    <bpmn:sequenceFlow id="sf_new_no" sourceRef="gw_new_patient" targetRef="task_store_docs_file" name="existing patient" />
+    <bpmn:sequenceFlow id="sf10" sourceRef="task_create_file" targetRef="task_store_docs_file" />
+    <bpmn:sequenceFlow id="sf11" sourceRef="task_store_docs_file" targetRef="task_produce_cards" />
+    <bpmn:sequenceFlow id="sf12" sourceRef="task_produce_cards" targetRef="task_add_to_list" />
+    <bpmn:sequenceFlow id="sf18" sourceRef="evt_assignmentlist_received" targetRef="task_store_assignment" />
+    <bpmn:sequenceFlow id="sf19" sourceRef="task_store_assignment" targetRef="task_pass_cards" />
+    <bpmn:sequenceFlow id="sf20" sourceRef="task_pass_cards" targetRef="gw_medfile_required" />
+    <bpmn:sequenceFlow id="sf_medfile_yes" sourceRef="gw_medfile_required" targetRef="task_send_letter_doctor" name="required" />
+    <bpmn:sequenceFlow id="sf_medfile_no" sourceRef="gw_medfile_required" targetRef="task_put_on_ready_list" name="not required" />
+    <bpmn:sequenceFlow id="sf24" sourceRef="evt_receive_medfile_copy" targetRef="task_inform_second_intaker" />
+    <bpmn:sequenceFlow id="sf25" sourceRef="task_inform_second_intaker" targetRef="task_add_medfile_copy" />
+    <bpmn:sequenceFlow id="sf26" sourceRef="task_add_medfile_copy" targetRef="task_put_on_ready_list" />
+    <bpmn:sequenceFlow id="sf36" sourceRef="task_type_tapes" targetRef="task_add_dictation_file" />
+    <bpmn:sequenceFlow id="sf37" sourceRef="task_add_dictation_file" targetRef="task_put_on_ready_list" />
+    <bpmn:sequenceFlow id="sf38" sourceRef="task_put_on_ready_list" targetRef="task_provide_list_teamleader" />
+    <bpmn:sequenceFlow id="sf39" sourceRef="task_provide_list_teamleader" targetRef="evt_end_intake_secretary" />
+  </bpmn:process>
+  <bpmn:process id="pool_nursingofficer_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_registration_form" name="Registration form" dataObjectRef="do_registration_form_do" />
+    <bpmn:dataObject id="do_registration_form_do" />
+    <bpmn:startEvent id="evt_receive_call" name="Nursing officer receives call">
+      <bpmn:outgoing>sf4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_call_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_hand_in_form" name="Registration form handed to secretarial office">
+      <bpmn:incoming>sf6</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_hand_in_form_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_full_inquiry" name="Full inquiry into mental, health and social state">
+      <bpmn:incoming>sf4</bpmn:incoming>
+      <bpmn:outgoing>sf5</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_fill_registration_form" name="Fill out registration form">
+      <bpmn:incoming>sf5</bpmn:incoming>
+      <bpmn:outgoing>sf6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_fill_registration_form_doa0">
+        <bpmn:targetRef>do_registration_form</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="sf4" sourceRef="evt_receive_call" targetRef="task_full_inquiry" />
+    <bpmn:sequenceFlow id="sf5" sourceRef="task_full_inquiry" targetRef="task_fill_registration_form" />
+    <bpmn:sequenceFlow id="sf6" sourceRef="task_fill_registration_form" targetRef="evt_hand_in_form" />
+  </bpmn:process>
+  <bpmn:process id="pool_teamleader_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_new_notices_list_p1" name="List of new notices" dataObjectRef="do_new_notices_list_p1_do" />
+    <bpmn:dataObject id="do_new_notices_list_p1_do" />
+    <bpmn:dataObjectReference id="do_assignment_list" name="Assignment list" dataObjectRef="do_assignment_list_do" />
+    <bpmn:dataObject id="do_assignment_list_do" />
+    <bpmn:dataObjectReference id="do_treatment_plan" name="Treatment plan" dataObjectRef="do_treatment_plan_do" />
+    <bpmn:dataObject id="do_treatment_plan_do" />
+    <bpmn:endEvent id="evt_handover_assignment_list" name="Team-leader hands over assignment list">
+      <bpmn:incoming>sf17</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_handover_assignment_list_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_staffmeeting_start" name="Wednesday staff meeting starts">
+      <bpmn:incoming>sf13</bpmn:incoming>
+      <bpmn:outgoing>sf14</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="evt_staffmeeting_start_timerdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="end_intake" name="Intake procedure ends (treatment plan formulated)">
+      <bpmn:incoming>sf41</bpmn:incoming>
+      <bpmn:incoming>sf42</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_assign_intakers" name="Assign new patients to first and second intakers">
+      <bpmn:incoming>sf14</bpmn:incoming>
+      <bpmn:outgoing>sf15</bpmn:outgoing>
+      <bpmn:property id="task_assign_intakers_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_assign_intakers_dia0">
+        <bpmn:sourceRef>do_new_notices_list_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_assign_intakers_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_assign_intakers_doa0">
+        <bpmn:targetRef>do_assignment_list</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_determine_medfile_needed" name="Determine if medical file is required">
+      <bpmn:incoming>sf15</bpmn:incoming>
+      <bpmn:outgoing>sf16</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_determine_medfile_needed_doa0">
+        <bpmn:targetRef>do_assignment_list</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_record_assignment_list" name="Record assignments on assignment list">
+      <bpmn:incoming>sf16</bpmn:incoming>
+      <bpmn:outgoing>sf17</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_record_assignment_list_doa0">
+        <bpmn:targetRef>do_assignment_list</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:task id="task_formulate_treatment_plan" name="Formulate treatment plan (team-leader, intakers, psychiatrist)">
+      <bpmn:incoming>sf40</bpmn:incoming>
+      <bpmn:outgoing>sf41</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_formulate_treatment_plan_doa0">
+        <bpmn:targetRef>do_treatment_plan</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf14" sourceRef="evt_staffmeeting_start" targetRef="task_assign_intakers" />
+    <bpmn:sequenceFlow id="sf15" sourceRef="task_assign_intakers" targetRef="task_determine_medfile_needed" />
+    <bpmn:sequenceFlow id="sf16" sourceRef="task_determine_medfile_needed" targetRef="task_record_assignment_list" />
+    <bpmn:sequenceFlow id="sf17" sourceRef="task_record_assignment_list" targetRef="evt_handover_assignment_list" />
+    <bpmn:sequenceFlow id="sf41" sourceRef="task_formulate_treatment_plan" targetRef="end_intake" />
+  </bpmn:process>
+  <bpmn:process id="pool_firstintaker_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_checklist" name="Standard checklist" dataObjectRef="do_checklist_do" />
+    <bpmn:dataObject id="do_checklist_do" />
+    <bpmn:dataObjectReference id="do_notebook" name="Personal notebook notes" dataObjectRef="do_notebook_do" />
+    <bpmn:dataObject id="do_notebook_do" />
+    <bpmn:dataObjectReference id="do_patient_file_p1" name="Patient file" dataObjectRef="do_patient_file_p1_do" />
+    <bpmn:dataObject id="do_patient_file_p1_do" />
+    <bpmn:startEvent id="evt_receive_card_first" name="First intaker receives registration card">
+      <bpmn:outgoing>sf27</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_card_first_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_first_meeting_done" name="First intaker meeting completed">
+      <bpmn:incoming>sf31</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_plan_meeting_first" name="Plan meeting with patient (first intaker)">
+      <bpmn:incoming>sf27</bpmn:incoming>
+      <bpmn:outgoing>sf28</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_examine_checklist" name="Examine patient using standard checklist">
+      <bpmn:incoming>sf28</bpmn:incoming>
+      <bpmn:outgoing>sf29</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_examine_checklist_doa0">
+        <bpmn:targetRef>do_checklist</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_register_observations" name="Register additional observations in personal notebook">
+      <bpmn:incoming>sf29</bpmn:incoming>
+      <bpmn:outgoing>sf30</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_register_observations_doa0">
+        <bpmn:targetRef>do_notebook</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_copy_notes_to_file" name="Put copy of notes and checklist in patient file">
+      <bpmn:incoming>sf30</bpmn:incoming>
+      <bpmn:outgoing>sf31</bpmn:outgoing>
+      <bpmn:property id="task_copy_notes_to_file_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_copy_notes_to_file_dia0">
+        <bpmn:sourceRef>do_notebook</bpmn:sourceRef>
+        <bpmn:targetRef>task_copy_notes_to_file_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_copy_notes_to_file_dia1">
+        <bpmn:sourceRef>do_checklist</bpmn:sourceRef>
+        <bpmn:targetRef>task_copy_notes_to_file_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_copy_notes_to_file_doa0">
+        <bpmn:targetRef>do_patient_file_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="sf27" sourceRef="evt_receive_card_first" targetRef="task_plan_meeting_first" />
+    <bpmn:sequenceFlow id="sf28" sourceRef="task_plan_meeting_first" targetRef="task_examine_checklist" />
+    <bpmn:sequenceFlow id="sf29" sourceRef="task_examine_checklist" targetRef="task_register_observations" />
+    <bpmn:sequenceFlow id="sf30" sourceRef="task_register_observations" targetRef="task_copy_notes_to_file" />
+    <bpmn:sequenceFlow id="sf31" sourceRef="task_copy_notes_to_file" targetRef="evt_first_meeting_done" />
+  </bpmn:process>
+  <bpmn:process id="pool_secondintaker_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_dictaphone_tape" name="Dictaphone tape" dataObjectRef="do_dictaphone_tape_do" />
+    <bpmn:dataObject id="do_dictaphone_tape_do" />
+    <bpmn:startEvent id="evt_receive_card_second" name="Second intaker receives registration card">
+      <bpmn:outgoing>sf32</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_receive_card_second_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="evt_wait_medfile_info" name="Second intaker informed of medical info (if required)">
+      <bpmn:incoming>sf32</bpmn:incoming>
+      <bpmn:outgoing>sf33</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_wait_medfile_info_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="evt_second_meeting_done" name="Second intaker meeting completed">
+      <bpmn:incoming>sf35</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_plan_meeting_second" name="Plan first meeting (second intaker)">
+      <bpmn:incoming>sf33</bpmn:incoming>
+      <bpmn:outgoing>sf34</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_record_dictaphone" name="Record observations on dictaphone during meeting">
+      <bpmn:incoming>sf34</bpmn:incoming>
+      <bpmn:outgoing>sf35</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_record_dictaphone_doa0">
+        <bpmn:targetRef>do_dictaphone_tape</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="sf32" sourceRef="evt_receive_card_second" targetRef="evt_wait_medfile_info" />
+    <bpmn:sequenceFlow id="sf33" sourceRef="evt_wait_medfile_info" targetRef="task_plan_meeting_second" />
+    <bpmn:sequenceFlow id="sf34" sourceRef="task_plan_meeting_second" targetRef="task_record_dictaphone" />
+    <bpmn:sequenceFlow id="sf35" sourceRef="task_record_dictaphone" targetRef="evt_second_meeting_done" />
+  </bpmn:process>
+  <bpmn:process id="pool_psychiatrist_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_treatment_plan_p1" name="Treatment plan" dataObjectRef="do_treatment_plan_p1_do" />
+    <bpmn:dataObject id="do_treatment_plan_p1_do" />
+    <bpmn:task id="task_formulate_treatment_plan_psy" name="Participate in formulating treatment plan">
+      <bpmn:outgoing>sf42</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_formulate_treatment_plan_psy_doa0">
+        <bpmn:targetRef>do_treatment_plan_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_familydoctor_part_di" bpmnElement="pool_familydoctor_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_secretary_part_di" bpmnElement="pool_secretary_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="1710" height="775" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_nursingofficer_part_di" bpmnElement="pool_nursingofficer_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1460" width="950" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_teamleader_part_di" bpmnElement="pool_teamleader_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1795" width="1140" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_firstintaker_part_di" bpmnElement="pool_firstintaker_part" isHorizontal="true">
+        <dc:Bounds x="120" y="2255" width="1330" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_secondintaker_part_di" bpmnElement="pool_secondintaker_part" isHorizontal="true">
+        <dc:Bounds x="120" y="2590" width="1140" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_psychiatrist_part_di" bpmnElement="pool_psychiatrist_part" isHorizontal="true">
+        <dc:Bounds x="120" y="2925" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_intake_di" bpmnElement="end_intake">
+        <dc:Bounds x="350" y="1855" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_assignmentlist_received_di" bpmnElement="evt_assignmentlist_received">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_connect_nursing_di" bpmnElement="evt_connect_nursing">
+        <dc:Bounds x="350" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_intake_secretary_di" bpmnElement="evt_end_intake_secretary">
+        <dc:Bounds x="1110" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_first_meeting_done_di" bpmnElement="evt_first_meeting_done">
+        <dc:Bounds x="1110" y="2315" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_hand_in_form_di" bpmnElement="evt_hand_in_form">
+        <dc:Bounds x="730" y="1520" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_handover_assignment_list_di" bpmnElement="evt_handover_assignment_list">
+        <dc:Bounds x="920" y="1855" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_medfile_sent_di" bpmnElement="evt_medfile_sent">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_call_di" bpmnElement="evt_receive_call">
+        <dc:Bounds x="160" y="1520" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_card_first_di" bpmnElement="evt_receive_card_first">
+        <dc:Bounds x="160" y="2315" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_card_second_di" bpmnElement="evt_receive_card_second">
+        <dc:Bounds x="160" y="2650" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_form_di" bpmnElement="evt_receive_form">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_medfile_copy_di" bpmnElement="evt_receive_medfile_copy">
+        <dc:Bounds x="160" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_receive_medfile_req_di" bpmnElement="evt_receive_medfile_req">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_second_meeting_done_di" bpmnElement="evt_second_meeting_done">
+        <dc:Bounds x="920" y="2650" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_send_medfile_req_di" bpmnElement="evt_send_medfile_req">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_staffmeeting_start_di" bpmnElement="evt_staffmeeting_start">
+        <dc:Bounds x="160" y="1855" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_wait_medfile_info_di" bpmnElement="evt_wait_medfile_info">
+        <dc:Bounds x="350" y="2650" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_medfile_required_di" bpmnElement="gw_medfile_required">
+        <dc:Bounds x="730" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_new_patient_di" bpmnElement="gw_new_patient">
+        <dc:Bounds x="730" y="810" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_notice_di" bpmnElement="start_notice">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_add_dictation_file_di" bpmnElement="task_add_dictation_file">
+        <dc:Bounds x="350" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_add_medfile_copy_di" bpmnElement="task_add_medfile_copy">
+        <dc:Bounds x="540" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_add_to_list_di" bpmnElement="task_add_to_list">
+        <dc:Bounds x="1490" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assign_intakers_di" bpmnElement="task_assign_intakers">
+        <dc:Bounds x="350" y="1980" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_call_office_di" bpmnElement="task_call_office">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_copy_notes_to_file_di" bpmnElement="task_copy_notes_to_file">
+        <dc:Bounds x="920" y="2315" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_file_di" bpmnElement="task_create_file">
+        <dc:Bounds x="920" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_determine_medfile_needed_di" bpmnElement="task_determine_medfile_needed">
+        <dc:Bounds x="540" y="1855" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_checklist_di" bpmnElement="task_examine_checklist">
+        <dc:Bounds x="540" y="2315" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_fill_registration_form_di" bpmnElement="task_fill_registration_form">
+        <dc:Bounds x="540" y="1520" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_formulate_treatment_plan_di" bpmnElement="task_formulate_treatment_plan">
+        <dc:Bounds x="160" y="1980" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_formulate_treatment_plan_psy_di" bpmnElement="task_formulate_treatment_plan_psy">
+        <dc:Bounds x="160" y="2985" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_full_inquiry_di" bpmnElement="task_full_inquiry">
+        <dc:Bounds x="350" y="1520" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_second_intaker_di" bpmnElement="task_inform_second_intaker">
+        <dc:Bounds x="350" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inquire_name_di" bpmnElement="task_inquire_name">
+        <dc:Bounds x="160" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_pass_cards_di" bpmnElement="task_pass_cards">
+        <dc:Bounds x="540" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_plan_meeting_first_di" bpmnElement="task_plan_meeting_first">
+        <dc:Bounds x="350" y="2315" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_plan_meeting_second_di" bpmnElement="task_plan_meeting_second">
+        <dc:Bounds x="540" y="2650" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_print_info_di" bpmnElement="task_print_info">
+        <dc:Bounds x="540" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_produce_cards_di" bpmnElement="task_produce_cards">
+        <dc:Bounds x="1300" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_provide_list_teamleader_di" bpmnElement="task_provide_list_teamleader">
+        <dc:Bounds x="920" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_put_on_ready_list_di" bpmnElement="task_put_on_ready_list">
+        <dc:Bounds x="920" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_record_assignment_list_di" bpmnElement="task_record_assignment_list">
+        <dc:Bounds x="730" y="1855" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_record_dictaphone_di" bpmnElement="task_record_dictaphone">
+        <dc:Bounds x="730" y="2650" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_register_observations_di" bpmnElement="task_register_observations">
+        <dc:Bounds x="730" y="2315" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_letter_doctor_di" bpmnElement="task_send_letter_doctor">
+        <dc:Bounds x="920" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_medfile_copy_di" bpmnElement="task_send_medfile_copy">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_store_assignment_di" bpmnElement="task_store_assignment">
+        <dc:Bounds x="350" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_store_docs_file_di" bpmnElement="task_store_docs_file">
+        <dc:Bounds x="1110" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_store_info_system_di" bpmnElement="task_store_info_system">
+        <dc:Bounds x="350" y="1185" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_type_tapes_di" bpmnElement="task_type_tapes">
+        <dc:Bounds x="160" y="1185" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_medical_file_copy_p1_di" bpmnElement="do_medical_file_copy_p1">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_registration_form_p1_di" bpmnElement="do_registration_form_p1">
+        <dc:Bounds x="750" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ds_information_system_di" bpmnElement="ds_information_system">
+        <dc:Bounds x="433" y="1325" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_print_di" bpmnElement="do_print">
+        <dc:Bounds x="845" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_patient_file_di" bpmnElement="do_patient_file">
+        <dc:Bounds x="750" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_registration_card_di" bpmnElement="do_registration_card">
+        <dc:Bounds x="940" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_new_notices_list_di" bpmnElement="do_new_notices_list">
+        <dc:Bounds x="1510" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_assignment_list_p1_di" bpmnElement="do_assignment_list_p1">
+        <dc:Bounds x="370" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_request_letter_di" bpmnElement="do_request_letter">
+        <dc:Bounds x="940" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_medical_file_copy_di" bpmnElement="do_medical_file_copy">
+        <dc:Bounds x="560" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_dictaphone_tape_p1_di" bpmnElement="do_dictaphone_tape_p1">
+        <dc:Bounds x="180" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_typed_dictation_di" bpmnElement="do_typed_dictation">
+        <dc:Bounds x="275" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_ready_list_di" bpmnElement="do_ready_list">
+        <dc:Bounds x="940" y="1325" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_registration_form_di" bpmnElement="do_registration_form">
+        <dc:Bounds x="560" y="1660" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_new_notices_list_p1_di" bpmnElement="do_new_notices_list_p1">
+        <dc:Bounds x="370" y="2120" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_assignment_list_di" bpmnElement="do_assignment_list">
+        <dc:Bounds x="560" y="2120" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_treatment_plan_di" bpmnElement="do_treatment_plan">
+        <dc:Bounds x="180" y="2120" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_checklist_di" bpmnElement="do_checklist">
+        <dc:Bounds x="750" y="2455" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_notebook_di" bpmnElement="do_notebook">
+        <dc:Bounds x="845" y="2455" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_patient_file_p1_di" bpmnElement="do_patient_file_p1">
+        <dc:Bounds x="940" y="2455" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_dictaphone_tape_di" bpmnElement="do_dictaphone_tape">
+        <dc:Bounds x="750" y="2790" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_treatment_plan_p1_di" bpmnElement="do_treatment_plan_p1">
+        <dc:Bounds x="180" y="3125" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf1_di" bpmnElement="sf1">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf2_di" bpmnElement="sf2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="210" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf3_di" bpmnElement="sf3">
+        <di:waypoint x="210" y="1100" />
+        <di:waypoint x="368" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf4_di" bpmnElement="sf4">
+        <di:waypoint x="178" y="1538" />
+        <di:waypoint x="400" y="1560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf5_di" bpmnElement="sf5">
+        <di:waypoint x="400" y="1560" />
+        <di:waypoint x="590" y="1560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf6_di" bpmnElement="sf6">
+        <di:waypoint x="590" y="1560" />
+        <di:waypoint x="748" y="1538" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf7_di" bpmnElement="sf7">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf8_di" bpmnElement="sf8">
+        <di:waypoint x="400" y="1225" />
+        <di:waypoint x="590" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf9_di" bpmnElement="sf9">
+        <di:waypoint x="590" y="975" />
+        <di:waypoint x="755" y="835" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_new_yes_di" bpmnElement="sf_new_yes">
+        <di:waypoint x="755" y="835" />
+        <di:waypoint x="970" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_new_no_di" bpmnElement="sf_new_no">
+        <di:waypoint x="755" y="835" />
+        <di:waypoint x="1160" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf10_di" bpmnElement="sf10">
+        <di:waypoint x="970" y="725" />
+        <di:waypoint x="1160" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf11_di" bpmnElement="sf11">
+        <di:waypoint x="1160" y="850" />
+        <di:waypoint x="1350" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf12_di" bpmnElement="sf12">
+        <di:waypoint x="1350" y="725" />
+        <di:waypoint x="1540" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf13_di" bpmnElement="sf13">
+        <di:waypoint x="1540" y="725" />
+        <di:waypoint x="178" y="1873" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf14_di" bpmnElement="sf14">
+        <di:waypoint x="178" y="1873" />
+        <di:waypoint x="400" y="2020" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf15_di" bpmnElement="sf15">
+        <di:waypoint x="400" y="2020" />
+        <di:waypoint x="590" y="1895" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf16_di" bpmnElement="sf16">
+        <di:waypoint x="590" y="1895" />
+        <di:waypoint x="780" y="1895" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf17_di" bpmnElement="sf17">
+        <di:waypoint x="780" y="1895" />
+        <di:waypoint x="938" y="1873" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf18_di" bpmnElement="sf18">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="400" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf19_di" bpmnElement="sf19">
+        <di:waypoint x="400" y="1100" />
+        <di:waypoint x="590" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf20_di" bpmnElement="sf20">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="755" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_medfile_yes_di" bpmnElement="sf_medfile_yes">
+        <di:waypoint x="755" y="710" />
+        <di:waypoint x="970" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_medfile_no_di" bpmnElement="sf_medfile_no">
+        <di:waypoint x="755" y="710" />
+        <di:waypoint x="970" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf21_di" bpmnElement="sf21">
+        <di:waypoint x="970" y="1100" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf22_di" bpmnElement="sf22">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf23_di" bpmnElement="sf23">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf24_di" bpmnElement="sf24">
+        <di:waypoint x="178" y="953" />
+        <di:waypoint x="400" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf25_di" bpmnElement="sf25">
+        <di:waypoint x="400" y="975" />
+        <di:waypoint x="590" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf26_di" bpmnElement="sf26">
+        <di:waypoint x="590" y="725" />
+        <di:waypoint x="970" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf27_di" bpmnElement="sf27">
+        <di:waypoint x="178" y="2333" />
+        <di:waypoint x="400" y="2355" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf28_di" bpmnElement="sf28">
+        <di:waypoint x="400" y="2355" />
+        <di:waypoint x="590" y="2355" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf29_di" bpmnElement="sf29">
+        <di:waypoint x="590" y="2355" />
+        <di:waypoint x="780" y="2355" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf30_di" bpmnElement="sf30">
+        <di:waypoint x="780" y="2355" />
+        <di:waypoint x="970" y="2355" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf31_di" bpmnElement="sf31">
+        <di:waypoint x="970" y="2355" />
+        <di:waypoint x="1128" y="2333" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf32_di" bpmnElement="sf32">
+        <di:waypoint x="178" y="2668" />
+        <di:waypoint x="368" y="2668" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf33_di" bpmnElement="sf33">
+        <di:waypoint x="368" y="2668" />
+        <di:waypoint x="590" y="2690" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf34_di" bpmnElement="sf34">
+        <di:waypoint x="590" y="2690" />
+        <di:waypoint x="780" y="2690" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf35_di" bpmnElement="sf35">
+        <di:waypoint x="780" y="2690" />
+        <di:waypoint x="938" y="2668" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf36_di" bpmnElement="sf36">
+        <di:waypoint x="210" y="1225" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf37_di" bpmnElement="sf37">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="970" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf38_di" bpmnElement="sf38">
+        <di:waypoint x="970" y="975" />
+        <di:waypoint x="970" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf39_di" bpmnElement="sf39">
+        <di:waypoint x="970" y="850" />
+        <di:waypoint x="1128" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf40_di" bpmnElement="sf40">
+        <di:waypoint x="1128" y="703" />
+        <di:waypoint x="210" y="2020" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf41_di" bpmnElement="sf41">
+        <di:waypoint x="210" y="2020" />
+        <di:waypoint x="368" y="1873" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf42_di" bpmnElement="sf42">
+        <di:waypoint x="210" y="3025" />
+        <di:waypoint x="368" y="1873" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf1_di" bpmnElement="mf1">
+        <di:waypoint x="368" y="703" />
+        <di:waypoint x="178" y="1538" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf2_di" bpmnElement="mf2">
+        <di:waypoint x="748" y="1538" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf3_di" bpmnElement="mf3">
+        <di:waypoint x="938" y="1873" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf4_di" bpmnElement="mf4">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf5_di" bpmnElement="mf5">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf6_di" bpmnElement="mf6">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="178" y="2333" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf7_di" bpmnElement="mf7">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="178" y="2668" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf8_di" bpmnElement="mf8">
+        <di:waypoint x="400" y="975" />
+        <di:waypoint x="368" y="2668" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf9_di" bpmnElement="mf9">
+        <di:waypoint x="780" y="2690" />
+        <di:waypoint x="210" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_fill_registration_form_doa0_di" bpmnElement="task_fill_registration_form_doa0">
+        <di:waypoint x="590" y="1560" />
+        <di:waypoint x="578" y="1685" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_store_info_system_dia0_di" bpmnElement="task_store_info_system_dia0">
+        <di:waypoint x="768" y="1350" />
+        <di:waypoint x="400" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_store_info_system_doa0_di" bpmnElement="task_store_info_system_doa0">
+        <di:waypoint x="400" y="1225" />
+        <di:waypoint x="458" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_print_info_dia0_di" bpmnElement="task_print_info_dia0">
+        <di:waypoint x="458" y="1350" />
+        <di:waypoint x="590" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_print_info_doa0_di" bpmnElement="task_print_info_doa0">
+        <di:waypoint x="590" y="975" />
+        <di:waypoint x="863" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_file_doa0_di" bpmnElement="task_create_file_doa0">
+        <di:waypoint x="970" y="725" />
+        <di:waypoint x="768" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_store_docs_file_dia0_di" bpmnElement="task_store_docs_file_dia0">
+        <di:waypoint x="768" y="1350" />
+        <di:waypoint x="1160" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_store_docs_file_dia1_di" bpmnElement="task_store_docs_file_dia1">
+        <di:waypoint x="863" y="1350" />
+        <di:waypoint x="1160" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_store_docs_file_doa0_di" bpmnElement="task_store_docs_file_doa0">
+        <di:waypoint x="1160" y="850" />
+        <di:waypoint x="768" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_produce_cards_doa0_di" bpmnElement="task_produce_cards_doa0">
+        <di:waypoint x="1350" y="725" />
+        <di:waypoint x="958" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_add_to_list_doa0_di" bpmnElement="task_add_to_list_doa0">
+        <di:waypoint x="1540" y="725" />
+        <di:waypoint x="1528" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_assign_intakers_dia0_di" bpmnElement="task_assign_intakers_dia0">
+        <di:waypoint x="388" y="2145" />
+        <di:waypoint x="400" y="2020" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_assign_intakers_doa0_di" bpmnElement="task_assign_intakers_doa0">
+        <di:waypoint x="400" y="2020" />
+        <di:waypoint x="578" y="2145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_determine_medfile_needed_doa0_di" bpmnElement="task_determine_medfile_needed_doa0">
+        <di:waypoint x="590" y="1895" />
+        <di:waypoint x="578" y="2145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_record_assignment_list_doa0_di" bpmnElement="task_record_assignment_list_doa0">
+        <di:waypoint x="780" y="1895" />
+        <di:waypoint x="578" y="2145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_store_assignment_dia0_di" bpmnElement="task_store_assignment_dia0">
+        <di:waypoint x="388" y="1350" />
+        <di:waypoint x="400" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_store_assignment_doa0_di" bpmnElement="task_store_assignment_doa0">
+        <di:waypoint x="400" y="1100" />
+        <di:waypoint x="458" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_pass_cards_dia0_di" bpmnElement="task_pass_cards_dia0">
+        <di:waypoint x="958" y="1350" />
+        <di:waypoint x="590" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_letter_doctor_doa0_di" bpmnElement="task_send_letter_doctor_doa0">
+        <di:waypoint x="970" y="1100" />
+        <di:waypoint x="958" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_add_medfile_copy_dia0_di" bpmnElement="task_add_medfile_copy_dia0">
+        <di:waypoint x="578" y="1350" />
+        <di:waypoint x="590" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_add_medfile_copy_doa0_di" bpmnElement="task_add_medfile_copy_doa0">
+        <di:waypoint x="590" y="725" />
+        <di:waypoint x="768" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_checklist_doa0_di" bpmnElement="task_examine_checklist_doa0">
+        <di:waypoint x="590" y="2355" />
+        <di:waypoint x="768" y="2480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_register_observations_doa0_di" bpmnElement="task_register_observations_doa0">
+        <di:waypoint x="780" y="2355" />
+        <di:waypoint x="863" y="2480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_copy_notes_to_file_dia0_di" bpmnElement="task_copy_notes_to_file_dia0">
+        <di:waypoint x="863" y="2480" />
+        <di:waypoint x="970" y="2355" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_copy_notes_to_file_dia1_di" bpmnElement="task_copy_notes_to_file_dia1">
+        <di:waypoint x="768" y="2480" />
+        <di:waypoint x="970" y="2355" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_copy_notes_to_file_doa0_di" bpmnElement="task_copy_notes_to_file_doa0">
+        <di:waypoint x="970" y="2355" />
+        <di:waypoint x="958" y="2480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_record_dictaphone_doa0_di" bpmnElement="task_record_dictaphone_doa0">
+        <di:waypoint x="780" y="2690" />
+        <di:waypoint x="768" y="2815" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_type_tapes_dia0_di" bpmnElement="task_type_tapes_dia0">
+        <di:waypoint x="198" y="1350" />
+        <di:waypoint x="210" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_type_tapes_doa0_di" bpmnElement="task_type_tapes_doa0">
+        <di:waypoint x="210" y="1225" />
+        <di:waypoint x="293" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_add_dictation_file_dia0_di" bpmnElement="task_add_dictation_file_dia0">
+        <di:waypoint x="293" y="1350" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_add_dictation_file_doa0_di" bpmnElement="task_add_dictation_file_doa0">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="768" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_put_on_ready_list_doa0_di" bpmnElement="task_put_on_ready_list_doa0">
+        <di:waypoint x="970" y="975" />
+        <di:waypoint x="958" y="1350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_provide_list_teamleader_dia0_di" bpmnElement="task_provide_list_teamleader_dia0">
+        <di:waypoint x="958" y="1350" />
+        <di:waypoint x="970" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_formulate_treatment_plan_doa0_di" bpmnElement="task_formulate_treatment_plan_doa0">
+        <di:waypoint x="210" y="2020" />
+        <di:waypoint x="198" y="2145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_formulate_treatment_plan_psy_doa0_di" bpmnElement="task_formulate_treatment_plan_psy_doa0">
+        <di:waypoint x="210" y="3025" />
+        <di:waypoint x="198" y="3150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_medfile_copy_doa0_di" bpmnElement="task_send_medfile_copy_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="388" y="515" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

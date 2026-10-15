@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+  <bpmn:process id="ClaimsNotificationProcess" name="Claims Notification Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_ClaimReceived" name="Claim received">
+      <bpmn:outgoing">SequenceFlow_01</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_CheckInsurance" name="Check if claimant is insured">
+      <bpmn:incoming">SequenceFlow_01</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_02</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_IsInsured" name="Claimant insured?">
+      <bpmn:incoming">SequenceFlow_02</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_NotInsured</bpmn:outgoing>
+      <bpmn:outgoing">SequenceFlow_Insured</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sendTask id="Task_InformRejection" name="Inform claimant that claim is rejected">
+      <bpmn:incoming">SequenceFlow_NotInsured</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_03</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_ClaimRejected" name="Claim rejected">
+      <bpmn:incoming">SequenceFlow_03</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_EvaluateSeverity" name="Evaluate severity of the claim">
+      <bpmn:incoming">SequenceFlow_Insured</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_04</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_ClaimSeverity" name="Claim severity?">
+      <bpmn:incoming">SequenceFlow_04</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_Simple</bpmn:outgoing>
+      <bpmn:outgoing">SequenceFlow_Complex</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sendTask id="Task_SendSimpleForms" name="Send simple claim forms to claimant">
+      <bpmn:incoming">SequenceFlow_Simple</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_05</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:sendTask id="Task_SendComplexForms" name="Send complex claim forms to claimant">
+      <bpmn:incoming">SequenceFlow_Complex</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_06</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:exclusiveGateway id="Gateway_FormsSent">
+      <bpmn:incoming">SequenceFlow_05</bpmn:incoming>
+      <bpmn:incoming">SequenceFlow_06</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_07</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:receiveTask id="Task_ReceiveForms" name="Receive forms from claimant">
+      <bpmn:incoming">SequenceFlow_07</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_08</bpmn:outgoing>
+    </bpmn:receiveTask>
+
+    <bpmn:exclusiveGateway id="Gateway_MergeCheck">
+      <bpmn:incoming">SequenceFlow_08</bpmn:incoming>
+      <bpmn:incoming">SequenceFlow_12</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_09</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CheckCompleteness" name="Check forms for completeness">
+      <bpmn:incoming">SequenceFlow_09</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_FormsComplete" name="Forms complete?">
+      <bpmn:incoming">SequenceFlow_10</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_Complete</bpmn:outgoing>
+      <bpmn:outgoing">SequenceFlow_Incomplete</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_RegisterClaim" name="Register claim in Claims Management system">
+      <bpmn:incoming">SequenceFlow_Complete</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_11</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_ClaimRegistered" name="Claim registered">
+      <bpmn:incoming">SequenceFlow_11</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sendTask id="Task_InformUpdate" name="Inform claimant to update forms">
+      <bpmn:incoming">SequenceFlow_Incomplete</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_13</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:receiveTask id="Task_ReceiveUpdatedForms" name="Receive updated forms">
+      <bpmn:incoming">SequenceFlow_13</bpmn:incoming>
+      <bpmn:outgoing">SequenceFlow_12</bpmn:outgoing>
+    </bpmn:receiveTask>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="SequenceFlow_01" sourceRef="StartEvent_ClaimReceived" targetRef="Task_CheckInsurance" />
+    <bpmn:sequenceFlow id="SequenceFlow_02" sourceRef="Task_CheckInsurance" targetRef="Gateway_IsInsured" />
+    <bpmn:sequenceFlow id="SequenceFlow_NotInsured" name="No" sourceRef="Gateway_IsInsured" targetRef="Task_InformRejection" />
+    <bpmn:sequenceFlow id="SequenceFlow_03" sourceRef="Task_InformRejection" targetRef="EndEvent_ClaimRejected" />
+    <bpmn:sequenceFlow id="SequenceFlow_Insured" name="Yes" sourceRef="Gateway_IsInsured" targetRef="Task_EvaluateSeverity" />
+    <bpmn:sequenceFlow id="SequenceFlow_04" sourceRef="Task_EvaluateSeverity" targetRef="Gateway_ClaimSeverity" />
+    <bpmn:sequenceFlow id="SequenceFlow_Simple" name="Simple" sourceRef="Gateway_ClaimSeverity" targetRef="Task_SendSimpleForms" />
+    <bpmn:sequenceFlow id="SequenceFlow_Complex" name="Complex" sourceRef="Gateway_ClaimSeverity" targetRef="Task_SendComplexForms" />
+    <bpmn:sequenceFlow id="SequenceFlow_05" sourceRef="Task_SendSimpleForms" targetRef="Gateway_FormsSent" />
+    <bpmn:sequenceFlow id="SequenceFlow_06" sourceRef="Task_SendComplexForms" targetRef="Gateway_FormsSent" />
+    <bpmn:sequenceFlow id="SequenceFlow_07" sourceRef="Gateway_FormsSent" targetRef="Task_ReceiveForms" />
+    <bpmn:sequenceFlow id="SequenceFlow_08" sourceRef="Task_ReceiveForms" targetRef="Gateway_MergeCheck" />
+    <bpmn:sequenceFlow id="SequenceFlow_09" sourceRef="Gateway_MergeCheck" targetRef="Task_CheckCompleteness" />
+    <bpmn:sequenceFlow id="SequenceFlow_10" sourceRef="Task_CheckCompleteness" targetRef="Gateway_FormsComplete" />
+    <bpmn:sequenceFlow id="SequenceFlow_Complete" name="Yes" sourceRef="Gateway_FormsComplete" targetRef="Task_RegisterClaim" />
+    <bpmn:sequenceFlow id="SequenceFlow_Incomplete" name="No" sourceRef="Gateway_FormsComplete" targetRef="Task_InformUpdate" />
+    <bpmn:sequenceFlow id="SequenceFlow_11" sourceRef="Task_RegisterClaim" targetRef="EndEvent_ClaimRegistered" />
+    <bpmn:sequenceFlow id="SequenceFlow_13" sourceRef="Task_InformUpdate" targetRef="Task_ReceiveUpdatedForms" />
+    <bpmn:sequenceFlow id="SequenceFlow_12" sourceRef="Task_ReceiveUpdatedForms" targetRef="Gateway_MergeCheck" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ClaimsNotificationProcess">
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="StartEvent_ClaimReceived_di" bpmnElement="StartEvent_ClaimReceived">
+        <dc:Bounds x="152" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="135" y="225" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task Check Insurance -->
+      <bpmndi:BPMNShape id="Task_CheckInsurance_di" bpmnElement="Task_CheckInsurance">
+        <dc:Bounds x="240" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway Is Insured -->
+      <bpmndi:BPMNShape id="Gateway_IsInsured_di" bpmnElement="Gateway_IsInsured" isMarkerVisible="true">
+        <dc:Bounds x="395" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="376" y="145" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task Inform Rejection -->
+      <bpmndi:BPMNShape id="Task_InformRejection_di" bpmnElement="Task_InformRejection">
+        <dc:Bounds x="500" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event Claim Rejected -->
+      <bpmndi:BPMNShape id="EndEvent_ClaimRejected_di" bpmnElement="EndEvent_ClaimRejected">
+        <dc:Bounds x="662" y="82" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="645" y="125" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task Evaluate Severity -->
+      <bpmndi:BPMNShape id="Task_EvaluateSeverity_di" bpmnElement="Task_EvaluateSeverity">
+        <dc:Bounds x="500" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway Claim Severity -->
+      <bpmndi:BPMNShape id="Gateway_ClaimSeverity_di" bpmnElement="Gateway_ClaimSeverity" isMarkerVisible="true">
+        <dc:Bounds x="655" y="285" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="643" y="261" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task Send Simple Forms -->
+      <bpmndi:BPMNShape id="Task_SendSimpleForms_di" bpmnElement="Task_SendSimpleForms">
+        <dc:Bounds x="760" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Task Send Complex Forms -->
+      <bpmndi:BPMNShape id="Task_SendComplexForms_di" bpmnElement="Task_SendComplexForms">
+        <dc:Bounds x="760" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway Forms Sent -->
+      <bpmndi:BPMNShape id="Gateway_FormsSent_di" bpmnElement="Gateway_FormsSent" isMarkerVisible="true">
+        <dc:Bounds x="915" y="285" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Task Receive Forms -->
+      <bpmndi:BPMNShape id="Task_ReceiveForms_di" bpmnElement="Task_ReceiveForms">
+        <dc:Bounds x="1010" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway Merge Check -->
+      <bpmndi:BPMNShape id="Gateway_MergeCheck_di" bpmnElement="Gateway_MergeCheck" isMarkerVisible="true">
+        <dc:Bounds x="1165" y="285" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <!-- Task Check Completeness -->
+      <bpmndi:BPMNShape id="Task_CheckCompleteness_di" bpmnElement="Task_CheckCompleteness">
+        <dc:Bounds x="1260" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway Forms Complete -->
+      <bpmndi:BPMNShape id="Gateway_FormsComplete_di" bpmnElement="Gateway_FormsComplete" isMarkerVisible="true">
+        <dc:Bounds x="1415" y="285" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1398" y="261" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task Register Claim -->
+      <bpmndi:BPMNShape id="Task_RegisterClaim_di" bpmnElement="Task_RegisterClaim">
+        <dc:Bounds x="1520" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- End Event Claim Registered -->
+      <bpmndi:BPMNShape id="EndEvent_ClaimRegistered_di" bpmnElement="EndEvent_ClaimRegistered">
+        <dc:Bounds x="1682" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1660" y="335" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Task Inform Update -->
+      <bpmndi:BPMNShape id="Task_InformUpdate_di" bpmnElement="Task_InformUpdate">
+        <dc:Bounds x="1520" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Task Receive Updated Forms -->
+      <bpmndi:BPMNShape id="Task_ReceiveUpdatedForms_di" bpmnElement="Task_ReceiveUpdatedForms">
+        <dc:Bounds x="1340" y="400" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="SequenceFlow_01_di" bpmnElement="SequenceFlow_01">
+        <di:waypoint x="188" y="200" />
+        <di:waypoint x="240" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_02_di" bpmnElement="SequenceFlow_02">
+        <di:waypoint x="340" y="200" />
+        <di:waypoint x="395" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_NotInsured_di" bpmnElement="SequenceFlow_NotInsured">
+        <di:waypoint x="420" y="175" />
+        <di:waypoint x="420" y="100" />
+        <di:waypoint x="500" y="100" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="428" y="135" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_03_di" bpmnElement="SequenceFlow_03">
+        <di:waypoint x="600" y="100" />
+        <di:waypoint x="662" y="100" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Insured_di" bpmnElement="SequenceFlow_Insured">
+        <di:waypoint x="420" y="225" />
+        <di:waypoint x="420" y="310" />
+        <di:waypoint x="500" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="426" y="265" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_04_di" bpmnElement="SequenceFlow_04">
+        <di:waypoint x="600" y="310" />
+        <di:waypoint x="655" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Simple_di" bpmnElement="SequenceFlow_Simple">
+        <di:waypoint x="680" y="285" />
+        <di:waypoint x="680" y="240" />
+        <di:waypoint x="760" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="693" y="220" width="34" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Complex_di" bpmnElement="SequenceFlow_Complex">
+        <di:waypoint x="680" y="335" />
+        <di:waypoint x="680" y="380" />
+        <di:waypoint x="760" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="688" y="388" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_05_di" bpmnElement="SequenceFlow_05">
+        <di:waypoint x="860" y="240" />
+        <di:waypoint x="940" y="240" />
+        <di:waypoint x="940" y="285" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_06_di" bpmnElement="SequenceFlow_06">
+        <di:waypoint x="860" y="380" />
+        <di:waypoint x="940" y="380" />
+        <di:waypoint x="940" y="335" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_07_di" bpmnElement="SequenceFlow_07">
+        <di:waypoint x="965" y="310" />
+        <di:waypoint x="1010" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_08_di" bpmnElement="SequenceFlow_08">
+        <di:waypoint x="1110" y="310" />
+        <di:waypoint x="1165" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_09_di" bpmnElement="SequenceFlow_09">
+        <di:waypoint x="1215" y="310" />
+        <di:waypoint x="1260" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_10_di" bpmnElement="SequenceFlow_10">
+        <di:waypoint x="1360" y="310" />
+        <di:waypoint x="1415" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Complete_di" bpmnElement="SequenceFlow_Complete">
+        <di:waypoint x="1465" y="310" />
+        <di:waypoint x="1520" y="310" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1484" y="292" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_11_di" bpmnElement="SequenceFlow_11">
+        <di:waypoint x="1620" y="310" />
+        <di:waypoint x="1682" y="310" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_Incomplete_di" bpmnElement="SequenceFlow_Incomplete">
+        <di:waypoint x="1440" y="335" />
+        <di:waypoint x="1440" y="440" />
+        <di:waypoint x="1520" y="440" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1448" y="385" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_13_di" bpmnElement="SequenceFlow_13">
+        <di:waypoint x="1520" y="440" />
+        <di:waypoint x="1440" y="440" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="SequenceFlow_12_di" bpmnElement="SequenceFlow_12">
+        <di:waypoint x="1340" y="440" />
+        <di:waypoint x="1190" y="440" />
+        <di:waypoint x="1190" y="335" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_HR" name="HR Clerk" processRef="Process_HR" />
+    <bpmn:participant id="Participant_Dept" name="Department" processRef="Process_Dept" />
+
+    <bpmn:messageFlow id="MF_1" name="Vacancy Reported" sourceRef="Task_D1" targetRef="StartEvent_1" />
+    <bpmn:messageFlow id="MF_2" name="Ask for Clarification" sourceRef="Task_2" targetRef="Event_D1" />
+    <bpmn:messageFlow id="MF_3" name="Clarification Provided" sourceRef="Task_D2" targetRef="Event_1" />
+    <bpmn:messageFlow id="MF_4" name="Job Description Submitted" sourceRef="Task_3" targetRef="Event_D2" />
+    <bpmn:messageFlow id="MF_5" name="Approval" sourceRef="Task_D4" targetRef="Event_2" />
+    <bpmn:messageFlow id="MF_6" name="Rejection / Correction Request" sourceRef="Task_D5" targetRef="Event_2" />
+  </bpmn:collaboration>
+
+  <!-- ===================== HR CLERK PROCESS ===================== -->
+  <bpmn:process id="Process_HR" name="HR Clerk Process" isExecutable="false">
+
+    <bpmn:startEvent id="StartEvent_1" name="Vacancy Reported">
+      <bpmn:outgoing>SF1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_1" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_1" name="Create Job Description">
+      <bpmn:incoming>SF1</bpmn:incoming>
+      <bpmn:incoming>SF5</bpmn:incoming>
+      <bpmn:outgoing>SF2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_1" name="Message Clear?">
+      <bpmn:incoming>SF2</bpmn:incoming>
+      <bpmn:outgoing>SF3</bpmn:outgoing>
+      <bpmn:outgoing>SF6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_2" name="Ask Department for Clarification">
+      <bpmn:incoming>SF3</bpmn:incoming>
+      <bpmn:outgoing>SF4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="Event_1" name="Receive Clarification">
+      <bpmn:incoming>SF4</bpmn:incoming>
+      <bpmn:outgoing>SF5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_2" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_3" name="Submit Job Description for Consideration">
+      <bpmn:incoming>SF6</bpmn:incoming>
+      <bpmn:incoming>SF10</bpmn:incoming>
+      <bpmn:outgoing>SF7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="Event_2" name="Receive Decision">
+      <bpmn:incoming>SF7</bpmn:incoming>
+      <bpmn:outgoing>SF8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_3" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_2" name="Approved?">
+      <bpmn:incoming>SF8</bpmn:incoming>
+      <bpmn:outgoing>SF9</bpmn:outgoing>
+      <bpmn:outgoing>SF11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_4" name="Correct Job Description">
+      <bpmn:incoming>SF9</bpmn:incoming>
+      <bpmn:outgoing>SF10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_5" name="Post Job">
+      <bpmn:incoming>SF11</bpmn:incoming>
+      <bpmn:outgoing>SF12</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_1" name="Job Posted">
+      <bpmn:incoming>SF12</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF1" sourceRef="StartEvent_1" targetRef="Task_1" />
+    <bpmn:sequenceFlow id="SF2" sourceRef="Task_1" targetRef="Gateway_1" />
+    <bpmn:sequenceFlow id="SF3" name="Unclear" sourceRef="Gateway_1" targetRef="Task_2" />
+    <bpmn:sequenceFlow id="SF4" sourceRef="Task_2" targetRef="Event_1" />
+    <bpmn:sequenceFlow id="SF5" sourceRef="Event_1" targetRef="Task_1" />
+    <bpmn:sequenceFlow id="SF6" name="Clear" sourceRef="Gateway_1" targetRef="Task_3" />
+    <bpmn:sequenceFlow id="SF7" sourceRef="Task_3" targetRef="Event_2" />
+    <bpmn:sequenceFlow id="SF8" sourceRef="Event_2" targetRef="Gateway_2" />
+    <bpmn:sequenceFlow id="SF9" name="Rejected" sourceRef="Gateway_2" targetRef="Task_4" />
+    <bpmn:sequenceFlow id="SF10" sourceRef="Task_4" targetRef="Task_3" />
+    <bpmn:sequenceFlow id="SF11" name="Approved" sourceRef="Gateway_2" targetRef="Task_5" />
+    <bpmn:sequenceFlow id="SF12" sourceRef="Task_5" targetRef="EndEvent_1" />
+
+  </bpmn:process>
+
+  <!-- ===================== DEPARTMENT PROCESS ===================== -->
+  <bpmn:process id="Process_Dept" name="Department Process" isExecutable="false">
+
+    <bpmn:startEvent id="StartEvent_D1" name="Vacancy Identified">
+      <bpmn:outgoing>SFD1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_D1" name="Report Vacancy">
+      <bpmn:incoming>SFD1</bpmn:incoming>
+      <bpmn:outgoing>SFD2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="Event_D1" name="Receive Clarification Request">
+      <bpmn:incoming>SFD2</bpmn:incoming>
+      <bpmn:outgoing>SFD3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_D1" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_D2" name="Clarify Information">
+      <bpmn:incoming>SFD3</bpmn:incoming>
+      <bpmn:outgoing>SFD4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="Event_D2" name="Receive Job Description">
+      <bpmn:incoming>SFD4</bpmn:incoming>
+      <bpmn:incoming>SFD10</bpmn:incoming>
+      <bpmn:outgoing>SFD5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_D2" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_D3" name="Review Job Description">
+      <bpmn:incoming>SFD5</bpmn:incoming>
+      <bpmn:outgoing>SFD6</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_D1" name="Approve?">
+      <bpmn:incoming>SFD6</bpmn:incoming>
+      <bpmn:outgoing>SFD7</bpmn:outgoing>
+      <bpmn:outgoing>SFD9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_D4" name="Send Approval">
+      <bpmn:incoming>SFD7</bpmn:incoming>
+      <bpmn:outgoing>SFD8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_D5" name="Send Rejection and Request Correction">
+      <bpmn:incoming>SFD9</bpmn:incoming>
+      <bpmn:outgoing>SFD10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_D1" name="Process Completed">
+      <bpmn:incoming>SFD8</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SFD1" sourceRef="StartEvent_D1" targetRef="Task_D1" />
+    <bpmn:sequenceFlow id="SFD2" sourceRef="Task_D1" targetRef="Event_D1" />
+    <bpmn:sequenceFlow id="SFD3" sourceRef="Event_D1" targetRef="Task_D2" />
+    <bpmn:sequenceFlow id="SFD4" sourceRef="Task_D2" targetRef="Event_D2" />
+    <bpmn:sequenceFlow id="SFD5" sourceRef="Event_D2" targetRef="Task_D3" />
+    <bpmn:sequenceFlow id="SFD6" sourceRef="Task_D3" targetRef="Gateway_D1" />
+    <bpmn:sequenceFlow id="SFD7" name="Approved" sourceRef="Gateway_D1" targetRef="Task_D4" />
+    <bpmn:sequenceFlow id="SFD8" sourceRef="Task_D4" targetRef="EndEvent_D1" />
+    <bpmn:sequenceFlow id="SFD9" name="Rejected" sourceRef="Gateway_D1" targetRef="Task_D5" />
+    <bpmn:sequenceFlow id="SFD10" sourceRef="Task_D5" targetRef="Event_D2" />
+
+  </bpmn:process>
+
+  <!-- ===================== DIAGRAM ===================== -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Participant_HR_di" bpmnElement="Participant_HR" isHorizontal="true">
+        <dc:Bounds x="0" y="0" width="1340" height="200" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_Dept_di" bpmnElement="Participant_Dept" isHorizontal="true">
+        <dc:Bounds x="0" y="250" width="1340" height="300" />
+      </bpmndi:BPMNShape>
+
+      <!-- HR shapes -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="60" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_1_di" bpmnElement="Task_1">
+        <dc:Bounds x="140" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1_di" bpmnElement="Gateway_1">
+        <dc:Bounds x="280" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_2_di" bpmnElement="Task_2">
+        <dc:Bounds x="380" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1_di" bpmnElement="Event_1">
+        <dc:Bounds x="520" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_3_di" bpmnElement="Task_3">
+        <dc:Bounds x="620" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_2_di" bpmnElement="Event_2">
+        <dc:Bounds x="760" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_2_di" bpmnElement="Gateway_2">
+        <dc:Bounds x="840" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_4_di" bpmnElement="Task_4">
+        <dc:Bounds x="940" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_5_di" bpmnElement="Task_5">
+        <dc:Bounds x="1080" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1220" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Department shapes -->
+      <bpmndi:BPMNShape id="StartEvent_D1_di" bpmnElement="StartEvent_D1">
+        <dc:Bounds x="60" y="352" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_D1_di" bpmnElement="Task_D1">
+        <dc:Bounds x="140" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_D1_di" bpmnElement="Event_D1">
+        <dc:Bounds x="280" y="352" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_D2_di" bpmnElement="Task_D2">
+        <dc:Bounds x="380" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_D2_di" bpmnElement="Event_D2">
+        <dc:Bounds x="520" y="352" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_D3_di" bpmnElement="Task_D3">
+        <dc:Bounds x="620" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_D1_di" bpmnElement="Gateway_D1">
+        <dc:Bounds x="760" y="345" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_D4_di" bpmnElement="Task_D4">
+        <dc:Bounds x="860" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_D5_di" bpmnElement="Task_D5">
+        <dc:Bounds x="860" y="440" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_D1_di" bpmnElement="EndEvent_D1">
+        <dc:Bounds x="1020" y="352" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- HR sequence flows -->
+      <bpmndi:BPMNEdge id="SF1_di" bpmnElement="SF1">
+        <di:waypoint x="96" y="120" />
+        <di:waypoint x="140" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF2_di" bpmnElement="SF2">
+        <di:waypoint x="240" y="120" />
+        <di:waypoint x="280" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF3_di" bpmnElement="SF3">
+        <di:waypoint x="330" y="120" />
+        <di:waypoint x="380" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF4_di" bpmnElement="SF4">
+        <di:waypoint x="480" y="120" />
+        <di:waypoint x="520" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF5_di" bpmnElement="SF5">
+        <di:waypoint x="538" y="102" />
+        <di:waypoint x="538" y="40" />
+        <di:waypoint x="190" y="40" />
+        <di:waypoint x="190" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF6_di" bpmnElement="SF6">
+        <di:waypoint x="305" y="145" />
+        <di:waypoint x="305" y="180" />
+        <di:waypoint x="620" y="180" />
+        <di:waypoint x="620" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF7_di" bpmnElement="SF7">
+        <di:waypoint x="720" y="120" />
+        <di:waypoint x="760" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF8_di" bpmnElement="SF8">
+        <di:waypoint x="796" y="120" />
+        <di:waypoint x="840" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF9_di" bpmnElement="SF9">
+        <di:waypoint x="890" y="120" />
+        <di:waypoint x="940" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF10_di" bpmnElement="SF10">
+        <di:waypoint x="965" y="160" />
+        <di:waypoint x="965" y="200" />
+        <di:waypoint x="670" y="200" />
+        <di:waypoint x="670" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF11_di" bpmnElement="SF11">
+        <di:waypoint x="865" y="95" />
+        <di:waypoint x="865" y="50" />
+        <di:waypoint x="1130" y="50" />
+        <di:waypoint x="1130" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF12_di" bpmnElement="SF12">
+        <di:waypoint x="1180" y="120" />
+        <di:waypoint x="1220" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Department sequence flows -->
+      <bpmndi:BPMNEdge id="SFD1_di" bpmnElement="SFD1">
+        <di:waypoint x="96" y="370" />
+        <di:waypoint x="140" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SFD2_di" bpmnElement="SFD2">
+        <di:waypoint x="240" y="370" />
+        <di:waypoint x="280" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SFD3_di" bpmnElement="SFD3">
+        <di:waypoint x="316" y="370" />
+        <di:waypoint x="380" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SFD4_di" bpmnElement="SFD4">
+        <di:waypoint x="480" y="370" />
+        <di:waypoint x="520" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SFD5_di" bpmnElement="SFD5">
+        <di:waypoint x="556" y="370" />
+        <di:waypoint x="620" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SFD6_di" bpmnElement="SFD6">
+        <di:waypoint x="720" y="370" />
+        <di:waypoint x="760" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SFD7_di" bpmnElement="SFD7">
+        <di:waypoint x="810" y="370" />
+        <di:waypoint x="860" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SFD8_di" bpmnElement="SFD8">
+        <di:waypoint x="960" y="370" />
+        <di:waypoint x="1020" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SFD9_di" bpmnElement="SFD9">
+        <di:waypoint x="785" y="395" />
+        <di:waypoint x="785" y="480" />
+        <di:waypoint x="860" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SFD10_di" bpmnElement="SFD10">
+        <di:waypoint x="860" y="460" />
+        <di:waypoint x="538" y="460" />
+        <di:waypoint x="538" y="388" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Message flows -->
+      <bpmndi:BPMNEdge id="MF_1_di" bpmnElement="MF_1">
+        <di:waypoint x="190" y="330" />
+        <di:waypoint x="90" y="138" />
+        <di:waypoint x="78" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_2_di" bpmnElement="MF_2">
+        <di:waypoint x="430" y="160" />
+        <di:waypoint x="298" y="352" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_3_di" bpmnElement="MF_3">
+        <di:waypoint x="430" y="330" />
+        <di:waypoint x="538" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_4_di" bpmnElement="MF_4">
+        <di:waypoint x="670" y="160" />
+        <di:waypoint x="538" y="352" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_5_di" bpmnElement="MF_5">
+        <di:waypoint x="910" y="330" />
+        <di:waypoint x="778" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_6_di" bpmnElement="MF_6">
+        <di:waypoint x="910" y="440" />
+        <di:waypoint x="778" y="138" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

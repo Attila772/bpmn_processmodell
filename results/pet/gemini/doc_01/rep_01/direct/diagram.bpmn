@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_MasterDataChange"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- COLLABORATION -->
+  <bpmn:collaboration id="Collaboration_MasterDataChange">
+    <bpmn:participant id="Participant_EC" name="Energy Consumer (EC)" processRef="Process_EC" />
+    <bpmn:participant id="Participant_INQ" name="Inquiring Party (INQ)" processRef="Process_INQ" />
+    <bpmn:participant id="Participant_IP" name="Impacted Party (IP)" processRef="Process_IP" />
+    
+    <bpmn:messageFlow id="MsgFlow_EC_to_INQ" name="Master Data Change Notification" sourceRef="Task_EC_TellChange" targetRef="Start_INQ_Received" />
+    <bpmn:messageFlow id="MsgFlow_INQ_to_IP" name="Forward Master Data Change" sourceRef="Task_INQ_NotifyIP" targetRef="Start_IP_Received" />
+    <bpmn:messageFlow id="MsgFlow_IP_Confirm_to_INQ" name="Confirmation" sourceRef="Task_IP_SendConfirmation" targetRef="Event_INQ_ReceiveResponse" />
+    <bpmn:messageFlow id="MsgFlow_IP_Reject_to_INQ" name="Rejection" sourceRef="Task_IP_SendRejection" targetRef="Event_INQ_ReceiveResponse" />
+  </bpmn:collaboration>
+
+  <!-- PROCESS: EC -->
+  <bpmn:process id="Process_EC" name="Energy Consumer" isExecutable="true">
+    <bpmn:startEvent id="Start_EC" name="Master Data Change Required">
+      <bpmn:outgoing>Flow_EC_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sendTask id="Task_EC_TellChange" name="Tell INQ About Change of Master Data">
+      <bpmn:incoming>Flow_EC_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_EC_2</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="End_EC" name="Change Requested">
+      <bpmn:incoming>Flow_EC_2</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_EC_1" sourceRef="Start_EC" targetRef="Task_EC_TellChange" />
+    <bpmn:sequenceFlow id="Flow_EC_2" sourceRef="Task_EC_TellChange" targetRef="End_EC" />
+  </bpmn:process>
+
+  <!-- PROCESS: INQ -->
+  <bpmn:process id="Process_INQ" name="Inquiring Party" isExecutable="true">
+    <bpmn:startEvent id="Start_INQ_Received" name="Change Notification Received">
+      <bpmn:outgoing>Flow_INQ_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgEvtDef_INQ_Start" />
+    </bpmn:startEvent>
+    <bpmn:sendTask id="Task_INQ_NotifyIP" name="Notify IP of Change">
+      <bpmn:incoming>Flow_INQ_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_INQ_2</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:intermediateCatchEvent id="Event_INQ_ReceiveResponse" name="Receive Response from IP">
+      <bpmn:incoming>Flow_INQ_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_INQ_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgEvtDef_INQ_Response" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="End_INQ" name="Process Completed">
+      <bpmn:incoming>Flow_INQ_3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_INQ_1" sourceRef="Start_INQ_Received" targetRef="Task_INQ_NotifyIP" />
+    <bpmn:sequenceFlow id="Flow_INQ_2" sourceRef="Task_INQ_NotifyIP" targetRef="Event_INQ_ReceiveResponse" />
+    <bpmn:sequenceFlow id="Flow_INQ_3" sourceRef="Event_INQ_ReceiveResponse" targetRef="End_INQ" />
+  </bpmn:process>
+
+  <!-- PROCESS: IP -->
+  <bpmn:process id="Process_IP" name="Impacted Party" isExecutable="true">
+    <bpmn:startEvent id="Start_IP_Received" name="Change Notification Received">
+      <bpmn:outgoing>Flow_IP_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgEvtDef_IP_Start" />
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_IP_CheckChange" name="Check if Master Data Can Be Changed at Desired Time">
+      <bpmn:incoming>Flow_IP_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_IP_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_IP_CheckResult" name="Change Possible?">
+      <bpmn:incoming>Flow_IP_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_IP_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_IP_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="Task_IP_SendConfirmation" name="Confirm Changes to INQ">
+      <bpmn:incoming>Flow_IP_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_IP_3</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sendTask id="Task_IP_SendRejection" name="Reject Changes of INQ">
+      <bpmn:incoming>Flow_IP_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_IP_4</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="End_IP_Confirmed" name="Changes Confirmed">
+      <bpmn:incoming>Flow_IP_3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_IP_Rejected" name="Changes Rejected">
+      <bpmn:incoming>Flow_IP_4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_IP_1" sourceRef="Start_IP_Received" targetRef="Task_IP_CheckChange" />
+    <bpmn:sequenceFlow id="Flow_IP_2" sourceRef="Task_IP_CheckChange" targetRef="Gateway_IP_CheckResult" />
+    <bpmn:sequenceFlow id="Flow_IP_Yes" name="Yes" sourceRef="Gateway_IP_CheckResult" targetRef="Task_IP_SendConfirmation" />
+    <bpmn:sequenceFlow id="Flow_IP_No" name="No" sourceRef="Gateway_IP_CheckResult" targetRef="Task_IP_SendRejection" />
+    <bpmn:sequenceFlow id="Flow_IP_3" sourceRef="Task_IP_SendConfirmation" targetRef="End_IP_Confirmed" />
+    <bpmn:sequenceFlow id="Flow_IP_4" sourceRef="Task_IP_SendRejection" targetRef="End_IP_Rejected" />
+  </bpmn:process>
+
+  <!-- BPMN DIAGRAM -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_MasterDataChange">
+      
+      <!-- PARTICIPANT EC -->
+      <bpmndi:BPMNShape id="Participant_EC_di" bpmnElement="Participant_EC" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="600" x="0" y="0" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_EC_di" bpmnElement="Start_EC">
+        <dc:Bounds x="222" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="199" y="185" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EC_TellChange_di" bpmnElement="Task_EC_TellChange">
+        <dc:Bounds x="320" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_EC_di" bpmnElement="End_EC">
+        <dc:Bounds x="482" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="473" y="185" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_EC_1_di" bpmnElement="Flow_EC_1">
+        <di:waypoint x="258" y="160" />
+        <di:waypoint x="320" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_EC_2_di" bpmnElement="Flow_EC_2">
+        <di:waypoint x="420" y="160" />
+        <di:waypoint x="482" y="160" />
+      </bpmndi:BPMNEdge>
+
+      <!-- PARTICIPANT INQ -->
+      <bpmndi:BPMNShape id="Participant_INQ_di" bpmnElement="Participant_INQ" isHorizontal="true">
+        <dc:Bounds x="160" y="290" width="760" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_INQ_Received_di" bpmnElement="Start_INQ_Received">
+        <dc:Bounds x="352" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="342" y="395" width="56" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_INQ_NotifyIP_di" bpmnElement="Task_INQ_NotifyIP">
+        <dc:Bounds x="450" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_INQ_ReceiveResponse_di" bpmnElement="Event_INQ_ReceiveResponse">
+        <dc:Bounds x="732" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="706" y="315" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_INQ_di" bpmnElement="End_INQ">
+        <dc:Bounds x="832" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="823" y="395" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_INQ_1_di" bpmnElement="Flow_INQ_1">
+        <di:waypoint x="388" y="370" />
+        <di:waypoint x="450" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_INQ_2_di" bpmnElement="Flow_INQ_2">
+        <di:waypoint x="550" y="370" />
+        <di:waypoint x="732" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_INQ_3_di" bpmnElement="Flow_INQ_3">
+        <di:waypoint x="768" y="370" />
+        <di:waypoint x="832" y="370" />
+      </bpmndi:BPMNEdge>
+
+      <!-- PARTICIPANT IP -->
+      <bpmndi:BPMNShape id="Participant_IP_di" bpmnElement="Participant_IP" isHorizontal="true">
+        <dc:Bounds x="160" y="500" width="820" height="280" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_IP_Received_di" bpmnElement="Start_IP_Received">
+        <dc:Bounds x="482" y="622" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="472" y="665" width="56" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IP_CheckChange_di" bpmnElement="Task_IP_CheckChange">
+        <dc:Bounds x="560" y="600" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_IP_CheckResult_di" bpmnElement="Gateway_IP_CheckResult" isMarkerVisible="true">
+        <dc:Bounds x="695" y="615" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="675" y="672" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IP_SendConfirmation_di" bpmnElement="Task_IP_SendConfirmation">
+        <dc:Bounds x="790" y="530" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_IP_SendRejection_di" bpmnElement="Task_IP_SendRejection">
+        <dc:Bounds x="790" y="670" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_IP_Confirmed_di" bpmnElement="End_IP_Confirmed">
+        <dc:Bounds x="922" y="552" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="914" y="595" width="52" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_IP_Rejected_di" bpmnElement="End_IP_Rejected">
+        <dc:Bounds x="922" y="692" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="918" y="735" width="44" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_IP_1_di" bpmnElement="Flow_IP_1">
+        <di:waypoint x="518" y="640" />
+        <di:waypoint x="560" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_2_di" bpmnElement="Flow_IP_2">
+        <di:waypoint x="660" y="640" />
+        <di:waypoint x="695" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_Yes_di" bpmnElement="Flow_IP_Yes">
+        <di:waypoint x="720" y="615" />
+        <di:waypoint x="720" y="570" />
+        <di:waypoint x="790" y="570" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="726" y="590" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_No_di" bpmnElement="Flow_IP_No">
+        <di:waypoint x="720" y="665" />
+        <di:waypoint x="720" y="710" />
+        <di:waypoint x="790" y="710" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="728" y="685" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_3_di" bpmnElement="Flow_IP_3">
+        <di:waypoint x="890" y="570" />
+        <di:waypoint x="922" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_IP_4_di" bpmnElement="Flow_IP_4">
+        <di:waypoint x="890" y="710" />
+        <di:waypoint x="922" y="710" />
+      </bpmndi:BPMNEdge>
+
+      <!-- MESSAGE FLOWS -->
+      <bpmndi:BPMNEdge id="MsgFlow_EC_to_INQ_di" bpmnElement="MsgFlow_EC_to_INQ">
+        <di:waypoint x="370" y="200" />
+        <di:waypoint x="370" y="352" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="283" y="246" width="74" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_INQ_to_IP_di" bpmnElement="MsgFlow_INQ_to_IP">
+        <di:waypoint x="500" y="410" />
+        <di:waypoint x="500" y="622" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="415" y="486" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_IP_Confirm_to_INQ_di" bpmnElement="MsgFlow_IP_Confirm_to_INQ">
+        <di:waypoint x="840" y="530" />
+        <di:waypoint x="840" y="470" />
+        <di:waypoint x="750" y="470" />
+        <di:waypoint x="750" y="388" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="764" y="483" width="63" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_IP_Reject_to_INQ_di" bpmnElement="MsgFlow_IP_Reject_to_INQ">
+        <di:waypoint x="890" y="710" />
+        <di:waypoint x="910" y="710" />
+        <di:waypoint x="910" y="480" />
+        <di:waypoint x="750" y="480" />
+        <di:waypoint x="750" y="388" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="826" y="483" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

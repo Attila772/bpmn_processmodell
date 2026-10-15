@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="LoanApprovalProcess" name="Loan Approval Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_ReceiveRequest" name="Receive Customer Request">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_RiskAssessment" name="Invoke Risk Assessment Web Service">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="Decision Gateway" gatewayDirection="Diverging">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approve</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Deny</bpmn:outgoing>
+      <bpmn:outgoing>Flow_FurtherReview</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_Approved" name="Loan Approved">
+      <bpmn:incoming>Flow_Approve</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Denied" name="Loan Denied">
+      <bpmn:incoming>Flow_Deny</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_ApproverService" name="Send to Approver Web Service">
+      <bpmn:incoming>Flow_FurtherReview</bpmn:incoming>
+      <bpmn:outgoing>Flow_FinalFeedback</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Feedback" name="Customer Receives Feedback">
+      <bpmn:incoming>Flow_FinalFeedback</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_ReceiveRequest" targetRef="Task_RiskAssessment" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_RiskAssessment" targetRef="Gateway_Decision" />
+    <bpmn:sequenceFlow id="Flow_Approve" name="Small Loan &amp; Low Risk" sourceRef="Gateway_Decision" targetRef="EndEvent_Approved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">loanAmount &lt; 10000 AND riskLevel == 'LOW'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Deny" name="High Risk" sourceRef="Gateway_Decision" targetRef="EndEvent_Denied">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">riskLevel == 'HIGH'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_FurtherReview" name="Further Review or Large Amount" sourceRef="Gateway_Decision" targetRef="Task_ApproverService">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">riskLevel == 'MEDIUM' OR loanAmount &gt;= 10000</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_FinalFeedback" sourceRef="Task_ApproverService" targetRef="EndEvent_Feedback" />
+  </bpmn:process>
+</bpmn:definitions>

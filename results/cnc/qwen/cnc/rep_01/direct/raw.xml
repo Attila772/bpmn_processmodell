@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_CuttingAndCNC" name="Nyersanyag darabolása és CNC megmunkálása" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Folyamat indítása">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_Cutting" name="Nyersanyag méretre vágása (Daraboló üzem)">
+      <bpmn:extensionElements>
+        <bpmn:dataInputAssociation>
+          <bpmn:sourceRef>DataStore_MuhelyRajz</bpmn:sourceRef>
+          <bpmn:targetRef>DataObject_RawMaterial</bpmn:targetRef>
+        </bpmn:dataInputAssociation>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_ScanBarcode1" name="Vonalkód beolvasása (Nyomonkövetés)">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_UpdateMES_Cut" name="Státusz rögzítése MES-ben (Darabolás)">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_PrepareCNC" name="Forgácsoló gyártáselőkészítés">
+      <bpmn:subProcess id="SubProcess_Preparation" name="Előkészítő tevékenységek">
+        <bpmn:incoming>Flow_4</bpmn:incoming>
+        <bpmn:outgoing>Flow_5</bpmn:outgoing>
+        <bpmn:sequenceFlow id="Flow_Sub_1" sourceRef="Start_Sub_1" targetRef="Task_CheckType" />
+        <bpmn:sequenceFlow id="Flow_Sub_2" sourceRef="Task_CheckType" targetRef="Task_RecordList" />
+        <bpmn:sequenceFlow id="Flow_Sub_3" sourceRef="Task_RecordList" targetRef="Task_UpdateMES_Prep" />
+        <bpmn:sequenceFlow id="Flow_Sub_4" sourceRef="Task_UpdateMES_Prep" targetRef="Gateway_SelectType" />
+        <bpmn:exclusiveGateway id="Gateway_SelectType" name="Megmunkálás típusa">
+          <bpmn:incoming>Flow_Sub_4</bpmn:incoming>
+          <bpmn:outgoing>Flow_Sub_5</bpmn:outgoing>
+          <bpmn:outgoing>Flow_Sub_Other</bpmn:outgoing>
+        </bpmn:exclusiveGateway>
+        <bpmn:sequenceFlow id="Flow_Sub_5" name="CNC" sourceRef="Gateway_SelectType" targetRef="End_Sub_1" />
+        <bpmn:sequenceFlow id="Flow_Sub_Other" name="Hagyományos/Kiszervezés" sourceRef="Gateway_SelectType" targetRef="End_Sub_Other" />
+        <bpmn:startEvent id="Start_Sub_1">
+          <bpmn:outgoing>Flow_Sub_1</bpmn:outgoing>
+        </bpmn:startEvent>
+        <bpmn:endEvent id="End_Sub_1" name="CNC kiválasztva">
+          <bpmn:incoming>Flow_Sub_5</bpmn:incoming>
+        </bpmn:endEvent>
+        <bpmn:endEvent id="End_Sub_Other" name="Más típus">
+          <bpmn:incoming>Flow_Sub_Other</bpmn:incoming>
+        </bpmn:endEvent>
+        <bpmn:task id="Task_CheckType" name="Megmunkálási típus vizsgálata">
+          <bpmn:incoming>Flow_Sub_1</bpmn:incoming>
+          <bpmn:outgoing>Flow_Sub_2</bpmn:outgoing>
+        </bpmn:task>
+        <bpmn:task id="Task_RecordList" name="Alkatrészjegyzék rögzítése">
+          <bpmn:incoming>Flow_Sub_2</bpmn:incoming>
+          <bpmn:outgoing>Flow_Sub_3</bpmn:outgoing>
+        </bpmn:task>
+        <bpmn:task id="Task_UpdateMES_Prep" name="Státusz váltás MES-ben (Előkészítés)">
+          <bpmn:incoming>Flow_Sub_3</bpmn:incoming>
+          <bpmn:outgoing>Flow_Sub_4</bpmn:outgoing>
+        </bpmn:task>
+      </bpmn:subProcess>
+    </bpmn:task>
+    <bpmn:task id="Task_CheckProgram" name="CNC program meglétének ellenőrzése">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_ProgramExists" name="Van CNC program?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7_No</bpmn:outgoing>
+      <bpmn:outgoing>Flow_8_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_NotifyProgrammer" name="CNC programozó értesítése">
+      <bpmn:incoming>Flow_7_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Cutting" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Cutting" targetRef="Task_ScanBarcode1" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_ScanBarcode1" targetRef="Task_UpdateMES_Cut" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_UpdateMES_Cut" targetRef="Task_PrepareCNC" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_PrepareCNC" targetRef="Task_CheckProgram" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_CheckProgram" targetRef="Gateway_ProgramExists" />
+    <bpmn:sequenceFlow id="Flow_7_No" name="Nincs" sourceRef="Gateway_ProgramExists" targetRef="Task_NotifyProgrammer" />
+    <bpmn:sequenceFlow id="Flow_8_Yes" name="Van" sourceRef="Gateway_ProgramExists" targetRef="Task_TransferToCNC" />
+    <bpmn:sequenceFlow id="Flow_9" name="Visszaellenőrzés" sourceRef="Task_NotifyProgrammer" targetRef="Task_CheckProgram" />
+    <bpmn:task id="Task_TransferToCNC" name="Átadás CNC megmunkálásra">
+      <bpmn:incoming>Flow_8_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_ScanBarcode2" name="Beazonosítás vonalkód olvasással">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_DownloadProgram" name="CNC program letöltése szerverről">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CheckChuck" name="Satu ellenőrzése">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_ChuckChange" name="Szükség van cserére?">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_15_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ChangeChuck" name="Satu csere">
+      <bpmn:incoming>Flow_14_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_FixMaterial" name="Alapanyag rögzítése a satuban">
+      <bpmn:incoming>Flow_15_No</bpmn:incoming>
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CheckToolList" name="Szerszámlista ellenőrzése (CNC program alapján)">
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_ToolCheck" name="Megfelelő szerszámok?">
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_19_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_20_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_CloseDoor1" name="Gép ajtaja zárása">
+      <bpmn:incoming>Flow_19_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_ChangeTool" name="Új szerszám rögzítése és korrekciók felvétele">
+      <bpmn:incoming>Flow_20_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_22</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CloseDoor2" name="Gép ajtaja zárása">
+      <bpmn:incoming>Flow_22</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Machining" name="Alapanyag forgácsolása">
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+      <bpmn:outgoing>Flow_23</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_OpenDoor" name="Ajtó nyitása és satu oldása">
+      <bpmn:incoming>Flow_23</bpmn:incoming>
+      <bpmn:outgoing>Flow_24</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CheckCompletion" name="Elkészültség vizsgálata">
+      <bpmn:incoming>Flow_24</bpmn:incoming>
+      <bpmn:outgoing>Flow_25</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_Completion" name="Szükség van újabb megmunkálásra?">
+      <bpmn:incoming>Flow_25</bpmn:incoming>
+      <bpmn:outgoing>Flow_26_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_27_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_26_Yes" name="Igen" sourceRef="Gateway_Completion" targetRef="Task_FixMaterial" />
+    <bpmn:sequenceFlow id="Flow_27_No" name="Nem" sourceRef="Gateway_Completion" targetRef="Task_UpdateMES_Final" />
+    <bpmn:task id="Task_UpdateMES_Final" name="Státusz váltás MES-ben (Kész)">
+      <bpmn:incoming>Flow_27_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_28</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_1" name="Folyamat vége">
+      <bpmn:incoming>Flow_28</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_TransferToCNC" targetRef="Task_ScanBarcode2" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_ScanBarcode2" targetRef="Task_DownloadProgram" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_DownloadProgram" targetRef="Task_CheckChuck" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_CheckChuck" targetRef="Gateway_ChuckChange" />
+    <bpmn:sequenceFlow id="Flow_14_Yes" name="Igen" sourceRef="Gateway_ChuckChange" targetRef="Task_ChangeChuck" />
+    <bpmn:sequenceFlow id="Flow_15_No" name="Nem" sourceRef="Gateway_ChuckChange" targetRef="Task_FixMaterial" />
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="Task_ChangeChuck" targetRef="Task_FixMaterial" />
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="Task_FixMaterial" targetRef="Task_CheckToolList" />
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="Task_CheckToolList" targetRef="Gateway_ToolCheck" />
+    <bpmn:sequenceFlow id="Flow_19_Yes" name="Igen" sourceRef="Gateway_ToolCheck" targetRef="Task_CloseDoor1" />
+    <bpmn:sequenceFlow id="Flow_20_No" name="Nem" sourceRef="Gateway_ToolCheck" targetRef="Task_ChangeTool" />
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="Task_CloseDoor1" targetRef="Task_Machining" />
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="Task_ChangeTool" targetRef="Task_CloseDoor2" />
+    <bpmn:sequenceFlow id="Flow_23" sourceRef="Task_Machining" targetRef="Task_OpenDoor" />
+    <bpmn:sequenceFlow id="Flow_24" sourceRef="Task_OpenDoor" targetRef="Task_CheckCompletion" />
+    <bpmn:sequenceFlow id="Flow_25" sourceRef="Task_CheckCompletion" targetRef="Gateway_Completion" />
+    <bpmn:sequenceFlow id="Flow_28" sourceRef="Task_UpdateMES_Final" targetRef="EndEvent_1" />
+    
+    <!-- Data Objects and Stores -->
+    <bpmn:dataStoreReference id="DataStore_MuhelyRajz" name="Műhelyrajz paraméterek" />
+    <bpmn:dataObjectReference id="DataObject_RawMaterial" name="Nyersanyag adatok" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_CuttingAndCNC">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Cutting_di" bpmnElement="Task_Cutting">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ScanBarcode1_di" bpmnElement="Task_ScanBarcode1">
+        <dc:Bounds x="380" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateMES_Cut_di" bpmnElement="Task_UpdateMES_Cut">
+        <dc:Bounds x="520" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PrepareCNC_di" bpmnElement="Task_PrepareCNC">
+        <dc:Bounds x="660" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckProgram_di" bpmnElement="Task_CheckProgram">
+        <dc:Bounds x="800" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ProgramExists_di" bpmnElement="Gateway_ProgramExists" isMarkerVisible="true">
+        <dc:Bounds x="945" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_NotifyProgrammer_di" bpmnElement="Task_NotifyProgrammer">
+        <dc:Bounds x="1040" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TransferToCNC_di" bpmnElement="Task_TransferToCNC">
+        <dc:Bounds x="940" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ScanBarcode2_di" bpmnElement="Task_ScanBarcode2">
+        <dc:Bounds x="1080" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DownloadProgram_di" bpmnElement="Task_DownloadProgram">
+        <dc:Bounds x="1220" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckChuck_di" bpmnElement="Task_CheckChuck">
+        <dc:Bounds x="1360" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ChuckChange_di" bpmnElement="Gateway_ChuckChange" isMarkerVisible="true">
+        <dc:Bounds x="1505" y="195" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ChangeChuck_di" bpmnElement="Task_ChangeChuck">
+        <dc:Bounds x="1600" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_FixMaterial_di" bpmnElement="Task_FixMaterial">
+        <dc:Bounds x="1600" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckToolList_di" bpmnElement="Task_CheckToolList">
+        <dc:Bounds x="1740" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_ToolCheck_di" bpmnElement="Gateway_ToolCheck" isMarkerVisible="true">
+        <dc:Bounds x="1885" y="295" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CloseDoor1_di" bpmnElement="Task_CloseDoor1">
+        <dc:Bounds x="1980" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ChangeTool_di" bpmnElement="Task_ChangeTool">
+        <dc:Bounds x="1980" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CloseDoor2_di" bpmnElement="Task_CloseDoor2">
+        <dc:Bounds x="2120" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Machining_di" bpmnElement="Task_Machining">
+        <dc:Bounds x="2260" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_OpenDoor_di" bpmnElement="Task_OpenDoor">
+        <dc:Bounds x="2400" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckCompletion_di" bpmnElement="Task_CheckCompletion">
+        <dc:Bounds x="2540" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Completion_di" bpmnElement="Gateway_Completion" isMarkerVisible="true">
+        <dc:Bounds x="2685" y="195" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateMES_Final_di" bpmnElement="Task_UpdateMES_Final">
+        <dc:Bounds x="2780" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="2932" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint xsi:type="dc:Point" x="188" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint xsi:type="dc:Point" x="340" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="380" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint xsi:type="dc:Point" x="480" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="520" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint xsi:type="dc:Point" x="620" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="660" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint xsi:type="dc:Point" x="760" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="800" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint xsi:type="dc:Point" x="900" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="945" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_No_di" bpmnElement="Flow_7_No">
+        <di:waypoint xsi:type="dc:Point" x="995" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="1040" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_Yes_di" bpmnElement="Flow_8_Yes">
+        <di:waypoint xsi:type="dc:Point" x="970" y="145" />
+        <di:waypoint xsi:type="dc:Point" x="970" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint xsi:type="dc:Point" x="1140" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="1200" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="1200" y="60" />
+        <di:waypoint xsi:type="dc:Point" x="850" y="60" />
+        <di:waypoint xsi:type="dc:Point" x="850" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint xsi:type="dc:Point" x="1040" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="1080" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint xsi:type="dc:Point" x="1180" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="1220" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint xsi:type="dc:Point" x="1320" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="1360" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint xsi:type="dc:Point" x="1460" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="1505" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_Yes_di" bpmnElement="Flow_14_Yes">
+        <di:waypoint xsi:type="dc:Point" x="1555" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="1600" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_No_di" bpmnElement="Flow_15_No">
+        <di:waypoint xsi:type="dc:Point" x="1530" y="245" />
+        <di:waypoint xsi:type="dc:Point" x="1530" y="320" />
+        <di:waypoint xsi:type="dc:Point" x="1600" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint xsi:type="dc:Point" x="1700" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="1700" y="320" />
+        <di:waypoint xsi:type="dc:Point" x="1650" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint xsi:type="dc:Point" x="1700" y="320" />
+        <di:waypoint xsi:type="dc:Point" x="1740" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint xsi:type="dc:Point" x="1840" y="320" />
+        <di:waypoint xsi:type="dc:Point" x="1885" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_Yes_di" bpmnElement="Flow_19_Yes">
+        <di:waypoint xsi:type="dc:Point" x="1935" y="320" />
+        <di:waypoint xsi:type="dc:Point" x="1980" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_No_di" bpmnElement="Flow_20_No">
+        <di:waypoint xsi:type="dc:Point" x="1910" y="295" />
+        <di:waypoint xsi:type="dc:Point" x="1910" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="1980" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint xsi:type="dc:Point" x="2080" y="320" />
+        <di:waypoint xsi:type="dc:Point" x="2150" y="320" />
+        <di:waypoint xsi:type="dc:Point" x="2150" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="2260" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22">
+        <di:waypoint xsi:type="dc:Point" x="2080" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="2120" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23">
+        <di:waypoint xsi:type="dc:Point" x="2360" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="2400" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_24_di" bpmnElement="Flow_24">
+        <di:waypoint xsi:type="dc:Point" x="2500" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="2540" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_25_di" bpmnElement="Flow_25">
+        <di:waypoint xsi:type="dc:Point" x="2640" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="2685" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_26_Yes_di" bpmnElement="Flow_26_Yes">
+        <di:waypoint xsi:type="dc:Point" x="2710" y="245" />
+        <di:waypoint xsi:type="dc:Point" x="2710" y="320" />
+        <di:waypoint xsi:type="dc:Point" x="1650" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_27_No_di" bpmnElement="Flow_27_No">
+        <di:waypoint xsi:type="dc:Point" x="2735" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="2780" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_28_di" bpmnElement="Flow_28">
+        <di:waypoint xsi:type="dc:Point" x="2880" y="220" />
+        <di:waypoint xsi:type="dc:Point" x="2932" y="210" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

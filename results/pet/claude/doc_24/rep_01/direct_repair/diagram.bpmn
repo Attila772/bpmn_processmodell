@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   id="Definitions_1"
+                   targetNamespace="http://example.com/bpmn/switchover">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Customer" name="Customer" processRef="Process_Customer" />
+    <bpmn:participant id="Participant_CustomerService" name="Customer Service (Sales &amp; Distribution SSC)" processRef="Process_CustomerService" />
+    <bpmn:participant id="Participant_GridOperator" name="Grid Operator" processRef="Process_GridOperator" />
+    <bpmn:participant id="Participant_OldSupplier" name="Old Supplier" processRef="Process_OldSupplier" />
+
+    <!-- Message Flows -->
+    <bpmn:messageFlow id="MF_01" name="Customer Data" sourceRef="Task_Cust_TransmitData" targetRef="StartEvent_CS_1" />
+    <bpmn:messageFlow id="MF_02" name="Confirmation Document" sourceRef="Task_CS_SendConfirmationDoc" targetRef="IntermediateCatchEvent_Cust_ReceiveConfirmDoc" />
+    <bpmn:messageFlow id="MF_03" name="Switch Request to Grid Operator" sourceRef="Task_CS_SendRequestGO" targetRef="StartEvent_GO_1" />
+    <bpmn:messageFlow id="MF_04" name="Response Comment" sourceRef="Task_GO_SendResponse" targetRef="IntermediateCatchEvent_CS_ReceiveResponse" />
+    <bpmn:messageFlow id="MF_05" name="CIS Contract" sourceRef="Task_CS_SendContractToCustomer" targetRef="IntermediateCatchEvent_Cust_ReceiveContract" />
+    <bpmn:messageFlow id="MF_06" name="Customer Confirmation" sourceRef="Task_Cust_ConfirmContract" targetRef="IntermediateCatchEvent_CS_ReceiveConfirm" />
+    <bpmn:messageFlow id="MF_07" name="Customer Withdrawal" sourceRef="EndEvent_Cust_Withdraw" targetRef="IntermediateCatchEvent_CS_ReceiveWithdraw" />
+    <bpmn:messageFlow id="MF_08" name="Consumption Report" sourceRef="Task_GO_TransmitMeterData" targetRef="IntermediateCatchEvent_CS_ReceiveMeterData" />
+    <bpmn:messageFlow id="MF_09" name="Consumption Report" sourceRef="Task_GO_TransmitMeterData" targetRef="StartEvent_OS_1" />
+    <bpmn:messageFlow id="MF_10" name="Termination Notice" sourceRef="Task_GO_CommunicateOldSupplier" targetRef="StartEvent_OS_1" />
+    <bpmn:messageFlow id="MF_11" name="Final Billing Data" sourceRef="Task_GO_ComputeBilling" targetRef="Task_OS_CreateBilling" />
+    <bpmn:messageFlow id="MF_12" name="Final Billing" sourceRef="Task_OS_SendBilling" targetRef="IntermediateCatchEvent_Cust_ReceiveBilling" />
+  </bpmn:collaboration>
+
+  <!-- ================= CUSTOMER PROCESS ================= -->
+  <bpmn:process id="Process_Customer" name="Customer" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Cust_1" name="Switch-over request initiated">
+      <bpmn:outgoing>SF_Cust_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_Cust_TransmitData" name="Transmit customer data to customer service">
+      <bpmn:incoming>SF_Cust_1</bpmn:incoming>
+      <bpmn:outgoing>SF_Cust_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_Cust_ReceiveConfirmDoc" name="Receive confirmation document">
+      <bpmn:incoming>SF_Cust_2</bpmn:incoming>
+      <bpmn:outgoing>SF_Cust_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_Cust_1" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_Cust_ReceiveContract" name="Receive CIS contract">
+      <bpmn:incoming>SF_Cust_3</bpmn:incoming>
+      <bpmn:outgoing>SF_Cust_4</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_Cust_2" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_Cust_CheckContract" name="Check contract details">
+      <bpmn:incoming>SF_Cust_4</bpmn:incoming>
+      <bpmn:outgoing>SF_Cust_5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_Cust_Decision" name="Withdraw or confirm?" default="SF_Cust_7">
+      <bpmn:incoming>SF_Cust_5</bpmn:incoming>
+      <bpmn:outgoing>SF_Cust_6</bpmn:outgoing>
+      <bpmn:outgoing>SF_Cust_7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="EndEvent_Cust_Withdraw" name="Customer withdraws within 7 days">
+      <bpmn:incoming>SF_Cust_6</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MsgDef_Cust_3" />
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_Cust_ConfirmContract" name="Confirm contract (or accepted after 7 days)">
+      <bpmn:incoming>SF_Cust_7</bpmn:incoming>
+      <bpmn:outgoing>SF_Cust_8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_Cust_ReceiveBilling" name="Receive final billing from old supplier">
+      <bpmn:incoming>SF_Cust_8</bpmn:incoming>
+      <bpmn:outgoing>SF_Cust_9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_Cust_4" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="EndEvent_Cust_End" name="Process ends for customer">
+      <bpmn:incoming>SF_Cust_9</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF_Cust_1" sourceRef="StartEvent_Cust_1" targetRef="Task_Cust_TransmitData" />
+    <bpmn:sequenceFlow id="SF_Cust_2" sourceRef="Task_Cust_TransmitData" targetRef="IntermediateCatchEvent_Cust_ReceiveConfirmDoc" />
+    <bpmn:sequenceFlow id="SF_Cust_3" sourceRef="IntermediateCatchEvent_Cust_ReceiveConfirmDoc" targetRef="IntermediateCatchEvent_Cust_ReceiveContract" />
+    <bpmn:sequenceFlow id="SF_Cust_4" sourceRef="IntermediateCatchEvent_Cust_ReceiveContract" targetRef="Task_Cust_CheckContract" />
+    <bpmn:sequenceFlow id="SF_Cust_5" sourceRef="Task_Cust_CheckContract" targetRef="ExclusiveGateway_Cust_Decision" />
+    <bpmn:sequenceFlow id="SF_Cust_6" name="Withdraw" sourceRef="ExclusiveGateway_Cust_Decision" targetRef="EndEvent_Cust_Withdraw">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">decision == "withdraw"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SF_Cust_7" name="Confirm" sourceRef="ExclusiveGateway_Cust_Decision" targetRef="Task_Cust_ConfirmContract" />
+    <bpmn:sequenceFlow id="SF_Cust_8" sourceRef="Task_Cust_ConfirmContract" targetRef="IntermediateCatchEvent_Cust_ReceiveBilling" />
+    <bpmn:sequenceFlow id="SF_Cust_9" sourceRef="IntermediateCatchEvent_Cust_ReceiveBilling" targetRef="EndEvent_Cust_End" />
+  </bpmn:process>
+
+  <!-- ================= CUSTOMER SERVICE PROCESS ================= -->
+  <bpmn:process id="Process_CustomerService" name="Customer Service (Sales &amp; Distribution SSC)" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_CS_1" name="Receive customer data">
+      <bpmn:outgoing>SF_CS_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_CS_1" />
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_CS_EnterCustomerData" name="Enter customer data into CRM system">
+      <bpmn:incoming>SF_CS_1</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CS_CompareData" name="Compare with internal customer database; check completeness and plausibility">
+      <bpmn:incoming>SF_CS_2</bpmn:incoming>
+      <bpmn:incoming>SF_CS_4b</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_CS_ErrorCheck" name="Errors found?" default="SF_CS_5">
+      <bpmn:incoming>SF_CS_3</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_4</bpmn:outgoing>
+      <bpmn:outgoing>SF_CS_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CS_CorrectErrors" name="Correct errors using error list">
+      <bpmn:incoming>SF_CS_4</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_4b</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_CS_CustomerExists" name="Customer exists in database?" default="SF_CS_7">
+      <bpmn:incoming>SF_CS_5</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_6</bpmn:outgoing>
+      <bpmn:outgoing>SF_CS_7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CS_CreateCustomerObject" name="Create new customer object (name, address, power gauge)">
+      <bpmn:incoming>SF_CS_6</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_6b</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_CS_MergeCustomer" name="Merge">
+      <bpmn:incoming>SF_CS_6b</bpmn:incoming>
+      <bpmn:incoming>SF_CS_7</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CS_PrepareContractDocuments" name="Prepare contract documents (bank connection, rate, switch date)">
+      <bpmn:incoming>SF_CS_8</bpmn:incoming>
+      <bpmn:incoming>SF_CS_11b</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_9</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CS_CheckContractDocuments" name="Automated check of contract documents in CIS">
+      <bpmn:incoming>SF_CS_9</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_CS_DocsOK" name="Documents generated successfully?" default="SF_CS_12">
+      <bpmn:incoming>SF_CS_10</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_11</bpmn:outgoing>
+      <bpmn:outgoing>SF_CS_12</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_CS_AnalyzeResolveIssues" name="Analyze and resolve issues">
+      <bpmn:incoming>SF_CS_11</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_11b</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CS_SendConfirmationDoc" name="Send confirmation document to customer">
+      <bpmn:incoming>SF_CS_12</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CS_SendRequestGO" name="Send request to grid operator via CIS">
+      <bpmn:incoming>SF_CS_13</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_14</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_CS_ReceiveResponse" name="Receive response comment from grid operator">
+      <bpmn:incoming>SF_CS_14</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_15</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_CS_2" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_CS_Concurrence" name="Supplier concurrence reported?" default="SF_CS_17">
+      <bpmn:incoming>SF_CS_15</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_16</bpmn:outgoing>
+      <bpmn:outgoing>SF_CS_17</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="EndEvent_CS_ConflictEnd" name="Process ends (conflict handled by grid operator)">
+      <bpmn:incoming>SF_CS_16</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_CS_CreateCISContract" name="Create CIS contract">
+      <bpmn:incoming>SF_CS_17</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_18</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_CS_SendContractToCustomer" name="Send CIS contract to customer">
+      <bpmn:incoming>SF_CS_18</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_19</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:eventBasedGateway id="EventBasedGateway_CS_Wait" name="Wait for customer response or timeout">
+      <bpmn:incoming>SF_CS_19</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_20</bpmn:outgoing>
+      <bpmn:outgoing>SF_CS_22</bpmn:outgoing>
+      <bpmn:outgoing>SF_CS_24</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_CS_ReceiveConfirm" name="Receive customer confirmation">
+      <bpmn:incoming>SF_CS_20</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_21</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_CS_3" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_CS_ReceiveWithdraw" name="Receive customer withdrawal">
+      <bpmn:incoming>SF_CS_22</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_23</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_CS_4" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="EndEvent_CS_WithdrawEnd" name="Process ends (customer withdrew)">
+      <bpmn:incoming>SF_CS_23</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_CS_Timer7Days" name="7 days elapsed (auto-accept)">
+      <bpmn:incoming>SF_CS_24</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_25</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDef_CS_1">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P7D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_CS_MergeAfterWait" name="Merge">
+      <bpmn:incoming>SF_CS_21</bpmn:incoming>
+      <bpmn:incoming>SF_CS_25</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_26</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_CS_ReceiveMeterData" name="Receive meter data from grid operator">
+      <bpmn:incoming>SF_CS_26</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_27</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MsgDef_CS_5" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_CS_ImportMeterData" name="Import meter data into systems">
+      <bpmn:incoming>SF_CS_27</bpmn:incoming>
+      <bpmn:outgoing>SF_CS_28</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_CS_End" name="Process ends for customer service">
+      <bpmn:incoming>SF_CS_28</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF_CS_1" sourceRef="StartEvent_CS_1" targetRef="Task_CS_EnterCustomerData" />
+    <bpmn:sequenceFlow id="SF_CS_2" sourceRef="Task_CS_EnterCustomerData" targetRef="Task_CS_CompareData" />
+    <bpmn:sequenceFlow id="SF_CS_3" sourceRef="Task_CS_CompareData" targetRef="ExclusiveGateway_CS_ErrorCheck" />
+    <bpmn:sequenceFlow id="SF_CS_4" name="Yes" sourceRef="ExclusiveGateway_CS_ErrorCheck" targetRef="Task_CS_CorrectErrors">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">errorsFound == true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SF_CS_4b" sourceRef="Task_CS_CorrectErrors" targetRef="Task_CS_CompareData" />
+    <bpmn:sequenceFlow id="SF_CS_5" name="No" sourceRef="ExclusiveGateway_CS_ErrorCheck" targetRef="ExclusiveGateway_CS_CustomerExists" />
+    <bpmn:sequenceFlow id="SF_CS_6" name="New customer" sourceRef="ExclusiveGateway_CS_CustomerExists" targetRef="Task_CS_CreateCustomerObject">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">customerExists == false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SF_CS_6b" sourceRef="Task_CS_CreateCustomerObject" targetRef="ExclusiveGateway_CS_MergeCustomer" />
+    <bpmn:sequenceFlow id="SF_CS_7" name="Existing customer" sourceRef="ExclusiveGateway_CS_CustomerExists" targetRef="ExclusiveGateway_CS_MergeCustomer" />
+    <bpmn:sequenceFlow id="SF_CS_8" sourceRef="ExclusiveGateway_CS_MergeCustomer" targetRef="Task_CS_PrepareContractDocuments" />
+    <bpmn:sequenceFlow id="SF_CS_9" sourceRef="Task_CS_PrepareContractDocuments" targetRef="Task_CS_CheckContractDocuments" />
+    <bpmn:sequenceFlow id="SF_CS_10" sourceRef="Task_CS_CheckContractDocuments" targetRef="ExclusiveGateway_CS_DocsOK" />
+    <bpmn:sequenceFlow id="SF_CS_11" name="No" sourceRef="ExclusiveGateway_CS_DocsOK" targetRef="Task_CS_AnalyzeResolveIssues">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">documentsOk == false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SF_CS_11b" sourceRef="Task_CS_AnalyzeResolveIssues" targetRef="Task_CS_PrepareContractDocuments" />
+    <bpmn:sequenceFlow id="SF_CS_12" name="Yes" sourceRef="ExclusiveGateway_CS_DocsOK" targetRef="Task_CS_SendConfirmationDoc" />
+    <bpmn:sequenceFlow id="SF_CS_13" sourceRef="Task_CS_SendConfirmationDoc" targetRef="Task_CS_SendRequestGO" />
+    <bpmn:sequenceFlow id="SF_CS_14" sourceRef="Task_CS_SendRequestGO" targetRef="IntermediateCatchEvent_CS_ReceiveResponse" />
+    <bpmn:sequenceFlow id="SF_CS_15" sourceRef="IntermediateCat

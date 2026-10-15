@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mspon_part" name="MSPO" processRef="pool_mspon_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:messageFlow id="msg_flow_1" sourceRef="msg_end_mspo_notify" targetRef="msg_start_go_verify" name="Deregistration Request" />
+    <bpmn:messageFlow id="flow_5" sourceRef="task_assign_self" targetRef="msg_end_mspo_notify" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mspon_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_dereg_request" name="Deregistration Request Document" dataObjectRef="data_dereg_request_do" />
+    <bpmn:dataObject id="data_dereg_request_do" />
+    <bpmn:startEvent id="start_mspo_dereg" name="MSPO initiates deregistration">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="msg_end_mspo_notify" name="Notify MSPO of assignment change">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="msg_end_mspo_notify_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_submit_dereg" name="Submit deregistration">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_submit_dereg_doa0">
+        <bpmn:targetRef>data_dereg_request</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start_mspo_dereg" targetRef="task_submit_dereg" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_submit_dereg" targetRef="msg_end_mspo_notify" />
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_dereg_request_p1" name="Deregistration Request Document" dataObjectRef="data_dereg_request_p1_do" />
+    <bpmn:dataObject id="data_dereg_request_p1_do" />
+    <bpmn:endEvent id="end_reject" name="Deregistration rejected">
+      <bpmn:incoming>flow_to_reject</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:startEvent id="msg_start_go_verify" name="Receive deregistration request">
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="msg_start_go_verify_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="msg_end_mpo_notify" name="Notify MPO of GO assignment">
+      <bpmn:incoming>flow_6</bpmn:incoming>
+      <bpmn:messageEventDefinition id="msg_end_mpo_notify_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="msg_end_sp_notify" name="Notify SP of GO assignment">
+      <bpmn:incoming>flow_7</bpmn:incoming>
+      <bpmn:messageEventDefinition id="msg_end_sp_notify_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_verify_dereg" name="Verify deregistration">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+      <bpmn:property id="task_verify_dereg_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_verify_dereg_dia0">
+        <bpmn:sourceRef>data_dereg_request_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_verify_dereg_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_assign_self" name="Assign self as MSP">
+      <bpmn:incoming>flow_to_confirm</bpmn:incoming>
+      <bpmn:outgoing>flow_6</bpmn:outgoing>
+      <bpmn:outgoing>flow_7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_decision" name="Decision on deregistration" isMarkerVisible="true">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+      <bpmn:outgoing>flow_to_reject</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_3" sourceRef="msg_start_go_verify" targetRef="task_verify_dereg" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="task_verify_dereg" targetRef="gw_decision" />
+    <bpmn:sequenceFlow id="flow_to_reject" sourceRef="gw_decision" targetRef="end_reject" name="Reject deregistration" />
+    <bpmn:sequenceFlow id="flow_to_confirm" sourceRef="gw_decision" targetRef="task_assign_self" name="Preliminarily confirm deregistration" />
+    <bpmn:sequenceFlow id="flow_6" sourceRef="task_assign_self" targetRef="msg_end_mpo_notify" />
+    <bpmn:sequenceFlow id="flow_7" sourceRef="task_assign_self" targetRef="msg_end_sp_notify" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mspon_part_di" bpmnElement="pool_mspon_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="1140" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_reject_di" bpmnElement="end_reject">
+        <dc:Bounds x="730" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_decision_di" bpmnElement="gw_decision">
+        <dc:Bounds x="540" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_mpo_notify_di" bpmnElement="msg_end_mpo_notify">
+        <dc:Bounds x="920" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_mspo_notify_di" bpmnElement="msg_end_mspo_notify">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_end_sp_notify_di" bpmnElement="msg_end_sp_notify">
+        <dc:Bounds x="920" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="msg_start_go_verify_di" bpmnElement="msg_start_go_verify">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_mspo_dereg_di" bpmnElement="start_mspo_dereg">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assign_self_di" bpmnElement="task_assign_self">
+        <dc:Bounds x="730" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_submit_dereg_di" bpmnElement="task_submit_dereg">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_verify_dereg_di" bpmnElement="task_verify_dereg">
+        <dc:Bounds x="350" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_dereg_request_di" bpmnElement="data_dereg_request">
+        <dc:Bounds x="370" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_dereg_request_p1_di" bpmnElement="data_dereg_request_p1">
+        <dc:Bounds x="370" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="400" y="475" />
+        <di:waypoint x="565" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_reject_di" bpmnElement="flow_to_reject">
+        <di:waypoint x="565" y="460" />
+        <di:waypoint x="748" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_confirm_di" bpmnElement="flow_to_confirm">
+        <di:waypoint x="565" y="460" />
+        <di:waypoint x="780" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="938" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_7_di" bpmnElement="flow_7">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="938" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_1_di" bpmnElement="msg_flow_1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_submit_dereg_doa0_di" bpmnElement="task_submit_dereg_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_verify_dereg_dia0_di" bpmnElement="task_verify_dereg_dia0">
+        <di:waypoint x="388" y="725" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,440 @@
+{
+  "name": "Expense Report Process",
+  "resources": [
+    {
+      "name": "Employee",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Supervisor",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Treasurer",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Payment System",
+      "capacity": 1,
+      "resource_type": "system"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_employee",
+      "name": "Purchase Made",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_process",
+      "name": "Process Ends",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_msg_to_supervisor",
+      "name": "Submit Expense Report",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Expense Report Submission"
+    },
+    {
+      "id": "evt_msg_from_supervisor_reject",
+      "name": "Report Rejected",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Rejection Notification"
+    },
+    {
+      "id": "evt_msg_to_treasurer",
+      "name": "Approved Report Received",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Approved Expense Report"
+    },
+    {
+      "id": "evt_msg_from_treasurer_reject",
+      "name": "Report Returned for Correction",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Correction Request"
+    },
+    {
+      "id": "evt_msg_to_payment",
+      "name": "Send to Payment Processing",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Payment Instruction"
+    },
+    {
+      "id": "evt_msg_payment_confirmed",
+      "name": "Payment Confirmed",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Payment Confirmation"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_submit_report",
+      "name": "Submit expense report with receipts",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_expense_report",
+        "data_receipts"
+      ]
+    },
+    {
+      "id": "task_review_report",
+      "name": "Review and approve/reject report",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Supervisor",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report",
+        "data_receipts"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_edit_report",
+      "name": "Edit expense report",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report"
+      ],
+      "output_data_ids": [
+        "data_expense_report"
+      ]
+    },
+    {
+      "id": "task_check_receipts",
+      "name": "Check receipts match items",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Treasurer",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report",
+        "data_receipts"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_process_payment",
+      "name": "Link to payment system",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "Payment System",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_expense_report"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_supervisor_decision",
+      "name": "Supervisor Decision",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_supervisor_approve",
+          "condition": "Approved"
+        },
+        {
+          "flow_id": "flow_supervisor_reject",
+          "condition": "Rejected"
+        }
+      ]
+    },
+    {
+      "id": "gw_treasurer_decision",
+      "name": "Treasurer Check Result",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_treasurer_accept",
+          "condition": "All in order"
+        },
+        {
+          "flow_id": "flow_treasurer_reject",
+          "condition": "Missing or mismatched receipts"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_start_to_submit",
+      "source_id": "evt_start_employee",
+      "target_id": "task_submit_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_submit_to_msg_supervisor",
+      "source_id": "task_submit_report",
+      "target_id": "evt_msg_to_supervisor",
+      "condition_name": null
+    },
+    {
+      "id": "flow_msg_supervisor_to_review",
+      "source_id": "evt_msg_to_supervisor",
+      "target_id": "task_review_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_review_to_gw_supervisor",
+      "source_id": "task_review_report",
+      "target_id": "gw_supervisor_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_supervisor_approve",
+      "source_id": "gw_supervisor_decision",
+      "target_id": "evt_msg_to_treasurer",
+      "condition_name": "Approved"
+    },
+    {
+      "id": "flow_supervisor_reject",
+      "source_id": "gw_supervisor_decision",
+      "target_id": "evt_msg_from_supervisor_reject",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_msg_reject_to_edit",
+      "source_id": "evt_msg_from_supervisor_reject",
+      "target_id": "task_edit_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_edit_to_resubmit",
+      "source_id": "task_edit_report",
+      "target_id": "task_submit_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_msg_treasurer_to_check",
+      "source_id": "evt_msg_to_treasurer",
+      "target_id": "task_check_receipts",
+      "condition_name": null
+    },
+    {
+      "id": "flow_check_to_gw_treasurer",
+      "source_id": "task_check_receipts",
+      "target_id": "gw_treasurer_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_treasurer_accept",
+      "source_id": "gw_treasurer_decision",
+      "target_id": "evt_msg_to_payment",
+      "condition_name": "All in order"
+    },
+    {
+      "id": "flow_treasurer_reject",
+      "source_id": "gw_treasurer_decision",
+      "target_id": "evt_msg_from_treasurer_reject",
+      "condition_name": "Missing or mismatched receipts"
+    },
+    {
+      "id": "flow_msg_treasurer_reject_to_edit",
+      "source_id": "evt_msg_from_treasurer_reject",
+      "target_id": "task_edit_report",
+      "condition_name": null
+    },
+    {
+      "id": "flow_msg_payment_to_process",
+      "source_id": "evt_msg_to_payment",
+      "target_id": "task_process_payment",
+      "condition_name": null
+    },
+    {
+      "id": "flow_process_to_confirm",
+      "source_id": "task_process_payment",
+      "target_id": "evt_msg_payment_confirmed",
+      "condition_name": null
+    },
+    {
+      "id": "flow_confirm_to_end",
+      "source_id": "evt_msg_payment_confirmed",
+      "target_id": "evt_end_process",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_employee",
+      "name": "Employee",
+      "element_ids": [
+        "evt_start_employee",
+        "task_submit_report",
+        "task_edit_report",
+        "evt_msg_to_supervisor",
+        "evt_msg_from_supervisor_reject",
+        "evt_msg_from_treasurer_reject"
+      ]
+    },
+    {
+      "id": "pool_supervisor",
+      "name": "Supervisor",
+      "element_ids": [
+        "evt_msg_to_supervisor",
+        "task_review_report",
+        "gw_supervisor_decision",
+        "evt_msg_to_treasurer",
+        "evt_msg_from_supervisor_reject"
+      ]
+    },
+    {
+      "id": "pool_treasurer",
+      "name": "Treasurer",
+      "element_ids": [
+        "evt_msg_to_treasurer",
+        "task_check_receipts",
+        "gw_treasurer_decision",
+        "evt_msg_to_payment",
+        "evt_msg_from_treasurer_reject"
+      ]
+    },
+    {
+      "id": "pool_payment_system",
+      "name": "Payment System",
+      "element_ids": [
+        "evt_msg_to_payment",
+        "task_process_payment",
+        "evt_msg_payment_confirmed",
+        "evt_end_process"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_emp_to_sup",
+      "source_id": "evt_msg_to_supervisor",
+      "target_id": "evt_msg_to_supervisor",
+      "name": "Expense Report Submission"
+    },
+    {
+      "id": "msg_flow_sup_to_emp_reject",
+      "source_id": "evt_msg_from_supervisor_reject",
+      "target_id": "evt_msg_from_supervisor_reject",
+      "name": "Rejection Notification"
+    },
+    {
+      "id": "msg_flow_sup_to_tre",
+      "source_id": "evt_msg_to_treasurer",
+      "target_id": "evt_msg_to_treasurer",
+      "name": "Approved Expense Report"
+    },
+    {
+      "id": "msg_flow_tre_to_emp_reject",
+      "source_id": "evt_msg_from_treasurer_reject",
+      "target_id": "evt_msg_from_treasurer_reject",
+      "name": "Correction Request"
+    },
+    {
+      "id": "msg_flow_tre_to_pay",
+      "source_id": "evt_msg_to_payment",
+      "target_id": "evt_msg_to_payment",
+      "name": "Payment Instruction"
+    },
+    {
+      "id": "msg_flow_pay_to_sys",
+      "source_id": "evt_msg_payment_confirmed",
+      "target_id": "evt_msg_payment_confirmed",
+      "name": "Payment Confirmation"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_expense_report",
+      "name": "Expense Report"
+    },
+    {
+      "id": "data_receipts",
+      "name": "Receipts"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

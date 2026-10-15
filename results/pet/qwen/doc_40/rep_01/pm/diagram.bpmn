@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_back_office_part" name="Client Service Back Office (Small Claims Registry Operations)" processRef="pool_back_office_proc" />
+    <bpmn:participant id="pool_police_part" name="Queensland Police" processRef="pool_police_proc" />
+    <bpmn:messageFlow id="msg_flow_1" sourceRef="evt_end_send_warrant" targetRef="evt_start_report_received" name="SCT Warrant Possession / Police Report Exchange" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_back_office_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_sct_file" name="SCT physical file" dataObjectRef="data_sct_file_do" />
+    <bpmn:dataObject id="data_sct_file_do" />
+    <bpmn:dataObjectReference id="data_police_report" name="Police Report" dataObjectRef="data_police_report_do" />
+    <bpmn:dataObject id="data_police_report_do" />
+    <bpmn:dataObjectReference id="data_expanded_sct_file" name="Expanded SCT physical file" dataObjectRef="data_expanded_sct_file_do" />
+    <bpmn:dataObject id="data_expanded_sct_file_do" />
+    <bpmn:startEvent id="evt_start_request" name="Warrant possession request received">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_request_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_send_warrant" name="SCT Warrant Possession sent to Police">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_send_warrant_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_report_received" name="Police report received">
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_report_received_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_file_handover" name="Physical SCT file handed over to internal staff">
+      <bpmn:incoming>flow_5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_retrieve_sct" name="Retrieve SCT file">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_retrieve_sct_doa0">
+        <bpmn:targetRef>data_sct_file</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_store_awaiting_report" name="Store SCT physical file awaiting report">
+      <bpmn:property id="task_store_awaiting_report_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_store_awaiting_report_dia0">
+        <bpmn:sourceRef>data_sct_file</bpmn:sourceRef>
+        <bpmn:targetRef>task_store_awaiting_report_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_retrieve_file_after_report" name="Retrieve respective SCT file">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_retrieve_file_after_report_doa0">
+        <bpmn:targetRef>data_sct_file</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:manualTask id="task_attach_and_store" name="Attach new SCT document and store expanded file">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+      <bpmn:outgoing>flow_5</bpmn:outgoing>
+      <bpmn:property id="task_attach_and_store_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_attach_and_store_dia0">
+        <bpmn:sourceRef>data_sct_file</bpmn:sourceRef>
+        <bpmn:targetRef>task_attach_and_store_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_attach_and_store_dia1">
+        <bpmn:sourceRef>data_police_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_attach_and_store_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_attach_and_store_doa0">
+        <bpmn:targetRef>data_expanded_sct_file</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="evt_start_request" targetRef="task_retrieve_sct" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_retrieve_sct" targetRef="evt_end_send_warrant" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="evt_start_report_received" targetRef="task_retrieve_file_after_report" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="task_retrieve_file_after_report" targetRef="task_attach_and_store" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="task_attach_and_store" targetRef="evt_end_file_handover" />
+  </bpmn:process>
+  <bpmn:process id="pool_police_proc" isExecutable="false">
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_back_office_part_di" bpmnElement="pool_back_office_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="950" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_police_part_di" bpmnElement="pool_police_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="700" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_file_handover_di" bpmnElement="evt_end_file_handover">
+        <dc:Bounds x="730" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_send_warrant_di" bpmnElement="evt_end_send_warrant">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_report_received_di" bpmnElement="evt_start_report_received">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_request_di" bpmnElement="evt_start_request">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_attach_and_store_di" bpmnElement="task_attach_and_store">
+        <dc:Bounds x="540" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_retrieve_file_after_report_di" bpmnElement="task_retrieve_file_after_report">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_retrieve_sct_di" bpmnElement="task_retrieve_sct">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_store_awaiting_report_di" bpmnElement="task_store_awaiting_report">
+        <dc:Bounds x="100" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_sct_file_di" bpmnElement="data_sct_file">
+        <dc:Bounds x="433" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_police_report_di" bpmnElement="data_police_report">
+        <dc:Bounds x="560" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_expanded_sct_file_di" bpmnElement="data_expanded_sct_file">
+        <dc:Bounds x="560" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="590" y="265" />
+        <di:waypoint x="748" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_1_di" bpmnElement="msg_flow_1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_retrieve_sct_doa0_di" bpmnElement="task_retrieve_sct_doa0">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="451" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_store_awaiting_report_dia0_di" bpmnElement="task_store_awaiting_report_dia0">
+        <di:waypoint x="451" y="390" />
+        <di:waypoint x="150" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_retrieve_file_after_report_doa0_di" bpmnElement="task_retrieve_file_after_report_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="451" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_attach_and_store_dia0_di" bpmnElement="task_attach_and_store_dia0">
+        <di:waypoint x="451" y="390" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_attach_and_store_dia1_di" bpmnElement="task_attach_and_store_dia1">
+        <di:waypoint x="578" y="390" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_attach_and_store_doa0_di" bpmnElement="task_attach_and_store_doa0">
+        <di:waypoint x="590" y="265" />
+        <di:waypoint x="578" y="390" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

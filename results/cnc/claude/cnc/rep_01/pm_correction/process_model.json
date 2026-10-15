@@ -1,0 +1,811 @@
+{
+  "name": "Nyersanyag megmunkálás részfolyamata",
+  "resources": [
+    {
+      "name": "Daraboló üzem dolgozója",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Forgácsoló gyártáselőkészítő",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "CNC programozó",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "CNC megmunkáló",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "CNC gép",
+      "capacity": 1,
+      "resource_type": "machine"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_1",
+      "name": "Darabolási igény érkezik",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_darabolo",
+      "name": "Műhelyrajz továbbítása",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Műhelyrajz és darabolt alapanyag átadása"
+    },
+    {
+      "id": "start_forgacs",
+      "name": "Darabolt alapanyag és műhelyrajz megérkezik",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Műhelyrajz és darabolt alapanyag átadása"
+    },
+    {
+      "id": "end_forgacs_cnc",
+      "name": "CNC megmunkálásra átadás",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "CNC megmunkálásra átadás"
+    },
+    {
+      "id": "end_forgacs_other",
+      "name": "Egyéb megmunkálási ág (nem részletezett)",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "start_cnc",
+      "name": "CNC megmunkálásra érkezik",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "CNC megmunkálásra átadás"
+    },
+    {
+      "id": "end_cnc",
+      "name": "Termék elkészült",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_vagas",
+      "name": "Nyersanyag méretre vágása a műhelyrajz paraméterei szerint",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "do_muhelyrajz"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_scan",
+      "name": "Vonalkódok beolvasása scannerrel a nyomonkövethetőségért",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_mes_status1",
+      "name": "Alkatrész státusz rögzítése MES-ben (darabolás után)",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "ds_mes"
+      ]
+    },
+    {
+      "id": "task_rogzit_alkatreszjegyzek",
+      "name": "Darabolt alkatrészjegyzék rögzítése és MES státuszváltás",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "do_muhelyrajz"
+      ],
+      "output_data_ids": [
+        "do_alkatreszjegyzek",
+        "ds_mes"
+      ]
+    },
+    {
+      "id": "task_mes_status2",
+      "name": "MES státuszváltás (alkatrészjegyzék rögzítés után)",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "ds_mes"
+      ]
+    },
+    {
+      "id": "task_valaszt_megmunkalas_tipus",
+      "name": "Megmunkálás típusának kiválasztása (CNC, hagyományos, kiszervezés)",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_ertesit_programozo",
+      "name": "CNC programozó értesítése (hiányzó program esetén)",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_vonalkod_azonosit",
+      "name": "Beazonosítás vonalkód olvasással",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_cnc_program_letolt",
+      "name": "CNC program letöltése a programszerverről",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "do_cnc_program"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_satu_csere",
+      "name": "Satu cseréje",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_alapanyag_rogzit_satu",
+      "name": "Alapanyag rögzítése a satuban",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_szerszamlista_ellenorzes",
+      "name": "Szerszámlista ellenőrzése a CNC program alapján",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "do_cnc_program",
+        "do_szerszamlista"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_uj_szerszam_rogzit",
+      "name": "Új szerszám rögzítése, hossz és korrekciós értékek felvitele",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "do_szerszamlista"
+      ]
+    },
+    {
+      "id": "task_ajto_zar",
+      "name": "CNC gép ajtajának zárása",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_forgacsolas",
+      "name": "Alapanyag forgácsolása",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_ajto_nyit_satu_old",
+      "name": "Ajtó nyitása és satu oldása",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_mes_status_kesz",
+      "name": "Termék elkészültségének jelzése MES státuszváltással",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "ds_mes"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_megmunkalas_tipus",
+      "name": "Megmunkálás típusa?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_tipus_cnc",
+          "condition": "CNC"
+        },
+        {
+          "flow_id": "flow_tipus_hagyomanyos",
+          "condition": "hagyományos"
+        },
+        {
+          "flow_id": "flow_tipus_kiszervezes",
+          "condition": "kiszervezés"
+        }
+      ]
+    },
+    {
+      "id": "gw_cnc_program_megvan",
+      "name": "CNC program megvan?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_program_van",
+          "condition": "van"
+        },
+        {
+          "flow_id": "flow_program_hianyzik",
+          "condition": "hiányzik"
+        }
+      ]
+    },
+    {
+      "id": "gw_satu_csere",
+      "name": "Satu cseréje szükséges?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_satu_igen",
+          "condition": "igen"
+        },
+        {
+          "flow_id": "flow_satu_nem",
+          "condition": "nem"
+        }
+      ]
+    },
+    {
+      "id": "gw_szerszam_csere",
+      "name": "Szerszám csere szükséges?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_szerszam_megfelelo",
+          "condition": "megfelelő szerszámok betárazva"
+        },
+        {
+          "flow_id": "flow_szerszam_csere",
+          "condition": "csere szükséges"
+        }
+      ]
+    },
+    {
+      "id": "gw_ujabb_megmunkalas",
+      "name": "Szükség van újabb megmunkálásra?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_ujabb_igen",
+          "condition": "igen"
+        },
+        {
+          "flow_id": "flow_ujabb_nem",
+          "condition": "nem"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "f1",
+      "source_id": "start_1",
+      "target_id": "task_vagas",
+      "condition_name": null
+    },
+    {
+      "id": "f2",
+      "source_id": "task_vagas",
+      "target_id": "task_scan",
+      "condition_name": null
+    },
+    {
+      "id": "f3",
+      "source_id": "task_scan",
+      "target_id": "task_mes_status1",
+      "condition_name": null
+    },
+    {
+      "id": "f4",
+      "source_id": "task_mes_status1",
+      "target_id": "end_darabolo",
+      "condition_name": null
+    },
+    {
+      "id": "f5",
+      "source_id": "start_forgacs",
+      "target_id": "task_rogzit_alkatreszjegyzek",
+      "condition_name": null
+    },
+    {
+      "id": "f6",
+      "source_id": "task_rogzit_alkatreszjegyzek",
+      "target_id": "task_mes_status2",
+      "condition_name": null
+    },
+    {
+      "id": "f7",
+      "source_id": "task_mes_status2",
+      "target_id": "task_valaszt_megmunkalas_tipus",
+      "condition_name": null
+    },
+    {
+      "id": "f8",
+      "source_id": "task_valaszt_megmunkalas_tipus",
+      "target_id": "gw_megmunkalas_tipus",
+      "condition_name": null
+    },
+    {
+      "id": "flow_tipus_cnc",
+      "source_id": "gw_megmunkalas_tipus",
+      "target_id": "gw_cnc_program_megvan",
+      "condition_name": "CNC"
+    },
+    {
+      "id": "flow_tipus_hagyomanyos",
+      "source_id": "gw_megmunkalas_tipus",
+      "target_id": "end_forgacs_other",
+      "condition_name": "hagyományos"
+    },
+    {
+      "id": "flow_tipus_kiszervezes",
+      "source_id": "gw_megmunkalas_tipus",
+      "target_id": "end_forgacs_other",
+      "condition_name": "kiszervezés"
+    },
+    {
+      "id": "flow_program_hianyzik",
+      "source_id": "gw_cnc_program_megvan",
+      "target_id": "task_ertesit_programozo",
+      "condition_name": "hiányzik"
+    },
+    {
+      "id": "flow_program_van",
+      "source_id": "gw_cnc_program_megvan",
+      "target_id": "end_forgacs_cnc",
+      "condition_name": "van"
+    },
+    {
+      "id": "f9",
+      "source_id": "task_ertesit_programozo",
+      "target_id": "end_forgacs_cnc",
+      "condition_name": null
+    },
+    {
+      "id": "f10",
+      "source_id": "start_cnc",
+      "target_id": "task_vonalkod_azonosit",
+      "condition_name": null
+    },
+    {
+      "id": "f11",
+      "source_id": "task_vonalkod_azonosit",
+      "target_id": "task_cnc_program_letolt",
+      "condition_name": null
+    },
+    {
+      "id": "f12",
+      "source_id": "task_cnc_program_letolt",
+      "target_id": "gw_satu_csere",
+      "condition_name": null
+    },
+    {
+      "id": "flow_satu_igen",
+      "source_id": "gw_satu_csere",
+      "target_id": "task_satu_csere",
+      "condition_name": "igen"
+    },
+    {
+      "id": "flow_satu_nem",
+      "source_id": "gw_satu_csere",
+      "target_id": "task_alapanyag_rogzit_satu",
+      "condition_name": "nem"
+    },
+    {
+      "id": "f13",
+      "source_id": "task_satu_csere",
+      "target_id": "task_alapanyag_rogzit_satu",
+      "condition_name": null
+    },
+    {
+      "id": "f14",
+      "source_id": "task_alapanyag_rogzit_satu",
+      "target_id": "task_szerszamlista_ellenorzes",
+      "condition_name": null
+    },
+    {
+      "id": "f15",
+      "source_id": "task_szerszamlista_ellenorzes",
+      "target_id": "gw_szerszam_csere",
+      "condition_name": null
+    },
+    {
+      "id": "flow_szerszam_megfelelo",
+      "source_id": "gw_szerszam_csere",
+      "target_id": "task_ajto_zar",
+      "condition_name": "megfelelő szerszámok betárazva"
+    },
+    {
+      "id": "flow_szerszam_csere",
+      "source_id": "gw_szerszam_csere",
+      "target_id": "task_uj_szerszam_rogzit",
+      "condition_name": "csere szükséges"
+    },
+    {
+      "id": "f16",
+      "source_id": "task_uj_szerszam_rogzit",
+      "target_id": "task_ajto_zar",
+      "condition_name": null
+    },
+    {
+      "id": "f17",
+      "source_id": "task_ajto_zar",
+      "target_id": "task_forgacsolas",
+      "condition_name": null
+    },
+    {
+      "id": "f18",
+      "source_id": "task_forgacsolas",
+      "target_id": "task_ajto_nyit_satu_old",
+      "condition_name": null
+    },
+    {
+      "id": "f19",
+      "source_id": "task_ajto_nyit_satu_old",
+      "target_id": "gw_ujabb_megmunkalas",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ujabb_igen",
+      "source_id": "gw_ujabb_megmunkalas",
+      "target_id": "task_vonalkod_azonosit",
+      "condition_name": "igen"
+    },
+    {
+      "id": "flow_ujabb_nem",
+      "source_id": "gw_ujabb_megmunkalas",
+      "target_id": "task_mes_status_kesz",
+      "condition_name": "nem"
+    },
+    {
+      "id": "f20",
+      "source_id": "task_mes_status_kesz",
+      "target_id": "end_cnc",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_darabolo",
+      "name": "Daraboló üzem",
+      "element_ids": [
+        "start_1",
+        "task_vagas",
+        "task_scan",
+        "task_mes_status1",
+        "end_darabolo"
+      ]
+    },
+    {
+      "id": "pool_forgacs_elokeszito",
+      "name": "Forgácsoló gyártáselőkészítő",
+      "element_ids": [
+        "start_forgacs",
+        "task_rogzit_alkatreszjegyzek",
+        "task_mes_status2",
+        "task_valaszt_megmunkalas_tipus",
+        "gw_megmunkalas_tipus",
+        "gw_cnc_program_megvan",
+        "task_ertesit_programozo",
+        "end_forgacs_cnc",
+        "end_forgacs_other"
+      ]
+    },
+    {
+      "id": "pool_forgacs_uzem",
+      "name": "Forgácsoló üzem (CNC megmunkálás)",
+      "element_ids": [
+        "start_cnc",
+        "task_vonalkod_azonosit",
+        "task_cnc_program_letolt",
+        "gw_satu_csere",
+        "task_satu_csere",
+        "task_alapanyag_rogzit_satu",
+        "task_szerszamlista_ellenorzes",
+        "gw_szerszam_csere",
+        "task_uj_szerszam_rogzit",
+        "task_ajto_zar",
+        "task_forgacsolas",
+        "task_ajto_nyit_satu_old",
+        "gw_ujabb_megmunkalas",
+        "task_mes_status_kesz",
+        "end_cnc"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "mf1",
+      "source_id": "end_darabolo",
+      "target_id": "start_forgacs",
+      "name": "Műhelyrajz és darabolt alapanyag átadása"
+    },
+    {
+      "id": "mf2",
+      "source_id": "end_forgacs_cnc",
+      "target_id": "start_cnc",
+      "name": "CNC megmunkálásra átadás"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "do_muhelyrajz",
+      "name": "Műhelyrajz"
+    },
+    {
+      "id": "do_alkatreszjegyzek",
+      "name": "Darabolt alkatrészjegyzék"
+    },
+    {
+      "id": "do_cnc_program",
+      "name": "CNC program"
+    },
+    {
+      "id": "do_szerszamlista",
+      "name": "Szerszámlista"
+    }
+  ],
+  "data_stores": [
+    {
+      "id": "ds_mes",
+      "name": "MES rendszer"
+    },
+    {
+      "id": "ds_cnc_program_szerver",
+      "name": "CNC programszerver"
+    }
+  ],
+  "inter_arrival_time": null,
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

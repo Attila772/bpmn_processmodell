@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="MPOO_Deregistration_Process" name="MPOO Deregistration Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="MPOO deregisters at GO">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_Verify" name="GO verifies the deregistration">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_ExclusiveGateway_Out</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_Decision" name="Decision on Deregistration">
+      <bpmn:incoming>Flow_ExclusiveGateway_Out</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reject</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_Reject" name="Deregistration Rejected">
+      <bpmn:incoming>Flow_Reject</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_PrepareReadmission" name="GO prepares the readmission of the measuring point">
+      <bpmn:incoming>Flow_Confirm</bpmn:incoming>
+      <bpmn:outgoing>Flow_OptionalCheck</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_Optional" name="Oblige MPOO to continue?">
+      <bpmn:incoming>Flow_OptionalCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoObligation</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Obligation</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_MPOOConfirm" name="MPOO confirms the continuation">
+      <bpmn:incoming>Flow_Obligation</bpmn:incoming>
+      <bpmn:outgoing>Flow_AfterConfirm</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Equipment" name="GO performs equipment acquisition and/or changes">
+      <bpmn:incoming>Flow_NoObligation</bpmn:incoming>
+      <bpmn:incoming>Flow_AfterConfirm</bpmn:incoming>
+      <bpmn:outgoing>Flow_AssignGO</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_AssignGO" name="GO assigns the GO as MPO">
+      <bpmn:incoming>Flow_AssignGO</bpmn:incoming>
+      <bpmn:outgoing>Flow_InformParallel</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:parallelGateway id="ParallelGateway_Split" name="Inform Stakeholders">
+      <bpmn:incoming>Flow_InformParallel</bpmn:incoming>
+      <bpmn:outgoing>Flow_InformMPOO</bpmn:outgoing>
+      <bpmn:outgoing>Flow_InformMSPO</bpmn:outgoing>
+      <bpmn:outgoing>Flow_InformSP</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:task id="Task_InformMPOO" name="GO informs MPOO about end of assignment and beginning of GO assignment">
+      <bpmn:incoming>Flow_InformMPOO</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinMPOO</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_InformMSPO" name="GO informs MSPO about assignment of GO">
+      <bpmn:incoming>Flow_InformMSPO</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinMSPO</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_InformSP" name="GO informs SP about assignment of GO">
+      <bpmn:incoming>Flow_InformSP</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinSP</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:parallelGateway id="ParallelGateway_Join" name="End Informing">
+      <bpmn:incoming>Flow_JoinMPOO</bpmn:incoming>
+      <bpmn:incoming>Flow_JoinMSPO</bpmn:incoming>
+      <bpmn:incoming>Flow_JoinSP</bpmn:incoming>
+      <bpmn:outgoing>Flow_End</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:endEvent id="EndEvent_Complete" name="Process Complete">
+      <bpmn:incoming>Flow_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Verify" />
+    <bpmn:sequenceFlow id="Flow_ExclusiveGateway_Out" sourceRef="Task_Verify" targetRef="ExclusiveGateway_Decision" />
+    <bpmn:sequenceFlow id="Flow_Reject" name="Reject" sourceRef="ExclusiveGateway_Decision" targetRef="EndEvent_Reject" />
+    <bpmn:sequenceFlow id="Flow_Confirm" name="Preliminarily Confirm" sourceRef="ExclusiveGateway_Decision" targetRef="Task_PrepareReadmission" />
+    <bpmn:sequenceFlow id="Flow_OptionalCheck" sourceRef="Task_PrepareReadmission" targetRef="ExclusiveGateway_Optional" />
+    <bpmn:sequenceFlow id="Flow_NoObligation" name="No Obligation" sourceRef="ExclusiveGateway_Optional" targetRef="Task_Equipment" />
+    <bpmn:sequenceFlow id="Flow_Obligation" name="Oblige to Continue" sourceRef="ExclusiveGateway_Optional" targetRef="Task_MPOOConfirm" />
+    <bpmn:sequenceFlow id="Flow_AfterConfirm" sourceRef="Task_MPOOConfirm" targetRef="Task_Equipment" />
+    <bpmn:sequenceFlow id="Flow_AssignGO" sourceRef="Task_Equipment" targetRef="Task_AssignGO" />
+    <bpmn:sequenceFlow id="Flow_InformParallel" sourceRef="Task_AssignGO" targetRef="ParallelGateway_Split" />
+    <bpmn:sequenceFlow id="Flow_InformMPOO" sourceRef="ParallelGateway_Split" targetRef="Task_InformMPOO" />
+    <bpmn:sequenceFlow id="Flow_InformMSPO" sourceRef="ParallelGateway_Split" targetRef="Task_InformMSPO" />
+    <bpmn:sequenceFlow id="Flow_InformSP" sourceRef="ParallelGateway_Split" targetRef="Task_InformSP" />
+    <bpmn:sequenceFlow id="Flow_JoinMPOO" sourceRef="Task_InformMPOO" targetRef="ParallelGateway_Join" />
+    <bpmn:sequenceFlow id="Flow_JoinMSPO" sourceRef="Task_InformMSPO" targetRef="ParallelGateway_Join" />
+    <bpmn:sequenceFlow id="Flow_JoinSP" sourceRef="Task_InformSP" targetRef="ParallelGateway_Join" />
+    <bpmn:sequenceFlow id="Flow_End" sourceRef="ParallelGateway_Join" targetRef="EndEvent_Complete" />
+  </bpmn:process>
+</bpmn:definitions>

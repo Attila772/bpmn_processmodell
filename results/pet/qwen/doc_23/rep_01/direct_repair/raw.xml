@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="RoomServiceProcess" name="The Evanstonian Room Service Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_Call" name="Guest Calls Room Service">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Call" targetRef="Task_TakeOrder" />
+    <bpmn:userTask id="Task_TakeOrder" name="Take Down Order" implementation="bpmn:Java">
+      <bpmn:extensionElements>
+        <bpmn:property id="participantId" name="participantId">
+          <bpmn:value xsi:type="xsd:string">RoomServiceManager</bpmn:value>
+        </bpmn:property>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="Gateway_Split" name="Split Tasks">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Kitchen</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Sommelier</bpmn:outgoing>
+      <bpmn:outgoing>Flow_WaiterAssign</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_TakeOrder" targetRef="Gateway_Split" />
+    
+    <!-- Kitchen Lane -->
+    <bpmn:sequenceFlow id="Flow_Kitchen" sourceRef="Gateway_Split" targetRef="Task_PrepareFood" />
+    <bpmn:userTask id="Task_PrepareFood" name="Prepare Food" implementation="bpmn:Java">
+      <bpmn:extensionElements>
+        <bpmn:property id="participantId" name="participantId">
+          <bpmn:value xsi:type="xsd:string">Kitchen</bpmn:value>
+        </bpmn:property>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Kitchen</bpmn:incoming>
+      <bpmn:outgoing>Flow_FoodReady</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_FoodReady" sourceRef="Task_PrepareFood" targetRef="Gateway_Join" />
+
+    <!-- Sommelier Lane -->
+    <bpmn:sequenceFlow id="Flow_Sommelier" sourceRef="Gateway_Split" targetRef="Gateway_WineCheck" />
+    <bpmn:exclusiveGateway id="Gateway_WineCheck" name="Includes Alcohol?">
+      <bpmn:incoming>Flow_Sommelier</bpmn:incoming>
+      <bpmn:outgoing>Flow_YesWine</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoWine</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_YesWine" name="Yes (80%)" sourceRef="Gateway_WineCheck" targetRef="Task_PrepareDrinks">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_NoWine" name="No (20%)" sourceRef="Gateway_WineCheck" targetRef="Gateway_Join">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="Task_PrepareDrinks" name="Fetch Wine/Prepare Alcoholic Beverages" implementation="bpmn:Java">
+      <bpmn:extensionElements>
+        <bpmn:property id="participantId" name="participantId">
+          <bpmn:value xsi:type="xsd:string">Sommelier</bpmn:value>
+        </bpmn:property>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_YesWine</bpmn:incoming>
+      <bpmn:outgoing>Flow_DrinksReady</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_DrinksReady" sourceRef="Task_PrepareDrinks" targetRef="Gateway_Join" />
+
+    <!-- Waiter Lane -->
+    <bpmn:sequenceFlow id="Flow_WaiterAssign" sourceRef="Gateway_Split" targetRef="Task_AssignWaiter" />
+    <bpmn:userTask id="Task_AssignWaiter" name="Assign Order to Waiter" implementation="bpmn:Java">
+      <bpmn:extensionElements>
+        <bpmn:property id="participantId" name="participantId">
+          <bpmn:value xsi:type="xsd:string">RoomServiceManager</bpmn:value>
+        </bpmn:property>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_WaiterAssign</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCart</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_ToCart" sourceRef="Task_AssignWaiter" targetRef="Task_ReadyCart" />
+    <bpmn:userTask id="Task_ReadyCart" name="Ready Cart &amp; Non-Alcoholic Drinks" implementation="bpmn:Java">
+      <bpmn:extensionElements>
+        <bpmn:property id="participantId" name="participantId">
+          <bpmn:value xsi:type="xsd:string">Waiter</bpmn:value>
+        </bpmn:property>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToCart</bpmn:incoming>
+      <bpmn:outgoing>Flow_CartReady</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_CartReady" sourceRef="Task_ReadyCart" targetRef="Gateway_Join" />
+
+    <!-- Join Gateway -->
+    <bpmn:parallelGateway id="Gateway_Join" name="Join Tasks">
+      <bpmn:incoming>Flow_FoodReady</bpmn:incoming>
+      <bpmn:incoming>Flow_DrinksReady</bpmn:incoming>
+      <bpmn:incoming>Flow_NoWine</bpmn:incoming>
+      <bpmn:incoming>Flow_CartReady</bpmn:incoming>
+      <bpmn:outgoing>Flow_Deliver</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- Delivery and Billing -->
+    <bpmn:sequenceFlow id="Flow_Deliver" sourceRef="Gateway_Join" targetRef="Task_DeliverToGuest" />
+    <bpmn:userTask id="Task_DeliverToGuest" name="Deliver to Guest's Room" implementation="bpmn:Java">
+      <bpmn:extensionElements>
+        <bpmn:property id="participantId" name="participantId">
+          <bpmn:value xsi:type="xsd:string">Waiter</bpmn:value>
+        </bpmn:property>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Deliver</bpmn:incoming>
+      <bpmn:outgoing>Flow_Return</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_Return" sourceRef="Task_DeliverToGuest" targetRef="Task_ReturnToStation" />
+    <bpmn:userTask id="Task_ReturnToStation" name="Return to Room Service Station" implementation="bpmn:Java">
+      <bpmn:extensionElements>
+        <bpmn:property id="participantId" name="participantId">
+          <bpmn:value xsi:type="xsd:string">Waiter</bpmn:value>
+        </bpmn:property>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Return</bpmn:incoming>
+      <bpmn:outgoing>Flow_BillingCheck</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_BillingCheck" name="Has Another Order?">
+      <bpmn:incoming>Flow_BillingCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_DoBilling</bpmn:outgoing>
+      <bpmn:outgoing>Flow_DeferBilling</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_BillingCheck" sourceRef="Task_ReturnToStation" targetRef="Gateway_BillingCheck" />
+    <bpmn:sequenceFlow id="Flow_DoBilling" name="No" sourceRef="Gateway_BillingCheck" targetRef="Task_DebitAccount">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_DeferBilling" name="Yes" sourceRef="Gateway_BillingCheck" targetRef="EndEvent_ProcessComplete">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="Task_DebitAccount" name="Debit Guest's Account" implementation="bpmn:Java">
+      <bpmn:extensionElements>
+        <bpmn:property id="participantId" name="participantId">
+          <bpmn:value xsi:type="xsd:string">Waiter</bpmn:value>
+        </bpmn:property>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_DoBilling</bpmn:incoming>
+      <bpmn:outgoing>Flow_End</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_End" sourceRef="Task_DebitAccount" targetRef="EndEvent_ProcessComplete" />
+    <bpmn:endEvent id="EndEvent_ProcessComplete" name="Process Complete">
+      <bpmn:incoming>Flow_End</bpmn:incoming>
+      <bpmn:incoming>Flow_DeferBilling</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+</bpmn:definitions>

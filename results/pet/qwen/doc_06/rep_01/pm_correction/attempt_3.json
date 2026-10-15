@@ -1,0 +1,601 @@
+{
+  "name": "Equipment Change and Meter Reading Process",
+  "resources": [
+    {
+      "name": "MPON Operator",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "MPOO Operator",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "GO System/Operator",
+      "capacity": 1,
+      "resource_type": "system"
+    },
+    {
+      "name": "MSP System/Operator",
+      "capacity": 1,
+      "resource_type": "system"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_mpon",
+      "name": "Start: Equipment Change Intention",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_mpon_notify",
+      "name": "End: Notify MPOO",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Equipment Change Notification"
+    },
+    {
+      "id": "evt_start_mpoa_receive",
+      "name": "Start: Receive Change Notification",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Equipment Change Notification"
+    },
+    {
+      "id": "evt_end_mpoa_decision",
+      "name": "End: Decision on Self-Dismounting",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Self-Dismounting Decision"
+    },
+    {
+      "id": "evt_start_mpon_receive_decision",
+      "name": "Start: Receive Decision",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Self-Dismounting Decision"
+    },
+    {
+      "id": "evt_end_mpon_dismount",
+      "name": "End: Dismount Old Equipment",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Dismount Completion & Final Reading Data"
+    },
+    {
+      "id": "evt_start_mpon_mount",
+      "name": "Start: Mount New Device",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Dismount Completion & Final Reading Data"
+    },
+    {
+      "id": "evt_end_mpon_reading",
+      "name": "End: Send Readings to GO",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Final Reading Values"
+    },
+    {
+      "id": "evt_start_go_receive_readings",
+      "name": "Start: Receive Readings",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Final Reading Values"
+    },
+    {
+      "id": "evt_end_mpon_device_info",
+      "name": "End: Send Device Info to GO",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Device Change & Master Data"
+    },
+    {
+      "id": "evt_start_go_receive_info",
+      "name": "Start: Receive Device Info",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Device Change & Master Data"
+    },
+    {
+      "id": "evt_end_go_notify_msp",
+      "name": "End: Notify MSP",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Complete Change Record"
+    },
+    {
+      "id": "evt_start_msp_receive",
+      "name": "Start: Receive Change Record",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Complete Change Record"
+    },
+    {
+      "id": "evt_end_process",
+      "name": "Process Complete",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_mpon_notify_intent",
+      "name": "Notify MPOO about equipment change intentions",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPON Operator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_change_intention"
+      ]
+    },
+    {
+      "id": "task_mpoa_decide_dismount",
+      "name": "Decide on self-dismounting",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPOO Operator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_change_intention"
+      ],
+      "output_data_ids": [
+        "data_dismount_decision"
+      ]
+    },
+    {
+      "id": "task_mpon_or_mpoa_final_reading",
+      "name": "Perform final reading",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "MPON Operator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_dismount_decision"
+      ],
+      "output_data_ids": [
+        "data_final_reading"
+      ]
+    },
+    {
+      "id": "task_mpon_or_mpoa_dismount_old",
+      "name": "Dismount old equipment",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "MPON Operator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_final_reading"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_mpon_mount_new",
+      "name": "Mount new device",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "MPON Operator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_mpon_read_meter",
+      "name": "Read meter count from installed meter",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "MPON Operator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_installation_reading"
+      ]
+    },
+    {
+      "id": "task_mpon_send_readings_go",
+      "name": "Send final reading values to GO",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPON Operator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_final_reading",
+        "data_installation_reading"
+      ],
+      "output_data_ids": [
+        "data_reading_package"
+      ]
+    },
+    {
+      "id": "task_mpon_send_device_info_go",
+      "name": "Tell GO about device changes, master data, and installation meter count",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPON Operator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_installation_reading"
+      ],
+      "output_data_ids": [
+        "data_device_master_info"
+      ]
+    },
+    {
+      "id": "task_go_notify_msp",
+      "name": "Notify MSP about device changes, master data, dismounting meter count, and installation meter count",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "GO System/Operator",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_reading_package",
+        "data_device_master_info"
+      ],
+      "output_data_ids": [
+        "data_complete_record"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_dismount_decision",
+      "name": "Who performs dismount?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "msg_5_self_dismount",
+          "condition": "Self-dismounting announced"
+        },
+        {
+          "flow_id": "msg_6_no_self_dismount",
+          "condition": "No self-dismounting notified"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start_mpon",
+      "target_id": "task_mpon_notify_intent",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_mpon_notify_intent",
+      "target_id": "evt_end_mpon_notify",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "evt_start_mpoa_receive",
+      "target_id": "task_mpoa_decide_dismount",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_mpoa_decide_dismount",
+      "target_id": "gw_dismount_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_7",
+      "source_id": "task_mpon_or_mpoa_final_reading",
+      "target_id": "task_mpon_or_mpoa_dismount_old",
+      "condition_name": null
+    },
+    {
+      "id": "flow_8",
+      "source_id": "task_mpon_or_mpoa_dismount_old",
+      "target_id": "evt_end_mpon_dismount",
+      "condition_name": null
+    },
+    {
+      "id": "flow_9",
+      "source_id": "evt_start_mpon_mount",
+      "target_id": "task_mpon_mount_new",
+      "condition_name": null
+    },
+    {
+      "id": "flow_10",
+      "source_id": "task_mpon_mount_new",
+      "target_id": "task_mpon_read_meter",
+      "condition_name": null
+    },
+    {
+      "id": "flow_11",
+      "source_id": "task_mpon_read_meter",
+      "target_id": "task_mpon_send_readings_go",
+      "condition_name": null
+    },
+    {
+      "id": "flow_12",
+      "source_id": "task_mpon_send_readings_go",
+      "target_id": "evt_end_mpon_reading",
+      "condition_name": null
+    },
+    {
+      "id": "flow_13",
+      "source_id": "task_mpon_read_meter",
+      "target_id": "task_mpon_send_device_info_go",
+      "condition_name": null
+    },
+    {
+      "id": "flow_14",
+      "source_id": "task_mpon_send_device_info_go",
+      "target_id": "evt_end_mpon_device_info",
+      "condition_name": null
+    },
+    {
+      "id": "flow_15",
+      "source_id": "evt_start_go_receive_info",
+      "target_id": "task_go_notify_msp",
+      "condition_name": null
+    },
+    {
+      "id": "flow_16",
+      "source_id": "task_go_notify_msp",
+      "target_id": "evt_end_go_notify_msp",
+      "condition_name": null
+    },
+    {
+      "id": "flow_17",
+      "source_id": "evt_start_msp_receive",
+      "target_id": "evt_end_process",
+      "condition_name": null
+    },
+    {
+      "id": "flow_18",
+      "source_id": "evt_start_mpon_receive_decision",
+      "target_id": "task_mpon_or_mpoa_final_reading",
+      "condition_name": null
+    },
+    {
+      "id": "flow_19",
+      "source_id": "evt_start_go_receive_readings",
+      "target_id": "task_go_notify_msp",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_mpon",
+      "name": "MPON",
+      "element_ids": [
+        "evt_start_mpon",
+        "task_mpon_notify_intent",
+        "evt_end_mpon_notify",
+        "evt_start_mpon_receive_decision",
+        "task_mpon_or_mpoa_final_reading",
+        "task_mpon_or_mpoa_dismount_old",
+        "evt_end_mpon_dismount",
+        "evt_start_mpon_mount",
+        "task_mpon_mount_new",
+        "task_mpon_read_meter",
+        "task_mpon_send_readings_go",
+        "evt_end_mpon_reading",
+        "task_mpon_send_device_info_go",
+        "evt_end_mpon_device_info"
+      ]
+    },
+    {
+      "id": "pool_mpoa",
+      "name": "MPOO",
+      "element_ids": [
+        "evt_start_mpoa_receive",
+        "task_mpoa_decide_dismount",
+        "gw_dismount_decision",
+        "evt_end_mpoa_decision"
+      ]
+    },
+    {
+      "id": "pool_go",
+      "name": "GO",
+      "element_ids": [
+        "evt_start_go_receive_readings",
+        "evt_start_go_receive_info",
+        "task_go_notify_msp",
+        "evt_end_go_notify_msp"
+      ]
+    },
+    {
+      "id": "pool_msp",
+      "name": "MSP",
+      "element_ids": [
+        "evt_start_msp_receive",
+        "evt_end_process"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_1",
+      "source_id": "evt_end_mpon_notify",
+      "target_id": "evt_start_mpoa_receive",
+      "name": "Equipment Change Notification"
+    },
+    {
+      "id": "msg_2",
+      "source_id": "evt_end_mpoa_decision",
+      "target_id": "evt_start_mpon_receive_decision",
+      "name": "Self-Dismounting Decision"
+    },
+    {
+      "id": "msg_3",
+      "source_id": "evt_end_mpon_dismount",
+      "target_id": "evt_start_mpon_mount",
+      "name": "Dismount Completion & Final Reading Data"
+    },
+    {
+      "id": "msg_4",
+      "source_id": "evt_end_mpon_reading",
+      "target_id": "evt_start_go_receive_readings",
+      "name": "Final Reading Values"
+    },
+    {
+      "id": "msg_5",
+      "source_id": "evt_end_mpon_device_info",
+      "target_id": "evt_start_go_receive_info",
+      "name": "Device Change & Master Data"
+    },
+    {
+      "id": "msg_6",
+      "source_id": "evt_end_go_notify_msp",
+      "target_id": "evt_start_msp_receive",
+      "name": "Complete Change Record"
+    },
+    {
+      "id": "msg_5_self_dismount",
+      "source_id": "gw_dismount_decision",
+      "target_id": "task_mpon_or_mpoa_final_reading",
+      "name": "Self-dismounting announced"
+    },
+    {
+      "id": "msg_6_no_self_dismount",
+      "source_id": "gw_dismount_decision",
+      "target_id": "task_mpon_or_mpoa_final_reading",
+      "name": "No self-dismounting notified"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_change_intention",
+      "name": "Equipment Change Intention"
+    },
+    {
+      "id": "data_dismount_decision",
+      "name": "Self-Dismounting Decision"
+    },
+    {
+      "id": "data_final_reading",
+      "name": "Final Reading Value"
+    },
+    {
+      "id": "data_installation_reading",
+      "name": "Installation Meter Count"
+    },
+    {
+      "id": "data_reading_package",
+      "name": "Final Reading Package"
+    },
+    {
+      "id": "data_device_master_info",
+      "name": "Device Changes and Master Data"
+    },
+    {
+      "id": "data_complete_record",
+      "name": "Complete Change Record"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn">
+  
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_MSPN" name="MSPN" processRef="Process_MSPN" />
+    <bpmn:participant id="Participant_GO" name="Grid Operator (GO)" processRef="Process_GO" />
+    <bpmn:participant id="Participant_MSPO" name="MSPO" />
+    <bpmn:participant id="Participant_MPO" name="MPO" />
+    <bpmn:participant id="Participant_SP" name="SP" />
+    
+    <bpmn:messageFlow id="MF_Register" name="Measurement Registration Application" sourceRef="Task_MSPN_Register" targetRef="Start_GO" />
+    <bpmn:messageFlow id="MF_Reject" name="Application Rejection" sourceRef="Task_GO_Reject" targetRef="Participant_MSPN" />
+    <bpmn:messageFlow id="MF_Inform_MSPO" name="Assignment Notification" sourceRef="Task_GO_Inform_MSPO" targetRef="Participant_MSPO" />
+    <bpmn:messageFlow id="MF_Inform_MPO" name="Assignment Notification" sourceRef="Task_GO_Inform_MPO" targetRef="Participant_MPO" />
+    <bpmn:messageFlow id="MF_Inform_SP" name="Assignment Notification" sourceRef="Task_GO_Inform_SP" targetRef="Participant_SP" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_MSPN" isExecutable="false">
+    <bpmn:startEvent id="Start_MSPN" name="Measurement Registration Needed">
+      <bpmn:outgoing>SF_MSPN_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_MSPN_Register" name="Register Measurement at GO">
+      <bpmn:incoming>SF_MSPN_1</bpmn:incoming>
+      <bpmn:outgoing>SF_MSPN_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="End_MSPN" name="Registration Submitted">
+      <bpmn:incoming>SF_MSPN_2</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SF_MSPN_1" sourceRef="Start_MSPN" targetRef="Task_MSPN_Register" />
+    <bpmn:sequenceFlow id="SF_MSPN_2" sourceRef="Task_MSPN_Register" targetRef="End_MSPN" />
+  </bpmn:process>
+
+  <bpmn:process id="Process_GO" isExecutable="false">
+    <bpmn:startEvent id="Start_GO" name="Application Received">
+      <bpmn:outgoing>SF_GO_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDef_1" />
+    </bpmn:startEvent>
+    
+    <bpmn:task id="Task_GO_Examine" name="Examine Application of MSPN">
+      <bpmn:incoming>SF_GO_1</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_2</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="Application Approved?">
+      <bpmn:incoming>SF_GO_2</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_Rejected</bpmn:outgoing>
+      <bpmn:outgoing>SF_GO_Confirmed</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:sendTask id="Task_GO_Reject" name="Reject Application of MSPN">
+      <bpmn:incoming>SF_GO_Rejected</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_EndReject</bpmn:outgoing>
+    </bpmn:sendTask>
+    
+    <bpmn:endEvent id="End_GO_Rejected" name="Application Rejected">
+      <bpmn:incoming>SF_GO_EndReject</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:task id="Task_GO_Confirm" name="Confirm Application of MSPN">
+      <bpmn:incoming>SF_GO_Confirmed</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_3</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:task id="Task_GO_Assign" name="Assign MSPN">
+      <bpmn:incoming>SF_GO_3</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_4</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:parallelGateway id="Gateway_Split">
+      <bpmn:incoming>SF_GO_4</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_ToMSPO</bpmn:outgoing>
+      <bpmn:outgoing>SF_GO_ToMPO</bpmn:outgoing>
+      <bpmn:outgoing>SF_GO_ToSP</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <bpmn:sendTask id="Task_GO_Inform_MSPO" name="Inform MSPO about Assignment">
+      <bpmn:incoming>SF_GO_ToMSPO</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_FromMSPO</bpmn:outgoing>
+    </bpmn:sendTask>
+    
+    <bpmn:sendTask id="Task_GO_Inform_MPO" name="Inform MPO about Assignment">
+      <bpmn:incoming>SF_GO_ToMPO</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_FromMPO</bpmn:outgoing>
+    </bpmn:sendTask>
+    
+    <bpmn:sendTask id="Task_GO_Inform_SP" name="Inform SP about Assignment">
+      <bpmn:incoming>SF_GO_ToSP</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_FromSP</bpmn:outgoing>
+    </bpmn:sendTask>
+    
+    <bpmn:parallelGateway id="Gateway_Join">
+      <bpmn:incoming>SF_GO_FromMSPO</bpmn:incoming>
+      <bpmn:incoming>SF_GO_FromMPO</bpmn:incoming>
+      <bpmn:incoming>SF_GO_FromSP</bpmn:incoming>
+      <bpmn:outgoing>SF_GO_5</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <bpmn:endEvent id="End_GO_Confirmed" name="MSPN Process Completed">
+      <bpmn:incoming>SF_GO_5</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="SF_GO_1" sourceRef="Start_GO" targetRef="Task_GO_Examine" />
+    <bpmn:sequenceFlow id="SF_GO_2" sourceRef="Task_GO_Examine" targetRef="Gateway_Decision" />
+    <bpmn:sequenceFlow id="SF_GO_Rejected" name="No" sourceRef="Gateway_Decision" targetRef="Task_GO_Reject" />
+    <bpmn:sequenceFlow id="SF_GO_EndReject" sourceRef="Task_GO_Reject" targetRef="End_GO_Rejected" />
+    <bpmn:sequenceFlow id="SF_GO_Confirmed" name="Yes" sourceRef="Gateway_Decision" targetRef="Task_GO_Confirm" />
+    <bpmn:sequenceFlow id="SF_GO_3" sourceRef="Task_GO_Confirm" targetRef="Task_GO_Assign" />
+    <bpmn:sequenceFlow id="SF_GO_4" sourceRef="Task_GO_Assign" targetRef="Gateway_Split" />
+    <bpmn:sequenceFlow id="SF_GO_ToMSPO" sourceRef="Gateway_Split" targetRef="Task_GO_Inform_MSPO" />
+    <bpmn:sequenceFlow id="SF_GO_ToMPO" sourceRef="Gateway_Split" targetRef="Task_GO_Inform_MPO" />
+    <bpmn:sequenceFlow id="SF_GO_ToSP" sourceRef="Gateway_Split" targetRef="Task_GO_Inform_SP" />
+    <bpmn:sequenceFlow id="SF_GO_FromMSPO" sourceRef="Task_GO_Inform_MSPO" targetRef="Gateway_Join" />
+    <bpmn:sequenceFlow id="SF_GO_FromMPO" sourceRef="Task_GO_Inform_MPO" targetRef="Gateway_Join" />
+    <bpmn:sequenceFlow id="SF_GO_FromSP" sourceRef="Task_GO_Inform_SP" targetRef="Gateway_Join" />
+    <bpmn:sequenceFlow id="SF_GO_5" sourceRef="Gateway_Join" targetRef="End_GO_Confirmed" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      
+      <!-- MSPN Pool -->
+      <bpmndi:BPMNShape id="Participant_MSPN_di" bpmnElement="Participant_MSPN" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1380" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_MSPN_di" bpmnElement="Start_MSPN">
+        <dc:Bounds x="222" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="206" y="185" width="68" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_MSPN_Register_di" bpmnElement="Task_MSPN_Register">
+        <dc:Bounds x="310" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_MSPN_di" bpmnElement="End_MSPN">
+        <dc:Bounds x="462" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="450" y="185" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SF_MSPN_1_di" bpmnElement="SF_MSPN_1">
+        <di:waypoint x="258" y="160" />
+        <di:waypoint x="310" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_MSPN_2_di" bpmnElement="SF_MSPN_2">
+        <di:waypoint x="410" y="160" />
+        <di:waypoint x="462" y="160" />
+      </bpmndi:BPMNEdge>
+
+      <!-- GO Pool -->
+      <bpmndi:BPMNShape id="Participant_GO_di" bpmnElement="Participant_GO" isHorizontal="true">
+        <dc:Bounds x="160" y="300" width="1380" height="380" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_GO_di" bpmnElement="Start_GO">
+        <dc:Bounds x="222" y="452" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="213" y="495" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_Examine_di" bpmnElement="Task_GO_Examine">
+        <dc:Bounds x="310" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <dc:Bounds x="455" y="445" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="453" y="408" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_Reject_di" bpmnElement="Task_GO_Reject">
+        <dc:Bounds x="560" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_GO_Rejected_di" bpmnElement="End_GO_Rejected">
+        <dc:Bounds x="712" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="703" y="395" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_Confirm_di" bpmnElement="Task_GO_Confirm">
+        <dc:Bounds x="560" y="530" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_Assign_di" bpmnElement="Task_GO_Assign">
+        <dc:Bounds x="710" y="530" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Split_di" bpmnElement="Gateway_Split">
+        <dc:Bounds x="855" y="545" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_Inform_MSPO_di" bpmnElement="Task_GO_Inform_MSPO">
+        <dc:Bounds x="950" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_Inform_MPO_di" bpmnElement="Task_GO_Inform_MPO">
+        <dc:Bounds x="950" y="530" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_GO_Inform_SP_di" bpmnElement="Task_GO_Inform_SP">
+        <dc:Bounds x="950" y="630" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Join_di" bpmnElement="Gateway_Join">
+        <dc:Bounds x="1095" y="545" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_GO_Confirmed_di" bpmnElement="End_GO_Confirmed">
+        <dc:Bounds x="1192" y="552" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1174" y="595" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="SF_GO_1_di" bpmnElement="SF_GO_1">
+        <di:waypoint x="258" y="470" />
+        <di:waypoint x="310" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_2_di" bpmnElement="SF_GO_2">
+        <di:waypoint x="410" y="470" />
+        <di:waypoint x="455" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_Rejected_di" bpmnElement="SF_GO_Rejected">
+        <di:waypoint x="480" y="445" />
+        <di:waypoint x="480" y="370" />
+        <di:waypoint x="560" y="370" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="488" y="405" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_EndReject_di" bpmnElement="SF_GO_EndReject">
+        <di:waypoint x="660" y="370" />
+        <di:waypoint x="712" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_Confirmed_di" bpmnElement="SF_GO_Confirmed">
+        <di:waypoint x="480" y="495" />
+        <di:waypoint x="480" y="570" />
+        <di:waypoint x="560" y="570" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="486" y="530" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_3_di" bpmnElement="SF_GO_3">
+        <di:waypoint x="660" y="570" />
+        <di:waypoint x="710" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_4_di" bpmnElement="SF_GO_4">
+        <di:waypoint x="810" y="570" />
+        <di:waypoint x="855" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_ToMSPO_di" bpmnElement="SF_GO_ToMSPO">
+        <di:waypoint x="880" y="545" />
+        <di:waypoint x="880" y="470" />
+        <di:waypoint x="950" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_ToMPO_di" bpmnElement="SF_GO_ToMPO">
+        <di:waypoint x="905" y="570" />
+        <di:waypoint x="950" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_ToSP_di" bpmnElement="SF_GO_ToSP">
+        <di:waypoint x="880" y="595" />
+        <di:waypoint x="880" y="670" />
+        <di:waypoint x="950" y="670" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_FromMSPO_di" bpmnElement="SF_GO_FromMSPO">
+        <di:waypoint x="1050" y="470" />
+        <di:waypoint x="1120" y="470" />
+        <di:waypoint x="1120" y="545" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_FromMPO_di" bpmnElement="SF_GO_FromMPO">
+        <di:waypoint x="1050" y="570" />
+        <di:waypoint x="1095" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_FromSP_di" bpmnElement="SF_GO_FromSP">
+        <di:waypoint x="1050" y="670" />
+        <di:waypoint x="1120" y="670" />
+        <di:waypoint x="1120" y="595" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_GO_5_di" bpmnElement="SF_GO_5">
+        <di:waypoint x="1145" y="570" />
+        <di:waypoint x="1192" y="570" />
+      </bpmndi:BPMNEdge>
+
+      <!-- External Participants -->
+      <bpmndi:BPMNShape id="Participant_MSPO_di" bpmnElement="Participant_MSPO" isHorizontal="true">
+        <dc:Bounds x="160" y="730" width="1380" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_MPO_di" bpmnElement="Participant_MPO" isHorizontal="true">
+        <dc:Bounds x="160" y="860" width="1380" height="100" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_SP_di" bpmnElement="Participant_SP" isHorizontal="true">
+        <dc:Bounds x="160" y="990" width="1380" height="100" />
+      </bpmndi:BPMNShape>
+
+      <!-- Message Flows -->
+      <bpmndi:BPMNEdge id="MF_Register_di" bpmnElement="MF_Register">
+        <di:waypoint x="360" y="200" />
+        <di:waypoint x="360" y="326" />
+        <di:waypoint x="240" y="326" />
+        <di:waypoint x="240" y="452" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="267" y="293" width="67" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Reject_di" bpmnElement="MF_Reject">
+        <di:waypoint x="610" y="330" />
+        <di:waypoint x="610" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="613" y="271" width="53" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Inform_MSPO_di" bpmnElement="MF_Inform_MSPO">
+        <di:waypoint x="1000" y="510" />
+        <di:waypoint x="1000" y="730" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1006" y="700" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Inform_MPO_di" bpmnElement="MF_Inform_MPO">
+        <di:waypoint x="1020" y="610" />
+        <di:waypoint x="1020" y="860" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1026" y="830" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Inform_SP_di" bpmnElement="MF_Inform_SP">
+        <di:waypoint x="1040" y="710" />
+        <di:waypoint x="1040" y="990" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1046" y="960" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

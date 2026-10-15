@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="CustomizedBicycleProcess" name="Customized Bicycle Manufacturing Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_OrderReceived" name="Order Received">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Order Rejected">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="Accept Order?">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_OrderReceived" targetRef="Gateway_Decision" />
+    <bpmn:sequenceFlow id="Flow_2" name="Accepted" sourceRef="Gateway_Decision" targetRef="ParallelSplit_Gateway" />
+    <bpmn:sequenceFlow id="Flow_3" name="Rejected" sourceRef="Gateway_Decision" targetRef="EndEvent_Rejected" />
+    
+    <!-- Parallel Split -->
+    <bpmn:parallelGateway id="ParallelSplit_Gateway" name="Inform Departments">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Storehouse_Start</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Engineering_Prepare</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <!-- Storehouse Lane Logic (Sub-process for clarity, but flattened here as per standard BPMN flow) -->
+    <bpmn:subProcess id="SubProcess_ProcessPartList" name="Process Part List">
+      <bpmn:incoming>Flow_Storehouse_Start</bpmn:incoming>
+      <bpmn:outgoing>Flow_Storehouse_End</bpmn:outgoing>
+      <bpmn:startEvent id="Start_SubProcess_PartList">
+        <bpmn:outgoing>Flow_Check_Item</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:endEvent id="End_SubProcess_PartList">
+        <bpmn:incoming>Flow_All_Items_Done</bpmn:incoming>
+      </bpmn:endEvent>
+      
+      <bpmn:task id="Task_Get_Next_Part" name="Get Next Part from List">
+        <bpmn:incoming>Flow_Check_Item</bpmn:incoming>
+        <bpmn:outgoing>Flow_To_Availability_Check</bpmn:outgoing>
+      </bpmn:task>
+      
+      <bpmn:exclusiveGateway id="Gateway_Part_Available" name="Part Available?">
+        <bpmn:incoming>Flow_To_Availability_Check</bpmn:incoming>
+        <bpmn:outgoing>Flow_Reserve</bpmn:outgoing>
+        <bpmn:outgoing>Flow_Backorder</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      
+      <bpmn:task id="Task_Reserve_Part" name="Reserve Part">
+        <bpmn:incoming>Flow_Reserve</bpmn:incoming>
+        <bpmn:outgoing>Flow_Update_List</bpmn:outgoing>
+      </bpmn:task>
+      
+      <bpmn:task id="Task_Backorder_Part" name="Back-order Part">
+        <bpmn:incoming>Flow_Backorder</bpmn:incoming>
+        <bpmn:outgoing>Flow_Update_List</bpmn:outgoing>
+      </bpmn:task>
+      
+      <bpmn:exclusiveGateway id="Gateway_More_Parts" name="More Parts?">
+        <bpmn:incoming>Flow_Update_List</bpmn:incoming>
+        <bpmn:outgoing>Flow_Check_Item</bpmn:outgoing>
+        <bpmn:outgoing>Flow_All_Items_Done</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      
+      <bpmn:sequenceFlow id="Flow_Check_Item" sourceRef="Start_SubProcess_PartList" targetRef="Task_Get_Next_Part" />
+      <bpmn:sequenceFlow id="Flow_To_Availability_Check" sourceRef="Task_Get_Next_Part" targetRef="Gateway_Part_Available" />
+      <bpmn:sequenceFlow id="Flow_Reserve" name="Yes" sourceRef="Gateway_Part_Available" targetRef="Task_Reserve_Part" />
+      <bpmn:sequenceFlow id="Flow_Backorder" name="No" sourceRef="Gateway_Part_Available" targetRef="Task_Backorder_Part" />
+      <bpmn:sequenceFlow id="Flow_Update_List" sourceRef="Task_Reserve_Part" targetRef="Gateway_More_Parts" />
+      <bpmn:sequenceFlow id="Flow_Update_List_2" sourceRef="Task_Backorder_Part" targetRef="Gateway_More_Parts" />
+      <bpmn:sequenceFlow id="Flow_Loop_Back" name="Yes" sourceRef="Gateway_More_Parts" targetRef="Task_Get_Next_Part" />
+      <bpmn:sequenceFlow id="Flow_All_Items_Done" name="No" sourceRef="Gateway_More_Parts" targetRef="End_SubProcess_PartList" />
+    </bpmn:subProcess>
+
+    <!-- Engineering Lane Logic -->
+    <bpmn:task id="Task_Prepare_Assembly" name="Prepare Assembly">
+      <bpmn:incoming>Flow_Engineering_Prepare</bpmn:incoming>
+      <bpmn:outgoing>Flow_To_Assemble_Wait</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Parallel Join -->
+    <bpmn:parallelGateway id="ParallelJoin_Gateway" name="Ready to Assemble">
+      <bpmn:incoming>Flow_Storehouse_End</bpmn:incoming>
+      <bpmn:incoming>Flow_To_Assemble_Wait</bpmn:incoming>
+      <bpmn:outgoing>Flow_To_Assemble</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:task id="Task_Assemble_Bicycle" name="Assemble Bicycle">
+      <bpmn:incoming>Flow_To_Assemble</bpmn:incoming>
+      <bpmn:outgoing>Flow_To_Ship</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Ship_Bicycle" name="Ship Bicycle">
+      <bpmn:incoming>Flow_To_Ship</bpmn:incoming>
+      <bpmn:outgoing>Flow_To_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_Finished" name="Process Finished">
+      <bpmn:incoming>Flow_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Connecting Flows -->
+    <bpmn:sequenceFlow id="Flow_Storehouse_Start" sourceRef="ParallelSplit_Gateway" targetRef="SubProcess_ProcessPartList" />
+    <bpmn:sequenceFlow id="Flow_Storehouse_End" sourceRef="SubProcess_ProcessPartList" targetRef="ParallelJoin_Gateway" />
+    <bpmn:sequenceFlow id="Flow_Engineering_Prepare" sourceRef="ParallelSplit_Gateway" targetRef="Task_Prepare_Assembly" />
+    <bpmn:sequenceFlow id="Flow_To_Assemble_Wait" sourceRef="Task_Prepare_Assembly" targetRef="ParallelJoin_Gateway" />
+    <bpmn:sequenceFlow id="Flow_To_Assemble" sourceRef="ParallelJoin_Gateway" targetRef="Task_Assemble_Bicycle" />
+    <bpmn:sequenceFlow id="Flow_To_Ship" sourceRef="Task_Assemble_Bicycle" targetRef="Task_Ship_Bicycle" />
+    <bpmn:sequenceFlow id="Flow_To_End" sourceRef="Task_Ship_Bicycle" targetRef="EndEvent_Finished" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="CustomizedBicycleProcess">
+      <bpmndi:BPMNShape id="StartEvent_OrderReceived_di" bpmnElement="StartEvent_OrderReceived">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <dc:Bounds x="452" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <dc:Bounds x="232" y="94" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="232" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="282" y="120" />
+        <di:waypoint x="452" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="257" y="144" />
+        <di:waypoint x="257" y="200" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNShape id="ParallelSplit_Gateway_di" bpmnElement="ParallelSplit_Gateway" isMarkerVisible="true">
+        <dc:Bounds x="232" y="200" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="SubProcess_ProcessPartList_di" bpmnElement="SubProcess_ProcessPartList" isExpanded="true">
+        <dc:Bounds x="350" y="150" width="300" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_SubProcess_PartList_di" bpmnElement="Start_SubProcess_PartList">
+        <dc:Bounds x="382" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_SubProcess_PartList_di" bpmnElement="End_SubProcess_PartList">
+        <dc:Bounds x="602" y="182" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Get_Next_Part_di" bpmnElement="Task_Get_Next_Part">
+        <dc:Bounds x="440" y="170" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Part_Available_di" bpmnElement="Gateway_Part_Available" isMarkerVisible="true">
+        <dc:Bounds x="562" y="182" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Reserve_Part_di" bpmnElement="Task_Reserve_Part">
+        <dc:Bounds x="640" y="120" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Backorder_Part_di" bpmnElement="Task_Backorder_Part">
+        <dc:Bounds x="640" y="240" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_More_Parts_di" bpmnElement="Gateway_More_Parts" isMarkerVisible="true">
+        <dc:Bounds x="762" y="182" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Flow_Check_Item_di" bpmnElement="Flow_Check_Item">
+        <di:waypoint x="418" y="200" />
+        <di:waypoint x="440" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_To_Availability_Check_di" bpmnElement="Flow_To_Availability_Check">
+        <di:waypoint x="540" y="200" />
+        <di:waypoint x="562" y="207" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Reserve_di" bpmnElement="Flow_Reserve">
+        <di:waypoint x="612" y="182" />
+        <di:waypoint x="690" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Backorder_di" bpmnElement="Flow_Backorder">
+        <di:waypoint x="612" y="232" />
+        <di:waypoint x="690" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Update_List_di" bpmnElement="Flow_Update_List">
+        <di:waypoint x="740" y="150" />
+        <di:waypoint x="787" y="182" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Update_List_2_di" bpmnElement="Flow_Update_List_2">
+        <di:waypoint x="740" y="270" />
+        <di:waypoint x="787" y="232" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Loop_Back_di" bpmnElement="Flow_Loop_Back">
+        <di:waypoint x="787" y="182" />
+        <di:waypoint x="787" y="140" />
+        <di:waypoint x="490" y="140" />
+        <di:waypoint x="490" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_All_Items_Done_di" bpmnElement="Flow_All_Items_Done">
+        <di:waypoint x="812" y="207" />
+        <di:waypoint x="602" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNShape id="Task_Prepare_Assembly_di" bpmnElement="Task_Prepare_Assembly">
+        <dc:Bounds x="350" y="350" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="ParallelJoin_Gateway_di" bpmnElement="ParallelJoin_Gateway" isMarkerVisible="true">
+        <dc:Bounds x="502" y="200" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_Assemble_Bicycle_di" bpmnElement="Task_Assemble_Bicycle">
+        <dc:Bounds x="600" y="200" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_Ship_Bicycle_di" bpmnElement="Task_Ship_Bicycle">
+        <dc:Bounds x="750" y="200" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_Finished_di" bpmnElement="EndEvent_Finished">
+        <dc:Bounds x="902" y="202" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_Storehouse_Start_di" bpmnElement="Flow_Storehouse_Start">
+        <di:waypoint x="282" y="225" />
+        <di:waypoint x="350" y="225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Storehouse_End_di" bpmnElement="Flow_Storehouse_End">
+        <di:waypoint x="650" y="225" />
+        <di:waypoint x="527" y="225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Engineering_Prepare_di" bpmnElement="Flow_Engineering_Prepare">
+        <di:waypoint x="257" y="250" />
+        <di:waypoint x="257" y="380" />
+        <di:waypoint x="350" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_To_Assemble_Wait_di" bpmnElement="Flow_To_Assemble_Wait">
+        <di:waypoint x="450" y="380" />
+        <di:waypoint x="527" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_To_Assemble_di" bpmnElement="Flow_To_Assemble">
+        <di:waypoint x="552" y="225" />
+        <di:waypoint x="600" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_To_Ship_di" bpmnElement="Flow_To_Ship">
+        <di:waypoint x="700" y="230" />
+        <di:waypoint x="750" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_To_End_di" bpmnElement="Flow_To_End">
+        <di:waypoint x="850" y="230" />
+        <di:waypoint x="902" y="220" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

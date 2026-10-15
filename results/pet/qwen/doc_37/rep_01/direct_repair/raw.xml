@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="MailProcessingProcess" name="Mail Processing Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_Collection" name="Mail Collected Daily">
+      <bpmn:outgoing>Flow_CollectionToSort</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_SortUnopened" name="Sort Unopened Mail into Business Areas">
+      <bpmn:extensionElements>
+        <bpmndi:bpmndi xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI">
+          <bpmndi:BPMNShape bpmnElement="Task_SortUnopened" id="BPMNShape_Task_SortUnopened">
+            <dc:Bounds x="152" y="102" width="100" height="80" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"/>
+          </bpmndi:BPMNShape>
+        </bpmndi:bpmndi>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_CollectionToSort</bpmn:incoming>
+      <bpmn:outgoing>Flow_SortToDistribute</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_CollectionToSort" sourceRef="StartEvent_Collection" targetRef="Task_SortUnopened"/>
+    <bpmn:task id="Task_DistributeMail" name="Distribute Mail">
+      <bpmn:incoming>Flow_SortToDistribute</bpmn:incoming>
+      <bpmn:outgoing>Flow_DistributeToRegistry</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_SortToDistribute" sourceRef="Task_SortUnopened" targetRef="Task_DistributeMail"/>
+    <bpmn:task id="Task_OpenAndRegister" name="Open, Sort Groups, and Register in Manual Incoming Mail Register">
+      <bpmn:incoming>Flow_DistributeToRegistry</bpmn:incoming>
+      <bpmn:outgoing>Flow_RegisterToQualityCheck</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_DistributeToRegistry" sourceRef="Task_DistributeMail" targetRef="Task_OpenAndRegister"/>
+    <bpmn:task id="Task_QualityCheck" name="Perform Quality Check">
+      <bpmn:incoming>Flow_RegisterToQualityCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_QC_Decision</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_RegisterToQualityCheck" sourceRef="Task_OpenAndRegister" targetRef="Task_QualityCheck"/>
+    <bpmn:exclusiveGateway id="Gateway_QCResult" name="Compliant?">
+      <bpmn:incoming>Flow_QC_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotCompliant</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Compliant</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_QC_Decision" sourceRef="Task_QualityCheck" targetRef="Gateway_QCResult"/>
+    <bpmn:sequenceFlow id="Flow_NotCompliant" name="No" sourceRef="Gateway_QCResult" targetRef="Task_RejectMail">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Compliant" name="Yes" sourceRef="Gateway_QCResult" targetRef="Task_CaptureDetails">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:task id="Task_RejectMail" name="Compile Requisition List and Send Back to Party">
+      <bpmn:incoming>Flow_NotCompliant</bpmn:incoming>
+      <bpmn:outgoing>Flow_RejectToEnd</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Mail Rejected">
+      <bpmn:incoming>Flow_RejectToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_RejectToEnd" sourceRef="Task_RejectMail" targetRef="EndEvent_Rejected"/>
+    <bpmn:task id="Task_CaptureDetails" name="Capture Matter Details (Types of Action)">
+      <bpmn:incoming>Flow_Compliant</bpmn:incoming>
+      <bpmn:outgoing>Flow_DetailsToCashier</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_DetailsToCashier" sourceRef="Task_CaptureDetails" targetRef="Task_TakeFees"/>
+    <bpmn:task id="Task_TakeFees" name="Take Applicable Fees Attached to Mail">
+      <bpmn:incoming>Flow_DetailsToCashier</bpmn:incoming>
+      <bpmn:outgoing>Flow_FeesToParallel</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_FeesToParallel" sourceRef="Task_TakeFees" targetRef="Gateway_ParallelSplit"/>
+    <bpmn:parallelGateway id="Gateway_ParallelSplit" name="Split Actions">
+      <bpmn:incoming>Flow_FeesToParallel</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPostEnvelope</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToPrintFile</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="Flow_ToPostEnvelope" sourceRef="Gateway_ParallelSplit" targetRef="Task_PostEnvelope"/>
+    <bpmn:sequenceFlow id="Flow_ToPrintFile" sourceRef="Gateway_ParallelSplit" targetRef="Task_PrintCourtFile"/>
+    <bpmn:task id="Task_PostEnvelope" name="Put Receipt and Copied Documents into Envelope and Post to Party">
+      <bpmn:incoming>Flow_ToPostEnvelope</bpmn:incoming>
+      <bpmn:outgoing>Flow_PostToJoin</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_PostToJoin" sourceRef="Task_PostEnvelope" targetRef="Gateway_ParallelJoin"/>
+    <bpmn:task id="Task_PrintCourtFile" name="Capture Party Details and Print Physical Court File">
+      <bpmn:incoming>Flow_ToPrintFile</bpmn:incoming>
+      <bpmn:outgoing>Flow_PrintToJoin</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_PrintToJoin" sourceRef="Task_PrintCourtFile" targetRef="Gateway_ParallelJoin"/>
+    <bpmn:parallelGateway id="Gateway_ParallelJoin" name="Join Actions">
+      <bpmn:incoming>Flow_PostToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_PrintToJoin</bpmn:incoming>
+      <bpmn:outgoing>Flow_JoinToEnd</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="Flow_JoinToEnd" sourceRef="Gateway_ParallelJoin" targetRef="EndEvent_Completed"/>
+    <bpmn:endEvent id="EndEvent_Completed" name="Process Completed">
+      <bpmn:incoming>Flow_JoinToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_MailProcessingUnit" name="Mail Processing Unit" processRef="MailProcessingProcess"/>
+  </bpmn:collaboration>
+</bpmn:definitions>

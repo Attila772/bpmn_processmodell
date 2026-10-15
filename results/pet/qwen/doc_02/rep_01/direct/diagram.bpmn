@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="ComputerRepairProcess" name="Computer Repair Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Customer brings in defective computer">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_CheckDefect" name="CRS checks the defect">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CalculateCost" name="Hand out repair cost calculation">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="Costs acceptable?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Accepted</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_Unrepaired" name="Takes computer home unrepaired">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:parallelGateway id="Gateway_Parallel_Start" name="Start Parallel Repairs">
+      <bpmn:incoming>Flow_Accepted</bpmn:incoming>
+      <bpmn:outgoing>Flow_Hardware</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Software</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:task id="Task_Hardware" name="Check and repair hardware">
+      <bpmn:incoming>Flow_Hardware</bpmn:incoming>
+      <bpmn:outgoing>Flow_TestHardware</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Software" name="Check and configure software">
+      <bpmn:incoming>Flow_Software</bpmn:incoming>
+      <bpmn:outgoing>Flow_TestSoftware</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TestHardware" name="Test system functionality (Hardware)">
+      <bpmn:incoming>Flow_TestHardware</bpmn:incoming>
+      <bpmn:outgoing>Flow_GW_Hw_Decision</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TestSoftware" name="Test system functionality (Software)">
+      <bpmn:incoming>Flow_TestSoftware</bpmn:incoming>
+      <bpmn:outgoing>Flow_GW_Sw_Decision</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_Hw_Decision" name="Error detected?">
+      <bpmn:incoming>Flow_GW_Hw_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Hw_Error</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Hw_Ok</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="Gateway_Sw_Decision" name="Error detected?">
+      <bpmn:incoming>Flow_GW_Sw_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Sw_Error</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Sw_Ok</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ArbitraryRepair_Hw" name="Execute arbitrary repair activity">
+      <bpmn:incoming>Flow_Hw_Error</bpmn:incoming>
+      <bpmn:outgoing>Flow_Hw_Retry</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_ArbitraryRepair_Sw" name="Execute arbitrary repair activity">
+      <bpmn:incoming>Flow_Sw_Error</bpmn:incoming>
+      <bpmn:outgoing>Flow_Sw_Retry</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:parallelGateway id="Gateway_Parallel_End" name="Finish Parallel Repairs">
+      <bpmn:incoming>Flow_Hw_Ok</bpmn:incoming>
+      <bpmn:incoming>Flow_Sw_Ok</bpmn:incoming>
+      <bpmn:outgoing>Flow_Finish</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:endEvent id="EndEvent_Finished" name="Repair finished">
+      <bpmn:incoming>Flow_Finish</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CheckDefect" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CheckDefect" targetRef="Task_CalculateCost" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CalculateCost" targetRef="Gateway_Decision" />
+    <bpmn:sequenceFlow id="Flow_Accepted" name="Yes" sourceRef="Gateway_Decision" targetRef="Gateway_Parallel_Start" />
+    <bpmn:sequenceFlow id="Flow_Rejected" name="No" sourceRef="Gateway_Decision" targetRef="EndEvent_Unrepaired" />
+    <bpmn:sequenceFlow id="Flow_Hardware" sourceRef="Gateway_Parallel_Start" targetRef="Task_Hardware" />
+    <bpmn:sequenceFlow id="Flow_Software" sourceRef="Gateway_Parallel_Start" targetRef="Task_Software" />
+    <bpmn:sequenceFlow id="Flow_TestHardware" sourceRef="Task_Hardware" targetRef="Task_TestHardware" />
+    <bpmn:sequenceFlow id="Flow_TestSoftware" sourceRef="Task_Software" targetRef="Task_TestSoftware" />
+    <bpmn:sequenceFlow id="Flow_GW_Hw_Decision" sourceRef="Task_TestHardware" targetRef="Gateway_Hw_Decision" />
+    <bpmn:sequenceFlow id="Flow_GW_Sw_Decision" sourceRef="Task_TestSoftware" targetRef="Gateway_Sw_Decision" />
+    <bpmn:sequenceFlow id="Flow_Hw_Error" name="Yes" sourceRef="Gateway_Hw_Decision" targetRef="Task_ArbitraryRepair_Hw" />
+    <bpmn:sequenceFlow id="Flow_Hw_Ok" name="No" sourceRef="Gateway_Hw_Decision" targetRef="Gateway_Parallel_End" />
+    <bpmn:sequenceFlow id="Flow_Sw_Error" name="Yes" sourceRef="Gateway_Sw_Decision" targetRef="Task_ArbitraryRepair_Sw" />
+    <bpmn:sequenceFlow id="Flow_Sw_Ok" name="No" sourceRef="Gateway_Sw_Decision" targetRef="Gateway_Parallel_End" />
+    <bpmn:sequenceFlow id="Flow_Hw_Retry" sourceRef="Task_ArbitraryRepair_Hw" targetRef="Task_TestHardware" />
+    <bpmn:sequenceFlow id="Flow_Sw_Retry" sourceRef="Task_ArbitraryRepair_Sw" targetRef="Task_TestSoftware" />
+    <bpmn:sequenceFlow id="Flow_Finish" sourceRef="Gateway_Parallel_End" targetRef="EndEvent_Finished" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ComputerRepairProcess">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckDefect_di" bpmnElement="Task_CheckDefect">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CalculateCost_di" bpmnElement="Task_CalculateCost">
+        <dc:Bounds x="390" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <dc:Bounds x="545" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="535" y="70" width="70" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Unrepaired_di" bpmnElement="EndEvent_Unrepaired">
+        <dc:Bounds x="642" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Parallel_Start_di" bpmnElement="Gateway_Parallel_Start" isMarkerVisible="true">
+        <dc:Bounds x="645" y="245" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Hardware_di" bpmnElement="Task_Hardware">
+        <dc:Bounds x="750" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Software_di" bpmnElement="Task_Software">
+        <dc:Bounds x="750" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TestHardware_di" bpmnElement="Task_TestHardware">
+        <dc:Bounds x="900" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TestSoftware_di" bpmnElement="Task_TestSoftware">
+        <dc:Bounds x="900" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Hw_Decision_di" bpmnElement="Gateway_Hw_Decision" isMarkerVisible="true">
+        <dc:Bounds x="1055" y="195" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Sw_Decision_di" bpmnElement="Gateway_Sw_Decision" isMarkerVisible="true">
+        <dc:Bounds x="1055" y="335" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ArbitraryRepair_Hw_di" bpmnElement="Task_ArbitraryRepair_Hw">
+        <dc:Bounds x="1160" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ArbitraryRepair_Sw_di" bpmnElement="Task_ArbitraryRepair_Sw">
+        <dc:Bounds x="1160" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Parallel_End_di" bpmnElement="Gateway_Parallel_End" isMarkerVisible="true">
+        <dc:Bounds x="1325" y="245" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Finished_di" bpmnElement="EndEvent_Finished">
+        <dc:Bounds x="1442" y="252" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="390" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="490" y="120" />
+        <di:waypoint x="545" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Accepted_di" bpmnElement="Flow_Accepted">
+        <di:waypoint x="570" y="145" />
+        <di:waypoint x="570" y="270" />
+        <di:waypoint x="645" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="595" y="120" />
+        <di:waypoint x="642" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Hardware_di" bpmnElement="Flow_Hardware">
+        <di:waypoint x="670" y="245" />
+        <di:waypoint x="670" y="220" />
+        <di:waypoint x="750" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Software_di" bpmnElement="Flow_Software">
+        <di:waypoint x="670" y="295" />
+        <di:waypoint x="670" y="360" />
+        <di:waypoint x="750" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_TestHardware_di" bpmnElement="Flow_TestHardware">
+        <di:waypoint x="850" y="220" />
+        <di:waypoint x="900" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_TestSoftware_di" bpmnElement="Flow_TestSoftware">
+        <di:waypoint x="850" y="360" />
+        <di:waypoint x="900" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_Hw_Decision_di" bpmnElement="Flow_GW_Hw_Decision">
+        <di:waypoint x="1000" y="220" />
+        <di:waypoint x="1055" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_Sw_Decision_di" bpmnElement="Flow_GW_Sw_Decision">
+        <di:waypoint x="1000" y="360" />
+        <di:waypoint x="1055" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Hw_Error_di" bpmnElement="Flow_Hw_Error">
+        <di:waypoint x="1105" y="220" />
+        <di:waypoint x="1160" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Hw_Ok_di" bpmnElement="Flow_Hw_Ok">
+        <di:waypoint x="1105" y="220" />
+        <di:waypoint x="1150" y="220" />
+        <di:waypoint x="1150" y="270" />
+        <di:waypoint x="1325" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Sw_Error_di" bpmnElement="Flow_Sw_Error">
+        <di:waypoint x="1105" y="360" />
+        <di:waypoint x="1160" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Sw_Ok_di" bpmnElement="Flow_Sw_Ok">
+        <di:waypoint x="1105" y="360" />
+        <di:waypoint x="1150" y="360" />
+        <di:waypoint x="1150" y="270" />
+        <di:waypoint x="1325" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Hw_Retry_di" bpmnElement="Flow_Hw_Retry">
+        <di:waypoint x="1260" y="220" />
+        <di:waypoint x="1300" y="220" />
+        <di:waypoint x="1300" y="140" />
+        <di:waypoint x="950" y="140" />
+        <di:waypoint x="950" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Sw_Retry_di" bpmnElement="Flow_Sw_Retry">
+        <di:waypoint x="1260" y="360" />
+        <di:waypoint x="1300" y="360" />
+        <di:waypoint x="1300" y="400" />
+        <di:waypoint x="950" y="400" />
+        <di:waypoint x="950" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Finish_di" bpmnElement="Flow_Finish">
+        <di:waypoint x="1375" y="270" />
+        <di:waypoint x="1442" y="270" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

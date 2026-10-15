@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_ec_part" name="EC" processRef="pool_ec_proc" />
+    <bpmn:participant id="pool_inq_part" name="INQ" processRef="pool_inq_proc" />
+    <bpmn:participant id="pool_ip_part" name="IP" processRef="pool_ip_proc" />
+    <bpmn:messageFlow id="mf_ec_to_inq" sourceRef="evt_ec_send_change" targetRef="evt_inq_receive_change" name="Master data change notification" />
+    <bpmn:messageFlow id="mf_inq_to_ip" sourceRef="evt_inq_send_change" targetRef="evt_ip_receive_change" name="Change notification" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_ec_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_master_data" name="Master Data Change Request" dataObjectRef="data_master_data_do" />
+    <bpmn:dataObject id="data_master_data_do" />
+    <bpmn:startEvent id="evt_ec_start" name="Master data change required">
+      <bpmn:outgoing>sf_ec_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_ec_send_change" name="Master data change sent">
+      <bpmn:incoming>sf_ec_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_ec_send_change_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_ec_tell_inq" name="Tell INQ about change of master data">
+      <bpmn:incoming>sf_ec_1</bpmn:incoming>
+      <bpmn:outgoing>sf_ec_2</bpmn:outgoing>
+      <bpmn:property id="task_ec_tell_inq_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_ec_tell_inq_dia0">
+        <bpmn:sourceRef>data_master_data</bpmn:sourceRef>
+        <bpmn:targetRef>task_ec_tell_inq_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_ec_tell_inq_doa0">
+        <bpmn:targetRef>data_master_data</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf_ec_1" sourceRef="evt_ec_start" targetRef="task_ec_tell_inq" />
+    <bpmn:sequenceFlow id="sf_ec_2" sourceRef="task_ec_tell_inq" targetRef="evt_ec_send_change" />
+  </bpmn:process>
+  <bpmn:process id="pool_inq_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_master_data_p1" name="Master Data Change Request" dataObjectRef="data_master_data_p1_do" />
+    <bpmn:dataObject id="data_master_data_p1_do" />
+    <bpmn:startEvent id="evt_inq_receive_change" name="Master data change received from EC">
+      <bpmn:outgoing>sf_inq_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_inq_receive_change_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_inq_send_change" name="Master data change sent to IP">
+      <bpmn:incoming>sf_inq_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_inq_send_change_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_inq_notify_ip" name="Notify IP of the change">
+      <bpmn:incoming>sf_inq_1</bpmn:incoming>
+      <bpmn:outgoing>sf_inq_2</bpmn:outgoing>
+      <bpmn:property id="task_inq_notify_ip_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_inq_notify_ip_dia0">
+        <bpmn:sourceRef>data_master_data_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_inq_notify_ip_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_inq_notify_ip_doa0">
+        <bpmn:targetRef>data_master_data_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf_inq_1" sourceRef="evt_inq_receive_change" targetRef="task_inq_notify_ip" />
+    <bpmn:sequenceFlow id="sf_inq_2" sourceRef="task_inq_notify_ip" targetRef="evt_inq_send_change" />
+  </bpmn:process>
+  <bpmn:process id="pool_ip_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_master_data_p2" name="Master Data Change Request" dataObjectRef="data_master_data_p2_do" />
+    <bpmn:dataObject id="data_master_data_p2_do" />
+    <bpmn:startEvent id="evt_ip_receive_change" name="Change notification received from INQ">
+      <bpmn:outgoing>sf_ip_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_ip_receive_change_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_ip_send_confirm" name="Changes confirmed to INQ">
+      <bpmn:incoming>sf_ip_3</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_ip_send_confirm_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_ip_send_reject" name="Changes rejected to INQ">
+      <bpmn:incoming>sf_ip_4</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_ip_send_reject_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_ip_check_time" name="Check whether master data can be changed at desired time">
+      <bpmn:incoming>sf_ip_1</bpmn:incoming>
+      <bpmn:outgoing>sf_ip_2</bpmn:outgoing>
+      <bpmn:property id="task_ip_check_time_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_ip_check_time_dia0">
+        <bpmn:sourceRef>data_master_data_p2</bpmn:sourceRef>
+        <bpmn:targetRef>task_ip_check_time_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_ip_confirm" name="Confirm changes of INQ">
+      <bpmn:incoming>sf_gw_to_confirm</bpmn:incoming>
+      <bpmn:outgoing>sf_ip_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_ip_reject" name="Reject changes of INQ">
+      <bpmn:incoming>sf_gw_to_reject</bpmn:incoming>
+      <bpmn:outgoing>sf_ip_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_ip_decision" name="Master data changeable at desired time?" isMarkerVisible="true">
+      <bpmn:incoming>sf_ip_2</bpmn:incoming>
+      <bpmn:outgoing>sf_gw_to_confirm</bpmn:outgoing>
+      <bpmn:outgoing>sf_gw_to_reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_ip_1" sourceRef="evt_ip_receive_change" targetRef="task_ip_check_time" />
+    <bpmn:sequenceFlow id="sf_ip_2" sourceRef="task_ip_check_time" targetRef="gw_ip_decision" />
+    <bpmn:sequenceFlow id="sf_gw_to_confirm" sourceRef="gw_ip_decision" targetRef="task_ip_confirm" name="Yes" />
+    <bpmn:sequenceFlow id="sf_gw_to_reject" sourceRef="gw_ip_decision" targetRef="task_ip_reject" name="No" />
+    <bpmn:sequenceFlow id="sf_ip_3" sourceRef="task_ip_confirm" targetRef="evt_ip_send_confirm" />
+    <bpmn:sequenceFlow id="sf_ip_4" sourceRef="task_ip_reject" targetRef="evt_ip_send_reject" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_ec_part_di" bpmnElement="pool_ec_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_inq_part_di" bpmnElement="pool_inq_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_ip_part_di" bpmnElement="pool_ip_part" isHorizontal="true">
+        <dc:Bounds x="120" y="710" width="1140" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_ec_send_change_di" bpmnElement="evt_ec_send_change">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_ec_start_di" bpmnElement="evt_ec_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_inq_receive_change_di" bpmnElement="evt_inq_receive_change">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_inq_send_change_di" bpmnElement="evt_inq_send_change">
+        <dc:Bounds x="540" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_ip_receive_change_di" bpmnElement="evt_ip_receive_change">
+        <dc:Bounds x="160" y="770" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_ip_send_confirm_di" bpmnElement="evt_ip_send_confirm">
+        <dc:Bounds x="920" y="770" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_ip_send_reject_di" bpmnElement="evt_ip_send_reject">
+        <dc:Bounds x="920" y="895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_ip_decision_di" bpmnElement="gw_ip_decision">
+        <dc:Bounds x="540" y="770" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ec_tell_inq_di" bpmnElement="task_ec_tell_inq">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inq_notify_ip_di" bpmnElement="task_inq_notify_ip">
+        <dc:Bounds x="350" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ip_check_time_di" bpmnElement="task_ip_check_time">
+        <dc:Bounds x="350" y="770" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ip_confirm_di" bpmnElement="task_ip_confirm">
+        <dc:Bounds x="730" y="770" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ip_reject_di" bpmnElement="task_ip_reject">
+        <dc:Bounds x="730" y="895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_master_data_di" bpmnElement="data_master_data">
+        <dc:Bounds x="370" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_master_data_p1_di" bpmnElement="data_master_data_p1">
+        <dc:Bounds x="370" y="575" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_master_data_p2_di" bpmnElement="data_master_data_p2">
+        <dc:Bounds x="370" y="1035" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_ec_1_di" bpmnElement="sf_ec_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_ec_2_di" bpmnElement="sf_ec_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_inq_1_di" bpmnElement="sf_inq_1">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_inq_2_di" bpmnElement="sf_inq_2">
+        <di:waypoint x="400" y="475" />
+        <di:waypoint x="558" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_ip_1_di" bpmnElement="sf_ip_1">
+        <di:waypoint x="178" y="788" />
+        <di:waypoint x="400" y="810" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_ip_2_di" bpmnElement="sf_ip_2">
+        <di:waypoint x="400" y="810" />
+        <di:waypoint x="565" y="795" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_gw_to_confirm_di" bpmnElement="sf_gw_to_confirm">
+        <di:waypoint x="565" y="795" />
+        <di:waypoint x="780" y="810" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_gw_to_reject_di" bpmnElement="sf_gw_to_reject">
+        <di:waypoint x="565" y="795" />
+        <di:waypoint x="780" y="935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_ip_3_di" bpmnElement="sf_ip_3">
+        <di:waypoint x="780" y="810" />
+        <di:waypoint x="938" y="788" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_ip_4_di" bpmnElement="sf_ip_4">
+        <di:waypoint x="780" y="935" />
+        <di:waypoint x="938" y="913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_ec_to_inq_di" bpmnElement="mf_ec_to_inq">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_inq_to_ip_di" bpmnElement="mf_inq_to_ip">
+        <di:waypoint x="558" y="453" />
+        <di:waypoint x="178" y="788" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_ec_tell_inq_dia0_di" bpmnElement="task_ec_tell_inq_dia0">
+        <di:waypoint x="388" y="265" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_ec_tell_inq_doa0_di" bpmnElement="task_ec_tell_inq_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_inq_notify_ip_dia0_di" bpmnElement="task_inq_notify_ip_dia0">
+        <di:waypoint x="388" y="600" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_inq_notify_ip_doa0_di" bpmnElement="task_inq_notify_ip_doa0">
+        <di:waypoint x="400" y="475" />
+        <di:waypoint x="388" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_ip_check_time_dia0_di" bpmnElement="task_ip_check_time_dia0">
+        <di:waypoint x="388" y="1060" />
+        <di:waypoint x="400" y="810" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

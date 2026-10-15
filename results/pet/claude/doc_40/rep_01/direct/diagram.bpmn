@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Party" name="Party" processRef="Process_Party" />
+    <bpmn:participant id="Participant_BackOffice" name="Client Service Back Office (Small Claims Registry Operations)" processRef="Process_BackOffice" />
+    <bpmn:participant id="Participant_Police" name="Queensland Police" processRef="Process_Police" />
+    <bpmn:participant id="Participant_MCStaff" name="MC Internal Staff (Out of Scope)" processRef="Process_MCStaff" />
+
+    <bpmn:messageFlow id="MessageFlow_RequestToBackOffice" sourceRef="Task_SendRequest" targetRef="StartEvent_ReceiveRequest" />
+    <bpmn:messageFlow id="MessageFlow_ForwardToPolice" sourceRef="Task_ForwardToPolice" targetRef="StartEvent_PoliceReceive" />
+    <bpmn:messageFlow id="MessageFlow_ReportToBackOffice" sourceRef="Task_SendReport" targetRef="IntermediateCatch_ReceiveReport" />
+    <bpmn:messageFlow id="MessageFlow_PhysicalFileToMC" sourceRef="Task_SendToMCStaff" targetRef="StartEvent_MCReceive" />
+  </bpmn:collaboration>
+
+  <!-- PARTY PROCESS -->
+  <bpmn:process id="Process_Party" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Party" name="Process Started">
+      <bpmn:outgoing>Flow_Party_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_SendRequest" name="Send Warrant Possession Request">
+      <bpmn:incoming>Flow_Party_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Party_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_Party" name="Request Sent">
+      <bpmn:incoming>Flow_Party_2</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_Party_1" sourceRef="StartEvent_Party" targetRef="Task_SendRequest" />
+    <bpmn:sequenceFlow id="Flow_Party_2" sourceRef="Task_SendRequest" targetRef="EndEvent_Party" />
+  </bpmn:process>
+
+  <!-- BACK OFFICE PROCESS -->
+  <bpmn:process id="Process_BackOffice" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_ReceiveRequest" name="Receive Warrant Possession Request">
+      <bpmn:messageEventDefinition id="MsgDef_ReceiveRequest" />
+      <bpmn:outgoing>Flow_BO_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_RetrieveSCT1" name="Retrieve SCT File">
+      <bpmn:incoming>Flow_BO_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_BO_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_ForwardToPolice" name="Forward SCT Warrant Possession to Queensland Police">
+      <bpmn:incoming>Flow_BO_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_BO_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_StoreSCTAwaiting" name="Store SCT Physical File (Awaiting Report)">
+      <bpmn:incoming>Flow_BO_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_BO_4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatch_ReceiveReport" name="Receive Report">
+      <bpmn:incoming>Flow_BO_4</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MsgDef_ReceiveReport" />
+      <bpmn:outgoing>Flow_BO_5</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="Task_RetrieveSCT2" name="Retrieve SCT File">
+      <bpmn:incoming>Flow_BO_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_BO_6</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_AttachDocument" name="Attach New SCT Document">
+      <bpmn:incoming>Flow_BO_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_BO_7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_StoreExpandedFile" name="Store Expanded SCT Physical File">
+      <bpmn:incoming>Flow_BO_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_BO_8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SendToMCStaff" name="Send Physical SCT File to MC Internal Staff">
+      <bpmn:incoming>Flow_BO_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_BO_9</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_BackOffice" name="Process Complete">
+      <bpmn:incoming>Flow_BO_9</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_BO_1" sourceRef="StartEvent_ReceiveRequest" targetRef="Task_RetrieveSCT1" />
+    <bpmn:sequenceFlow id="Flow_BO_2" sourceRef="Task_RetrieveSCT1" targetRef="Task_ForwardToPolice" />
+    <bpmn:sequenceFlow id="Flow_BO_3" sourceRef="Task_ForwardToPolice" targetRef="Task_StoreSCTAwaiting" />
+    <bpmn:sequenceFlow id="Flow_BO_4" sourceRef="Task_StoreSCTAwaiting" targetRef="IntermediateCatch_ReceiveReport" />
+    <bpmn:sequenceFlow id="Flow_BO_5" sourceRef="IntermediateCatch_ReceiveReport" targetRef="Task_RetrieveSCT2" />
+    <bpmn:sequenceFlow id="Flow_BO_6" sourceRef="Task_RetrieveSCT2" targetRef="Task_AttachDocument" />
+    <bpmn:sequenceFlow id="Flow_BO_7" sourceRef="Task_AttachDocument" targetRef="Task_StoreExpandedFile" />
+    <bpmn:sequenceFlow id="Flow_BO_8" sourceRef="Task_StoreExpandedFile" targetRef="Task_SendToMCStaff" />
+    <bpmn:sequenceFlow id="Flow_BO_9" sourceRef="Task_SendToMCStaff" targetRef="EndEvent_BackOffice" />
+  </bpmn:process>
+
+  <!-- QUEENSLAND POLICE PROCESS -->
+  <bpmn:process id="Process_Police" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_PoliceReceive" name="Receive SCT Warrant Possession">
+      <bpmn:messageEventDefinition id="MsgDef_PoliceReceive" />
+      <bpmn:outgoing>Flow_Police_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_SendReport" name="Send Report">
+      <bpmn:incoming>Flow_Police_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Police_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_Police" name="Report Sent">
+      <bpmn:incoming>Flow_Police_2</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_Police_1" sourceRef="StartEvent_PoliceReceive" targetRef="Task_SendReport" />
+    <bpmn:sequenceFlow id="Flow_Police_2" sourceRef="Task_SendReport" targetRef="EndEvent_Police" />
+  </bpmn:process>
+
+  <!-- MC INTERNAL STAFF PROCESS (OUT OF SCOPE) -->
+  <bpmn:process id="Process_MCStaff" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_MCReceive" name="Receive Physical SCT File (Out of Scope)">
+      <bpmn:messageEventDefinition id="MsgDef_MCReceive" />
+      <bpmn:outgoing>Flow_MC_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:endEvent id="EndEvent_MC" name="End (Out of Scope)">
+      <bpmn:incoming>Flow_MC_1</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_MC_1" sourceRef="StartEvent_MCReceive" targetRef="EndEvent_MC" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Participant_Party_di" bpmnElement="Participant_Party" isHorizontal="true">
+        <omgdc:Bounds x="60" y="40" width="600" height="120" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_Party_di" bpmnElement="StartEvent_Party">
+        <omgdc:Bounds x="100" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendRequest_di" bpmnElement="Task_SendRequest">
+        <omgdc:Bounds x="180" y="60" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Party_di" bpmnElement="EndEvent_Party">
+        <omgdc:Bounds x="340" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_BackOffice_di" bpmnElement="Participant_BackOffice" isHorizontal="true">
+        <omgdc:Bounds x="60" y="200" width="1100" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_ReceiveRequest_di" bpmnElement="StartEvent_ReceiveRequest">
+        <omgdc:Bounds x="100" y="282" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RetrieveSCT1_di" bpmnElement="Task_RetrieveSCT1">
+        <omgdc:Bounds x="180" y="260" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ForwardToPolice_di" bpmnElement="Task_ForwardToPolice">
+        <omgdc:Bounds x="320" y="260" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_StoreSCTAwaiting_di" bpmnElement="Task_StoreSCTAwaiting">
+        <omgdc:Bounds x="490" y="260" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="IntermediateCatch_ReceiveReport_di" bpmnElement="IntermediateCatch_ReceiveReport">
+        <omgdc:Bounds x="660" y="282" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RetrieveSCT2_di" bpmnElement="Task_RetrieveSCT2">
+        <omgdc:Bounds x="730" y="260" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AttachDocument_di" bpmnElement="Task_AttachDocument">
+        <omgdc:Bounds x="870" y="260" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_StoreExpandedFile_di" bpmnElement="Task_StoreExpandedFile">
+        <omgdc:Bounds x="1020" y="260" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendToMCStaff_di" bpmnElement="Task_SendToMCStaff">
+        <omgdc:Bounds x="1180" y="260" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_BackOffice_di" bpmnElement="EndEvent_BackOffice">
+        <omgdc:Bounds x="1350" y="282" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_Police_di" bpmnElement="Participant_Police" isHorizontal="true">
+        <omgdc:Bounds x="60" y="440" width="600" height="120" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_PoliceReceive_di" bpmnElement="StartEvent_PoliceReceive">
+        <omgdc:Bounds x="360" y="482" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SendReport_di" bpmnElement="Task_SendReport">
+        <omgdc:Bounds x="440" y="460" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Police_di" bpmnElement="EndEvent_Police">
+        <omgdc:Bounds x="600" y="482" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_MCStaff_di" bpmnElement="Participant_MCStaff" isHorizontal="true">
+        <omgdc:Bounds x="60" y="600" width="1300" height="120" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_MCReceive_di" bpmnElement="StartEvent_MCReceive">
+        <omgdc:Bounds x="1200" y="642" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_MC_di" bpmnElement="EndEvent_MC">
+        <omgdc:Bounds x="1300" y="642" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_Party_1_di" bpmnElement="Flow_Party_1">
+        <omgdi:waypoint x="136" y="100" />
+        <omgdi:waypoint x="180" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Party_2_di" bpmnElement="Flow_Party_2">
+        <omgdi:waypoint x="300" y="100" />
+        <omgdi:waypoint x="340" y="100" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_BO_1_di" bpmnElement="Flow_BO_1">
+        <omgdi:waypoint x="136" y="300" />
+        <omgdi:waypoint x="180" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BO_2_di" bpmnElement="Flow_BO_2">
+        <omgdi:waypoint x="290" y="300" />
+        <omgdi:waypoint x="320" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BO_3_di" bpmnElement="Flow_BO_3">
+        <omgdi:waypoint x="460" y="300" />
+        <omgdi:waypoint x="490" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BO_4_di" bpmnElement="Flow_BO_4">
+        <omgdi:waypoint x="630" y="300" />
+        <omgdi:waypoint x="660" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BO_5_di" bpmnElement="Flow_BO_5">
+        <omgdi:waypoint x="696" y="300" />
+        <omgdi:waypoint x="730" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BO_6_di" bpmnElement="Flow_BO_6">
+        <omgdi:waypoint x="840" y="300" />
+        <omgdi:waypoint x="870" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BO_7_di" bpmnElement="Flow_BO_7">
+        <omgdi:waypoint x="990" y="300" />
+        <omgdi:waypoint x="1020" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BO_8_di" bpmnElement="Flow_BO_8">
+        <omgdi:waypoint x="1150" y="300" />
+        <omgdi:waypoint x="1180" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BO_9_di" bpmnElement="Flow_BO_9">
+        <omgdi:waypoint x="1320" y="300" />
+        <omgdi:waypoint x="1350" y="300" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Police_1_di" bpmnElement="Flow_Police_1">
+        <omgdi:waypoint x="396" y="500" />
+        <omgdi:waypoint x="440" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Police_2_di" bpmnElement="Flow_Police_2">
+        <omgdi:waypoint x="560" y="500" />
+        <omgdi:waypoint x="600" y="500" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_MC_1_di" bpmnElement="Flow_MC_1">
+        <omgdi:waypoint x="1236" y="660" />
+        <omgdi:waypoint x="1300" y="660" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_RequestToBackOffice_di" bpmnElement="MessageFlow_RequestToBackOffice">
+        <omgdi:waypoint x="240" y="140" />
+        <omgdi:waypoint x="118" y="282" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_ForwardToPolice_di" bpmnElement="MessageFlow_ForwardToPolice">
+        <omgdi:waypoint x="390" y="340" />
+        <omgdi:waypoint x="378" y="482" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_ReportToBackOffice_di" bpmnElement="MessageFlow_ReportToBackOffice">
+        <omgdi:waypoint x="500" y="460" />
+        <omgdi:waypoint x="678" y="318" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MessageFlow_PhysicalFileToMC_di" bpmnElement="MessageFlow_PhysicalFileToMC">
+        <omgdi:waypoint x="1250" y="340" />
+        <omgdi:waypoint x="1218" y="642" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

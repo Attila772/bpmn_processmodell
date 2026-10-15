@@ -1,0 +1,265 @@
+{
+  "name": "INQ-IP Transaction Data Request Process",
+  "resources": [
+    {
+      "name": "INQ",
+      "capacity": 1,
+      "resource_type": "system"
+    },
+    {
+      "name": "IP",
+      "capacity": 1,
+      "resource_type": "system"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_inq",
+      "name": "Start INQ Request",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_msg_send_req",
+      "name": "Send Request to IP",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Transaction Data Request"
+    },
+    {
+      "id": "evt_msg_recv_req",
+      "name": "Receive Request from INQ",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Transaction Data Request"
+    },
+    {
+      "id": "evt_msg_send_resp",
+      "name": "Send Response to INQ",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Response (Data or Rejection)"
+    },
+    {
+      "id": "evt_msg_recv_resp",
+      "name": "Receive Response from IP",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Response (Data or Rejection)"
+    },
+    {
+      "id": "evt_end_inq",
+      "name": "End INQ Process",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_ip",
+      "name": "End IP Process",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_inq_transmit",
+      "name": "Transmit transaction data request",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "INQ",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_ip_check",
+      "name": "Check the request of the INQ",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "IP",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_ip_answer",
+      "name": "Answer the question of the INQ",
+      "bpmn_type": "bpmn:ServiceTask",
+      "resource_name": "IP",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_ip_decision",
+      "name": "Examination Outcome Decision",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_ip_to_send_resp",
+          "condition": "Transmission of data"
+        },
+        {
+          "flow_id": "flow_ip_reject",
+          "condition": "Rejection"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_inq_start_to_transmit",
+      "source_id": "evt_start_inq",
+      "target_id": "task_inq_transmit",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_transmit_to_send_msg",
+      "source_id": "task_inq_transmit",
+      "target_id": "evt_msg_send_req",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_recv_to_check",
+      "source_id": "evt_msg_recv_req",
+      "target_id": "task_ip_check",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_check_to_gw",
+      "source_id": "task_ip_check",
+      "target_id": "gw_ip_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_gw_to_answer",
+      "source_id": "gw_ip_decision",
+      "target_id": "task_ip_answer",
+      "condition_name": null
+    },
+    {
+      "id": "flow_ip_to_send_resp",
+      "source_id": "task_ip_answer",
+      "target_id": "evt_msg_send_resp",
+      "condition_name": "Transmission of data"
+    },
+    {
+      "id": "flow_ip_reject",
+      "source_id": "task_ip_answer",
+      "target_id": "evt_msg_send_resp",
+      "condition_name": "Rejection"
+    },
+    {
+      "id": "flow_ip_send_resp_to_end",
+      "source_id": "evt_msg_send_resp",
+      "target_id": "evt_end_ip",
+      "condition_name": null
+    },
+    {
+      "id": "flow_inq_recv_resp_to_end",
+      "source_id": "evt_msg_recv_resp",
+      "target_id": "evt_end_inq",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_inq",
+      "name": "INQ",
+      "element_ids": [
+        "evt_start_inq",
+        "task_inq_transmit",
+        "evt_msg_send_req",
+        "evt_msg_recv_resp",
+        "evt_end_inq",
+        "flow_inq_start_to_transmit",
+        "flow_inq_transmit_to_send_msg",
+        "flow_inq_recv_resp_to_end"
+      ]
+    },
+    {
+      "id": "pool_ip",
+      "name": "IP",
+      "element_ids": [
+        "evt_msg_recv_req",
+        "task_ip_check",
+        "gw_ip_decision",
+        "task_ip_answer",
+        "evt_msg_send_resp",
+        "evt_end_ip",
+        "flow_ip_recv_to_check",
+        "flow_ip_check_to_gw",
+        "flow_ip_gw_to_answer",
+        "flow_ip_to_send_resp",
+        "flow_ip_reject",
+        "flow_ip_send_resp_to_end"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_request",
+      "source_id": "evt_msg_send_req",
+      "target_id": "evt_msg_recv_req",
+      "name": "Transaction Data Request"
+    },
+    {
+      "id": "msg_flow_response",
+      "source_id": "evt_msg_send_resp",
+      "target_id": "evt_msg_recv_resp",
+      "name": "Response (Data or Rejection)"
+    }
+  ],
+  "data_objects": [],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

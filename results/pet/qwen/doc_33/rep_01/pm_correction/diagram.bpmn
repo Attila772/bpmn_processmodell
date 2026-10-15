@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:dataObjectReference id="data_contact_details" name="Contact Details" dataObjectRef="data_contact_details_do" />
+    <bpmn:dataObject id="data_contact_details_do" />
+    <bpmn:dataObjectReference id="data_interest_status" name="Interest Status" dataObjectRef="data_interest_status_do" />
+    <bpmn:dataObject id="data_interest_status_do" />
+    <bpmn:dataObjectReference id="data_budget_info" name="Budget Information" dataObjectRef="data_budget_info_do" />
+    <bpmn:dataObject id="data_budget_info_do" />
+    <bpmn:dataObjectReference id="data_final_interest" name="Final Interest Confirmation" dataObjectRef="data_final_interest_do" />
+    <bpmn:dataObject id="data_final_interest_do" />
+    <bpmn:dataObjectReference id="data_quotation" name="Quotation" dataObjectRef="data_quotation_do" />
+    <bpmn:dataObject id="data_quotation_do" />
+    <bpmn:startEvent id="evt_start" name="Process Start">
+      <bpmn:outgoing>flow_start_to_determine</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end" name="Process End">
+      <bpmn:incoming>flow_no_huge_budget_to_end</bpmn:incoming>
+      <bpmn:incoming>flow_final_not_interested_to_end</bpmn:incoming>
+      <bpmn:incoming>flow_quotation_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="evt_wait_timeout" name="2 Weeks Timeout">
+      <bpmn:incoming>flow_no_response_to_timeout</bpmn:incoming>
+      <bpmn:outgoing>flow_timeout_to_followup</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="evt_wait_timeout_timerdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:task id="task_determine_contacts" name="Determine contact details of potential customers">
+      <bpmn:incoming>flow_start_to_determine</bpmn:incoming>
+      <bpmn:outgoing>flow_determine_to_call</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_determine_contacts_doa0">
+        <bpmn:targetRef>data_contact_details</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:userTask id="task_call_customer" name="Call the customer">
+      <bpmn:incoming>flow_determine_to_call</bpmn:incoming>
+      <bpmn:outgoing>flow_call_to_gw_interest</bpmn:outgoing>
+      <bpmn:property id="task_call_customer_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_call_customer_dia0">
+        <bpmn:sourceRef>data_contact_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_call_customer_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_call_customer_doa0">
+        <bpmn:targetRef>data_interest_status</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="task_call_customer_doa1">
+        <bpmn:targetRef>data_budget_info</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_head_acquire" name="Head of development personally tries to acquire the customer">
+      <bpmn:incoming>flow_huge_budget_to_head</bpmn:incoming>
+      <bpmn:outgoing>flow_head_to_gw_final</bpmn:outgoing>
+      <bpmn:property id="task_head_acquire_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_head_acquire_dia0">
+        <bpmn:sourceRef>data_budget_info</bpmn:sourceRef>
+        <bpmn:targetRef>task_head_acquire_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_head_acquire_doa0">
+        <bpmn:targetRef>data_final_interest</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_online_presentation" name="Detailed online presentation">
+      <bpmn:incoming>flow_sales_rep_presentation</bpmn:incoming>
+      <bpmn:incoming>flow_presales_presentation</bpmn:incoming>
+      <bpmn:outgoing>flow_presentation_to_merge</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_follow_up_call" name="Sales representative calls the customer">
+      <bpmn:incoming>flow_timeout_to_followup</bpmn:incoming>
+      <bpmn:outgoing>flow_followup_to_quotation</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_create_quotation" name="Creation of a quotation">
+      <bpmn:incoming>flow_responded_to_quotation</bpmn:incoming>
+      <bpmn:incoming>flow_followup_to_quotation</bpmn:incoming>
+      <bpmn:outgoing>flow_quotation_to_end</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_create_quotation_doa0">
+        <bpmn:targetRef>data_quotation</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_initial_interest" name="Is customer generally interested?" isMarkerVisible="true">
+      <bpmn:incoming>flow_call_to_gw_interest</bpmn:incoming>
+      <bpmn:outgoing>flow_not_interested_huge_budget_check</bpmn:outgoing>
+      <bpmn:outgoing>flow_interested_to_presentation</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_huge_budget" name="Is potential project budget huge?" isMarkerVisible="true">
+      <bpmn:incoming>flow_not_interested_huge_budget_check</bpmn:incoming>
+      <bpmn:outgoing>flow_huge_budget_to_head</bpmn:outgoing>
+      <bpmn:outgoing>flow_no_huge_budget_to_end</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_final_interest" name="Is customer interested in the end?" isMarkerVisible="true">
+      <bpmn:incoming>flow_head_to_gw_final</bpmn:incoming>
+      <bpmn:outgoing>flow_final_interested_to_presentation</bpmn:outgoing>
+      <bpmn:outgoing>flow_final_not_interested_to_end</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_presentation_type" name="Presentation Type Decision" isMarkerVisible="true">
+      <bpmn:incoming>flow_interested_to_presentation</bpmn:incoming>
+      <bpmn:incoming>flow_final_interested_to_presentation</bpmn:incoming>
+      <bpmn:outgoing>flow_sales_rep_presentation</bpmn:outgoing>
+      <bpmn:outgoing>flow_presales_presentation</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_merge_presentation" name="Merge Presentation Paths">
+      <bpmn:incoming>flow_presentation_to_merge</bpmn:incoming>
+      <bpmn:outgoing>flow_merge_to_response_gw</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:exclusiveGateway id="gw_customer_response" name="Did customer respond within 2 weeks?" isMarkerVisible="true">
+      <bpmn:incoming>flow_merge_to_response_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_responded_to_quotation</bpmn:outgoing>
+      <bpmn:outgoing>flow_no_response_to_timeout</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_to_determine" sourceRef="evt_start" targetRef="task_determine_contacts" />
+    <bpmn:sequenceFlow id="flow_determine_to_call" sourceRef="task_determine_contacts" targetRef="task_call_customer" />
+    <bpmn:sequenceFlow id="flow_call_to_gw_interest" sourceRef="task_call_customer" targetRef="gw_initial_interest" />
+    <bpmn:sequenceFlow id="flow_not_interested_huge_budget_check" sourceRef="gw_initial_interest" targetRef="gw_huge_budget" name="Not interested" />
+    <bpmn:sequenceFlow id="flow_interested_to_presentation" sourceRef="gw_initial_interest" targetRef="gw_presentation_type" name="Interested" />
+    <bpmn:sequenceFlow id="flow_huge_budget_to_head" sourceRef="gw_huge_budget" targetRef="task_head_acquire" name="Yes (Huge Budget)" />
+    <bpmn:sequenceFlow id="flow_no_huge_budget_to_end" sourceRef="gw_huge_budget" targetRef="evt_end" name="No" />
+    <bpmn:sequenceFlow id="flow_head_to_gw_final" sourceRef="task_head_acquire" targetRef="gw_final_interest" />
+    <bpmn:sequenceFlow id="flow_final_interested_to_presentation" sourceRef="gw_final_interest" targetRef="gw_presentation_type" name="Interested" />
+    <bpmn:sequenceFlow id="flow_final_not_interested_to_end" sourceRef="gw_final_interest" targetRef="evt_end" name="Not Interested" />
+    <bpmn:sequenceFlow id="flow_sales_rep_presentation" sourceRef="gw_presentation_type" targetRef="task_online_presentation" name="Standard Presentation" />
+    <bpmn:sequenceFlow id="flow_presales_presentation" sourceRef="gw_presentation_type" targetRef="task_online_presentation" name="Technical Presentation" />
+    <bpmn:sequenceFlow id="flow_presentation_to_merge" sourceRef="task_online_presentation" targetRef="gw_merge_presentation" />
+    <bpmn:sequenceFlow id="flow_merge_to_response_gw" sourceRef="gw_merge_presentation" targetRef="gw_customer_response" />
+    <bpmn:sequenceFlow id="flow_responded_to_quotation" sourceRef="gw_customer_response" targetRef="task_create_quotation" name="Yes" />
+    <bpmn:sequenceFlow id="flow_no_response_to_timeout" sourceRef="gw_customer_response" targetRef="evt_wait_timeout" name="No" />
+    <bpmn:sequenceFlow id="flow_timeout_to_followup" sourceRef="evt_wait_timeout" targetRef="task_follow_up_call" />
+    <bpmn:sequenceFlow id="flow_followup_to_quotation" sourceRef="task_follow_up_call" targetRef="task_create_quotation" />
+    <bpmn:sequenceFlow id="flow_quotation_to_end" sourceRef="task_create_quotation" targetRef="evt_end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="evt_end_di" bpmnElement="evt_end">
+        <dc:Bounds x="1870" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_di" bpmnElement="evt_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_wait_timeout_di" bpmnElement="evt_wait_timeout">
+        <dc:Bounds x="1680" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_customer_response_di" bpmnElement="gw_customer_response">
+        <dc:Bounds x="1490" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_final_interest_di" bpmnElement="gw_final_interest">
+        <dc:Bounds x="1300" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_huge_budget_di" bpmnElement="gw_huge_budget">
+        <dc:Bounds x="920" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_initial_interest_di" bpmnElement="gw_initial_interest">
+        <dc:Bounds x="730" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_merge_presentation_di" bpmnElement="gw_merge_presentation">
+        <dc:Bounds x="1300" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_presentation_type_di" bpmnElement="gw_presentation_type">
+        <dc:Bounds x="1490" y="225" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_call_customer_di" bpmnElement="task_call_customer">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_quotation_di" bpmnElement="task_create_quotation">
+        <dc:Bounds x="2060" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_determine_contacts_di" bpmnElement="task_determine_contacts">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_follow_up_call_di" bpmnElement="task_follow_up_call">
+        <dc:Bounds x="1870" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_head_acquire_di" bpmnElement="task_head_acquire">
+        <dc:Bounds x="1110" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_online_presentation_di" bpmnElement="task_online_presentation">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_contact_details_di" bpmnElement="data_contact_details">
+        <dc:Bounds x="465" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_interest_status_di" bpmnElement="data_interest_status">
+        <dc:Bounds x="560" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_budget_info_di" bpmnElement="data_budget_info">
+        <dc:Bounds x="845" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_final_interest_di" bpmnElement="data_final_interest">
+        <dc:Bounds x="1130" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_quotation_di" bpmnElement="data_quotation">
+        <dc:Bounds x="2080" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_determine_di" bpmnElement="flow_start_to_determine">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_determine_to_call_di" bpmnElement="flow_determine_to_call">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_call_to_gw_interest_di" bpmnElement="flow_call_to_gw_interest">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_not_interested_huge_budget_check_di" bpmnElement="flow_not_interested_huge_budget_check">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_interested_to_presentation_di" bpmnElement="flow_interested_to_presentation">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="1515" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_huge_budget_to_head_di" bpmnElement="flow_huge_budget_to_head">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_no_huge_budget_to_end_di" bpmnElement="flow_no_huge_budget_to_end">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1888" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_head_to_gw_final_di" bpmnElement="flow_head_to_gw_final">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_final_interested_to_presentation_di" bpmnElement="flow_final_interested_to_presentation">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1515" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_final_not_interested_to_end_di" bpmnElement="flow_final_not_interested_to_end">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1888" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_sales_rep_presentation_di" bpmnElement="flow_sales_rep_presentation">
+        <di:waypoint x="1515" y="250" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_presales_presentation_di" bpmnElement="flow_presales_presentation">
+        <di:waypoint x="1515" y="250" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_presentation_to_merge_di" bpmnElement="flow_presentation_to_merge">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1325" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_merge_to_response_gw_di" bpmnElement="flow_merge_to_response_gw">
+        <di:waypoint x="1325" y="250" />
+        <di:waypoint x="1515" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_responded_to_quotation_di" bpmnElement="flow_responded_to_quotation">
+        <di:waypoint x="1515" y="125" />
+        <di:waypoint x="2110" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_no_response_to_timeout_di" bpmnElement="flow_no_response_to_timeout">
+        <di:waypoint x="1515" y="125" />
+        <di:waypoint x="1698" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_timeout_to_followup_di" bpmnElement="flow_timeout_to_followup">
+        <di:waypoint x="1698" y="118" />
+        <di:waypoint x="1920" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_followup_to_quotation_di" bpmnElement="flow_followup_to_quotation">
+        <di:waypoint x="1920" y="265" />
+        <di:waypoint x="2110" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_quotation_to_end_di" bpmnElement="flow_quotation_to_end">
+        <di:waypoint x="2110" y="140" />
+        <di:waypoint x="1888" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_determine_contacts_doa0_di" bpmnElement="task_determine_contacts_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="483" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_call_customer_dia0_di" bpmnElement="task_call_customer_dia0">
+        <di:waypoint x="483" y="390" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_call_customer_doa0_di" bpmnElement="task_call_customer_doa0">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="578" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_call_customer_doa1_di" bpmnElement="task_call_customer_doa1">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="863" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_head_acquire_dia0_di" bpmnElement="task_head_acquire_dia0">
+        <di:waypoint x="863" y="390" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_head_acquire_doa0_di" bpmnElement="task_head_acquire_doa0">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1148" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_quotation_doa0_di" bpmnElement="task_create_quotation_doa0">
+        <di:waypoint x="2110" y="140" />
+        <di:waypoint x="2098" y="390" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

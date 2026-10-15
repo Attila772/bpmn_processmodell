@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_func_dept_part" name="Functional Department" processRef="pool_func_dept_proc" />
+    <bpmn:participant id="pool_hr_dept_part" name="Personnel Department" processRef="pool_hr_dept_proc" />
+    <bpmn:messageFlow id="msg_report_vacancy" sourceRef="evt_end_func_report" targetRef="evt_start_hr_receive" name="Report Vacancy" />
+    <bpmn:messageFlow id="msg_send_desc" sourceRef="evt_end_hr_desc" targetRef="evt_start_func_review" name="Send Job Description for Review" />
+    <bpmn:messageFlow id="msg_request_corrections" sourceRef="evt_end_func_correct" targetRef="evt_start_hr_correct" name="Request Corrections" />
+    <bpmn:messageFlow id="msg_approve_desc" sourceRef="evt_end_func_approve" targetRef="evt_start_hr_final" name="Approve Job Description" />
+    <bpmn:messageFlow id="msg_provide_clarifications" sourceRef="evt_end_func_clarify" targetRef="evt_start_hr_clarify" name="Provide Clarifications" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_func_dept_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_vacancy_info" name="Vacancy Information" dataObjectRef="data_vacancy_info_do" />
+    <bpmn:dataObject id="data_vacancy_info_do" />
+    <bpmn:dataObjectReference id="data_job_description_p1" name="Job Description" dataObjectRef="data_job_description_p1_do" />
+    <bpmn:dataObject id="data_job_description_p1_do" />
+    <bpmn:startEvent id="evt_start_func" name="Personnel requirements detected">
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_func_report" name="Vacancy reported to HR">
+      <bpmn:incoming>flow_report_to_end_func</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_func_report_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_func_review" name="Receive Job Description">
+      <bpmn:outgoing>flow_start_func_review_to_task</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_func_review_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_func_clarify" name="Clarifications Provided">
+      <bpmn:incoming>flow_ask_to_end_func_clarify</bpmn:incoming>
+      <bpmn:incoming>flow_clarify_to_end_hr</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_func_clarify_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_hr_clarify" name="Receive Clarifications">
+      <bpmn:outgoing>flow_start_func_clarify_to_task</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_hr_clarify_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_func_correct" name="Correction Request Sent">
+      <bpmn:incoming>flow_request_to_end_func</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_func_correct_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="evt_end_func_approve" name="Approval Sent">
+      <bpmn:incoming>flow_approve_to_end_func</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_func_approve_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_detect_req" name="Detect personnel requirements">
+      <bpmn:outgoing>flow_detect_to_report</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_detect_req_doa0">
+        <bpmn:targetRef>data_vacancy_info</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_report_vacancy" name="Report vacancy to Personnel Department">
+      <bpmn:incoming>flow_detect_to_report</bpmn:incoming>
+      <bpmn:outgoing>flow_report_to_end_func</bpmn:outgoing>
+      <bpmn:property id="task_report_vacancy_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_report_vacancy_dia0">
+        <bpmn:sourceRef>data_vacancy_info</bpmn:sourceRef>
+        <bpmn:targetRef>task_report_vacancy_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_provide_clarifications" name="Provide clarifications">
+      <bpmn:incoming>flow_start_func_clarify_to_task</bpmn:incoming>
+      <bpmn:outgoing>flow_clarify_to_end_hr</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_review_desc" name="Review job description">
+      <bpmn:incoming>flow_start_func_review_to_task</bpmn:incoming>
+      <bpmn:outgoing>flow_review_to_gw</bpmn:outgoing>
+      <bpmn:property id="task_review_desc_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_review_desc_dia0">
+        <bpmn:sourceRef>data_job_description_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_desc_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:manualTask id="task_request_corrections" name="Request corrections">
+      <bpmn:incoming>flow_func_correct</bpmn:incoming>
+      <bpmn:outgoing>flow_request_to_end_func</bpmn:outgoing>
+      <bpmn:property id="task_request_corrections_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_request_corrections_dia0">
+        <bpmn:sourceRef>data_job_description_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_request_corrections_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:manualTask>
+    <bpmn:userTask id="task_approve_desc" name="Approve job description">
+      <bpmn:incoming>flow_func_approve</bpmn:incoming>
+      <bpmn:outgoing>flow_approve_to_end_func</bpmn:outgoing>
+      <bpmn:property id="task_approve_desc_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_approve_desc_dia0">
+        <bpmn:sourceRef>data_job_description_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_approve_desc_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_func_decision" name="Decision on Job Description" isMarkerVisible="true">
+      <bpmn:incoming>flow_review_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_func_correct</bpmn:outgoing>
+      <bpmn:outgoing>flow_func_approve</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_detect_to_report" sourceRef="task_detect_req" targetRef="task_report_vacancy" />
+    <bpmn:sequenceFlow id="flow_report_to_end_func" sourceRef="task_report_vacancy" targetRef="evt_end_func_report" />
+    <bpmn:sequenceFlow id="flow_start_func_clarify_to_task" sourceRef="evt_start_hr_clarify" targetRef="task_provide_clarifications" />
+    <bpmn:sequenceFlow id="flow_clarify_to_end_hr" sourceRef="task_provide_clarifications" targetRef="evt_end_func_clarify" />
+    <bpmn:sequenceFlow id="flow_start_func_review_to_task" sourceRef="evt_start_func_review" targetRef="task_review_desc" />
+    <bpmn:sequenceFlow id="flow_review_to_gw" sourceRef="task_review_desc" targetRef="gw_func_decision" />
+    <bpmn:sequenceFlow id="flow_func_correct" sourceRef="gw_func_decision" targetRef="task_request_corrections" name="Corrections needed" />
+    <bpmn:sequenceFlow id="flow_func_approve" sourceRef="gw_func_decision" targetRef="task_approve_desc" name="Approved" />
+    <bpmn:sequenceFlow id="flow_request_to_end_func" sourceRef="task_request_corrections" targetRef="evt_end_func_correct" />
+    <bpmn:sequenceFlow id="flow_approve_to_end_func" sourceRef="task_approve_desc" targetRef="evt_end_func_approve" />
+  </bpmn:process>
+  <bpmn:process id="pool_hr_dept_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_vacancy_info_p1" name="Vacancy Information" dataObjectRef="data_vacancy_info_p1_do" />
+    <bpmn:dataObject id="data_vacancy_info_p1_do" />
+    <bpmn:dataObjectReference id="data_job_description" name="Job Description" dataObjectRef="data_job_description_do" />
+    <bpmn:dataObject id="data_job_description_do" />
+    <bpmn:startEvent id="evt_start_hr_receive" name="Receive Vacancy Report">
+      <bpmn:outgoing>flow_start_hr_to_gw</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_hr_receive_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_hr_desc" name="Job Description Ready for Review">
+      <bpmn:incoming>flow_create_to_end_hr</bpmn:incoming>
+      <bpmn:incoming>flow_correct_to_end_hr</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_hr_desc_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="evt_start_hr_correct" name="Receive Correction Request">
+      <bpmn:outgoing>flow_start_hr_correct_to_task</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_hr_correct_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="evt_start_hr_final" name="Receive Approval">
+      <bpmn:outgoing>flow_start_hr_final_to_task</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_hr_final_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_process" name="Process Completed (Advertized)">
+      <bpmn:incoming>flow_advertise_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_create_desc" name="Create job description">
+      <bpmn:incoming>flow_hr_create</bpmn:incoming>
+      <bpmn:outgoing>flow_create_to_end_hr</bpmn:outgoing>
+      <bpmn:property id="task_create_desc_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_create_desc_dia0">
+        <bpmn:sourceRef>data_vacancy_info_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_create_desc_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_create_desc_doa0">
+        <bpmn:targetRef>data_job_description</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_ask_questions" name="Ask questions about tasks/requirements">
+      <bpmn:incoming>flow_hr_ask</bpmn:incoming>
+      <bpmn:outgoing>flow_ask_to_end_func_clarify</bpmn:outgoing>
+      <bpmn:property id="task_ask_questions_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_ask_questions_dia0">
+        <bpmn:sourceRef>data_vacancy_info_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_ask_questions_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_correct_desc" name="Correct job description">
+      <bpmn:incoming>flow_start_hr_correct_to_task</bpmn:incoming>
+      <bpmn:outgoing>flow_correct_to_end_hr</bpmn:outgoing>
+      <bpmn:property id="task_correct_desc_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_correct_desc_dia0">
+        <bpmn:sourceRef>data_job_description</bpmn:sourceRef>
+        <bpmn:targetRef>task_correct_desc_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_correct_desc_doa0">
+        <bpmn:targetRef>data_job_description</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_advertise" name="Advertise job">
+      <bpmn:incoming>flow_start_hr_final_to_task</bpmn:incoming>
+      <bpmn:outgoing>flow_advertise_to_end</bpmn:outgoing>
+      <bpmn:property id="task_advertise_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_advertise_dia0">
+        <bpmn:sourceRef>data_job_description</bpmn:sourceRef>
+        <bpmn:targetRef>task_advertise_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_hr_questions" name="Does HR have questions?" isMarkerVisible="true">
+      <bpmn:incoming>flow_start_hr_to_gw</bpmn:incoming>
+      <bpmn:outgoing>flow_hr_ask</bpmn:outgoing>
+      <bpmn:outgoing>flow_hr_create</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_start_hr_to_gw" sourceRef="evt_start_hr_receive" targetRef="gw_hr_questions" />
+    <bpmn:sequenceFlow id="flow_hr_ask" sourceRef="gw_hr_questions" targetRef="task_ask_questions" name="Yes, has questions" />
+    <bpmn:sequenceFlow id="flow_hr_create" sourceRef="gw_hr_questions" targetRef="task_create_desc" name="No questions" />
+    <bpmn:sequenceFlow id="flow_create_to_end_hr" sourceRef="task_create_desc" targetRef="evt_end_hr_desc" />
+    <bpmn:sequenceFlow id="flow_start_hr_correct_to_task" sourceRef="evt_start_hr_correct" targetRef="task_correct_desc" />
+    <bpmn:sequenceFlow id="flow_correct_to_end_hr" sourceRef="task_correct_desc" targetRef="evt_end_hr_desc" />
+    <bpmn:sequenceFlow id="flow_start_hr_final_to_task" sourceRef="evt_start_hr_final" targetRef="task_advertise" />
+    <bpmn:sequenceFlow id="flow_advertise_to_end" sourceRef="task_advertise" targetRef="evt_end_process" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_func_dept_part_di" bpmnElement="pool_func_dept_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1140" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_hr_dept_part_di" bpmnElement="pool_hr_dept_part" isHorizontal="true">
+        <dc:Bounds x="120" y="750" width="950" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_func_approve_di" bpmnElement="evt_end_func_approve">
+        <dc:Bounds x="920" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_func_clarify_di" bpmnElement="evt_end_func_clarify">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_func_correct_di" bpmnElement="evt_end_func_correct">
+        <dc:Bounds x="920" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_func_report_di" bpmnElement="evt_end_func_report">
+        <dc:Bounds x="540" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_hr_desc_di" bpmnElement="evt_end_hr_desc">
+        <dc:Bounds x="730" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_process_di" bpmnElement="evt_end_process">
+        <dc:Bounds x="540" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_func_di" bpmnElement="evt_start_func">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_func_review_di" bpmnElement="evt_start_func_review">
+        <dc:Bounds x="160" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_hr_clarify_di" bpmnElement="evt_start_hr_clarify">
+        <dc:Bounds x="160" y="350" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_hr_correct_di" bpmnElement="evt_start_hr_correct">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_hr_final_di" bpmnElement="evt_start_hr_final">
+        <dc:Bounds x="160" y="935" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_hr_receive_di" bpmnElement="evt_start_hr_receive">
+        <dc:Bounds x="160" y="1060" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_func_decision_di" bpmnElement="gw_func_decision">
+        <dc:Bounds x="540" y="350" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_hr_questions_di" bpmnElement="gw_hr_questions">
+        <dc:Bounds x="350" y="810" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_advertise_di" bpmnElement="task_advertise">
+        <dc:Bounds x="350" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_approve_desc_di" bpmnElement="task_approve_desc">
+        <dc:Bounds x="730" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_ask_questions_di" bpmnElement="task_ask_questions">
+        <dc:Bounds x="540" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_correct_desc_di" bpmnElement="task_correct_desc">
+        <dc:Bounds x="350" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_desc_di" bpmnElement="task_create_desc">
+        <dc:Bounds x="540" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_detect_req_di" bpmnElement="task_detect_req">
+        <dc:Bounds x="160" y="475" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_provide_clarifications_di" bpmnElement="task_provide_clarifications">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_report_vacancy_di" bpmnElement="task_report_vacancy">
+        <dc:Bounds x="350" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_request_corrections_di" bpmnElement="task_request_corrections">
+        <dc:Bounds x="730" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_desc_di" bpmnElement="task_review_desc">
+        <dc:Bounds x="350" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_vacancy_info_di" bpmnElement="data_vacancy_info">
+        <dc:Bounds x="275" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_job_description_p1_di" bpmnElement="data_job_description_p1">
+        <dc:Bounds x="623" y="615" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_vacancy_info_p1_di" bpmnElement="data_vacancy_info_p1">
+        <dc:Bounds x="560" y="1200" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_job_description_di" bpmnElement="data_job_description">
+        <dc:Bounds x="433" y="1200" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_detect_to_report_di" bpmnElement="flow_detect_to_report">
+        <di:waypoint x="210" y="515" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_report_to_end_func_di" bpmnElement="flow_report_to_end_func">
+        <di:waypoint x="400" y="265" />
+        <di:waypoint x="558" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_hr_to_gw_di" bpmnElement="flow_start_hr_to_gw">
+        <di:waypoint x="178" y="1078" />
+        <di:waypoint x="375" y="835" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_ask_di" bpmnElement="flow_hr_ask">
+        <di:waypoint x="375" y="835" />
+        <di:waypoint x="590" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_create_di" bpmnElement="flow_hr_create">
+        <di:waypoint x="375" y="835" />
+        <di:waypoint x="590" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_ask_to_end_func_clarify_di" bpmnElement="flow_ask_to_end_func_clarify">
+        <di:waypoint x="590" y="975" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_func_clarify_to_task_di" bpmnElement="flow_start_func_clarify_to_task">
+        <di:waypoint x="178" y="368" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_clarify_to_end_hr_di" bpmnElement="flow_clarify_to_end_hr">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_create_to_end_hr_di" bpmnElement="flow_create_to_end_hr">
+        <di:waypoint x="590" y="1100" />
+        <di:waypoint x="748" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_func_review_to_task_di" bpmnElement="flow_start_func_review_to_task">
+        <di:waypoint x="178" y="243" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_review_to_gw_di" bpmnElement="flow_review_to_gw">
+        <di:waypoint x="400" y="390" />
+        <di:waypoint x="565" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_func_correct_di" bpmnElement="flow_func_correct">
+        <di:waypoint x="565" y="375" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_func_approve_di" bpmnElement="flow_func_approve">
+        <di:waypoint x="565" y="375" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_request_to_end_func_di" bpmnElement="flow_request_to_end_func">
+        <di:waypoint x="780" y="265" />
+        <di:waypoint x="938" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_hr_correct_to_task_di" bpmnElement="flow_start_hr_correct_to_task">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_correct_to_end_hr_di" bpmnElement="flow_correct_to_end_hr">
+        <di:waypoint x="400" y="1100" />
+        <di:waypoint x="748" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_approve_to_end_func_di" bpmnElement="flow_approve_to_end_func">
+        <di:waypoint x="780" y="140" />
+        <di:waypoint x="938" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_start_hr_final_to_task_di" bpmnElement="flow_start_hr_final_to_task">
+        <di:waypoint x="178" y="953" />
+        <di:waypoint x="400" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_advertise_to_end_di" bpmnElement="flow_advertise_to_end">
+        <di:waypoint x="400" y="975" />
+        <di:waypoint x="558" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_report_vacancy_di" bpmnElement="msg_report_vacancy">
+        <di:waypoint x="558" y="243" />
+        <di:waypoint x="178" y="1078" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_send_desc_di" bpmnElement="msg_send_desc">
+        <di:waypoint x="748" y="828" />
+        <di:waypoint x="178" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_request_corrections_di" bpmnElement="msg_request_corrections">
+        <di:waypoint x="938" y="243" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_approve_desc_di" bpmnElement="msg_approve_desc">
+        <di:waypoint x="938" y="118" />
+        <di:waypoint x="178" y="953" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_provide_clarifications_di" bpmnElement="msg_provide_clarifications">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="368" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_detect_req_doa0_di" bpmnElement="task_detect_req_doa0">
+        <di:waypoint x="210" y="515" />
+        <di:waypoint x="293" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_report_vacancy_dia0_di" bpmnElement="task_report_vacancy_dia0">
+        <di:waypoint x="293" y="640" />
+        <di:waypoint x="400" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_desc_dia0_di" bpmnElement="task_create_desc_dia0">
+        <di:waypoint x="578" y="1225" />
+        <di:waypoint x="590" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_desc_doa0_di" bpmnElement="task_create_desc_doa0">
+        <di:waypoint x="590" y="1100" />
+        <di:waypoint x="451" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_ask_questions_dia0_di" bpmnElement="task_ask_questions_dia0">
+        <di:waypoint x="578" y="1225" />
+        <di:waypoint x="590" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_desc_dia0_di" bpmnElement="task_review_desc_dia0">
+        <di:waypoint x="641" y="640" />
+        <di:waypoint x="400" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_request_corrections_dia0_di" bpmnElement="task_request_corrections_dia0">
+        <di:waypoint x="641" y="640" />
+        <di:waypoint x="780" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_approve_desc_dia0_di" bpmnElement="task_approve_desc_dia0">
+        <di:waypoint x="641" y="640" />
+        <di:waypoint x="780" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_correct_desc_dia0_di" bpmnElement="task_correct_desc_dia0">
+        <di:waypoint x="451" y="1225" />
+        <di:waypoint x="400" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_correct_desc_doa0_di" bpmnElement="task_correct_desc_doa0">
+        <di:waypoint x="400" y="1100" />
+        <di:waypoint x="451" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_advertise_dia0_di" bpmnElement="task_advertise_dia0">
+        <di:waypoint x="451" y="1225" />
+        <di:waypoint x="400" y="975" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

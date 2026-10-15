@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="MPONRegistrationProcess" name="MPON Registration Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="EndEvent_1" name="End">
+      <bpmn:incoming>Flow_Final</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- MPON Lane -->
+    <bpmn:lane id="Lane_MPON" name="MPON">
+      <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_ReportMeterOp</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_EquipAcq</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_InfoFailure</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_InfoSuccess</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Receive_ConfirmAssign</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Receive_ConfirmFail</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Timer_Event</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Boundary_Timer_Fail</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Merge_Result</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>EndEvent_1</bpmn:flowNodeRef>
+    </bpmn:lane>
+
+    <!-- GO Lane -->
+    <bpmn:lane id="Lane_GO" name="GO">
+      <bpmn:flowNodeRef>Task_ExamineApp</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Gateway_AppResult</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_RejectApp</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_ConfirmApp</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_InfoMPOO_Reg</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_InfoMSPO_Reg</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Receive_ProcResult</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Gateway_ProcResult</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_AssignMPON</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_ConfirmAssign</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_ConfirmFail</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_InfoMPOO_Assign</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_InfoMSPO_Assign</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_InfoSP</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_InfoMPON_DeadlineFail</bpmn:flowNodeRef>
+    </bpmn:lane>
+
+    <!-- MPOO Lane -->
+    <bpmn:lane id="Lane_MPOO" name="MPOO">
+      <bpmn:flowNodeRef>Receive_RegConfirm</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Task_EquipAcq_MPOO</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Receive_AssignResult</bpmn:flowNodeRef>
+    </bpmn:lane>
+
+    <!-- MSPO Lane -->
+    <bpmn:lane id="Lane_MSPO" name="MSPO">
+      <bpmn:flowNodeRef>Receive_RegConfirm_MSPO</bpmn:flowNodeRef>
+      <bpmn:flowNodeRef>Receive_AssignResult_MSPO</bpmn:flowNodeRef>
+    </bpmn:lane>
+
+    <!-- SP Lane -->
+    <bpmn:lane id="Lane_SP" name="SP">
+      <bpmn:flowNodeRef>Receive_Assign_SP</bpmn:flowNodeRef>
+    </bpmn:lane>
+
+    <!-- Flows and Elements -->
+
+    <!-- Start to Report -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_ReportMeterOp" />
+
+    <!-- MPON Reports to GO -->
+    <bpmn:task id="Task_ReportMeterOp" name="Report meter operation" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ReportMeterOp" targetRef="Task_ExamineApp" />
+
+    <!-- GO Examines -->
+    <bpmn:task id="Task_ExamineApp" name="Examine application" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_ExamineApp" targetRef="Gateway_AppResult" />
+
+    <!-- Gateway Application Result -->
+    <bpmn:exclusiveGateway id="Gateway_AppResult" name="Application Result">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reject</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Reject Path -->
+    <bpmn:sequenceFlow id="Flow_Reject" name="Reject" sourceRef="Gateway_AppResult" targetRef="Task_RejectApp" />
+    <bpmn:task id="Task_RejectApp" name="Reject application" />
+    <bpmn:sequenceFlow id="Flow_EndReject" sourceRef="Task_RejectApp" targetRef="EndEvent_1" />
+
+    <!-- Confirm Path -->
+    <bpmn:sequenceFlow id="Flow_Confirm" name="Confirm" sourceRef="Gateway_AppResult" targetRef="Task_ConfirmApp" />
+    <bpmn:task id="Task_ConfirmApp" name="Confirm application" />
+    
+    <!-- Inform MPOO and MSPO about Registration Confirmation -->
+    <bpmn:sequenceFlow id="Flow_ToMPOOReg" sourceRef="Task_ConfirmApp" targetRef="Task_InfoMPOO_Reg" />
+    <bpmn:task id="Task_InfoMPOO_Reg" name="Inform MPOO about registration confirmation" />
+    <bpmn:sequenceFlow id="Flow_ToMSPOReg" sourceRef="Task_ConfirmApp" targetRef="Task_InfoMSPO_Reg" />
+    <bpmn:task id="Task_InfoMSPO_Reg" name="Inform MSPO about registration confirmation" />
+
+    <!-- Equipment Acquisition (Parallel between MPON and MPOO) -->
+    <bpmn:sequenceFlow id="Flow_ToEquipMPON" sourceRef="Task_InfoMPOO_Reg" targetRef="Task_EquipAcq" />
+    <bpmn:task id="Task_EquipAcq" name="Perform equipment acquisition / changes" />
+    
+    <bpmn:sequenceFlow id="Flow_ToEquipMPOO" sourceRef="Task_InfoMPOO_Reg" targetRef="Task_EquipAcq_MPOO" />
+    <bpmn:task id="Task_EquipAcq_MPOO" name="Perform equipment acquisition / changes" />
+
+    <!-- Merge Equipment Tasks to Wait for Result -->
+    <bpmn:parallelGateway id="Gateway_WaitResult" name="Wait for Process Result">
+      <bpmn:incoming>Flow_FromEquipMPON</bpmn:incoming>
+      <bpmn:incoming>Flow_FromEquipMPOO</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToReceiveResult</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <bpmn:sequenceFlow id="Flow_FromEquipMPON" sourceRef="Task_EquipAcq" targetRef="Gateway_WaitResult" />
+    <bpmn:sequenceFlow id="Flow_FromEquipMPOO" sourceRef="Task_EquipAcq_MPOO" targetRef="Gateway_WaitResult" />
+    <bpmn:sequenceFlow id="Flow_ToReceiveResult" sourceRef="Gateway_WaitResult" targetRef="Receive_ProcResult" />
+
+    <!-- Receive Result from MPON with Timer Boundary Event -->
+    <bpmn:intermediateCatchEvent id="Receive_ProcResult" name="Receive process result from MPON">
+      <bpmn:incoming>Flow_ToReceiveResult</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToProcGateway</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    
+    <bpmn:boundaryEvent id="Boundary_Timer_Fail" name="Deadline exceeded" attachedToRef="Receive_ProcResult" cancelActivity="true">
+      <bpmn:timerEventDefinition />
+      <bpmn:outgoing>Flow_TimerFail</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_ToProcGateway" sourceRef="Receive_ProcResult" targetRef="Gateway_ProcResult" />
+    
+    <!-- Gateway Process Result -->
+    <bpmn:exclusiveGateway id="Gateway_ProcResult" name="Process Result">
+      <bpmn:incoming>Flow_ToProcGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Success</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Failure</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Success Path -->
+    <bpmn:sequenceFlow id="Flow_Success" name="Successful completion" sourceRef="Gateway_ProcResult" targetRef="Task_AssignMPON" />
+    <bpmn:task id="Task_AssignMPON" name="Assign MPON" />
+    <bpmn:sequenceFlow id="Flow_ToConfirmAssign" sourceRef="Task_AssignMPON" targetRef="Task_ConfirmAssign" />
+    <bpmn:task id="Task_ConfirmAssign" name="Confirm assignment to MPON" />
+    
+    <!-- Failure Path (Explicit from MPON) -->
+    <bpmn:sequenceFlow id="Flow_Failure" name="Failure of entire process" sourceRef="Gateway_ProcResult" targetRef="Task_ConfirmFail" />
+    <bpmn:task id="Task_ConfirmFail" name="Confirm failure of assignment to MPON" />
+
+    <!-- Deadline Failure Path -->
+    <bpmn:sequenceFlow id="Flow_TimerFail" sourceRef="Boundary_Timer_Fail" targetRef="Task_InfoMPON_DeadlineFail" />
+    <bpmn:task id="Task_InfoMPON_DeadlineFail" name="Inform MPON about failure by deadline" />
+    <bpmn:sequenceFlow id="Flow_TimerToConfirmFail" sourceRef="Task_InfoMPON_DeadlineFail" targetRef="Task_ConfirmFail" />
+
+    <!-- Post Assignment/Failure Actions -->
+    <!-- From Confirm Assign -->
+    <bpmn:sequenceFlow id="Flow_CA_ToMPOO" sourceRef="Task_ConfirmAssign" targetRef="Task_InfoMPOO_Assign" />
+    <bpmn:task id="Task_InfoMPOO_Assign" name="Inform MPOO about assignment/failure" />
+    
+    <bpmn:sequenceFlow id="Flow_CA_ToMSPO" sourceRef="Task_ConfirmAssign" targetRef="Task_InfoMSPO_Assign" />
+    <bpmn:task id="Task_InfoMSPO_Assign" name="Inform MSPO about assignment/failure" />
+    
+    <bpmn:sequenceFlow id="Flow_CA_ToSP" sourceRef="Task_ConfirmAssign" targetRef="Task_InfoSP" />
+    <bpmn:task id="Task_InfoSP" name="Inform SP about assignment" />
+
+    <!-- From Confirm Fail -->
+    <bpmn:sequenceFlow id="Flow_CF_ToMPOO" sourceRef="Task_ConfirmFail" targetRef="Task_InfoMPOO_Assign" />
+    <bpmn:sequenceFlow id="Flow_CF_ToMSPO" sourceRef="Task_ConfirmFail" targetRef="Task_InfoMSPO_Assign" />
+    <!-- Note: SP is only informed about assignment, not failure, based on text "The GO informs the SP about the assignment of the MPON." -->
+
+    <!-- Final Merge to End -->
+    <bpmn:parallelGateway id="Gateway_FinalMerge" name="Final Merge">
+      <bpmn:incoming>Flow_FromMPOOAssign</bpmn:incoming>
+      <bpmn:incoming>Flow_FromMSPOAssign</bpmn:incoming>
+      <bpmn:incoming>Flow_FromSP</bpmn:incoming>
+      <bpmn:outgoing>Flow_Final</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:sequenceFlow id="Flow_FromMPOOAssign" sourceRef="Task_InfoMPOO_Assign" targetRef="Gateway_FinalMerge" />
+    <bpmn:sequenceFlow id="Flow_FromMSPOAssign" sourceRef="Task_InfoMSPO_Assign" targetRef="Gateway_FinalMerge" />
+    <bpmn:sequenceFlow id="Flow_FromSP" sourceRef="Task_InfoSP" targetRef="Gateway_FinalMerge" />
+    <bpmn:sequenceFlow id="Flow_Final" sourceRef="Gateway_FinalMerge" targetRef="EndEvent_1" />
+
+    <!-- Message Flows -->
+    <bpmn:messageFlow id="Msg_Report" sourceRef="Task_ReportMeterOp" targetRef="Task_ExamineApp" />
+    <bpmn:messageFlow id="Msg_RegConfirmMPOO" sourceRef="Task_InfoMPOO_Reg" targetRef="Receive_RegConfirm" />
+    <bpmn:receiveTask id="Receive_RegConfirm" name="Receive registration confirmation" />
+    
+    <bpmn:messageFlow id="Msg_RegConfirmMSPO" sourceRef="Task_InfoMSPO_Reg" targetRef="Receive_RegConfirm_MSPO" />
+    <bpmn:receiveTask id="Receive_RegConfirm_MSPO" name="Receive registration confirmation" />
+
+    <!-- Implicit message flow for Equip Acq coordination if needed, but modeled as parallel tasks in lanes -->
+    
+    <!-- Message Flow for Process Result -->
+    <bpmn:messageFlow id="Msg_ProcResult" sourceRef="Task_EquipAcq" targetRef="Receive_ProcResult" />
+    <!-- Note: The text says MPON informs GO. Task_EquipAcq is in MPON lane. Receive_ProcResult is in GO lane. -->
+
+    <!-- Message Flow for Confirm Assignment -->
+    <bpmn:messageFlow id="Msg_ConfirmAssign" sourceRef="Task_ConfirmAssign" targetRef="Receive_ConfirmAssign" />
+    <bpmn:receiveTask id="Receive_ConfirmAssign" name="Receive confirmation of assignment" />
+    <bpmn:sequenceFlow id="Flow_RC_ToEnd" sourceRef="Receive_ConfirmAssign" targetRef="EndEvent_1" />
+
+    <!-- Message Flow for Confirm Failure -->
+    <bpmn:messageFlow id="Msg_ConfirmFail" sourceRef="Task_ConfirmFail" targetRef="Receive_ConfirmFail" />
+    <bpmn:receiveTask id="Receive_ConfirmFail" name="Receive confirmation of failure" />
+    <bpmn:sequenceFlow id="Flow_RCF_ToEnd" sourceRef="Receive_ConfirmFail" targetRef="EndEvent_1" />
+
+    <!-- Message Flow for Deadline Info -->
+    <bpmn:messageFlow id="Msg_DeadlineInfo" sourceRef="Task_InfoMPON_DeadlineFail" targetRef="Receive_ConfirmFail" /> 
+    <!-- Correction: The task informs MPON. So it should go to a receive task in MPON lane or just be an action. 
+         The text says "GO informs the MPON...". Then "If ... no message ... present at GO". 
+         Let's model the notification to MPON explicitly. -->
+         
+    <!-- Refined Deadline Logic: 
+         1. Timer fires on Receive_ProcResult (GO).
+         2. GO performs Task_InfoMPON_DeadlineFail.
+         3. This sends a message to MPON.
+         4. MPON receives it.
+         5. GO then proceeds to ConfirmFail.
+    -->
+    
+    <bpmn:receiveTask id="Receive_DeadlineFail" name="Receive failure notification" />
+    <bpmn:messageFlow id="Msg_DeadlineNotify" sourceRef="Task_InfoMPON_DeadlineFail" targetRef="Receive_DeadlineFail" />
+    <bpmn:sequenceFlow id="Flow_RD_ToEnd" sourceRef="Receive_DeadlineFail" targetRef="EndEvent_1" />
+
+    <!-- Message Flows for Final Notifications -->
+    <bpmn:messageFlow id="Msg_AssignMPOO" sourceRef="Task_InfoMPOO_Assign" targetRef="Receive_AssignResult" />
+    <bpmn:receiveTask id="Receive_AssignResult" name="Receive assignment result" />
+    
+    <bpmn:messageFlow id="Msg_AssignMSPO" sourceRef="Task_InfoMSPO_Assign" targetRef="Receive_AssignResult_MSPO" />
+    <bpmn:receiveTask id="Receive_AssignResult_MSPO" name="Receive assignment result" />
+    
+    <bpmn:messageFlow id="Msg_AssignSP" sourceRef="Task_InfoSP" targetRef="Receive_Assign_SP" />
+    <bpmn:receiveTask id="Receive_Assign_SP" name="Receive assignment" />
+
+  </bpmn:process>
+</bpmn:definitions>

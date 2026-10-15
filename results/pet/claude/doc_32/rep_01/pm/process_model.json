@@ -1,0 +1,903 @@
+{
+  "name": "ACME AG Invoice Processing",
+  "resources": [
+    {
+      "name": "Accounting Employee",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Cost Center Manager",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Commercial Manager",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Board",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Secretariat",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "start1",
+      "name": "Invoice received (paper/fax)",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "msgend_to_accounting",
+      "name": "Invoice forwarded to accounting",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Invoice copy + forwarding"
+    },
+    {
+      "id": "msgstart_from_secretariat",
+      "name": "Invoice received from secretariat",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Invoice copy + forwarding"
+    },
+    {
+      "id": "msgend_to_ccm1",
+      "name": "Docket+copy sent to first CCM",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy"
+    },
+    {
+      "id": "msgstart_from_accounting1",
+      "name": "Docket+copy received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy"
+    },
+    {
+      "id": "msgend_to_accounting_next",
+      "name": "Send to next CCM or accounting",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy"
+    },
+    {
+      "id": "msgend_to_accounting_final",
+      "name": "All items AP or rejection - send to accounting",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy"
+    },
+    {
+      "id": "msgstart_from_ccm",
+      "name": "Docket+copy received back",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy"
+    },
+    {
+      "id": "msgend_to_ccm_again",
+      "name": "Resolved - resend to CCM",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy - resend"
+    },
+    {
+      "id": "msgstart_from_accounting_again",
+      "name": "Resolved invoice received again",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy - resend"
+    },
+    {
+      "id": "msgend_to_commercial",
+      "name": "Send to commercial manager",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy - final"
+    },
+    {
+      "id": "msgstart_from_accounting2",
+      "name": "Invoice received for commercial audit",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy - final"
+    },
+    {
+      "id": "msgend_to_board",
+      "name": "Send to board for 4-eyes check",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy - board review"
+    },
+    {
+      "id": "msgstart_from_commercial2",
+      "name": "Invoice received for board check",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy - board review"
+    },
+    {
+      "id": "msgend_to_accounting4",
+      "name": "Board check complete - return to accounting",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy - signature file"
+    },
+    {
+      "id": "msgend_to_accounting3",
+      "name": "Commercial audit done - return to accounting",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy - signature file"
+    },
+    {
+      "id": "msgstart_from_commercial",
+      "name": "Signed invoice received",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Docket and invoice copy - signature file"
+    },
+    {
+      "id": "end_accounting",
+      "name": "Instance closed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_receive",
+      "name": "Receive invoice in central inbox",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "doc_invoice"
+      ]
+    },
+    {
+      "id": "task_inspect",
+      "name": "Visual inspection of invoice",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_invoice"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_identify_supplier",
+      "name": "Identify charging supplier and create instance",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Accounting Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_invoice"
+      ],
+      "output_data_ids": [
+        "store_acme_fa"
+      ]
+    },
+    {
+      "id": "task_check_items",
+      "name": "Check invoice items",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Accounting Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_invoice"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_create_docket",
+      "name": "Note cost center and manager on docket",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Accounting Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "doc_docket"
+      ]
+    },
+    {
+      "id": "task_review_content",
+      "name": "Review invoice content for accuracy",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Cost Center Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_invoice",
+        "doc_docket"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_note_ap",
+      "name": "Note code AP on docket",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Cost Center Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_docket"
+      ],
+      "output_data_ids": [
+        "doc_docket"
+      ]
+    },
+    {
+      "id": "task_reject_ap",
+      "name": "Reject AP with note and explanation",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Cost Center Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_docket"
+      ],
+      "output_data_ids": [
+        "doc_docket"
+      ]
+    },
+    {
+      "id": "task_review_again",
+      "name": "Review invoice again after clarification",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Cost Center Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": true,
+      "input_data_ids": [
+        "doc_invoice",
+        "doc_docket"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_clarify_vendor",
+      "name": "Clarify inconsistencies with vendor",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Accounting Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_docket"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_commercial_audit",
+      "name": "Perform commercial audit",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Commercial Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_invoice",
+        "doc_docket"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_issue_approval",
+      "name": "Issue approval for payment",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Commercial Manager",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_board_check",
+      "name": "Board reviews invoice (4-eyes principle)",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "Board",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "doc_invoice",
+        "doc_docket"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_resolve_complaint",
+      "name": "Resolve complaint with supplier",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": "Accounting Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_payment_instruction",
+      "name": "Give payment instruction and close instance",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Accounting Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "store_acme_fa"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_accurate",
+      "name": "Content accurate?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "f_accurate_yes",
+          "condition": "accurate"
+        },
+        {
+          "flow_id": "f_accurate_no",
+          "condition": "inconsistency"
+        }
+      ]
+    },
+    {
+      "id": "gw_more_items",
+      "name": "More items on docket?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "f_more_yes",
+          "condition": "next cost center manager"
+        },
+        {
+          "flow_id": "f_more_no",
+          "condition": "all items AP"
+        }
+      ]
+    },
+    {
+      "id": "gw_all_ap",
+      "name": "All items AP?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "f_allap_yes",
+          "condition": "all AP - forward to commercial manager"
+        },
+        {
+          "flow_id": "f_allap_no",
+          "condition": "inconsistency - clarify with vendor"
+        }
+      ]
+    },
+    {
+      "id": "gw_amount_check",
+      "name": "Invoice amount > EUR 20?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "f_amount_yes",
+          "condition": "amount > 20"
+        },
+        {
+          "flow_id": "f_amount_no",
+          "condition": "amount <= 20"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "f1",
+      "source_id": "start1",
+      "target_id": "task_receive",
+      "condition_name": null
+    },
+    {
+      "id": "f2",
+      "source_id": "task_receive",
+      "target_id": "task_inspect",
+      "condition_name": null
+    },
+    {
+      "id": "f3",
+      "source_id": "task_inspect",
+      "target_id": "msgend_to_accounting",
+      "condition_name": null
+    },
+    {
+      "id": "f4",
+      "source_id": "msgstart_from_secretariat",
+      "target_id": "task_identify_supplier",
+      "condition_name": null
+    },
+    {
+      "id": "f5",
+      "source_id": "task_identify_supplier",
+      "target_id": "task_check_items",
+      "condition_name": null
+    },
+    {
+      "id": "f6",
+      "source_id": "task_check_items",
+      "target_id": "task_create_docket",
+      "condition_name": null
+    },
+    {
+      "id": "f7",
+      "source_id": "task_create_docket",
+      "target_id": "msgend_to_ccm1",
+      "condition_name": null
+    },
+    {
+      "id": "f8",
+      "source_id": "msgstart_from_accounting1",
+      "target_id": "task_review_content",
+      "condition_name": null
+    },
+    {
+      "id": "f9",
+      "source_id": "task_review_content",
+      "target_id": "gw_accurate",
+      "condition_name": null
+    },
+    {
+      "id": "f_accurate_yes",
+      "source_id": "gw_accurate",
+      "target_id": "task_note_ap",
+      "condition_name": "accurate"
+    },
+    {
+      "id": "f_accurate_no",
+      "source_id": "gw_accurate",
+      "target_id": "task_reject_ap",
+      "condition_name": "inconsistency"
+    },
+    {
+      "id": "f10",
+      "source_id": "task_note_ap",
+      "target_id": "gw_more_items",
+      "condition_name": null
+    },
+    {
+      "id": "f_more_yes",
+      "source_id": "gw_more_items",
+      "target_id": "msgend_to_accounting_next",
+      "condition_name": "next cost center manager"
+    },
+    {
+      "id": "f_more_no",
+      "source_id": "gw_more_items",
+      "target_id": "msgend_to_accounting_final",
+      "condition_name": "all items AP"
+    },
+    {
+      "id": "f11",
+      "source_id": "task_reject_ap",
+      "target_id": "msgend_to_accounting_final",
+      "condition_name": null
+    },
+    {
+      "id": "f12",
+      "source_id": "msgstart_from_accounting_again",
+      "target_id": "task_review_again",
+      "condition_name": null
+    },
+    {
+      "id": "f13",
+      "source_id": "task_review_again",
+      "target_id": "gw_accurate",
+      "condition_name": null
+    },
+    {
+      "id": "f14",
+      "source_id": "msgstart_from_ccm",
+      "target_id": "gw_all_ap",
+      "condition_name": null
+    },
+    {
+      "id": "f_allap_yes",
+      "source_id": "gw_all_ap",
+      "target_id": "msgend_to_commercial",
+      "condition_name": "all AP"
+    },
+    {
+      "id": "f_allap_no",
+      "source_id": "gw_all_ap",
+      "target_id": "task_clarify_vendor",
+      "condition_name": "inconsistency"
+    },
+    {
+      "id": "f15",
+      "source_id": "task_clarify_vendor",
+      "target_id": "msgend_to_ccm_again",
+      "condition_name": null
+    },
+    {
+      "id": "f16",
+      "source_id": "msgstart_from_commercial2",
+      "target_id": "task_board_check",
+      "condition_name": null
+    },
+    {
+      "id": "f17",
+      "source_id": "task_board_check",
+      "target_id": "msgend_to_accounting4",
+      "condition_name": null
+    },
+    {
+      "id": "f18",
+      "source_id": "msgstart_from_accounting2",
+      "target_id": "task_commercial_audit",
+      "condition_name": null
+    },
+    {
+      "id": "f19",
+      "source_id": "task_commercial_audit",
+      "target_id": "task_issue_approval",
+      "condition_name": null
+    },
+    {
+      "id": "f20",
+      "source_id": "task_issue_approval",
+      "target_id": "gw_amount_check",
+      "condition_name": null
+    },
+    {
+      "id": "f_amount_yes",
+      "source_id": "gw_amount_check",
+      "target_id": "msgend_to_board",
+      "condition_name": "amount > 20 EUR"
+    },
+    {
+      "id": "f_amount_no",
+      "source_id": "gw_amount_check",
+      "target_id": "msgend_to_accounting3",
+      "condition_name": "amount <= 20 EUR"
+    },
+    {
+      "id": "f21",
+      "source_id": "msgstart_from_commercial",
+      "target_id": "task_resolve_complaint",
+      "condition_name": null
+    },
+    {
+      "id": "f22",
+      "source_id": "task_resolve_complaint",
+      "target_id": "task_payment_instruction",
+      "condition_name": null
+    },
+    {
+      "id": "f23",
+      "source_id": "task_payment_instruction",
+      "target_id": "end_accounting",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_secretariat",
+      "name": "Secretariat",
+      "element_ids": [
+        "start1",
+        "task_receive",
+        "task_inspect",
+        "msgend_to_accounting"
+      ]
+    },
+    {
+      "id": "pool_accounting",
+      "name": "Accounting Employee",
+      "element_ids": [
+        "msgstart_from_secretariat",
+        "task_identify_supplier",
+        "task_check_items",
+        "task_create_docket",
+        "msgend_to_ccm1",
+        "msgstart_from_ccm",
+        "gw_all_ap",
+        "task_clarify_vendor",
+        "msgend_to_ccm_again",
+        "msgstart_from_commercial",
+        "task_resolve_complaint",
+        "task_payment_instruction",
+        "end_accounting"
+      ]
+    },
+    {
+      "id": "pool_ccm",
+      "name": "Cost Center Managers",
+      "element_ids": [
+        "msgstart_from_accounting1",
+        "task_review_content",
+        "gw_accurate",
+        "task_note_ap",
+        "task_reject_ap",
+        "gw_more_items",
+        "msgend_to_accounting_next",
+        "msgend_to_accounting_final",
+        "msgstart_from_accounting_again",
+        "task_review_again"
+      ]
+    },
+    {
+      "id": "pool_commercial",
+      "name": "Commercial Manager",
+      "element_ids": [
+        "msgstart_from_accounting2",
+        "task_commercial_audit",
+        "task_issue_approval",
+        "gw_amount_check",
+        "msgend_to_board",
+        "msgend_to_accounting3"
+      ]
+    },
+    {
+      "id": "pool_board",
+      "name": "Board",
+      "element_ids": [
+        "msgstart_from_commercial2",
+        "task_board_check",
+        "msgend_to_accounting4"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "mf1",
+      "source_id": "msgend_to_accounting",
+      "target_id": "msgstart_from_secretariat",
+      "name": null
+    },
+    {
+      "id": "mf2",
+      "source_id": "msgend_to_ccm1",
+      "target_id": "msgstart_from_accounting1",
+      "name": null
+    },
+    {
+      "id": "mf3",
+      "source_id": "msgend_to_accounting_next",
+      "target_id": "msgstart_from_accounting1",
+      "name": null
+    },
+    {
+      "id": "mf4",
+      "source_id": "msgend_to_accounting_final",
+      "target_id": "msgstart_from_ccm",
+      "name": null
+    },
+    {
+      "id": "mf5",
+      "source_id": "msgend_to_ccm_again",
+      "target_id": "msgstart_from_accounting_again",
+      "name": null
+    },
+    {
+      "id": "mf6",
+      "source_id": "msgend_to_commercial",
+      "target_id": "msgstart_from_accounting2",
+      "name": null
+    },
+    {
+      "id": "mf7",
+      "source_id": "msgend_to_board",
+      "target_id": "msgstart_from_commercial2",
+      "name": null
+    },
+    {
+      "id": "mf8",
+      "source_id": "msgend_to_accounting4",
+      "target_id": "msgstart_from_commercial",
+      "name": null
+    },
+    {
+      "id": "mf9",
+      "source_id": "msgend_to_accounting3",
+      "target_id": "msgstart_from_commercial",
+      "name": null
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "doc_invoice",
+      "name": "Invoice (copy)"
+    },
+    {
+      "id": "doc_docket",
+      "name": "Docket"
+    }
+  ],
+  "data_stores": [
+    {
+      "id": "store_acme_fa",
+      "name": "ACME Financial Accounting"
+    }
+  ],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="SyntheticProcess6" name="Synthetic Process 6" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Case Arrival">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_ProcessCase0" />
+    <bpmn:serviceTask id="Task_ProcessCase0" name="Process case 0">
+      <bpmn:extensionElements>
+        <simulation:executionData xmlns:simulation="http://camunda.org/schema/1.0/simulation">
+          <simulation:durationDistribution type="uniform" min="8.0" max="14.0" unit="minutes" />
+        </simulation:executionData>
+      </bpmn:extensionElements>
+      <bpmn:resourceAssignmentExpression>
+        <bpmn:resourceRef>Worker_2</bpmn:resourceRef>
+      </bpmn:resourceAssignmentExpression>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="Route Decision">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_AssessClaim</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RegisterCase</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ProcessCase0" targetRef="Gateway_Decision" />
+    <bpmn:sequenceFlow id="Flow_AssessClaim" name="76%" sourceRef="Gateway_Decision" targetRef="Task_AssessClaim1">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${Math.random() &lt; 0.76}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_RegisterCase" name="24%" sourceRef="Gateway_Decision" targetRef="Task_RegisterCase2">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${Math.random() &gt;= 0.76}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Task_AssessClaim1" name="Assess claim 1">
+      <bpmn:extensionElements>
+        <simulation:executionData xmlns:simulation="http://camunda.org/schema/1.0/simulation">
+          <simulation:durationDistribution type="fixed" value="2.0" unit="minutes" />
+        </simulation:executionData>
+      </bpmn:extensionElements>
+      <bpmn:resourceAssignmentExpression>
+        <bpmn:resourceRef>Worker_2</bpmn:resourceRef>
+      </bpmn:resourceAssignmentExpression>
+      <bpmn:incoming>Flow_AssessClaim</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToAssessForm</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_RegisterCase2" name="Register case 2">
+      <bpmn:extensionElements>
+        <simulation:executionData xmlns:simulation="http://camunda.org/schema/1.0/simulation">
+          <simulation:durationDistribution type="normal" mean="22.0" stdDev="4.0" unit="minutes" />
+        </simulation:executionData>
+      </bpmn:extensionElements>
+      <bpmn:resourceAssignmentExpression>
+        <bpmn:resourceRef>Worker_2</bpmn:resourceRef>
+      </bpmn:resourceAssignmentExpression>
+      <bpmn:incoming>Flow_RegisterCase</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToAssessFormFromReg</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_AssessForm3" name="Assess form 3">
+      <bpmn:extensionElements>
+        <simulation:executionData xmlns:simulation="http://camunda.org/schema/1.0/simulation">
+          <simulation:durationDistribution type="exponential" mean="18.0" unit="minutes" />
+        </simulation:executionData>
+      </bpmn:extensionElements>
+      <bpmn:resourceAssignmentExpression>
+        <bpmn:resourceRef>Worker_1</bpmn:resourceRef>
+      </bpmn:resourceAssignmentExpression>
+      <bpmn:incoming>Flow_ToAssessForm</bpmn:incoming>
+      <bpmn:incoming>Flow_ToAssessFormFromReg</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToScheduleForm</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_ToAssessForm" sourceRef="Task_AssessClaim1" targetRef="Task_AssessForm3" />
+    <bpmn:sequenceFlow id="Flow_ToAssessFormFromReg" sourceRef="Task_RegisterCase2" targetRef="Task_AssessForm3" />
+    <bpmn:serviceTask id="Task_ScheduleForm4" name="Schedule form 4">
+      <bpmn:extensionElements>
+        <simulation:executionData xmlns:simulation="http://camunda.org/schema/1.0/simulation">
+          <simulation:durationDistribution type="fixed" value="6.0" unit="minutes" />
+        </simulation:executionData>
+      </bpmn:extensionElements>
+      <bpmn:resourceAssignmentExpression>
+        <bpmn:resourceRef>Worker_2</bpmn:resourceRef>
+      </bpmn:resourceAssignmentExpression>
+      <bpmn:incoming>Flow_ToScheduleForm</bpmn:incoming>
+      <bpmn:outgoing>Flow_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_ToScheduleForm" sourceRef="Task_AssessForm3" targetRef="Task_ScheduleForm4" />
+    <bpmn:endEvent id="EndEvent_1" name="Process End">
+      <bpmn:incoming>Flow_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_End" sourceRef="Task_ScheduleForm4" targetRef="EndEvent_1" />
+  </bpmn:process>
+  <bpmn:participant id="Participant_1" name="Process Participant" processRef="SyntheticProcess6" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="SyntheticProcess6">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ProcessCase0_di" bpmnElement="Task_ProcessCase0">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Decision_di" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <dc:Bounds x="390" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AssessClaim1_di" bpmnElement="Task_AssessClaim1">
+        <dc:Bounds x="490" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RegisterCase2_di" bpmnElement="Task_RegisterCase2">
+        <dc:Bounds x="490" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AssessForm3_di" bpmnElement="Task_AssessForm3">
+        <dc:Bounds x="640" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ScheduleForm4_di" bpmnElement="Task_ScheduleForm4">
+        <dc:Bounds x="790" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="932" y="132" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="390" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_AssessClaim_di" bpmnElement="Flow_AssessClaim">
+        <di:waypoint x="440" y="120" />
+        <di:waypoint x="490" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_RegisterCase_di" bpmnElement="Flow_RegisterCase">
+        <di:waypoint x="415" y="145" />
+        <di:waypoint x="415" y="220" />
+        <di:waypoint x="490" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToAssessForm_di" bpmnElement="Flow_ToAssessForm">
+        <di:waypoint x="590" y="120" />
+        <di:waypoint x="640" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToAssessFormFromReg_di" bpmnElement="Flow_ToAssessFormFromReg">
+        <di:waypoint x="590" y="220" />
+        <di:waypoint x="640" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToScheduleForm_di" bpmnElement="Flow_ToScheduleForm">
+        <di:waypoint x="740" y="160" />
+        <di:waypoint x="790" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_End_di" bpmnElement="Flow_End">
+        <di:waypoint x="890" y="160" />
+        <di:waypoint x="932" y="150" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="MortgageOfferProcess" name="Mortgage Offer Process" isExecutable="true">
+
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_CSR" name="Customer Service Representative">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SendTask_SendOffer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EventGateway_WaitForReply</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>IntermediateCatch_CustomerReply</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>IntermediateCatch_TwoWeeks</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ExclusiveGateway_ReplyType</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UpdateCaseDeclined</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ArchiveDeclined</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_CancelledDeclined</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ExclusiveGateway_DocsCheck</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_MoveToAdmin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Completed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RequestOutstandingDocs</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UpdateCaseNoResponse</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ArchiveNoResponse</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_CancelledNoResponse</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:sendTask id="SendTask_SendOffer" name="Send Mortgage Offer to Customer">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:incoming>Flow_LoopBack</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:eventBasedGateway id="EventGateway_WaitForReply" name="Wait for Customer Response">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatch_CustomerReply" name="Customer Calls/Writes Back">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1"/>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:intermediateCatchEvent id="IntermediateCatch_TwoWeeks" name="2 Weeks Elapsed">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_1">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">P2W</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_ReplyType" name="Reply Type?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_UpdateCaseDeclined" name="Update Case Details (Declined)">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_ArchiveDeclined" name="Archive Case">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_CancelledDeclined" name="Mortgage Cancelled">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_DocsCheck" name="All Prerequisite Documents Provided?">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_MoveToAdmin" name="Move Case to Administration for Completion">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_Completed" name="Case Completed">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_RequestOutstandingDocs" name="Generate Message Requesting Outstanding Documents">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_LoopBack</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_UpdateCaseNoResponse" name="Update Case Details (No Response)">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_ArchiveNoResponse" name="Archive Case">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_CancelledNoResponse" name="Mortgage Cancelled">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="SendTask_SendOffer"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="SendTask_SendOffer" targetRef="EventGateway_WaitForReply"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="EventGateway_WaitForReply" targetRef="IntermediateCatch_CustomerReply"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="EventGateway_WaitForReply" targetRef="IntermediateCatch_TwoWeeks"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="IntermediateCatch_CustomerReply" targetRef="ExclusiveGateway_ReplyType"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="IntermediateCatch_TwoWeeks" targetRef="Task_UpdateCaseNoResponse"/>
+    <bpmn:sequenceFlow id="Flow_7" name="Declined" sourceRef="ExclusiveGateway_ReplyType" targetRef="Task_UpdateCaseDeclined"/>
+    <bpmn:sequenceFlow id="Flow_8" name="Completed Offer Documents Sent" sourceRef="ExclusiveGateway_ReplyType" targetRef="ExclusiveGateway_DocsCheck"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_UpdateCaseDeclined" targetRef="Task_ArchiveDeclined"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_ArchiveDeclined" targetRef="EndEvent_CancelledDeclined"/>
+    <bpmn:sequenceFlow id="Flow_11" name="Yes" sourceRef="ExclusiveGateway_DocsCheck" targetRef="Task_MoveToAdmin"/>
+    <bpmn:sequenceFlow id="Flow_12" name="No" sourceRef="ExclusiveGateway_DocsCheck" targetRef="Task_RequestOutstandingDocs"/>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_MoveToAdmin" targetRef="EndEvent_Completed"/>
+    <bpmn:sequenceFlow id="Flow_LoopBack" sourceRef="Task_RequestOutstandingDocs" targetRef="SendTask_SendOffer"/>
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_UpdateCaseNoResponse" targetRef="Task_ArchiveNoResponse"/>
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_ArchiveNoResponse" targetRef="EndEvent_CancelledNoResponse"/>
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="MortgageOfferProcess">
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="50" y="200" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="SendTask_SendOffer_di" bpmnElement="SendTask_SendOffer">
+        <omgdc:Bounds x="140" y="178" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EventGateway_WaitForReply_di" bpmnElement="EventGateway_WaitForReply">
+        <omgdc:Bounds x="290" y="193" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="IntermediateCatch_CustomerReply_di" bpmnElement="IntermediateCatch_CustomerReply">
+        <omgdc:Bounds x="400" y="120" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="IntermediateCatch_TwoWeeks_di" bpmnElement="IntermediateCatch_TwoWeeks">
+        <omgdc:Bounds x="400" y="260" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="ExclusiveGateway_ReplyType_di" bpmnElement="ExclusiveGateway_ReplyType">
+        <omgdc:Bounds x="490" y="113" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_UpdateCaseDeclined_di" bpmnElement="Task_UpdateCaseDeclined">
+        <omgdc:Bounds x="600" y="20" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ArchiveDeclined_di" bpmnElement="Task_ArchiveDeclined">
+        <omgdc:Bounds x="750" y="20" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_CancelledDeclined_di" bpmnElement="EndEvent_CancelledDeclined">
+        <omgdc:Bounds x="900" y="42" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="ExclusiveGateway_DocsCheck_di" bpmnElement="ExclusiveGateway_DocsCheck">
+        <omgdc:Bounds x="600" y="113" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MoveToAdmin_di" bpmnElement="Task_MoveToAdmin">
+        <omgdc:Bounds x="700" y="100" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Completed_di" bpmnElement="EndEvent_Completed">
+        <omgdc:Bounds x="860" y="122" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RequestOutstandingDocs_di" bpmnElement="Task_RequestOutstandingDocs">
+        <omgdc:Bounds x="600" y="220" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_UpdateCaseNoResponse_di" bpmnElement="Task_UpdateCaseNoResponse">
+        <omgdc:Bounds x="490" y="340" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ArchiveNoResponse_di" bpmnElement="Task_ArchiveNoResponse">
+        <omgdc:Bounds x="640" y="340" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_CancelledNoResponse_di" bpmnElement="EndEvent_CancelledNoResponse">
+        <omgdc:Bounds x="790" y="362" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="86" y="218"/>
+        <omgdi:waypoint x="140" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="240" y="218"/>
+        <omgdi:waypoint x="290" y="218"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <omgdi:waypoint x="315" y="193"/>
+        <omgdi:waypoint x="315" y="138"/>
+        <omgdi:waypoint x="400" y="138"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <omgdi:waypoint x="315" y="243"/>
+        <omgdi:waypoint x="315" y="278"/>
+        <omgdi:waypoint x="400" y="278"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <omgdi:waypoint x="436" y="138"/>
+        <omgdi:waypoint x="490" y="138"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <omgdi:waypoint x="436" y="278"/>
+        <omgdi:waypoint x="460" y="278"/>
+        <omgdi:waypoint x="460" y="340"/>
+        <omgdi:waypoint x="540" y="380"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <omgdi:waypoint x="515" y="113"/>
+        <omgdi:waypoint x="515" y="60"/>
+        <omgdi:waypoint x="600" y="60"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <omgdi:waypoint x="515" y="163"/>
+        <omgdi:waypoint x="515" y="138"/>
+        <omgdi:waypoint x="600" y="138"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <omgdi:waypoint x="700" y="60"/>
+        <omgdi:waypoint x="750" y="60"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <omgdi:waypoint x="850" y="60"/>
+        <omgdi:waypoint x="900" y="60"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <omgdi:waypoint x="650" y="138"/>
+        <omgdi:waypoint x="700" y="140"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <omgdi:waypoint x="625" y="163"/>
+        <omgdi:waypoint x="625" y="220"/>
+        <omgdi:waypoint x="660" y="220"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <omgdi:waypoint x="800" y="140"/>
+        <omgdi:waypoint x="860" y="140"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_LoopBack_di" bpmnElement="Flow_LoopBack">
+        <omgdi:waypoint x="660" y="300"/>
+        <omgdi:waypoint x="190" y="300"/>
+        <omgdi:waypoint x="190" y="258"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <omgdi:waypoint x="590" y="380"/>
+        <omgdi:waypoint x="640" y="380"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <omgdi:waypoint x="740" y="380"/>
+        <omgdi:waypoint x="790" y="380"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

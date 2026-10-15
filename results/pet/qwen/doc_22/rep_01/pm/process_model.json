@@ -1,0 +1,234 @@
+{
+  "name": "Measuring Point Change Process",
+  "resources": [
+    {
+      "name": "MPO",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "SP / PU / GO",
+      "capacity": 1,
+      "resource_type": "department"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_mpo",
+      "name": "Change Request Received (from SP/PU/GO or MPO)",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Change Request"
+    },
+    {
+      "id": "evt_end_reject",
+      "name": "Notify Rejection",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Rejection Notification"
+    },
+    {
+      "id": "evt_end_success",
+      "name": "Report Implementation",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Implementation Report"
+    },
+    {
+      "id": "evt_end_failure",
+      "name": "Notify Failure",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Failure Notification"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_review",
+      "name": "Review change request",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "MPO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_perform_change",
+      "name": "Perform measuring point change",
+      "bpmn_type": "bpmn:ManualTask",
+      "resource_name": "MPO",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_decision",
+      "name": "Decision on Change Request",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_to_reject",
+          "condition": "Reject"
+        },
+        {
+          "flow_id": "flow_to_confirm",
+          "condition": "Confirm"
+        }
+      ]
+    },
+    {
+      "id": "gw_outcome",
+      "name": "Outcome of Change Execution",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_to_success",
+          "condition": "Success"
+        },
+        {
+          "flow_id": "flow_to_failure",
+          "condition": "Failure"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start_mpo",
+      "target_id": "task_review",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_review",
+      "target_id": "gw_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_reject",
+      "source_id": "gw_decision",
+      "target_id": "evt_end_reject",
+      "condition_name": "Reject"
+    },
+    {
+      "id": "flow_to_confirm",
+      "source_id": "gw_decision",
+      "target_id": "task_perform_change",
+      "condition_name": "Confirm"
+    },
+    {
+      "id": "flow_3",
+      "source_id": "task_perform_change",
+      "target_id": "gw_outcome",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_success",
+      "source_id": "gw_outcome",
+      "target_id": "evt_end_success",
+      "condition_name": "Success"
+    },
+    {
+      "id": "flow_to_failure",
+      "source_id": "gw_outcome",
+      "target_id": "evt_end_failure",
+      "condition_name": "Failure"
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_mpo",
+      "name": "MPO",
+      "element_ids": [
+        "evt_start_mpo",
+        "task_review",
+        "gw_decision",
+        "evt_end_reject",
+        "task_perform_change",
+        "gw_outcome",
+        "evt_end_success",
+        "evt_end_failure",
+        "flow_1",
+        "flow_2",
+        "flow_to_reject",
+        "flow_to_confirm",
+        "flow_3",
+        "flow_to_success",
+        "flow_to_failure"
+      ]
+    },
+    {
+      "id": "pool_sp_pu_go",
+      "name": "SP / PU / GO",
+      "element_ids": []
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_request",
+      "source_id": "pool_sp_pu_go",
+      "target_id": "evt_start_mpo",
+      "name": "Change Request"
+    },
+    {
+      "id": "msg_flow_reject",
+      "source_id": "evt_end_reject",
+      "target_id": "pool_sp_pu_go",
+      "name": "Rejection Notification"
+    },
+    {
+      "id": "msg_flow_success",
+      "source_id": "evt_end_success",
+      "target_id": "pool_sp_pu_go",
+      "name": "Implementation Report"
+    },
+    {
+      "id": "msg_flow_failure",
+      "source_id": "evt_end_failure",
+      "target_id": "pool_sp_pu_go",
+      "name": "Failure Notification"
+    }
+  ],
+  "data_objects": [],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

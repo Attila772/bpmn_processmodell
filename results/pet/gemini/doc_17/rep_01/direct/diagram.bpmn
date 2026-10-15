@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             targetNamespace="http://www.bpmn.org/processes"
+             exporter="Camunda Modeler"
+             exporterVersion="5.0.0">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_HR" name="HR Clerk" processRef="Process_HR_Vacancy" />
+  </collaboration>
+
+  <process id="Process_HR_Vacancy" isExecutable="true">
+    <startEvent id="StartEvent_VacancyReported" name="Vacancy reported">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_CreateJobDescription" name="Create job description">
+      <incoming>Flow_1</incoming>
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Confusion" name="Information clear?">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_Clear</outgoing>
+      <outgoing>Flow_Confused</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_AskDepartment" name="Ask Department for clarification">
+      <incoming>Flow_Confused</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <task id="Task_SubmitForConsideration" name="Submit job description for consideration">
+      <incoming>Flow_Clear</incoming>
+      <incoming>Flow_9</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <intermediateCatchEvent id="Event_WaitForApproval" name="Wait for approval decision">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+      <messageEventDefinition id="MessageEventDefinition_ApprovalResult" />
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="Gateway_ApprovalResult" name="Approved?">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_Approved</outgoing>
+      <outgoing>Flow_Rejected</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_CorrectDescription" name="Correct job description">
+      <incoming>Flow_Rejected</incoming>
+      <outgoing>Flow_9</outgoing>
+    </task>
+
+    <task id="Task_PostJob" name="Post job">
+      <incoming>Flow_Approved</incoming>
+      <outgoing>Flow_5</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_JobPosted" name="Job posted">
+      <incoming>Flow_5</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_VacancyReported" targetRef="Task_CreateJobDescription" />
+    <sequenceFlow id="Flow_2" sourceRef="Task_CreateJobDescription" targetRef="Gateway_Confusion" />
+    <sequenceFlow id="Flow_Clear" name="Yes" sourceRef="Gateway_Confusion" targetRef="Task_SubmitForConsideration" />
+    <sequenceFlow id="Flow_Confused" name="No (confusion)" sourceRef="Gateway_Confusion" targetRef="Task_AskDepartment" />
+    <sequenceFlow id="Flow_8" sourceRef="Task_AskDepartment" targetRef="Task_CreateJobDescription" />
+    <sequenceFlow id="Flow_3" sourceRef="Task_SubmitForConsideration" targetRef="Event_WaitForApproval" />
+    <sequenceFlow id="Flow_4" sourceRef="Event_WaitForApproval" targetRef="Gateway_ApprovalResult" />
+    <sequenceFlow id="Flow_Approved" name="Yes" sourceRef="Gateway_ApprovalResult" targetRef="Task_PostJob" />
+    <sequenceFlow id="Flow_Rejected" name="No (correction requested)" sourceRef="Gateway_ApprovalResult" targetRef="Task_CorrectDescription" />
+    <sequenceFlow id="Flow_9" sourceRef="Task_CorrectDescription" targetRef="Task_SubmitForConsideration" />
+    <sequenceFlow id="Flow_5" sourceRef="Task_PostJob" targetRef="EndEvent_JobPosted" />
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_HR_di" bpmnElement="Participant_HR" isHorizontal="true">
+        <omgdc:Bounds x="160" y="80" width="1120" height="340" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_VacancyReported_di" bpmnElement="StartEvent_VacancyReported">
+        <omgdc:Bounds x="222" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="198" y="225" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CreateJobDescription_di" bpmnElement="Task_CreateJobDescription">
+        <omgdc:Bounds x="300" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Confusion_di" bpmnElement="Gateway_Confusion" isMarkerVisible="true">
+        <omgdc:Bounds x="445" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="426" y="145" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AskDepartment_di" bpmnElement="Task_AskDepartment">
+        <omgdc:Bounds x="420" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SubmitForConsideration_di" bpmnElement="Task_SubmitForConsideration">
+        <omgdc:Bounds x="550" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_WaitForApproval_di" bpmnElement="Event_WaitForApproval">
+        <omgdc:Bounds x="692" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="670" y="225" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ApprovalResult_di" bpmnElement="Gateway_ApprovalResult" isMarkerVisible="true">
+        <omgdc:Bounds x="775" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="774" y="145" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CorrectDescription_di" bpmnElement="Task_CorrectDescription">
+        <omgdc:Bounds x="750" y="290" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PostJob_di" bpmnElement="Task_PostJob">
+        <omgdc:Bounds x="880" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_JobPosted_di" bpmnElement="EndEvent_JobPosted">
+        <omgdc:Bounds x="1032" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1024" y="225" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Flow Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="258" y="200" />
+        <omgdi:waypoint x="300" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="400" y="200" />
+        <omgdi:waypoint x="445" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Clear_di" bpmnElement="Flow_Clear">
+        <omgdi:waypoint x="495" y="200" />
+        <omgdi:waypoint x="550" y="200" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="514" y="182" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Confused_di" bpmnElement="Flow_Confused">
+        <omgdi:waypoint x="470" y="225" />
+        <omgdi:waypoint x="470" y="290" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="473" y="253" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <omgdi:waypoint x="420" y="330" />
+        <omgdi:waypoint x="350" y="330" />
+        <omgdi:waypoint x="350" y="240" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <omgdi:waypoint x="650" y="200" />
+        <omgdi:waypoint x="692" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <omgdi:waypoint x="728" y="200" />
+        <omgdi:waypoint x="775" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <omgdi:waypoint x="825" y="200" />
+        <omgdi:waypoint x="880" y="200" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="844" y="182" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <omgdi:waypoint x="800" y="225" />
+        <omgdi:waypoint x="800" y="290" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="804" y="246" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <omgdi:waypoint x="750" y="330" />
+        <omgdi:waypoint x="600" y="330" />
+        <omgdi:waypoint x="600" y="240" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <omgdi:waypoint x="980" y="200" />
+        <omgdi:waypoint x="1032" y="200" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="Process_Alkatresz_Gyartas" name="Alkatrész gyártási részfolyamat" isExecutable="false">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_Darabolo" name="Daraboló üzem">
+        <flowNodeRef>StartEvent_1</flowNodeRef>
+        <flowNodeRef>Task_Meretre_Vagas</flowNodeRef>
+        <flowNodeRef>Task_Vonalkod_Olvasas</flowNodeRef>
+        <flowNodeRef>Task_MES_Statusz_Darabolas</flowNodeRef>
+        <flowNodeRef>Task_Muhelyrajz_Tovabbitas</flowNodeRef>
+      </lane>
+      <lane id="Lane_Gyartaselokeszito" name="Forgácsoló gyártáselőkészítő">
+        <flowNodeRef>Task_Alkatreszjegyzek_Rogzites</flowNodeRef>
+        <flowNodeRef>Task_Megmunkalas_Tipus</flowNodeRef>
+        <flowNodeRef>Gateway_Tipus_Split</flowNodeRef>
+        <flowNodeRef>Task_CNC_Program_Ellenorzes</flowNodeRef>
+        <flowNodeRef>Gateway_Program_Megvan</flowNodeRef>
+        <flowNodeRef>Task_Atadas_CNC</flowNodeRef>
+        <flowNodeRef>EndEvent_Hagyomanyos</flowNodeRef>
+        <flowNodeRef>EndEvent_Kiszervezes</flowNodeRef>
+      </lane>
+      <lane id="Lane_CNC_Programozo" name="CNC programozó">
+        <flowNodeRef>Task_Programozo_Ertesites</flowNodeRef>
+        <flowNodeRef>EndEvent_Programozo_Ertesitve</flowNodeRef>
+      </lane>
+      <lane id="Lane_Forgacsolo_Uzem" name="Forgácsoló üzem (CNC megmunkáló)">
+        <flowNodeRef>Task_Beazonositas</flowNodeRef>
+        <flowNodeRef>Task_Program_Letoltes</flowNodeRef>
+        <flowNodeRef>Task_Satu_Ellenorzes</flowNodeRef>
+        <flowNodeRef>Gateway_Satu_Csere</flowNodeRef>
+        <flowNodeRef>Task_Satu_Csere</flowNodeRef>
+        <flowNodeRef>Task_Alapanyag_Rogzites_Satu</flowNodeRef>
+        <flowNodeRef>Gateway_Satu_Merge</flowNodeRef>
+        <flowNodeRef>Task_Szerszamlista_Ellenorzes</flowNodeRef>
+        <flowNodeRef>Gateway_Szerszam_Megfelelo</flowNodeRef>
+        <flowNodeRef>Task_Ajto_Zaras_1</flowNodeRef>
+        <flowNodeRef>Task_Uj_Szerszam_Rogzites</flowNodeRef>
+        <flowNodeRef>Task_Ajto_Zaras_2</flowNodeRef>
+        <flowNodeRef>Gateway_Szerszam_Merge</flowNodeRef>
+        <flowNodeRef>Task_Forgacsolas</flowNodeRef>
+        <flowNodeRef>Task_Ajto_Nyit_Satu_Old</flowNodeRef>
+        <flowNodeRef>Gateway_Ujabb_Megmunkalas</flowNodeRef>
+        <flowNodeRef>Task_Termek_Statusz</flowNodeRef>
+        <flowNodeRef>EndEvent_Folyamat_Vege</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <startEvent id="StartEvent_1" name="Nyersanyag beérkezik a daraboló üzembe">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_Meretre_Vagas" name="Nyersanyag méretre vágása a műhelyrajz szerint">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <task id="Task_Vonalkod_Olvasas" name="Vonalkódok beolvasása scannerrel">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <task id="Task_MES_Statusz_Darabolas" name="Alkatrész státusz rögzítése MES-ben (darabolás)">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </task>
+
+    <task id="Task_Muhelyrajz_Tovabbitas" name="Műhelyrajz továbbítása a forgácsoló gyártáselőkészítőnek">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_5</outgoing>
+    </task>
+
+    <task id="Task_Alkatreszjegyzek_Rogzites" name="Darabolt alkatrészjegyzék rögzítése, MES státuszváltás">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <task id="Task_Megmunkalas_Tipus" name="Megmunkálás típusának meghatározása">
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Tipus_Split" name="Megmunkálás típusa?">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_CNC</outgoing>
+      <outgoing>Flow_Hagyomanyos</outgoing>
+      <outgoing>Flow_Kiszervezes</outgoing>
+    </exclusiveGateway>
+
+    <endEvent id="EndEvent_Hagyomanyos" name="Hagyományos megmunkálás (külön folyamat)">
+      <incoming>Flow_Hagyomanyos</incoming>
+    </endEvent>
+
+    <endEvent id="EndEvent_Kiszervezes" name="Kiszervezés alvállalkozónak (külön folyamat)">
+      <incoming>Flow_Kiszervezes</incoming>
+    </endEvent>
+
+    <task id="Task_CNC_Program_Ellenorzes" name="CNC program meglétének ellenőrzése">
+      <incoming>Flow_CNC</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Program_Megvan" name="Van CNC program?">
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_Program_Nincs</outgoing>
+      <outgoing>Flow_Program_Van</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_Programozo_Ertesites" name="CNC programozó értesítése">
+      <incoming>Flow_Program_Nincs</incoming>
+      <outgoing>Flow_9</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Programozo_Ertesitve" name="Programozó értesítve">
+      <incoming>Flow_9</incoming>
+    </endEvent>
+
+    <task id="Task_Atadas_CNC" name="Átadás CNC megmunkálásra">
+      <incoming>Flow_Program_Van</incoming>
+      <outgoing>Flow_10</outgoing>
+    </task>
+
+    <task id="Task_Beazonositas" name="Beazonosítás vonalkód olvasással">
+      <incoming>Flow_10</incoming>
+      <outgoing>Flow_11</outgoing>
+    </task>
+
+    <task id="Task_Program_Letoltes" name="CNC program letöltése a programszerverről">
+      <incoming>Flow_11</incoming>
+      <outgoing>Flow_12</outgoing>
+    </task>
+
+    <task id="Task_Satu_Ellenorzes" name="Satu ellenőrzése">
+      <incoming>Flow_12</incoming>
+      <outgoing>Flow_13</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Satu_Csere" name="Szükséges satu csere?">
+      <incoming>Flow_13</incoming>
+      <outgoing>Flow_Satu_Igen</outgoing>
+      <outgoing>Flow_Satu_Nem</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_Satu_Csere" name="Satu cseréje">
+      <incoming>Flow_Satu_Igen</incoming>
+      <outgoing>Flow_14</outgoing>
+    </task>
+
+    <task id="Task_Alapanyag_Rogzites_Satu" name="Alapanyag rögzítése a satuban">
+      <incoming>Flow_Satu_Nem</incoming>
+      <outgoing>Flow_15</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Satu_Merge">
+      <incoming>Flow_14</incoming>
+      <incoming>Flow_15</incoming>
+      <outgoing>Flow_16</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_Szerszamlista_Ellenorzes" name="Szerszámlista ellenőrzése a CNC program alapján">
+      <incoming>Flow_16</incoming>
+      <incoming>Flow_Loop_Back</incoming>
+      <outgoing>Flow_17</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Szerszam_Megfelelo" name="Megfelelő szerszámok betárazva?">
+      <incoming>Flow_17</incoming>
+      <outgoing>Flow_Szerszam_Igen</outgoing>
+      <outgoing>Flow_Szerszam_Csere</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_Ajto_Zaras_1" name="CNC gép ajtajának zárása">
+      <incoming>Flow_Szerszam_Igen</incoming>
+      <outgoing>Flow_18</outgoing>
+    </task>
+
+    <task id="Task_Uj_Szerszam_Rogzites" name="Új szerszám rögzítése, hossz- és korrekciós értékek felvitele">
+      <incoming>Flow_Szerszam_Csere</incoming>
+      <outgoing>Flow_19</outgoing>
+    </task>
+
+    <task id="Task_Ajto_Zaras_2" name="CNC gép ajtajának zárása">
+      <incoming>Flow_19</incoming>
+      <outgoing>Flow_20</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Szerszam_Merge">
+      <incoming>Flow_18</incoming>
+      <incoming>Flow_20</incoming>
+      <outgoing>Flow_21</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_Forgacsolas" name="Alapanyag forgácsolása">
+      <incoming>Flow_21</incoming>
+      <outgoing>Flow_22</outgoing>
+    </task>
+
+    <task id="Task_Ajto_Nyit_Satu_Old" name="Ajtó nyitása, satu oldása">
+      <incoming>Flow_22</incoming>
+      <outgoing>Flow_23</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Ujabb_Megmunkalas" name="Szükséges újabb megmunkálás?">
+      <incoming>Flow_23</incoming>
+      <outgoing>Flow_Ujabb_Igen</outgoing>
+      <outgoing>Flow_Ujabb_Nem</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_Termek_Statusz" name="Termék elkészültségének jelzése MES-ben">
+      <incoming>Flow_Ujabb_Nem</incoming>
+      <outgoing>Flow_24</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Folyamat_Vege" name="Folyamat vége">
+      <incoming>Flow_24</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Meretre_Vagas" />
+    <sequenceFlow id="Flow_2" sourceRef="Task_Meretre_Vagas" targetRef="Task_Vonalkod_Olvasas" />
+    <sequenceFlow id="Flow_3" sourceRef="Task_Vonalkod_Olvasas" targetRef="Task_MES_Statusz_Darabolas" />
+    <sequenceFlow id="Flow_4" sourceRef="Task_MES_Statusz_Darabolas" targetRef="Task_Muhelyrajz_Tovabbitas" />
+    <sequenceFlow id="Flow_5" sourceRef="Task_Muhelyrajz_Tovabbitas" targetRef="Task_Alkatreszjegyzek_Rogzites" />
+    <sequenceFlow id="Flow_6" sourceRef="Task_Alkatreszjegyzek_Rogzites" targetRef="Task_Megmunkalas_Tipus" />
+    <sequenceFlow id="Flow_7" sourceRef="Task_Megmunkalas_Tipus" targetRef="Gateway_Tipus_Split" />
+
+    <sequenceFlow id="Flow_CNC" name="CNC" sourceRef="Gateway_Tipus_Split" targetRef="Task_CNC_Program_Ellenorzes" />
+    <sequenceFlow id="Flow_Hagyomanyos" name="Hagyományos" sourceRef="Gateway_Tipus_Split" targetRef="EndEvent_Hagyomanyos" />
+    <sequenceFlow id="Flow_Kiszervezes" name="Kiszervezés" sourceRef="Gateway_Tipus_Split" targetRef="EndEvent_Kiszervezes" />
+
+    <sequenceFlow id="Flow_8" sourceRef="Task_CNC_Program_Ellenorzes" targetRef="Gateway_Program_Megvan" />
+    <sequenceFlow id="Flow_Program_Nincs" name="Nincs" sourceRef="Gateway_Program_Megvan" targetRef="Task_Programozo_Ertesites" />
+    <sequenceFlow id="Flow_Program_Van" name="Van" sourceRef="Gateway_Program_Megvan" targetRef="Task_Atadas_CNC" />
+    <sequenceFlow id="Flow_9" sourceRef="Task_Programozo_Ertesites" targetRef="EndEvent_Programozo_Ertesitve" />
+
+    <sequenceFlow id="Flow_10" sourceRef="Task_Atadas_CNC" targetRef="Task_Beazonositas" />
+    <sequenceFlow id="Flow_11" sourceRef="Task_Beazonositas" targetRef="Task_Program_Letoltes" />
+    <sequenceFlow id="Flow_12" sourceRef="Task_Program_Letoltes" targetRef="Task_Satu_Ellenorzes" />
+    <sequenceFlow id="Flow_13" sourceRef="Task_Satu_Ellenorzes" targetRef="Gateway_Satu_Csere" />
+
+    <sequenceFlow id="Flow_Satu_Igen" name="Igen" sourceRef="Gateway_Satu_Csere" targetRef="Task_Satu_Csere" />
+    <sequenceFlow id="Flow_Satu_Nem" name="Nem" sourceRef="Gateway_Satu_Csere" targetRef="Task_Alapanyag_Rogzites_Satu" />
+    <sequenceFlow id="Flow_14" sourceRef="Task_Satu_Csere" targetRef="Gateway_Satu_Merge" />
+    <sequenceFlow id="Flow_15" sourceRef="Task_Alapanyag_Rogzites_Satu" targetRef="Gateway_Satu_Merge" />
+    <sequenceFlow id="Flow_16" sourceRef="Gateway_Satu_Merge" targetRef="Task_Szerszamlista_Ellenorzes" />
+
+    <sequenceFlow id="Flow_17" sourceRef="Task_Szerszamlista_Ellenorzes" targetRef="Gateway_Szerszam_Megfelelo" />
+    <sequenceFlow id="Flow_Szerszam_Igen" name="Megfelelő" sourceRef="Gateway_Szerszam_Megfelelo" targetRef="Task_Ajto_Zaras_1" />
+    <sequenceFlow id="Flow_Szerszam_Csere" name="Csere szükséges" sourceRef="Gateway_Szerszam_Megfelelo" targetRef="Task_Uj_Szerszam_Rogzites" />
+    <sequenceFlow id="Flow_18" sourceRef="Task_Ajto_Zaras_1" targetRef="Gateway_Szerszam_Merge" />
+    <sequenceFlow id="Flow_19" sourceRef="Task_Uj_Szerszam_Rogzites" targetRef="Task_Ajto_Zaras_2" />
+    <sequenceFlow id="Flow_20" sourceRef="Task_Ajto_Zaras_2" targetRef="Gateway_Szerszam_Merge" />
+    <sequenceFlow id="Flow_21" sourceRef="Gateway_Szerszam_Merge" targetRef="Task_Forgacsolas" />
+
+    <sequenceFlow id="Flow_22" sourceRef="Task_Forgacsolas" targetRef="Task_Ajto_Nyit_Satu_Old" />
+    <sequenceFlow id="Flow_23" sourceRef="Task_Ajto_Nyit_Satu_Old" targetRef="Gateway_Ujabb_Megmunkalas" />
+
+    <sequenceFlow id="Flow_Ujabb_Igen" name="Igen" sourceRef="Gateway_Ujabb_Megmunkalas" targetRef="Task_Szerszamlista_Ellenorzes" />
+    <sequenceFlow id="Flow_Loop_Back" sourceRef="Gateway_Ujabb_Megmunkalas" targetRef="Task_Szerszamlista_Ellenorzes" />
+    <sequenceFlow id="Flow_Ujabb_Nem" name="Nem" sourceRef="Gateway_Ujabb_Megmunkalas" targetRef="Task_Termek_Statusz" />
+
+    <sequenceFlow id="Flow_24" sourceRef="Task_Termek_Statusz" targetRef="EndEvent_Folyamat_Vege" />
+
+  </process>
+
+</definitions>

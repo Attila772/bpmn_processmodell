@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="ComputerRepairProcess" name="Computer Repair Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Customer brings in defective computer">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_CheckDefect" name="CRS checks defect and calculates cost">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_CostDecision" name="Costs acceptable?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_Unrepaired" name="Customer takes computer home unrepaired">
+      <bpmn:incoming>Flow_No</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:parallelGateway id="Gateway_ParallelStart" name="Start Parallel Repairs">
+      <bpmn:incoming>Flow_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_Hardware</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Software</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <!-- Hardware Branch -->
+    <bpmn:task id="Task_HardwareRepair" name="Check and repair hardware">
+      <bpmn:incoming>Flow_Hardware</bpmn:incoming>
+      <bpmn:outgoing>Flow_TestHardware</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TestHardware" name="Test system functionality (Hardware)">
+      <bpmn:incoming>Flow_TestHardware</bpmn:incoming>
+      <bpmn:outgoing>Flow_DecisionHardware</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_HardwareResult" name="Error detected?">
+      <bpmn:incoming>Flow_DecisionHardware</bpmn:incoming>
+      <bpmn:outgoing>Flow_HardwareRetry</bpmn:outgoing>
+      <bpmn:outgoing>Flow_HardwareDone</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ArbitraryRepairHardware" name="Execute arbitrary repair activity">
+      <bpmn:incoming>Flow_HardwareRetry</bpmn:incoming>
+      <bpmn:outgoing>Flow_BackToHardwareRepair</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Software Branch -->
+    <bpmn:task id="Task_SoftwareConfig" name="Check and configure software">
+      <bpmn:incoming>Flow_Software</bpmn:incoming>
+      <bpmn:outgoing>Flow_TestSoftware</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TestSoftware" name="Test system functionality (Software)">
+      <bpmn:incoming>Flow_TestSoftware</bpmn:incoming>
+      <bpmn:outgoing>Flow_DecisionSoftware</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_SoftwareResult" name="Error detected?">
+      <bpmn:incoming>Flow_DecisionSoftware</bpmn:incoming>
+      <bpmn:outgoing>Flow_SoftwareRetry</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SoftwareDone</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ArbitraryRepairSoftware" name="Execute arbitrary repair activity">
+      <bpmn:incoming>Flow_SoftwareRetry</bpmn:incoming>
+      <bpmn:outgoing>Flow_BackToSoftwareConfig</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Merge Point -->
+    <bpmn:parallelGateway id="Gateway_ParallelEnd" name="Wait for both repairs">
+      <bpmn:incoming>Flow_HardwareDone</bpmn:incoming>
+      <bpmn:incoming>Flow_SoftwareDone</bpmn:incoming>
+      <bpmn:outgoing>Flow_Finalize</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <bpmn:endEvent id="EndEvent_Repaired" name="Repair finished">
+      <bpmn:incoming>Flow_Finalize</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CheckDefect" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CheckDefect" targetRef="Gateway_CostDecision" />
+    <bpmn:sequenceFlow id="Flow_Yes" name="Yes" sourceRef="Gateway_CostDecision" targetRef="Gateway_ParallelStart" />
+    <bpmn:sequenceFlow id="Flow_No" name="No" sourceRef="Gateway_CostDecision" targetRef="EndEvent_Unrepaired" />
+    
+    <bpmn:sequenceFlow id="Flow_Hardware" sourceRef="Gateway_ParallelStart" targetRef="Task_HardwareRepair" />
+    <bpmn:sequenceFlow id="Flow_TestHardware" sourceRef="Task_HardwareRepair" targetRef="Task_TestHardware" />
+    <bpmn:sequenceFlow id="Flow_DecisionHardware" sourceRef="Task_TestHardware" targetRef="Gateway_HardwareResult" />
+    <bpmn:sequenceFlow id="Flow_HardwareRetry" name="Yes" sourceRef="Gateway_HardwareResult" targetRef="Task_ArbitraryRepairHardware" />
+    <bpmn:sequenceFlow id="Flow_BackToHardwareRepair" sourceRef="Task_ArbitraryRepairHardware" targetRef="Task_HardwareRepair" />
+    <bpmn:sequenceFlow id="Flow_HardwareDone" name="No" sourceRef="Gateway_HardwareResult" targetRef="Gateway_ParallelEnd" />
+
+    <bpmn:sequenceFlow id="Flow_Software" sourceRef="Gateway_ParallelStart" targetRef="Task_SoftwareConfig" />
+    <bpmn:sequenceFlow id="Flow_TestSoftware" sourceRef="Task_SoftwareConfig" targetRef="Task_TestSoftware" />
+    <bpmn:sequenceFlow id="Flow_DecisionSoftware" sourceRef="Task_TestSoftware" targetRef="Gateway_SoftwareResult" />
+    <bpmn:sequenceFlow id="Flow_SoftwareRetry" name="Yes" sourceRef="Gateway_SoftwareResult" targetRef="Task_ArbitraryRepairSoftware" />
+    <bpmn:sequenceFlow id="Flow_BackToSoftwareConfig" sourceRef="Task_ArbitraryRepairSoftware" targetRef="Task_SoftwareConfig" />
+    <bpmn:sequenceFlow id="Flow_SoftwareDone" name="No" sourceRef="Gateway_SoftwareResult" targetRef="Gateway_ParallelEnd" />
+
+    <bpmn:sequenceFlow id="Flow_Finalize" sourceRef="Gateway_ParallelEnd" targetRef="EndEvent_Repaired" />
+  </bpmn:process>
+</bpmn:definitions>

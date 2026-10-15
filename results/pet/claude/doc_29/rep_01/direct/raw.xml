@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="Process_MortgageOffer" name="Mortgage Offer Process" isExecutable="true">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_CSR" name="Customer Service Representative">
+        <flowNodeRef>StartEvent_1</flowNodeRef>
+        <flowNodeRef>Task_SendOffer</flowNodeRef>
+        <flowNodeRef>Gateway_WaitReply</flowNodeRef>
+        <flowNodeRef>IntCatch_Decline</flowNodeRef>
+        <flowNodeRef>IntCatch_DocsReceived</flowNodeRef>
+        <flowNodeRef>IntCatch_Timeout</flowNodeRef>
+        <flowNodeRef>Task_UpdateDecline</flowNodeRef>
+        <flowNodeRef>Task_ArchiveDecline</flowNodeRef>
+        <flowNodeRef>EndEvent_CancelDecline</flowNodeRef>
+        <flowNodeRef>Gateway_DocsCheck</flowNodeRef>
+        <flowNodeRef>Task_GenerateMissingDocsMsg</flowNodeRef>
+        <flowNodeRef>Task_UpdateTimeout</flowNodeRef>
+        <flowNodeRef>Task_ArchiveTimeout</flowNodeRef>
+        <flowNodeRef>EndEvent_CancelTimeout</flowNodeRef>
+      </lane>
+      <lane id="Lane_Admin" name="Administration">
+        <flowNodeRef>Task_MoveToAdmin</flowNodeRef>
+        <flowNodeRef>EndEvent_AdminComplete</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <startEvent id="StartEvent_1" name="Mortgage Offer Process Started">
+      <outgoing>Flow_Start_Send</outgoing>
+    </startEvent>
+
+    <sendTask id="Task_SendOffer" name="Send Mortgage Offer to Customer">
+      <incoming>Flow_Start_Send</incoming>
+      <incoming>Flow_Resend</incoming>
+      <outgoing>Flow_Send_Gateway</outgoing>
+    </sendTask>
+
+    <eventBasedGateway id="Gateway_WaitReply" name="Wait for Customer Reply">
+      <incoming>Flow_Send_Gateway</incoming>
+      <outgoing>Flow_Gateway_Decline</outgoing>
+      <outgoing>Flow_Gateway_Docs</outgoing>
+      <outgoing>Flow_Gateway_Timeout</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="IntCatch_Decline" name="Customer Calls/Writes Declining">
+      <incoming>Flow_Gateway_Decline</incoming>
+      <outgoing>Flow_Decline_Update</outgoing>
+      <messageEventDefinition id="MsgDef_Decline"/>
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="IntCatch_DocsReceived" name="Customer Sends Completed Offer Documents">
+      <incoming>Flow_Gateway_Docs</incoming>
+      <outgoing>Flow_Docs_Check</outgoing>
+      <messageEventDefinition id="MsgDef_Docs"/>
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="IntCatch_Timeout" name="2 Weeks No Answer">
+      <incoming>Flow_Gateway_Timeout</incoming>
+      <outgoing>Flow_Timeout_Update</outgoing>
+      <timerEventDefinition id="TimerDef_1">
+        <timeDuration xsi:type="tFormalExpression">P2W</timeDuration>
+      </timerEventDefinition>
+    </intermediateCatchEvent>
+
+    <!-- Decline branch -->
+    <task id="Task_UpdateDecline" name="Update Case Details">
+      <incoming>Flow_Decline_Update</incoming>
+      <outgoing>Flow_UpdateDecline_Archive</outgoing>
+    </task>
+
+    <task id="Task_ArchiveDecline" name="Archive Work">
+      <incoming>Flow_UpdateDecline_Archive</incoming>
+      <outgoing>Flow_ArchiveDecline_End</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_CancelDecline" name="Case Cancelled">
+      <incoming>Flow_ArchiveDecline_End</incoming>
+    </endEvent>
+
+    <!-- Documents branch -->
+    <exclusiveGateway id="Gateway_DocsCheck" name="All Prerequisite Documents Provided?">
+      <incoming>Flow_Docs_Check</incoming>
+      <outgoing>Flow_DocsCheck_Yes</outgoing>
+      <outgoing>Flow_DocsCheck_No</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_GenerateMissingDocsMsg" name="Generate Message Requesting Outstanding Documents">
+      <incoming>Flow_DocsCheck_No</incoming>
+      <outgoing>Flow_Resend</outgoing>
+    </task>
+
+    <!-- Admin branch -->
+    <task id="Task_MoveToAdmin" name="Move Case to Administration for Completion">
+      <incoming>Flow_DocsCheck_Yes</incoming>
+      <outgoing>Flow_Admin_End</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_AdminComplete" name="Case Completed">
+      <incoming>Flow_Admin_End</incoming>
+    </endEvent>
+
+    <!-- Timeout branch -->
+    <task id="Task_UpdateTimeout" name="Update Case Details">
+      <incoming>Flow_Timeout_Update</incoming>
+      <outgoing>Flow_UpdateTimeout_Archive</outgoing>
+    </task>
+
+    <task id="Task_ArchiveTimeout" name="Archive Work">
+      <incoming>Flow_UpdateTimeout_Archive</incoming>
+      <outgoing>Flow_ArchiveTimeout_End</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_CancelTimeout" name="Case Cancelled">
+      <incoming>Flow_ArchiveTimeout_End</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_Start_Send" sourceRef="StartEvent_1" targetRef="Task_SendOffer"/>
+    <sequenceFlow id="Flow_Send_Gateway" sourceRef="Task_SendOffer" targetRef="Gateway_WaitReply"/>
+
+    <sequenceFlow id="Flow_Gateway_Decline" sourceRef="Gateway_WaitReply" targetRef="IntCatch_Decline"/>
+    <sequenceFlow id="Flow_Gateway_Docs" sourceRef="Gateway_WaitReply" targetRef="IntCatch_DocsReceived"/>
+    <sequenceFlow id="Flow_Gateway_Timeout" sourceRef="Gateway_WaitReply" targetRef="IntCatch_Timeout"/>
+
+    <sequenceFlow id="Flow_Decline_Update" sourceRef="IntCatch_Decline" targetRef="Task_UpdateDecline"/>
+    <sequenceFlow id="Flow_UpdateDecline_Archive" sourceRef="Task_UpdateDecline" targetRef="Task_ArchiveDecline"/>
+    <sequenceFlow id="Flow_ArchiveDecline_End" sourceRef="Task_ArchiveDecline" targetRef="EndEvent_CancelDecline"/>
+
+    <sequenceFlow id="Flow_Docs_Check" sourceRef="IntCatch_DocsReceived" targetRef="Gateway_DocsCheck"/>
+    <sequenceFlow id="Flow_DocsCheck_Yes" name="Yes" sourceRef="Gateway_DocsCheck" targetRef="Task_MoveToAdmin"/>
+    <sequenceFlow id="Flow_DocsCheck_No" name="No" sourceRef="Gateway_DocsCheck" targetRef="Task_GenerateMissingDocsMsg"/>
+    <sequenceFlow id="Flow_Resend" sourceRef="Task_GenerateMissingDocsMsg" targetRef="Task_SendOffer"/>
+
+    <sequenceFlow id="Flow_Admin_End" sourceRef="Task_MoveToAdmin" targetRef="EndEvent_AdminComplete"/>
+
+    <sequenceFlow id="Flow_Timeout_Update" sourceRef="IntCatch_Timeout" targetRef="Task_UpdateTimeout"/>
+    <sequenceFlow id="Flow_UpdateTimeout_Archive" sourceRef="Task_UpdateTimeout" targetRef="Task_ArchiveTimeout"/>
+    <sequenceFlow id="Flow_ArchiveTimeout_End" sourceRef="Task_ArchiveTimeout" targetRef="EndEvent_CancelTimeout"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_MortgageOffer">
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="152" y="300" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendOffer_di" bpmnElement="Task_SendOffer">
+        <omgdc:Bounds x="240" y="278" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_WaitReply_di" bpmnElement="Gateway_WaitReply">
+        <omgdc:Bounds x="395" y="293" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="IntCatch_Decline_di" bpmnElement="IntCatch_Decline">
+        <omgdc:Bounds x="500" y="150" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="IntCatch_DocsReceived_di" bpmnElement="IntCatch_DocsReceived">
+        <omgdc:Bounds x="500" y="300" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="IntCatch_Timeout_di" bpmnElement="IntCatch_Timeout">
+        <omgdc:Bounds x="500" y="450" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_UpdateDecline_di" bpmnElement="Task_UpdateDecline">
+        <omgdc:Bounds x="590" y="128" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ArchiveDecline_di" bpmnElement="Task_ArchiveDecline">
+        <omgdc:Bounds x="740" y="128" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_CancelDecline_di" bpmnElement="EndEvent_CancelDecline">
+        <omgdc:Bounds x="890" y="150" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_DocsCheck_di" bpmnElement="Gateway_DocsCheck">
+        <omgdc:Bounds x="595" y="293" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_MoveToAdmin_di" bpmnElement="Task_MoveToAdmin">
+        <omgdc:Bounds x="700" y="278" width="110" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_AdminComplete_di" bpmnElement="EndEvent_AdminComplete">
+        <omgdc:Bounds x="870" y="300" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_GenerateMissingDocsMsg_di" bpmnElement="Task_GenerateMissingDocsMsg">
+        <omgdc:Bounds x="560" y="400" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_UpdateTimeout_di" bpmnElement="Task_UpdateTimeout">
+        <omgdc:Bounds x="590" y="548" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ArchiveTimeout_di" bpmnElement="Task_ArchiveTimeout">
+        <omgdc:Bounds x="740" y="548" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_CancelTimeout_di" bpmnElement="EndEvent_CancelTimeout">
+        <omgdc:Bounds x="890" y="570" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_Start_Send_di" bpmnElement="Flow_Start_Send">
+        <omgdi:waypoint x="188" y="318"/>
+        <omgdi:waypoint x="240" y="318"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Send_Gateway_di" bpmnElement="Flow_Send_Gateway">
+        <omgdi:waypoint x="340" y="318"/>
+        <omgdi:waypoint x="395" y="318"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Gateway_Decline_di" bpmnElement="Flow_Gateway_Decline">
+        <omgdi:waypoint x="420" y="293"/>
+        <omgdi:waypoint x="420" y="168"/>
+        <omgdi:waypoint x="500" y="168"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Gateway_Docs_di" bpmnElement="Flow_Gateway_Docs">
+        <omgdi:waypoint x="445" y="318"/>
+        <omgdi:waypoint x="500" y="318"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Gateway_Timeout_di" bpmnElement="Flow_Gateway_Timeout">
+        <omgdi:waypoint x="420" y="343"/>
+        <omgdi:waypoint x="420" y="468"/>
+        <omgdi:waypoint x="500" y="468"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Decline_Update_di" bpmnElement="Flow_Decline_Update">
+        <omgdi:waypoint x="536" y="168"/>
+        <omgdi:waypoint x="590" y="168"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_UpdateDecline_Archive_di" bpmnElement="Flow_UpdateDecline_Archive">
+        <omgdi:waypoint x="690" y="168"/>
+        <omgdi:waypoint x="740" y="168"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ArchiveDecline_End_di" bpmnElement="Flow_ArchiveDecline_End">
+        <omgdi:waypoint x="840" y="168"/>
+        <omgdi:waypoint x="890" y="168"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Docs_Check_di" bpmnElement="Flow_Docs_Check">
+        <omgdi:waypoint x="536" y="318"/>
+        <omgdi:waypoint x="595" y="318"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DocsCheck_Yes_di" bpmnElement="Flow_DocsCheck_Yes">
+        <omgdi:waypoint x="645" y="318"/>
+        <omgdi:waypoint x="700" y="318"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_DocsCheck_No_di" bpmnElement="Flow_DocsCheck_No">
+        <omgdi:waypoint x="620" y="343"/>
+        <omgdi:waypoint x="620" y="400"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Resend_di" bpmnElement="Flow_Resend">
+        <omgdi:waypoint x="560" y="440"/>
+        <omgdi:waypoint x="290" y="440"/>
+        <omgdi:waypoint x="290" y="358"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Admin_End_di" bpmnElement="Flow_Admin_End">
+        <omgdi:waypoint x="810" y="318"/>
+        <omgdi:waypoint x="870" y="318"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Timeout_Update_di" bpmnElement="Flow_Timeout_Update">
+        <omgdi:waypoint x="536" y="468"/>
+        <omgdi:waypoint x="590" y="468"/>
+        <omgdi:waypoint x="590" y="548"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_UpdateTimeout_Archive_di" bpmnElement="Flow_UpdateTimeout_Archive">
+        <omgdi:waypoint x="690" y="588"/>
+        <omgdi:waypoint x="740" y="588"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ArchiveTimeout_End_di" bpmnElement="Flow_ArchiveTimeout_End">
+        <omgdi:waypoint x="840" y="588"/>
+        <omgdi:waypoint x="890" y="588"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

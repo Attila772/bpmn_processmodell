@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:startEvent id="event_start" name="Invoice Received">
+      <bpmn:outgoing>sf_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end" name="Invoice Processed and Closed">
+      <bpmn:incoming>sf_12</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_receive_and_inspect" name="Receive and perform visual inspection of invoice">
+      <bpmn:incoming>sf_1</bpmn:incoming>
+      <bpmn:outgoing>sf_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_create_instance_and_docket" name="Identify supplier, create instance, and note cost centers on docket">
+      <bpmn:incoming>sf_2</bpmn:incoming>
+      <bpmn:outgoing>sf_3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_review_content" name="Review content for accuracy">
+      <bpmn:incoming>sf_3</bpmn:incoming>
+      <bpmn:incoming>sf_6</bpmn:incoming>
+      <bpmn:incoming>sf_more_managers</bpmn:incoming>
+      <bpmn:outgoing>sf_4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_approve_position" name="Note AP code on docket">
+      <bpmn:incoming>sf_content_ok</bpmn:incoming>
+      <bpmn:outgoing>sf_7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_reject_position" name="Reject AP with note and explanatory statement">
+      <bpmn:incoming>sf_content_not_ok</bpmn:incoming>
+      <bpmn:outgoing>sf_5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_resolve_inconsistencies" name="Clarify and resolve inconsistencies with vendor and cost center managers">
+      <bpmn:incoming>sf_5</bpmn:incoming>
+      <bpmn:outgoing>sf_6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_commercial_audit" name="Conduct commercial audit and issue approval">
+      <bpmn:incoming>sf_all_approved</bpmn:incoming>
+      <bpmn:incoming>sf_9</bpmn:incoming>
+      <bpmn:outgoing>sf_8</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_resolve_complaint" name="Resolve complaint with supplier">
+      <bpmn:incoming>sf_audit_complaint</bpmn:incoming>
+      <bpmn:outgoing>sf_9</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_board_check" name="Check invoice (Board 4-eyes principle)">
+      <bpmn:incoming>sf_exceeds_20</bpmn:incoming>
+      <bpmn:outgoing>sf_10</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_give_payment_instructions" name="Give payment instructions and close instance">
+      <bpmn:incoming>sf_11</bpmn:incoming>
+      <bpmn:outgoing>sf_12</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_content_ok" name="Content accurate?" isMarkerVisible="true">
+      <bpmn:incoming>sf_4</bpmn:incoming>
+      <bpmn:outgoing>sf_content_ok</bpmn:outgoing>
+      <bpmn:outgoing>sf_content_not_ok</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_more_managers" name="More cost center managers?" isMarkerVisible="true">
+      <bpmn:incoming>sf_7</bpmn:incoming>
+      <bpmn:outgoing>sf_more_managers</bpmn:outgoing>
+      <bpmn:outgoing>sf_all_approved</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_commercial_audit_ok" name="Commercial audit successful?" isMarkerVisible="true">
+      <bpmn:incoming>sf_8</bpmn:incoming>
+      <bpmn:outgoing>sf_audit_complaint</bpmn:outgoing>
+      <bpmn:outgoing>sf_audit_success</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_exceeds_amount" name="Exceeds EUR 20?" isMarkerVisible="true">
+      <bpmn:incoming>sf_audit_success</bpmn:incoming>
+      <bpmn:outgoing>sf_exceeds_20</bpmn:outgoing>
+      <bpmn:outgoing>sf_under_20</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_board_merge" name="Merge after Board check" isMarkerVisible="true">
+      <bpmn:incoming>sf_under_20</bpmn:incoming>
+      <bpmn:incoming>sf_10</bpmn:incoming>
+      <bpmn:outgoing>sf_11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_1" sourceRef="event_start" targetRef="task_receive_and_inspect" />
+    <bpmn:sequenceFlow id="sf_2" sourceRef="task_receive_and_inspect" targetRef="task_create_instance_and_docket" />
+    <bpmn:sequenceFlow id="sf_3" sourceRef="task_create_instance_and_docket" targetRef="task_review_content" />
+    <bpmn:sequenceFlow id="sf_4" sourceRef="task_review_content" targetRef="gw_content_ok" />
+    <bpmn:sequenceFlow id="sf_content_ok" sourceRef="gw_content_ok" targetRef="task_approve_position" name="In order" />
+    <bpmn:sequenceFlow id="sf_content_not_ok" sourceRef="gw_content_ok" targetRef="task_reject_position" name="Inconsistencies exist" />
+    <bpmn:sequenceFlow id="sf_5" sourceRef="task_reject_position" targetRef="task_resolve_inconsistencies" />
+    <bpmn:sequenceFlow id="sf_6" sourceRef="task_resolve_inconsistencies" targetRef="task_review_content" name="Inconsistencies resolved" />
+    <bpmn:sequenceFlow id="sf_7" sourceRef="task_approve_position" targetRef="gw_more_managers" />
+    <bpmn:sequenceFlow id="sf_more_managers" sourceRef="gw_more_managers" targetRef="task_review_content" name="Next manager" />
+    <bpmn:sequenceFlow id="sf_all_approved" sourceRef="gw_more_managers" targetRef="task_commercial_audit" name="All items AP" />
+    <bpmn:sequenceFlow id="sf_8" sourceRef="task_commercial_audit" targetRef="gw_commercial_audit_ok" />
+    <bpmn:sequenceFlow id="sf_audit_complaint" sourceRef="gw_commercial_audit_ok" targetRef="task_resolve_complaint" name="Complaint" />
+    <bpmn:sequenceFlow id="sf_9" sourceRef="task_resolve_complaint" targetRef="task_commercial_audit" />
+    <bpmn:sequenceFlow id="sf_audit_success" sourceRef="gw_commercial_audit_ok" targetRef="gw_exceeds_amount" name="Successful" />
+    <bpmn:sequenceFlow id="sf_exceeds_20" sourceRef="gw_exceeds_amount" targetRef="task_board_check" name="&gt; 20 EUR" />
+    <bpmn:sequenceFlow id="sf_under_20" sourceRef="gw_exceeds_amount" targetRef="gw_board_merge" name="&lt;= 20 EUR" />
+    <bpmn:sequenceFlow id="sf_10" sourceRef="task_board_check" targetRef="gw_board_merge" />
+    <bpmn:sequenceFlow id="sf_11" sourceRef="gw_board_merge" targetRef="task_give_payment_instructions" />
+    <bpmn:sequenceFlow id="sf_12" sourceRef="task_give_payment_instructions" targetRef="event_end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="event_end_di" bpmnElement="event_end">
+        <dc:Bounds x="2630" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_di" bpmnElement="event_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_board_merge_di" bpmnElement="gw_board_merge">
+        <dc:Bounds x="2250" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_commercial_audit_ok_di" bpmnElement="gw_commercial_audit_ok">
+        <dc:Bounds x="1680" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_content_ok_di" bpmnElement="gw_content_ok">
+        <dc:Bounds x="920" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_exceeds_amount_di" bpmnElement="gw_exceeds_amount">
+        <dc:Bounds x="1870" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_more_managers_di" bpmnElement="gw_more_managers">
+        <dc:Bounds x="1300" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_approve_position_di" bpmnElement="task_approve_position">
+        <dc:Bounds x="1110" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_board_check_di" bpmnElement="task_board_check">
+        <dc:Bounds x="2060" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_commercial_audit_di" bpmnElement="task_commercial_audit">
+        <dc:Bounds x="2060" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_instance_and_docket_di" bpmnElement="task_create_instance_and_docket">
+        <dc:Bounds x="540" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_give_payment_instructions_di" bpmnElement="task_give_payment_instructions">
+        <dc:Bounds x="2440" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_receive_and_inspect_di" bpmnElement="task_receive_and_inspect">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reject_position_di" bpmnElement="task_reject_position">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_resolve_complaint_di" bpmnElement="task_resolve_complaint">
+        <dc:Bounds x="1870" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_resolve_inconsistencies_di" bpmnElement="task_resolve_inconsistencies">
+        <dc:Bounds x="1300" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_content_di" bpmnElement="task_review_content">
+        <dc:Bounds x="1490" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_1_di" bpmnElement="sf_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_2_di" bpmnElement="sf_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_3_di" bpmnElement="sf_3">
+        <di:waypoint x="590" y="140" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_4_di" bpmnElement="sf_4">
+        <di:waypoint x="1540" y="140" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_content_ok_di" bpmnElement="sf_content_ok">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_content_not_ok_di" bpmnElement="sf_content_not_ok">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_5_di" bpmnElement="sf_5">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_6_di" bpmnElement="sf_6">
+        <di:waypoint x="1350" y="265" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_7_di" bpmnElement="sf_7">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_more_managers_di" bpmnElement="sf_more_managers">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1540" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_all_approved_di" bpmnElement="sf_all_approved">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="2110" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_8_di" bpmnElement="sf_8">
+        <di:waypoint x="2110" y="265" />
+        <di:waypoint x="1705" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_audit_complaint_di" bpmnElement="sf_audit_complaint">
+        <di:waypoint x="1705" y="125" />
+        <di:waypoint x="1920" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_9_di" bpmnElement="sf_9">
+        <di:waypoint x="1920" y="265" />
+        <di:waypoint x="2110" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_audit_success_di" bpmnElement="sf_audit_success">
+        <di:waypoint x="1705" y="125" />
+        <di:waypoint x="1895" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_exceeds_20_di" bpmnElement="sf_exceeds_20">
+        <di:waypoint x="1895" y="125" />
+        <di:waypoint x="2110" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_under_20_di" bpmnElement="sf_under_20">
+        <di:waypoint x="1895" y="125" />
+        <di:waypoint x="2275" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_10_di" bpmnElement="sf_10">
+        <di:waypoint x="2110" y="140" />
+        <di:waypoint x="2275" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_11_di" bpmnElement="sf_11">
+        <di:waypoint x="2275" y="125" />
+        <di:waypoint x="2490" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_12_di" bpmnElement="sf_12">
+        <di:waypoint x="2490" y="140" />
+        <di:waypoint x="2648" y="118" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

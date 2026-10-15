@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_Procurement"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- Collaboration defining the two participants -->
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_AssemblerAG" name="Assembler AG" processRef="Process_AssemblerAG" />
+    <bpmn:participant id="Participant_Supplier" name="Supplier" processRef="Process_Supplier" />
+    <bpmn:messageFlow id="MessageFlow_Order" name="Order" sourceRef="Task_SendOrder" targetRef="Start_OrderReceived" />
+    <bpmn:messageFlow id="MessageFlow_Invoice" name="Invoice" sourceRef="Task_SendInvoice" targetRef="Event_ReceiveInvoice" />
+  </bpmn:collaboration>
+
+  <!-- Process: Assembler AG -->
+  <bpmn:process id="Process_AssemblerAG" isExecutable="true">
+    <bpmn:startEvent id="Start_MonthlyTrigger" name="First of the month">
+      <bpmn:outgoing>Flow_01</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_1">
+        <bpmn:timeCycle xsi:type="bpmn:tFormalExpression">R/P1M</bpmn:timeCycle>
+      </bpmn:timerEventDefinition>
+    </bpmn:startEvent>
+
+    <bpmn:sendTask id="Task_SendOrder" name="Send order for product parts">
+      <bpmn:incoming>Flow_01</bpmn:incoming>
+      <bpmn:outgoing>Flow_02</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:intermediateCatchEvent id="Event_ReceiveInvoice" name="Receive invoice">
+      <bpmn:incoming>Flow_02</bpmn:incoming>
+      <bpmn:outgoing>Flow_03</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:endEvent id="End_AssemblerProcess" name="Order fulfilled and invoice received">
+      <bpmn:incoming>Flow_03</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="Start_MonthlyTrigger" targetRef="Task_SendOrder" />
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_SendOrder" targetRef="Event_ReceiveInvoice" />
+    <bpmn:sequenceFlow id="Flow_03" sourceRef="Event_ReceiveInvoice" targetRef="End_AssemblerProcess" />
+  </bpmn:process>
+
+  <!-- Process: Supplier -->
+  <bpmn:process id="Process_Supplier" isExecutable="true">
+    <bpmn:startEvent id="Start_OrderReceived" name="Order received">
+      <bpmn:outgoing>Flow_04</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_2" />
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_ProcessOrder" name="Process order">
+      <bpmn:incoming>Flow_04</bpmn:incoming>
+      <bpmn:outgoing>Flow_05</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:sendTask id="Task_SendInvoice" name="Send invoice to Assembler AG">
+      <bpmn:incoming>Flow_05</bpmn:incoming>
+      <bpmn:outgoing>Flow_06</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="End_SupplierProcess" name="Order processed and invoice sent">
+      <bpmn:incoming>Flow_06</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_04" sourceRef="Start_OrderReceived" targetRef="Task_ProcessOrder" />
+    <bpmn:sequenceFlow id="Flow_05" sourceRef="Task_ProcessOrder" targetRef="Task_SendInvoice" />
+    <bpmn:sequenceFlow id="Flow_06" sourceRef="Task_SendInvoice" targetRef="End_SupplierProcess" />
+  </bpmn:process>
+
+  <!-- Diagram Interchange Graphical Info -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      
+      <!-- Participant: Assembler AG -->
+      <bpmndi:BPMNShape id="Participant_AssemblerAG_di" bpmnElement="Participant_AssemblerAG" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="700" height="180" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Start_MonthlyTrigger_di" bpmnElement="Start_MonthlyTrigger">
+        <dc:Bounds x="222" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="198" y="195" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendOrder_di" bpmnElement="Task_SendOrder">
+        <dc:Bounds x="310" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_ReceiveInvoice_di" bpmnElement="Event_ReceiveInvoice">
+        <dc:Bounds x="642" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="622" y="122" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_AssemblerProcess_di" bpmnElement="End_AssemblerProcess">
+        <dc:Bounds x="752" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="726" y="195" width="89" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_01_di" bpmnElement="Flow_01">
+        <di:waypoint x="258" y="170" />
+        <di:waypoint x="310" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_02_di" bpmnElement="Flow_02">
+        <di:waypoint x="410" y="170" />
+        <di:waypoint x="642" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_03_di" bpmnElement="Flow_03">
+        <di:waypoint x="678" y="170" />
+        <di:waypoint x="752" y="170" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Participant: Supplier -->
+      <bpmndi:BPMNShape id="Participant_Supplier_di" bpmnElement="Participant_Supplier" isHorizontal="true">
+        <dc:Bounds x="160" y="320" width="700" height="180" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Start_OrderReceived_di" bpmnElement="Start_OrderReceived">
+        <dc:Bounds x="342" y="392" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="324" y="435" width="73" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProcessOrder_di" bpmnElement="Task_ProcessOrder">
+        <dc:Bounds x="450" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendInvoice_di" bpmnElement="Task_SendInvoice">
+        <dc:Bounds x="610" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="End_SupplierProcess_di" bpmnElement="End_SupplierProcess">
+        <dc:Bounds x="762" y="392" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="739" y="435" width="83" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_04_di" bpmnElement="Flow_04">
+        <di:waypoint x="378" y="410" />
+        <di:waypoint x="450" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_05_di" bpmnElement="Flow_05">
+        <di:waypoint x="550" y="410" />
+        <di:waypoint x="610" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_06_di" bpmnElement="Flow_06">
+        <di:waypoint x="710" y="410" />
+        <di:waypoint x="762" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <!-- Message Flows -->
+      <bpmndi:BPMNEdge id="MessageFlow_Order_di" bpmnElement="MessageFlow_Order">
+        <di:waypoint x="360" y="210" />
+        <di:waypoint x="360" y="392" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="370" y="298" width="30" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MessageFlow_Invoice_di" bpmnElement="MessageFlow_Invoice">
+        <di:waypoint x="660" y="370" />
+        <di:waypoint x="660" y="188" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="672" y="298" width="36" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

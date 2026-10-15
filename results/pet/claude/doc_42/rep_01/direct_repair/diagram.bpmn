@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             id="Definitions_1"
+             targetNamespace="http://example.org/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_GO" name="Grid Operator (GO)" processRef="Process_GO"/>
+    <participant id="Participant_MSP" name="Metering Service Provider (MSP)" processRef="Process_MSP"/>
+    <participant id="Participant_SP" name="Service Provider (SP)"/>
+
+    <messageFlow id="MF_Request" name="Measurement Request"
+                 sourceRef="Task_RequestMeasurements" targetRef="StartEvent_MSP"/>
+    <messageFlow id="MF_Denial" name="Denial Notification"
+                 sourceRef="Task_DenyRequest" targetRef="Event_ReceiveFailure"/>
+    <messageFlow id="MF_Failure" name="Failure Notification"
+                 sourceRef="Task_InformFailure" targetRef="Event_ReceiveFailure"/>
+    <messageFlow id="MF_MeasuredValues" name="Measured Values"
+                 sourceRef="Task_TransmitValues" targetRef="Event_ReceiveValues"/>
+    <messageFlow id="MF_ChangedValues" name="Changed Values"
+                 sourceRef="Task_SendChangedValues" targetRef="Event_ReceiveChangedValues"/>
+    <messageFlow id="MF_Readings" name="Readings"
+                 sourceRef="Task_TransmitReadings" targetRef="Participant_SP"/>
+  </collaboration>
+
+  <!-- ============== GO PROCESS ============== -->
+  <process id="Process_GO" name="GO Process" isExecutable="false">
+
+    <startEvent id="StartEvent_GO" name="Start">
+      <outgoing>SF_GO_1</outgoing>
+    </startEvent>
+
+    <sendTask id="Task_RequestMeasurements" name="Request Measurements">
+      <incoming>SF_GO_1</incoming>
+      <outgoing>SF_GO_2</outgoing>
+    </sendTask>
+
+    <eventBasedGateway id="Gateway_EG1" name="Wait for MSP Response">
+      <incoming>SF_GO_2</incoming>
+      <outgoing>SF_GO_3</outgoing>
+      <outgoing>SF_GO_4</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="Event_ReceiveFailure" name="Receive Failure/Denial">
+      <incoming>SF_GO_3</incoming>
+      <outgoing>SF_GO_5</outgoing>
+      <messageEventDefinition id="MsgDef_Failure"/>
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="Event_ReceiveValues" name="Receive Measured Values">
+      <incoming>SF_GO_4</incoming>
+      <outgoing>SF_GO_6</outgoing>
+      <messageEventDefinition id="MsgDef_Values"/>
+    </intermediateCatchEvent>
+
+    <endEvent id="EndEvent_Failed" name="Process Failed">
+      <incoming>SF_GO_5</incoming>
+    </endEvent>
+
+    <task id="Task_ProcessValues" name="Process Measured Values">
+      <incoming>SF_GO_6</incoming>
+      <outgoing>SF_GO_7</outgoing>
+    </task>
+
+    <sendTask id="Task_SendChangedValues" name="Send Changed Values">
+      <incoming>SF_GO_7</incoming>
+      <outgoing>SF_GO_8</outgoing>
+    </sendTask>
+
+    <sendTask id="Task_TransmitReadings" name="Transmit Readings to SP">
+      <incoming>SF_GO_8</incoming>
+      <outgoing>SF_GO_9</outgoing>
+    </sendTask>
+
+    <endEvent id="EndEvent_Completed" name="Process Completed">
+      <incoming>SF_GO_9</incoming>
+    </endEvent>
+
+    <sequenceFlow id="SF_GO_1" sourceRef="StartEvent_GO" targetRef="Task_RequestMeasurements"/>
+    <sequenceFlow id="SF_GO_2" sourceRef="Task_RequestMeasurements" targetRef="Gateway_EG1"/>
+    <sequenceFlow id="SF_GO_3" sourceRef="Gateway_EG1" targetRef="Event_ReceiveFailure"/>
+    <sequenceFlow id="SF_GO_4" sourceRef="Gateway_EG1" targetRef="Event_ReceiveValues"/>
+    <sequenceFlow id="SF_GO_5" sourceRef="Event_ReceiveFailure" targetRef="EndEvent_Failed"/>
+    <sequenceFlow id="SF_GO_6" sourceRef="Event_ReceiveValues" targetRef="Task_ProcessValues"/>
+    <sequenceFlow id="SF_GO_7" sourceRef="Task_ProcessValues" targetRef="Task_SendChangedValues"/>
+    <sequenceFlow id="SF_GO_8" sourceRef="Task_SendChangedValues" targetRef="Task_TransmitReadings"/>
+    <sequenceFlow id="SF_GO_9" sourceRef="Task_TransmitReadings" targetRef="EndEvent_Completed"/>
+
+  </process>
+
+  <!-- ============== MSP PROCESS ============== -->
+  <process id="Process_MSP" name="MSP Process" isExecutable="false">
+
+    <startEvent id="StartEvent_MSP" name="Receive Request">
+      <outgoing>SF_MSP_1</outgoing>
+      <messageEventDefinition id="MsgDef_Request"/>
+    </startEvent>
+
+    <task id="Task_CheckRequest" name="Check Received Request">
+      <incoming>SF_MSP_1</incoming>
+      <outgoing>SF_MSP_2</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Decision1" name="Deny or Perform?">
+      <incoming>SF_MSP_2</incoming>
+      <outgoing>SF_MSP_3</outgoing>
+      <outgoing>SF_MSP_4</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="Task_DenyRequest" name="Deny Request">
+      <incoming>SF_MSP_3</incoming>
+      <outgoing>SF_MSP_5</outgoing>
+    </sendTask>
+
+    <endEvent id="EndEvent_Denied" name="Request Denied">
+      <incoming>SF_MSP_5</incoming>
+    </endEvent>
+
+    <task id="Task_PerformMeasurement" name="Perform Measurement">
+      <incoming>SF_MSP_4</incoming>
+      <outgoing>SF_MSP_6</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Decision2" name="Success or Failure?">
+      <incoming>SF_MSP_6</incoming>
+      <outgoing>SF_MSP_7</outgoing>
+      <outgoing>SF_MSP_8</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="Task_InformFailure" name="Inform Failure of Reading">
+      <incoming>SF_MSP_7</incoming>
+      <outgoing>SF_MSP_9</outgoing>
+    </sendTask>
+
+    <endEvent id="EndEvent_MeasurementFailed" name="Measurement Failed">
+      <incoming>SF_MSP_9</incoming>
+    </endEvent>
+
+    <sendTask id="Task_TransmitValues" name="Transmit Measured Values">
+      <incoming>SF_MSP_8</incoming>
+      <outgoing>SF_MSP_10</outgoing>
+    </sendTask>
+
+    <intermediateCatchEvent id="Event_ReceiveChangedValues" name="Receive Changed Values">
+      <incoming>SF_MSP_10</incoming>
+      <outgoing>SF_MSP_11</outgoing>
+      <messageEventDefinition id="MsgDef_ChangedValues"/>
+    </intermediateCatchEvent>
+
+    <endEvent id="EndEvent_MSPCompleted" name="Completed">
+      <incoming>SF_MSP_11</incoming>
+    </endEvent>
+
+    <sequenceFlow id="SF_MSP_1" sourceRef="StartEvent_MSP" targetRef="Task_CheckRequest"/>
+    <sequenceFlow id="SF_MSP_2" sourceRef="Task_CheckRequest" targetRef="Gateway_Decision1"/>
+    <sequenceFlow id="SF_MSP_3" name="Deny" sourceRef="Gateway_Decision1" targetRef="Task_DenyRequest"/>
+    <sequenceFlow id="SF_MSP_4" name="Perform" sourceRef="Gateway_Decision1" targetRef="Task_PerformMeasurement"/>
+    <sequenceFlow id="SF_MSP_5" sourceRef="Task_DenyRequest" targetRef="EndEvent_Denied"/>
+    <sequenceFlow id="SF_MSP_6" sourceRef="Task_PerformMeasurement" targetRef="Gateway_Decision2"/>
+    <sequenceFlow id="SF_MSP_7" name="Failure" sourceRef="Gateway_Decision2" targetRef="Task_InformFailure"/>
+    <sequenceFlow id="SF_MSP_8" name="Success" sourceRef="Gateway_Decision2" targetRef="Task_TransmitValues"/>
+    <sequenceFlow id="SF_MSP_9" sourceRef="Task_InformFailure" targetRef="EndEvent_MeasurementFailed"/>
+    <sequenceFlow id="SF_MSP_10" sourceRef="Task_TransmitValues" targetRef="Event_ReceiveChangedValues"/>
+    <sequenceFlow id="SF_MSP_11" sourceRef="Event_ReceiveChangedValues" targetRef="EndEvent_MSPCompleted"/>
+
+  </process>
+
+</definitions>

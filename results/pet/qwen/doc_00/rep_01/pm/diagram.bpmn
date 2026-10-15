@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mpon_part" name="MPON" processRef="pool_mpon_proc" />
+    <bpmn:participant id="pool_mpo_part" name="MPOO" processRef="pool_mpo_proc" />
+    <bpmn:messageFlow id="msg_flow_1" sourceRef="evt_end_mpon_send" targetRef="evt_start_mpo_receive" name="Dismissal Document" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mpon_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_dismissal_doc" name="Dismissal Document" dataObjectRef="data_dismissal_doc_do" />
+    <bpmn:dataObject id="data_dismissal_doc_do" />
+    <bpmn:startEvent id="evt_start_mpon" name="Start MPON Process">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mpon_send" name="Dismissal Sent">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="evt_end_mpon_send_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_mpon_prepare" name="Prepare Dismissal">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_mpon_prepare_doa0">
+        <bpmn:targetRef>data_dismissal_doc</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="evt_start_mpon" targetRef="task_mpon_prepare" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_mpon_prepare" targetRef="evt_end_mpon_send" />
+  </bpmn:process>
+  <bpmn:process id="pool_mpo_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_dismissal_doc_p1" name="Dismissal Document" dataObjectRef="data_dismissal_doc_p1_do" />
+    <bpmn:dataObject id="data_dismissal_doc_p1_do" />
+    <bpmn:startEvent id="evt_start_mpo_receive" name="Receive Dismissal">
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="evt_start_mpo_receive_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="evt_end_mpo_review" name="Review Completed">
+      <bpmn:incoming>flow_5</bpmn:incoming>
+      <bpmn:incoming>flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_mpo_review" name="Review Dismissal">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+      <bpmn:property id="task_mpo_review_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_mpo_review_dia0">
+        <bpmn:sourceRef>data_dismissal_doc_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_mpo_review_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_mpo_oppose" name="Oppose Dismissal">
+      <bpmn:incoming>flow_to_oppose</bpmn:incoming>
+      <bpmn:outgoing>flow_5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_mpo_confirm" name="Confirm Dismissal">
+      <bpmn:incoming>flow_to_confirm</bpmn:incoming>
+      <bpmn:outgoing>flow_6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_decision" name="Decision on Dismissal" isMarkerVisible="true">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+      <bpmn:outgoing>flow_to_oppose</bpmn:outgoing>
+      <bpmn:outgoing>flow_to_confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_3" sourceRef="evt_start_mpo_receive" targetRef="task_mpo_review" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="task_mpo_review" targetRef="gw_decision" />
+    <bpmn:sequenceFlow id="flow_to_oppose" sourceRef="gw_decision" targetRef="task_mpo_oppose" name="Oppose" />
+    <bpmn:sequenceFlow id="flow_to_confirm" sourceRef="gw_decision" targetRef="task_mpo_confirm" name="Confirm" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="task_mpo_oppose" targetRef="evt_end_mpo_review" />
+    <bpmn:sequenceFlow id="flow_6" sourceRef="task_mpo_confirm" targetRef="evt_end_mpo_review" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mpon_part_di" bpmnElement="pool_mpon_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpo_part_di" bpmnElement="pool_mpo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="1140" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpo_review_di" bpmnElement="evt_end_mpo_review">
+        <dc:Bounds x="920" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_end_mpon_send_di" bpmnElement="evt_end_mpon_send">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpo_receive_di" bpmnElement="evt_start_mpo_receive">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="evt_start_mpon_di" bpmnElement="evt_start_mpon">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_decision_di" bpmnElement="gw_decision">
+        <dc:Bounds x="540" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpo_confirm_di" bpmnElement="task_mpo_confirm">
+        <dc:Bounds x="730" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpo_oppose_di" bpmnElement="task_mpo_oppose">
+        <dc:Bounds x="730" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpo_review_di" bpmnElement="task_mpo_review">
+        <dc:Bounds x="350" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_mpon_prepare_di" bpmnElement="task_mpon_prepare">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_dismissal_doc_di" bpmnElement="data_dismissal_doc">
+        <dc:Bounds x="370" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_dismissal_doc_p1_di" bpmnElement="data_dismissal_doc_p1">
+        <dc:Bounds x="370" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="400" y="475" />
+        <di:waypoint x="565" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_oppose_di" bpmnElement="flow_to_oppose">
+        <di:waypoint x="565" y="460" />
+        <di:waypoint x="780" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_to_confirm_di" bpmnElement="flow_to_confirm">
+        <di:waypoint x="565" y="460" />
+        <di:waypoint x="780" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="938" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="780" y="475" />
+        <di:waypoint x="938" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_1_di" bpmnElement="msg_flow_1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpon_prepare_doa0_di" bpmnElement="task_mpon_prepare_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_mpo_review_dia0_di" bpmnElement="task_mpo_review_dia0">
+        <di:waypoint x="388" y="725" />
+        <di:waypoint x="400" y="475" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

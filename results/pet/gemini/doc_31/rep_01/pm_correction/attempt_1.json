@@ -1,0 +1,337 @@
+{
+  "name": "Vacations Request Process",
+  "resources": [
+    {
+      "name": "Employee",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Immediate Supervisor",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Human Resources Representative",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_employee",
+      "name": "Vacation Request Needed",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_rejection_reviewed",
+      "name": "Rejection Processed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_hr_completed",
+      "name": "Vacation Approved and Processed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_send_request",
+      "name": "Send Vacation Request",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Vacation Request"
+    },
+    {
+      "id": "evt_receive_request",
+      "name": "Receive Vacation Request",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Vacation Request"
+    },
+    {
+      "id": "evt_send_rejection",
+      "name": "Send Rejection Notice",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Rejection Notice"
+    },
+    {
+      "id": "evt_receive_rejection",
+      "name": "Receive Rejection Notice",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Rejection Notice"
+    },
+    {
+      "id": "evt_send_approval_notification",
+      "name": "Send Approval Notification",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Approval Notification"
+    },
+    {
+      "id": "evt_receive_approval_notification",
+      "name": "Receive Approval Notification",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Approval Notification"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_submit_request",
+      "name": "Submit vacation request",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_vacation_request"
+      ]
+    },
+    {
+      "id": "task_review_rejection",
+      "name": "Review rejection reasons",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_rejection_notice"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_approve_reject",
+      "name": "Approve or reject request",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Immediate Supervisor",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_vacation_request"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_hr_management",
+      "name": "Complete management procedures",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Human Resources Representative",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_approval_notification"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gtw_approval",
+      "name": "Is request approved?",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_approved",
+          "condition": "Approved"
+        },
+        {
+          "flow_id": "flow_rejected",
+          "condition": "Rejected"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start_employee",
+      "target_id": "task_submit_request",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_submit_request",
+      "target_id": "evt_send_request",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "evt_receive_request",
+      "target_id": "task_approve_reject",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_approve_reject",
+      "target_id": "gtw_approval",
+      "condition_name": null
+    },
+    {
+      "id": "flow_rejected",
+      "source_id": "gtw_approval",
+      "target_id": "evt_send_rejection",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_approved",
+      "source_id": "gtw_approval",
+      "target_id": "evt_send_approval_notification",
+      "condition_name": "Approved"
+    },
+    {
+      "id": "flow_5",
+      "source_id": "evt_receive_rejection",
+      "target_id": "task_review_rejection",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "task_review_rejection",
+      "target_id": "evt_end_rejection_reviewed",
+      "condition_name": null
+    },
+    {
+      "id": "flow_7",
+      "source_id": "evt_receive_approval_notification",
+      "target_id": "task_hr_management",
+      "condition_name": null
+    },
+    {
+      "id": "flow_8",
+      "source_id": "task_hr_management",
+      "target_id": "evt_end_hr_completed",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_employee",
+      "name": "Employee",
+      "element_ids": [
+        "evt_start_employee",
+        "task_submit_request",
+        "evt_send_request",
+        "evt_receive_rejection",
+        "task_review_rejection",
+        "evt_end_rejection_reviewed"
+      ]
+    },
+    {
+      "id": "pool_supervisor",
+      "name": "Immediate Supervisor",
+      "element_ids": [
+        "evt_receive_request",
+        "task_approve_reject",
+        "gtw_approval",
+        "evt_send_rejection",
+        "evt_send_approval_notification"
+      ]
+    },
+    {
+      "id": "pool_hr",
+      "name": "Human Resources Representative",
+      "element_ids": [
+        "evt_receive_approval_notification",
+        "task_hr_management",
+        "evt_end_hr_completed"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_request",
+      "source_id": "evt_send_request",
+      "target_id": "evt_receive_request",
+      "name": "Vacation Request"
+    },
+    {
+      "id": "msg_flow_rejection",
+      "source_id": "evt_send_rejection",
+      "target_id": "evt_receive_rejection",
+      "name": "Rejection Notice"
+    },
+    {
+      "id": "msg_flow_approval",
+      "source_id": "evt_send_approval_notification",
+      "target_id": "evt_receive_approval_notification",
+      "name": "Approval Notification"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_vacation_request",
+      "name": "Vacation Request"
+    },
+    {
+      "id": "data_rejection_notice",
+      "name": "Rejection Notice"
+    },
+    {
+      "id": "data_approval_notification",
+      "name": "Approval Notification"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "minutes"
+}

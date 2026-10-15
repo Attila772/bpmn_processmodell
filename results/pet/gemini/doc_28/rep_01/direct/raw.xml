@@ -1,0 +1,726 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+
+  <!-- COLLABORATION -->
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Institute" name="Mental Health Care Institute" processRef="Process_Intake" />
+    <bpmn:participant id="Participant_FamilyDoctor" name="Family Doctor" />
+    <bpmn:participant id="Participant_Patient" name="Patient" />
+    <bpmn:messageFlow id="MF_Notice" name="Notice by phone" sourceRef="Participant_FamilyDoctor" targetRef="StartEvent_NoticeReceived" />
+    <bpmn:messageFlow id="MF_ReqLetter" name="Request for medical file" sourceRef="Task_SendFileReqLetter" targetRef="Participant_FamilyDoctor" />
+    <bpmn:messageFlow id="MF_RecFile" name="Copy of medical file" sourceRef="Participant_FamilyDoctor" targetRef="Event_MedicalFileReceived" />
+  </bpmn:collaboration>
+
+  <!-- PROCESS -->
+  <bpmn:process id="Process_Intake" isExecutable="false">
+
+    <!-- LANES -->
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Secretariat" name="Secretarial Office">
+        <bpmn:flowNodeRef>StartEvent_NoticeReceived</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InquireNameResidence</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TransferToNursingOfficer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StoreAndPrintForm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ExclusiveGateway_NewPatient</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreatePatientFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ExclusiveGateway_MergeFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StoreFormAndPrintInFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ProduceRegCards</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AddToListOfNewNotices</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StoreAssignments</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PassRegCards</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ExclusiveGateway_FileRequired</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendFileReqLetter</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_MedicalFileReceived</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InformSecondIntaker</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ExclusiveGateway_MergeFileReq</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TypeOutTapes</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AddTapeNotesToFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PutOnCompletedList</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ProvideCompletedList</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_NursingOfficer" name="Nursing Officer">
+        <bpmn:flowNodeRef>Task_FullInquiryState</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_HandInRegistrationForm</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_MedicalTeam" name="Medical Team / Team Leader">
+        <bpmn:flowNodeRef>Event_WednesdayMeeting</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AssignIntakers</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_FormulateTreatmentPlan</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_IntakeCompleted</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_FirstIntaker" name="First Intaker (Social-Medical Worker)">
+        <bpmn:flowNodeRef>Task_PlanMeeting1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ExaminePatientChecklist</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RegisterPersonalNotes</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_StoreNotesAndChecklistInFile</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_SecondIntaker" name="Second Intaker (Physician)">
+        <bpmn:flowNodeRef>Task_PlanMeeting2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ExaminePatientPhysician</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RecordDictaphoneNotes</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- START EVENT -->
+    <bpmn:startEvent id="StartEvent_NoticeReceived" name="Notice received by phone">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" />
+    </bpmn:startEvent>
+
+    <!-- SECRETARIAT INTAKE FLOW -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_NoticeReceived" targetRef="Task_InquireNameResidence" />
+    <bpmn:userTask id="Task_InquireNameResidence" name="Inquire patient name and residence">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_InquireNameResidence" targetRef="Task_TransferToNursingOfficer" />
+    <bpmn:userTask id="Task_TransferToNursingOfficer" name="Put through to regional nursing officer">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- NURSING OFFICER FLOW -->
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_TransferToNursingOfficer" targetRef="Task_FullInquiryState" />
+    <bpmn:userTask id="Task_FullInquiryState" name="Inquire into patient state &amp; record on form">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_FullInquiryState" targetRef="Task_HandInRegistrationForm" />
+    <bpmn:userTask id="Task_HandInRegistrationForm" name="Hand in registration form at secretariat">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- SECRETARIAT PROCESSING -->
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_HandInRegistrationForm" targetRef="Task_StoreAndPrintForm" />
+    <bpmn:userTask id="Task_StoreAndPrintForm" name="Store form data in system and print">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_StoreAndPrintForm" targetRef="ExclusiveGateway_NewPatient" />
+    <bpmn:exclusiveGateway id="ExclusiveGateway_NewPatient" name="Is new patient?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_NewPatient_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NewPatient_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sequenceFlow id="Flow_NewPatient_Yes" name="Yes" sourceRef="ExclusiveGateway_NewPatient" targetRef="Task_CreatePatientFile" />
+    <bpmn:userTask id="Task_CreatePatientFile" name="Create new patient file">
+      <bpmn:incoming>Flow_NewPatient_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_NewPatient_No" name="No" sourceRef="ExclusiveGateway_NewPatient" targetRef="ExclusiveGateway_MergeFile" />
+    <bpmn:exclusiveGateway id="ExclusiveGateway_MergeFile">
+      <bpmn:incoming>Flow_NewPatient_No</bpmn:incoming>
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_CreatePatientFile" targetRef="ExclusiveGateway_MergeFile" />
+
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="ExclusiveGateway_MergeFile" targetRef="Task_StoreFormAndPrintInFile" />
+    <bpmn:userTask id="Task_StoreFormAndPrintInFile" name="Store registration form &amp; print in patient file">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_StoreFormAndPrintInFile" targetRef="Task_ProduceRegCards" />
+    <bpmn:userTask id="Task_ProduceRegCards" name="Produce two registration cards">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_ProduceRegCards" targetRef="Task_AddToListOfNewNotices" />
+    <bpmn:userTask id="Task_AddToListOfNewNotices" name="Add new patient to list of new notices">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- STAFF MEETING ASSIGNMENTS -->
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_AddToListOfNewNotices" targetRef="Event_WednesdayMeeting" />
+    <bpmn:intermediateCatchEvent id="Event_WednesdayMeeting" name="Wednesday staff meeting">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_1" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Event_WednesdayMeeting" targetRef="Task_AssignIntakers" />
+    <bpmn:userTask id="Task_AssignIntakers" name="Assign intakers &amp; determine medical file requirement">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_AssignIntakers" targetRef="Task_StoreAssignments" />
+    <bpmn:userTask id="Task_StoreAssignments" name="Store assignments in information system">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_StoreAssignments" targetRef="Task_PassRegCards" />
+    <bpmn:userTask id="Task_PassRegCards" name="Pass registration cards to 1st and 2nd intakers">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- PARALLEL PATHS FOR INTAKERS & FILE REQUEST -->
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="Task_PassRegCards" targetRef="ExclusiveGateway_FileRequired" />
+    
+    <bpmn:exclusiveGateway id="ExclusiveGateway_FileRequired" name="Is medical file required?">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_FileReq_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_FileReq_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Path 1: Medical File Required -->
+    <bpmn:sequenceFlow id="Flow_FileReq_Yes" name="Yes" sourceRef="ExclusiveGateway_FileRequired" targetRef="Task_SendFileReqLetter" />
+    <bpmn:userTask id="Task_SendFileReqLetter" name="Prepare and send request letter to family doctor">
+      <bpmn:incoming>Flow_FileReq_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="Task_SendFileReqLetter" targetRef="Event_MedicalFileReceived" />
+    <bpmn:intermediateCatchEvent id="Event_MedicalFileReceived" name="Receive copy of medical file">
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_2" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="Event_MedicalFileReceived" targetRef="Task_InformSecondIntaker" />
+    <bpmn:userTask id="Task_InformSecondIntaker" name="Inform 2nd intaker &amp; add copy to patient file">
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="Task_InformSecondIntaker" targetRef="Task_PlanMeeting2" />
+
+    <!-- Path 2: Medical File Not Required -->
+    <bpmn:sequenceFlow id="Flow_FileReq_No" name="No" sourceRef="ExclusiveGateway_FileRequired" targetRef="ExclusiveGateway_MergeFileReq" />
+    <bpmn:exclusiveGateway id="ExclusiveGateway_MergeFileReq">
+      <bpmn:incoming>Flow_FileReq_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_19</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sequenceFlow id="Flow_19" sourceRef="ExclusiveGateway_MergeFileReq" targetRef="Task_PlanMeeting2" />
+
+    <!-- FIRST INTAKER WORKFLOW -->
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="Task_PassRegCards" targetRef="Task_PlanMeeting1" />
+    <bpmn:userTask id="Task_PlanMeeting1" name="Plan first meeting with patient">
+      <bpmn:incoming>Flow_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="Task_PlanMeeting1" targetRef="Task_ExaminePatientChecklist" />
+    <bpmn:userTask id="Task_ExaminePatientChecklist" name="Examine patient using standard checklist">
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+      <bpmn:outgoing>Flow_22</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="Task_ExaminePatientChecklist" targetRef="Task_RegisterPersonalNotes" />
+    <bpmn:userTask id="Task_RegisterPersonalNotes" name="Register additional observations in notebook">
+      <bpmn:incoming>Flow_22</bpmn:incoming>
+      <bpmn:outgoing>Flow_23</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_23" sourceRef="Task_RegisterPersonalNotes" targetRef="Task_StoreNotesAndChecklistInFile" />
+    <bpmn:userTask id="Task_StoreNotesAndChecklistInFile" name="Put notes copy &amp; checklist into patient file">
+      <bpmn:incoming>Flow_23</bpmn:incoming>
+      <bpmn:outgoing>Flow_24</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- SECOND INTAKER WORKFLOW -->
+    <bpmn:userTask id="Task_PlanMeeting2" name="Plan first meeting with patient">
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:incoming>Flow_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_25</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_25" sourceRef="Task_PlanMeeting2" targetRef="Task_ExaminePatientPhysician" />
+    <bpmn:userTask id="Task_ExaminePatientPhysician" name="Examine patient during meeting">
+      <bpmn:incoming>Flow_25</bpmn:incoming>
+      <bpmn:outgoing>Flow_26</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_26" sourceRef="Task_ExaminePatientPhysician" targetRef="Task_RecordDictaphoneNotes" />
+    <bpmn:userTask id="Task_RecordDictaphoneNotes" name="Record observations on dictaphone">
+      <bpmn:incoming>Flow_26</bpmn:incoming>
+      <bpmn:outgoing>Flow_27</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_27" sourceRef="Task_RecordDictaphoneNotes" targetRef="Task_TypeOutTapes" />
+    <bpmn:userTask id="Task_TypeOutTapes" name="Type out dictaphone tapes">
+      <bpmn:incoming>Flow_27</bpmn:incoming>
+      <bpmn:outgoing>Flow_28</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_28" sourceRef="Task_TypeOutTapes" targetRef="Task_AddTapeNotesToFile" />
+    <bpmn:userTask id="Task_AddTapeNotesToFile" name="Add typed observations to patient file">
+      <bpmn:incoming>Flow_28</bpmn:incoming>
+      <bpmn:outgoing>Flow_29</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- WRAP-UP & TREATMENT PLAN -->
+    <bpmn:sequenceFlow id="Flow_24" sourceRef="Task_StoreNotesAndChecklistInFile" targetRef="Task_PutOnCompletedList" />
+    <bpmn:sequenceFlow id="Flow_29" sourceRef="Task_AddTapeNotesToFile" targetRef="Task_PutOnCompletedList" />
+
+    <bpmn:userTask id="Task_PutOnCompletedList" name="Put patient on list of completed meetings">
+      <bpmn:incoming>Flow_24</bpmn:incoming>
+      <bpmn:incoming>Flow_29</bpmn:incoming>
+      <bpmn:outgoing>Flow_30</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_30" sourceRef="Task_PutOnCompletedList" targetRef="Task_ProvideCompletedList" />
+    <bpmn:userTask id="Task_ProvideCompletedList" name="Provide team-leader with completed list for Wednesday meeting">
+      <bpmn:incoming>Flow_30</bpmn:incoming>
+      <bpmn:outgoing>Flow_31</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_31" sourceRef="Task_ProvideCompletedList" targetRef="Task_FormulateTreatmentPlan" />
+    <bpmn:userTask id="Task_FormulateTreatmentPlan" name="Formulate treatment plan at staff meeting">
+      <bpmn:incoming>Flow_31</bpmn:incoming>
+      <bpmn:outgoing>Flow_32</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sequenceFlow id="Flow_32" sourceRef="Task_FormulateTreatmentPlan" targetRef="EndEvent_IntakeCompleted" />
+    <bpmn:endEvent id="EndEvent_IntakeCompleted" name="Intake procedure completed">
+      <bpmn:incoming>Flow_32</bpmn:incoming>
+    </bpmn:endEvent>
+
+  </bpmn:process>
+
+  <!-- DIAGRAM -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <!-- PARTICIPANTS -->
+      <bpmndi:BPMNShape id="Participant_Institute_di" bpmnElement="Participant_Institute" isHorizontal="true">
+        <dc:Bounds x="160" y="200" width="2800" height="1100" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Participant_FamilyDoctor_di" bpmnElement="Participant_FamilyDoctor" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2800" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- LANES -->
+      <bpmndi:BPMNShape id="Lane_Secretariat_di" bpmnElement="Lane_Secretariat" isHorizontal="true">
+        <dc:Bounds x="190" y="200" width="2770" height="300" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_NursingOfficer_di" bpmnElement="Lane_NursingOfficer" isHorizontal="true">
+        <dc:Bounds x="190" y="500" width="2770" height="180" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_MedicalTeam_di" bpmnElement="Lane_MedicalTeam" isHorizontal="true">
+        <dc:Bounds x="190" y="680" width="2770" height="180" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_FirstIntaker_di" bpmnElement="Lane_FirstIntaker" isHorizontal="true">
+        <dc:Bounds x="190" y="860" width="2770" height="220" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_SecondIntaker_di" bpmnElement="Lane_SecondIntaker" isHorizontal="true">
+        <dc:Bounds x="190" y="1080" width="2770" height="220" />
+      </bpmndi:BPMNShape>
+
+      <!-- FLOW NODES -->
+      <!-- Secretariat Nodes -->
+      <bpmndi:BPMNShape id="StartEvent_NoticeReceived_di" bpmnElement="StartEvent_NoticeReceived">
+        <dc:Bounds x="242" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="221" y="365" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InquireNameResidence_di" bpmnElement="Task_InquireNameResidence">
+        <dc:Bounds x="320" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TransferToNursingOfficer_di" bpmnElement="Task_TransferToNursingOfficer">
+        <dc:Bounds x="460" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_FullInquiryState_di" bpmnElement="Task_FullInquiryState">
+        <dc:Bounds x="460" y="550" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_HandInRegistrationForm_di" bpmnElement="Task_HandInRegistrationForm">
+        <dc:Bounds x="600" y="550" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_StoreAndPrintForm_di" bpmnElement="Task_StoreAndPrintForm">
+        <dc:Bounds x="600" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="ExclusiveGateway_NewPatient_di" bpmnElement="ExclusiveGateway_NewPatient" isMarkerVisible="true">
+        <dc:Bounds x="735" y="315" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="723" y="291" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CreatePatientFile_di" bpmnElement="Task_CreatePatientFile">
+        <dc:Bounds x="820" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="ExclusiveGateway_MergeFile_di" bpmnElement="ExclusiveGateway_MergeFile" isMarkerVisible="true">
+        <dc:Bounds x="955" y="315" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_StoreFormAndPrintInFile_di" bpmnElement="Task_StoreFormAndPrintInFile">
+        <dc:Bounds x="1040" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProduceRegCards_di" bpmnElement="Task_ProduceRegCards">
+        <dc:Bounds x="1180" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AddToListOfNewNotices_di" bpmnElement="Task_AddToListOfNewNotices">
+        <dc:Bounds x="1320" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_WednesdayMeeting_di" bpmnElement="Event_WednesdayMeeting">
+        <dc:Bounds x="1352" y="742" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1331" y="785" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AssignIntakers_di" bpmnElement="Task_AssignIntakers">
+        <dc:Bounds x="1430" y="720" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_StoreAssignments_di" bpmnElement="Task_StoreAssignments">
+        <dc:Bounds x="1430" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PassRegCards_di" bpmnElement="Task_PassRegCards">
+        <dc:Bounds x="1570" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="ExclusiveGateway_FileRequired_di" bpmnElement="ExclusiveGateway_FileRequired" isMarkerVisible="true">
+        <dc:Bounds x="1705" y="315" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1695" y="285" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendFileReqLetter_di" bpmnElement="Task_SendFileReqLetter">
+        <dc:Bounds x="1790" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_MedicalFileReceived_di" bpmnElement="Event_MedicalFileReceived">
+        <dc:Bounds x="1932" y="262" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1910" y="305" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InformSecondIntaker_di" bpmnElement="Task_InformSecondIntaker">
+        <dc:Bounds x="2010" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="ExclusiveGateway_MergeFileReq_di" bpmnElement="ExclusiveGateway_MergeFileReq" isMarkerVisible="true">
+        <dc:Bounds x="1705" y="415" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PlanMeeting1_di" bpmnElement="Task_PlanMeeting1">
+        <dc:Bounds x="1570" y="930" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ExaminePatientChecklist_di" bpmnElement="Task_ExaminePatientChecklist">
+        <dc:Bounds x="1710" y="930" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RegisterPersonalNotes_di" bpmnElement="Task_RegisterPersonalNotes">
+        <dc:Bounds x="1850" y="930" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_StoreNotesAndChecklistInFile_di" bpmnElement="Task_StoreNotesAndChecklistInFile">
+        <dc:Bounds x="1990" y="930" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PlanMeeting2_di" bpmnElement="Task_PlanMeeting2">
+        <dc:Bounds x="2010" y="1150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ExaminePatientPhysician_di" bpmnElement="Task_ExaminePatientPhysician">
+        <dc:Bounds x="2140" y="1150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RecordDictaphoneNotes_di" bpmnElement="Task_RecordDictaphoneNotes">
+        <dc:Bounds x="2270" y="1150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TypeOutTapes_di" bpmnElement="Task_TypeOutTapes">
+        <dc:Bounds x="2270" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AddTapeNotesToFile_di" bpmnElement="Task_AddTapeNotesToFile">
+        <dc:Bounds x="2400" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PutOnCompletedList_di" bpmnElement="Task_PutOnCompletedList">
+        <dc:Bounds x="2530" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProvideCompletedList_di" bpmnElement="Task_ProvideCompletedList">
+        <dc:Bounds x="2660" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_FormulateTreatmentPlan_di" bpmnElement="Task_FormulateTreatmentPlan">
+        <dc:Bounds x="2660" y="720" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_IntakeCompleted_di" bpmnElement="EndEvent_IntakeCompleted">
+        <dc:Bounds x="2812" y="742" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2789" y="785" width="83" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- EDGES -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="278" y="340" />
+        <di:waypoint x="320" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="420" y="340" />
+        <di:waypoint x="460" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="510" y="380" />
+        <di:waypoint x="510" y="550" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="560" y="590" />
+        <di:waypoint x="600" y="590" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="650" y="550" />
+        <di:waypoint x="650" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="700" y="340" />
+        <di:waypoint x="735" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NewPatient_Yes_di" bpmnElement="Flow_NewPatient_Yes">
+        <di:waypoint x="760" y="315" />
+        <di:waypoint x="760" y="280" />
+        <di:waypoint x="820" y="280" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="766" y="295" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NewPatient_No_di" bpmnElement="Flow_NewPatient_No">
+        <di:waypoint x="760" y="365" />
+        <di:waypoint x="760" y="400" />
+        <di:waypoint x="980" y="400" />
+        <di:waypoint x="980" y="365" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="767" y="382" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="920" y="280" />
+        <di:waypoint x="980" y="280" />
+        <di:waypoint x="980" y="315" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1005" y="340" />
+        <di:waypoint x="1040" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1140" y="340" />
+        <di:waypoint x="1180" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1280" y="340" />
+        <di:waypoint x="1320" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1370" y="380" />
+        <di:waypoint x="1370" y="742" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1388" y="760" />
+        <di:waypoint x="1430" y="760" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1480" y="720" />
+        <di:waypoint x="1480" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1530" y="340" />
+        <di:waypoint x="1570" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1670" y="340" />
+        <di:waypoint x="1705" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FileReq_Yes_di" bpmnElement="Flow_FileReq_Yes">
+        <di:waypoint x="1730" y="315" />
+        <di:waypoint x="1730" y="280" />
+        <di:waypoint x="1790" y="280" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1736" y="295" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1890" y="280" />
+        <di:waypoint x="1932" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="1968" y="280" />
+        <di:waypoint x="2010" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="2060" y="320" />
+        <di:waypoint x="2060" y="1150" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_FileReq_No_di" bpmnElement="Flow_FileReq_No">
+        <di:waypoint x="1730" y="365" />
+        <di:waypoint x="1730" y="415" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1737" y="387" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="1755" y="440" />
+        <di:waypoint x="1980" y="440" />
+        <di:waypoint x="1980" y="1190" />
+        <di:waypoint x="2010" y="1190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="1620" y="380" />
+        <di:waypoint x="1620" y="930" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="1670" y="970" />
+        <di:waypoint x="1710" y="970" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22">
+        <di:waypoint x="1810" y="970" />
+        <di:waypoint x="1850" y="970" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23">
+        <di:waypoint x="1950" y="970" />
+        <di:waypoint x="1990" y="970" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_24_di" bpmnElement="Flow_24">
+        <di:waypoint x="2090" y="970" />
+        <di:waypoint x="2580" y="970" />
+        <di:waypoint x="2580" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_25_di" bpmnElement="Flow_25">
+        <di:waypoint x="2110" y="1190" />
+        <di:waypoint x="2140" y="1190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_26_di" bpmnElement="Flow_26">
+        <di:waypoint x="2240" y="1190" />
+        <di:waypoint x="2270" y="1190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_27_di" bpmnElement="Flow_27">
+        <di:waypoint x="2320" y="1150" />
+        <di:waypoint x="2320" y="380" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_28_di" bpmnElement="Flow_28">
+        <di:waypoint x="2370" y="340" />
+        <di:waypoint x="2400" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_29_di" bpmnElement="Flow_29">
+        <di:waypoint x="2500" y="340" />
+        <di:waypoint x="2530" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_30_di" bpmnElement="Flow_30">
+        <di:waypoint x="2630" y="340" />
+        <di:waypoint x="2660" y="340" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_31_di" bpmnElement="Flow_31">
+        <di:waypoint x="2710" y="380" />
+        <di:waypoint x="2710" y="720" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_32_di" bpmnElement="Flow_32">
+        <di:waypoint x="2760" y="760" />
+        <di:waypoint x="2812" y="760" />
+      </bpmndi:BPMNEdge>
+
+      <!-- MESSAGE FLOWS -->
+      <bpmndi:BPMNEdge id="MF_Notice_di" bpmnElement="MF_Notice">
+        <di:waypoint x="260" y="160" />
+        <di:waypoint x="260" y="322" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="270" y="173" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MF_ReqLetter_di" bpmnElement="MF_ReqLetter">
+        <di:waypoint x="1840" y="240" />
+        <di:waypoint x="1840" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1850" y="173" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MF_RecFile_di" bpmnElement="MF_RecFile">
+        <di:waypoint x="1950" y="160" />
+        <di:waypoint x="1950" y="262" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1960" y="173" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>

@@ -1,0 +1,699 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_mpon_part" name="MPON" processRef="pool_mpon_proc" />
+    <bpmn:participant id="pool_go_part" name="GO" processRef="pool_go_proc" />
+    <bpmn:participant id="pool_mpoo_part" name="MPOO" processRef="pool_mpoo_proc" />
+    <bpmn:participant id="pool_mspo_part" name="MSPO" processRef="pool_mspo_proc" />
+    <bpmn:participant id="pool_sp_part" name="SP" processRef="pool_sp_proc" />
+    <bpmn:messageFlow id="mf_report" sourceRef="event_end_report" targetRef="event_start_go_receive" name="Meter operation report" />
+    <bpmn:messageFlow id="mf_confirm_mpoo" sourceRef="event_end_confirm_inform_mpoo" targetRef="event_start_mpoo_reg_confirm" name="Registration confirmation" />
+    <bpmn:messageFlow id="mf_confirm_mspo" sourceRef="event_end_confirm_inform_mpoo" targetRef="event_start_mspo_reg_confirm" name="Registration confirmation" />
+    <bpmn:messageFlow id="mf_failure" sourceRef="event_end_informed_failure" targetRef="event_start_go_receive_outcome" name="Process failure" />
+    <bpmn:messageFlow id="mf_success" sourceRef="event_end_informed_success" targetRef="event_start_go_receive_outcome" name="Process success" />
+    <bpmn:messageFlow id="mf_mpoo_outcome" sourceRef="task_inform_mpoo_failure" targetRef="event_start_mpoo_outcome" name="Assignment outcome" />
+    <bpmn:messageFlow id="mf_mpoo_outcome2" sourceRef="task_inform_mpoo_assignment" targetRef="event_start_mpoo_outcome" name="Assignment outcome" />
+    <bpmn:messageFlow id="mf_mspo_outcome" sourceRef="task_inform_mspo_failure" targetRef="event_start_mspo_outcome" name="Assignment outcome" />
+    <bpmn:messageFlow id="mf_mspo_outcome2" sourceRef="task_inform_mspo_assignment" targetRef="event_start_mspo_outcome" name="Assignment outcome" />
+    <bpmn:messageFlow id="mf_sp" sourceRef="task_inform_sp_assignment" targetRef="event_start_sp_assignment" name="Assignment of MPON" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_mpon_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_application" name="Application / Meter operation report" dataObjectRef="data_application_do" />
+    <bpmn:dataObject id="data_application_do" />
+    <bpmn:startEvent id="start_report" name="Start">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end_report" name="Meter operation reported">
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_end_report_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_informed_failure" name="Failure reported">
+      <bpmn:incoming>f16</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_end_informed_failure_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_informed_success" name="Success reported">
+      <bpmn:incoming>f17</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_end_informed_success_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_report_meter_op" name="Report meter operation">
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+      <bpmn:outgoing>f14</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_report_meter_op_doa0">
+        <bpmn:targetRef>data_application</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:manualTask id="task_equipment_acquisition_mpon" name="Perform equipment acquisition/changes (MPON)">
+      <bpmn:incoming>f14</bpmn:incoming>
+      <bpmn:outgoing>f15</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:task id="task_inform_failure" name="Inform GO about failure of entire process">
+      <bpmn:incoming>flow_outcome_fail</bpmn:incoming>
+      <bpmn:outgoing>f16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_inform_success" name="Inform GO about successful completion of entire process">
+      <bpmn:incoming>flow_outcome_success</bpmn:incoming>
+      <bpmn:outgoing>f17</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_outcome_mpon" name="Process outcome?" isMarkerVisible="true">
+      <bpmn:incoming>f15</bpmn:incoming>
+      <bpmn:outgoing>flow_outcome_fail</bpmn:outgoing>
+      <bpmn:outgoing>flow_outcome_success</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="f1" sourceRef="start_report" targetRef="task_report_meter_op" />
+    <bpmn:sequenceFlow id="f2" sourceRef="task_report_meter_op" targetRef="event_end_report" />
+    <bpmn:sequenceFlow id="f14" sourceRef="task_report_meter_op" targetRef="task_equipment_acquisition_mpon" />
+    <bpmn:sequenceFlow id="f15" sourceRef="task_equipment_acquisition_mpon" targetRef="gw_outcome_mpon" />
+    <bpmn:sequenceFlow id="flow_outcome_fail" sourceRef="gw_outcome_mpon" targetRef="task_inform_failure" name="failure" />
+    <bpmn:sequenceFlow id="flow_outcome_success" sourceRef="gw_outcome_mpon" targetRef="task_inform_success" name="success" />
+    <bpmn:sequenceFlow id="f16" sourceRef="task_inform_failure" targetRef="event_end_informed_failure" />
+    <bpmn:sequenceFlow id="f17" sourceRef="task_inform_success" targetRef="event_end_informed_success" />
+  </bpmn:process>
+  <bpmn:process id="pool_go_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_application_p1" name="Application / Meter operation report" dataObjectRef="data_application_p1_do" />
+    <bpmn:dataObject id="data_application_p1_do" />
+    <bpmn:dataObjectReference id="data_registration_confirmation" name="Registration confirmation" dataObjectRef="data_registration_confirmation_do" />
+    <bpmn:dataObject id="data_registration_confirmation_do" />
+    <bpmn:dataObjectReference id="data_assignment" name="Assignment of MPON" dataObjectRef="data_assignment_do" />
+    <bpmn:dataObject id="data_assignment_do" />
+    <bpmn:startEvent id="event_start_go_receive" name="Report received">
+      <bpmn:outgoing>f3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_go_receive_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end_reject" name="Application rejected">
+      <bpmn:incoming>f5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="event_end_confirm_inform_mpoo" name="Confirmation sent">
+      <bpmn:incoming>f8</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_end_confirm_inform_mpoo_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:startEvent id="event_start_go_receive_outcome" name="Outcome message received">
+      <bpmn:outgoing>f18</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_go_receive_outcome_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="event_timer_deadline" name="Deadline reached">
+      <bpmn:incoming>flow_go_deadline</bpmn:incoming>
+      <bpmn:outgoing>f19b</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="event_timer_deadline_timerdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="event_end_go_process" name="GO process end">
+      <bpmn:incoming>f19</bpmn:incoming>
+      <bpmn:incoming>f25</bpmn:incoming>
+      <bpmn:incoming>f27</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_examine_application" name="Examine application of the MPON">
+      <bpmn:incoming>f3</bpmn:incoming>
+      <bpmn:outgoing>f4</bpmn:outgoing>
+      <bpmn:property id="task_examine_application_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_examine_application_dia0">
+        <bpmn:sourceRef>data_application_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_examine_application_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_reject_application" name="Reject application of the MPON">
+      <bpmn:incoming>flow_reject</bpmn:incoming>
+      <bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_confirm_application" name="Confirm application of the MPON">
+      <bpmn:incoming>flow_confirm</bpmn:incoming>
+      <bpmn:outgoing>f6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_confirm_application_doa0">
+        <bpmn:targetRef>data_registration_confirmation</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_inform_mpoo_reg_confirm" name="Inform MPOO about registration confirmation">
+      <bpmn:incoming>f6</bpmn:incoming>
+      <bpmn:outgoing>f7</bpmn:outgoing>
+      <bpmn:property id="task_inform_mpoo_reg_confirm_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_inform_mpoo_reg_confirm_dia0">
+        <bpmn:sourceRef>data_registration_confirmation</bpmn:sourceRef>
+        <bpmn:targetRef>task_inform_mpoo_reg_confirm_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_inform_mspo_reg_confirm" name="Inform MSPO about registration confirmation">
+      <bpmn:incoming>f7</bpmn:incoming>
+      <bpmn:outgoing>f8</bpmn:outgoing>
+      <bpmn:property id="task_inform_mspo_reg_confirm_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_inform_mspo_reg_confirm_dia0">
+        <bpmn:sourceRef>data_registration_confirmation</bpmn:sourceRef>
+        <bpmn:targetRef>task_inform_mspo_reg_confirm_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_inform_mpon_failure_deadline" name="Inform MPON about failure of overall transaction by deadline">
+      <bpmn:incoming>f19b</bpmn:incoming>
+      <bpmn:outgoing>f19</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_confirm_failure_assignment" name="Confirm failure of the assignment to the MPON">
+      <bpmn:incoming>flow_go_failure_msg</bpmn:incoming>
+      <bpmn:outgoing>f20</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_assign_mpon" name="Assign the MPON">
+      <bpmn:incoming>flow_go_success_msg</bpmn:incoming>
+      <bpmn:outgoing>f21</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_assign_mpon_doa0">
+        <bpmn:targetRef>data_assignment</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_confirm_assignment" name="Confirm the assignment to the MPON">
+      <bpmn:incoming>f21</bpmn:incoming>
+      <bpmn:outgoing>f22</bpmn:outgoing>
+      <bpmn:property id="task_confirm_assignment_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_confirm_assignment_dia0">
+        <bpmn:sourceRef>data_assignment</bpmn:sourceRef>
+        <bpmn:targetRef>task_confirm_assignment_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_inform_mpoo_failure" name="Inform MPOO about failure of assignment of MPON">
+      <bpmn:incoming>flow_mpoo_fail</bpmn:incoming>
+      <bpmn:outgoing>f23</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_inform_mpoo_assignment" name="Inform MPOO about assignment of MPON">
+      <bpmn:incoming>flow_mpoo_ok</bpmn:incoming>
+      <bpmn:outgoing>f24</bpmn:outgoing>
+      <bpmn:property id="task_inform_mpoo_assignment_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_inform_mpoo_assignment_dia0">
+        <bpmn:sourceRef>data_assignment</bpmn:sourceRef>
+        <bpmn:targetRef>task_inform_mpoo_assignment_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_inform_mspo_failure" name="Inform MSPO about failure of assignment of MPON">
+      <bpmn:incoming>flow_mspo_fail</bpmn:incoming>
+      <bpmn:outgoing>f25</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_inform_mspo_assignment" name="Inform MSPO about assignment of MPON">
+      <bpmn:incoming>flow_mspo_ok</bpmn:incoming>
+      <bpmn:outgoing>f26</bpmn:outgoing>
+      <bpmn:property id="task_inform_mspo_assignment_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_inform_mspo_assignment_dia0">
+        <bpmn:sourceRef>data_assignment</bpmn:sourceRef>
+        <bpmn:targetRef>task_inform_mspo_assignment_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_inform_sp_assignment" name="Inform SP about assignment of MPON">
+      <bpmn:incoming>f26</bpmn:incoming>
+      <bpmn:outgoing>f27</bpmn:outgoing>
+      <bpmn:property id="task_inform_sp_assignment_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_inform_sp_assignment_dia0">
+        <bpmn:sourceRef>data_assignment</bpmn:sourceRef>
+        <bpmn:targetRef>task_inform_sp_assignment_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="gw_reject_confirm" name="Application OK?" isMarkerVisible="true">
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>flow_reject</bpmn:outgoing>
+      <bpmn:outgoing>flow_confirm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_outcome_go" name="Outcome received in time?" isMarkerVisible="true">
+      <bpmn:incoming>f18</bpmn:incoming>
+      <bpmn:outgoing>flow_go_failure_msg</bpmn:outgoing>
+      <bpmn:outgoing>flow_go_success_msg</bpmn:outgoing>
+      <bpmn:outgoing>flow_go_deadline</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_mpoo_notify" name="Assignment outcome to MPOO" isMarkerVisible="true">
+      <bpmn:incoming>f20</bpmn:incoming>
+      <bpmn:incoming>f22</bpmn:incoming>
+      <bpmn:outgoing>flow_mpoo_fail</bpmn:outgoing>
+      <bpmn:outgoing>flow_mpoo_ok</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_mspo_notify" name="Assignment outcome to MSPO" isMarkerVisible="true">
+      <bpmn:incoming>f23</bpmn:incoming>
+      <bpmn:incoming>f24</bpmn:incoming>
+      <bpmn:outgoing>flow_mspo_fail</bpmn:outgoing>
+      <bpmn:outgoing>flow_mspo_ok</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="f3" sourceRef="event_start_go_receive" targetRef="task_examine_application" />
+    <bpmn:sequenceFlow id="f4" sourceRef="task_examine_application" targetRef="gw_reject_confirm" />
+    <bpmn:sequenceFlow id="flow_reject" sourceRef="gw_reject_confirm" targetRef="task_reject_application" name="rejected" />
+    <bpmn:sequenceFlow id="flow_confirm" sourceRef="gw_reject_confirm" targetRef="task_confirm_application" name="confirmed" />
+    <bpmn:sequenceFlow id="f5" sourceRef="task_reject_application" targetRef="event_end_reject" />
+    <bpmn:sequenceFlow id="f6" sourceRef="task_confirm_application" targetRef="task_inform_mpoo_reg_confirm" />
+    <bpmn:sequenceFlow id="f7" sourceRef="task_inform_mpoo_reg_confirm" targetRef="task_inform_mspo_reg_confirm" />
+    <bpmn:sequenceFlow id="f8" sourceRef="task_inform_mspo_reg_confirm" targetRef="event_end_confirm_inform_mpoo" />
+    <bpmn:sequenceFlow id="f18" sourceRef="event_start_go_receive_outcome" targetRef="gw_outcome_go" />
+    <bpmn:sequenceFlow id="flow_go_failure_msg" sourceRef="gw_outcome_go" targetRef="task_confirm_failure_assignment" name="failure reported" />
+    <bpmn:sequenceFlow id="flow_go_success_msg" sourceRef="gw_outcome_go" targetRef="task_assign_mpon" name="success reported" />
+    <bpmn:sequenceFlow id="flow_go_deadline" sourceRef="gw_outcome_go" targetRef="event_timer_deadline" name="deadline exceeded" />
+    <bpmn:sequenceFlow id="f19b" sourceRef="event_timer_deadline" targetRef="task_inform_mpon_failure_deadline" />
+    <bpmn:sequenceFlow id="f19" sourceRef="task_inform_mpon_failure_deadline" targetRef="event_end_go_process" />
+    <bpmn:sequenceFlow id="f20" sourceRef="task_confirm_failure_assignment" targetRef="gw_mpoo_notify" />
+    <bpmn:sequenceFlow id="f21" sourceRef="task_assign_mpon" targetRef="task_confirm_assignment" />
+    <bpmn:sequenceFlow id="f22" sourceRef="task_confirm_assignment" targetRef="gw_mpoo_notify" />
+    <bpmn:sequenceFlow id="flow_mpoo_fail" sourceRef="gw_mpoo_notify" targetRef="task_inform_mpoo_failure" name="failure" />
+    <bpmn:sequenceFlow id="flow_mpoo_ok" sourceRef="gw_mpoo_notify" targetRef="task_inform_mpoo_assignment" name="success" />
+    <bpmn:sequenceFlow id="f23" sourceRef="task_inform_mpoo_failure" targetRef="gw_mspo_notify" />
+    <bpmn:sequenceFlow id="f24" sourceRef="task_inform_mpoo_assignment" targetRef="gw_mspo_notify" />
+    <bpmn:sequenceFlow id="flow_mspo_fail" sourceRef="gw_mspo_notify" targetRef="task_inform_mspo_failure" name="failure" />
+    <bpmn:sequenceFlow id="flow_mspo_ok" sourceRef="gw_mspo_notify" targetRef="task_inform_mspo_assignment" name="success" />
+    <bpmn:sequenceFlow id="f25" sourceRef="task_inform_mspo_failure" targetRef="event_end_go_process" />
+    <bpmn:sequenceFlow id="f26" sourceRef="task_inform_mspo_assignment" targetRef="task_inform_sp_assignment" />
+    <bpmn:sequenceFlow id="f27" sourceRef="task_inform_sp_assignment" targetRef="event_end_go_process" />
+  </bpmn:process>
+  <bpmn:process id="pool_mpoo_proc" isExecutable="false">
+    <bpmn:startEvent id="event_start_mpoo_reg_confirm" name="Registration confirmation received">
+      <bpmn:outgoing>f9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_mpoo_reg_confirm_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="event_start_mpoo_outcome" name="Outcome received">
+      <bpmn:incoming>f10</bpmn:incoming>
+      <bpmn:outgoing>f11</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_mpoo_outcome_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end_mpoo" name="MPOO end">
+      <bpmn:incoming>f11</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_equipment_acquisition_mpoo" name="Perform equipment acquisition/changes (MPOO)">
+      <bpmn:incoming>f9</bpmn:incoming>
+      <bpmn:outgoing>f10</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="f9" sourceRef="event_start_mpoo_reg_confirm" targetRef="task_equipment_acquisition_mpoo" />
+    <bpmn:sequenceFlow id="f10" sourceRef="task_equipment_acquisition_mpoo" targetRef="event_start_mpoo_outcome" />
+    <bpmn:sequenceFlow id="f11" sourceRef="event_start_mpoo_outcome" targetRef="event_end_mpoo" />
+  </bpmn:process>
+  <bpmn:process id="pool_mspo_proc" isExecutable="false">
+    <bpmn:startEvent id="event_start_mspo_reg_confirm" name="Registration confirmation received">
+      <bpmn:outgoing>f12</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_mspo_reg_confirm_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:startEvent id="event_start_mspo_outcome" name="Outcome received">
+      <bpmn:incoming>f12</bpmn:incoming>
+      <bpmn:outgoing>f13</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_mspo_outcome_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end_mspo" name="MSPO end">
+      <bpmn:incoming>f13</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f12" sourceRef="event_start_mspo_reg_confirm" targetRef="event_start_mspo_outcome" />
+    <bpmn:sequenceFlow id="f13" sourceRef="event_start_mspo_outcome" targetRef="event_end_mspo" />
+  </bpmn:process>
+  <bpmn:process id="pool_sp_proc" isExecutable="false">
+    <bpmn:startEvent id="event_start_sp_assignment" name="Assignment info received">
+      <bpmn:outgoing>f28</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_start_sp_assignment_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_end_sp" name="SP end">
+      <bpmn:incoming>f28</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f28" sourceRef="event_start_sp_assignment" targetRef="event_end_sp" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_mpon_part_di" bpmnElement="pool_mpon_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="1330" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_go_part_di" bpmnElement="pool_go_part" isHorizontal="true">
+        <dc:Bounds x="120" y="500" width="1900" height="775" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mpoo_part_di" bpmnElement="pool_mpoo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1335" width="950" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_mspo_part_di" bpmnElement="pool_mspo_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1670" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_sp_part_di" bpmnElement="pool_sp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="2005" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_confirm_inform_mpoo_di" bpmnElement="event_end_confirm_inform_mpoo">
+        <dc:Bounds x="1300" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_go_process_di" bpmnElement="event_end_go_process">
+        <dc:Bounds x="1680" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_informed_failure_di" bpmnElement="event_end_informed_failure">
+        <dc:Bounds x="1110" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_informed_success_di" bpmnElement="event_end_informed_success">
+        <dc:Bounds x="1110" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_mpoo_di" bpmnElement="event_end_mpoo">
+        <dc:Bounds x="730" y="1395" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_mspo_di" bpmnElement="event_end_mspo">
+        <dc:Bounds x="540" y="1730" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_reject_di" bpmnElement="event_end_reject">
+        <dc:Bounds x="920" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_report_di" bpmnElement="event_end_report">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_sp_di" bpmnElement="event_end_sp">
+        <dc:Bounds x="350" y="2065" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_go_receive_di" bpmnElement="event_start_go_receive">
+        <dc:Bounds x="160" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_go_receive_outcome_di" bpmnElement="event_start_go_receive_outcome">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_mpoo_outcome_di" bpmnElement="event_start_mpoo_outcome">
+        <dc:Bounds x="540" y="1395" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_mpoo_reg_confirm_di" bpmnElement="event_start_mpoo_reg_confirm">
+        <dc:Bounds x="160" y="1395" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_mspo_outcome_di" bpmnElement="event_start_mspo_outcome">
+        <dc:Bounds x="350" y="1730" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_mspo_reg_confirm_di" bpmnElement="event_start_mspo_reg_confirm">
+        <dc:Bounds x="160" y="1730" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_sp_assignment_di" bpmnElement="event_start_sp_assignment">
+        <dc:Bounds x="160" y="2065" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_timer_deadline_di" bpmnElement="event_timer_deadline">
+        <dc:Bounds x="540" y="560" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_mpoo_notify_di" bpmnElement="gw_mpoo_notify">
+        <dc:Bounds x="920" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_mspo_notify_di" bpmnElement="gw_mspo_notify">
+        <dc:Bounds x="1110" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_outcome_go_di" bpmnElement="gw_outcome_go">
+        <dc:Bounds x="350" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_outcome_mpon_di" bpmnElement="gw_outcome_mpon">
+        <dc:Bounds x="730" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_reject_confirm_di" bpmnElement="gw_reject_confirm">
+        <dc:Bounds x="540" y="685" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_report_di" bpmnElement="start_report">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_assign_mpon_di" bpmnElement="task_assign_mpon">
+        <dc:Bounds x="540" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_confirm_application_di" bpmnElement="task_confirm_application">
+        <dc:Bounds x="730" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_confirm_assignment_di" bpmnElement="task_confirm_assignment">
+        <dc:Bounds x="730" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_confirm_failure_assignment_di" bpmnElement="task_confirm_failure_assignment">
+        <dc:Bounds x="540" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_equipment_acquisition_mpon_di" bpmnElement="task_equipment_acquisition_mpon">
+        <dc:Bounds x="540" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_equipment_acquisition_mpoo_di" bpmnElement="task_equipment_acquisition_mpoo">
+        <dc:Bounds x="350" y="1395" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_examine_application_di" bpmnElement="task_examine_application">
+        <dc:Bounds x="350" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_failure_di" bpmnElement="task_inform_failure">
+        <dc:Bounds x="920" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mpon_failure_deadline_di" bpmnElement="task_inform_mpon_failure_deadline">
+        <dc:Bounds x="730" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mpoo_assignment_di" bpmnElement="task_inform_mpoo_assignment">
+        <dc:Bounds x="920" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mpoo_failure_di" bpmnElement="task_inform_mpoo_failure">
+        <dc:Bounds x="920" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mpoo_reg_confirm_di" bpmnElement="task_inform_mpoo_reg_confirm">
+        <dc:Bounds x="920" y="1060" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mspo_assignment_di" bpmnElement="task_inform_mspo_assignment">
+        <dc:Bounds x="1300" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mspo_failure_di" bpmnElement="task_inform_mspo_failure">
+        <dc:Bounds x="1300" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_mspo_reg_confirm_di" bpmnElement="task_inform_mspo_reg_confirm">
+        <dc:Bounds x="1110" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_sp_assignment_di" bpmnElement="task_inform_sp_assignment">
+        <dc:Bounds x="1490" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_inform_success_di" bpmnElement="task_inform_success">
+        <dc:Bounds x="920" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reject_application_di" bpmnElement="task_reject_application">
+        <dc:Bounds x="730" y="935" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_report_meter_op_di" bpmnElement="task_report_meter_op">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_application_di" bpmnElement="data_application">
+        <dc:Bounds x="370" y="365" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_application_p1_di" bpmnElement="data_application_p1">
+        <dc:Bounds x="370" y="1200" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_registration_confirmation_di" bpmnElement="data_registration_confirmation">
+        <dc:Bounds x="940" y="1200" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_assignment_di" bpmnElement="data_assignment">
+        <dc:Bounds x="1016" y="1200" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f1_di" bpmnElement="f1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f3_di" bpmnElement="f3">
+        <di:waypoint x="178" y="578" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f4_di" bpmnElement="f4">
+        <di:waypoint x="400" y="725" />
+        <di:waypoint x="565" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_reject_di" bpmnElement="flow_reject">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="780" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_confirm_di" bpmnElement="flow_confirm">
+        <di:waypoint x="565" y="710" />
+        <di:waypoint x="780" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f5_di" bpmnElement="f5">
+        <di:waypoint x="780" y="975" />
+        <di:waypoint x="938" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f6_di" bpmnElement="f6">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="970" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f7_di" bpmnElement="f7">
+        <di:waypoint x="970" y="1100" />
+        <di:waypoint x="1160" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f8_di" bpmnElement="f8">
+        <di:waypoint x="1160" y="725" />
+        <di:waypoint x="1318" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f9_di" bpmnElement="f9">
+        <di:waypoint x="178" y="1413" />
+        <di:waypoint x="400" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f10_di" bpmnElement="f10">
+        <di:waypoint x="400" y="1435" />
+        <di:waypoint x="558" y="1413" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f11_di" bpmnElement="f11">
+        <di:waypoint x="558" y="1413" />
+        <di:waypoint x="748" y="1413" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f12_di" bpmnElement="f12">
+        <di:waypoint x="178" y="1748" />
+        <di:waypoint x="368" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f13_di" bpmnElement="f13">
+        <di:waypoint x="368" y="1748" />
+        <di:waypoint x="558" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f14_di" bpmnElement="f14">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="590" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f15_di" bpmnElement="f15">
+        <di:waypoint x="590" y="265" />
+        <di:waypoint x="755" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_outcome_fail_di" bpmnElement="flow_outcome_fail">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="970" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_outcome_success_di" bpmnElement="flow_outcome_success">
+        <di:waypoint x="755" y="125" />
+        <di:waypoint x="970" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f16_di" bpmnElement="f16">
+        <di:waypoint x="970" y="140" />
+        <di:waypoint x="1128" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f17_di" bpmnElement="f17">
+        <di:waypoint x="970" y="265" />
+        <di:waypoint x="1128" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f18_di" bpmnElement="f18">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="375" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_failure_msg_di" bpmnElement="flow_go_failure_msg">
+        <di:waypoint x="375" y="585" />
+        <di:waypoint x="590" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_success_msg_di" bpmnElement="flow_go_success_msg">
+        <di:waypoint x="375" y="585" />
+        <di:waypoint x="590" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_go_deadline_di" bpmnElement="flow_go_deadline">
+        <di:waypoint x="375" y="585" />
+        <di:waypoint x="558" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f19b_di" bpmnElement="f19b">
+        <di:waypoint x="558" y="578" />
+        <di:waypoint x="780" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f19_di" bpmnElement="f19">
+        <di:waypoint x="780" y="850" />
+        <di:waypoint x="1698" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f20_di" bpmnElement="f20">
+        <di:waypoint x="590" y="975" />
+        <di:waypoint x="945" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f21_di" bpmnElement="f21">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="780" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f22_di" bpmnElement="f22">
+        <di:waypoint x="780" y="725" />
+        <di:waypoint x="945" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpoo_fail_di" bpmnElement="flow_mpoo_fail">
+        <di:waypoint x="945" y="710" />
+        <di:waypoint x="970" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mpoo_ok_di" bpmnElement="flow_mpoo_ok">
+        <di:waypoint x="945" y="710" />
+        <di:waypoint x="970" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f23_di" bpmnElement="f23">
+        <di:waypoint x="970" y="975" />
+        <di:waypoint x="1135" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f24_di" bpmnElement="f24">
+        <di:waypoint x="970" y="850" />
+        <di:waypoint x="1135" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mspo_fail_di" bpmnElement="flow_mspo_fail">
+        <di:waypoint x="1135" y="585" />
+        <di:waypoint x="1350" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_mspo_ok_di" bpmnElement="flow_mspo_ok">
+        <di:waypoint x="1135" y="585" />
+        <di:waypoint x="1350" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f25_di" bpmnElement="f25">
+        <di:waypoint x="1350" y="850" />
+        <di:waypoint x="1698" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f26_di" bpmnElement="f26">
+        <di:waypoint x="1350" y="725" />
+        <di:waypoint x="1540" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f27_di" bpmnElement="f27">
+        <di:waypoint x="1540" y="600" />
+        <di:waypoint x="1698" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f28_di" bpmnElement="f28">
+        <di:waypoint x="178" y="2083" />
+        <di:waypoint x="368" y="2083" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_report_di" bpmnElement="mf_report">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="578" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_confirm_mpoo_di" bpmnElement="mf_confirm_mpoo">
+        <di:waypoint x="1318" y="578" />
+        <di:waypoint x="178" y="1413" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_confirm_mspo_di" bpmnElement="mf_confirm_mspo">
+        <di:waypoint x="1318" y="578" />
+        <di:waypoint x="178" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_failure_di" bpmnElement="mf_failure">
+        <di:waypoint x="1128" y="118" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_success_di" bpmnElement="mf_success">
+        <di:waypoint x="1128" y="243" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_mpoo_outcome_di" bpmnElement="mf_mpoo_outcome">
+        <di:waypoint x="970" y="975" />
+        <di:waypoint x="558" y="1413" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_mpoo_outcome2_di" bpmnElement="mf_mpoo_outcome2">
+        <di:waypoint x="970" y="850" />
+        <di:waypoint x="558" y="1413" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_mspo_outcome_di" bpmnElement="mf_mspo_outcome">
+        <di:waypoint x="1350" y="850" />
+        <di:waypoint x="368" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_mspo_outcome2_di" bpmnElement="mf_mspo_outcome2">
+        <di:waypoint x="1350" y="725" />
+        <di:waypoint x="368" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_sp_di" bpmnElement="mf_sp">
+        <di:waypoint x="1540" y="600" />
+        <di:waypoint x="178" y="2083" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_report_meter_op_doa0_di" bpmnElement="task_report_meter_op_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_examine_application_dia0_di" bpmnElement="task_examine_application_dia0">
+        <di:waypoint x="388" y="1225" />
+        <di:waypoint x="400" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_confirm_application_doa0_di" bpmnElement="task_confirm_application_doa0">
+        <di:waypoint x="780" y="600" />
+        <di:waypoint x="958" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_inform_mpoo_reg_confirm_dia0_di" bpmnElement="task_inform_mpoo_reg_confirm_dia0">
+        <di:waypoint x="958" y="1225" />
+        <di:waypoint x="970" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_inform_mspo_reg_confirm_dia0_di" bpmnElement="task_inform_mspo_reg_confirm_dia0">
+        <di:waypoint x="958" y="1225" />
+        <di:waypoint x="1160" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_assign_mpon_doa0_di" bpmnElement="task_assign_mpon_doa0">
+        <di:waypoint x="590" y="850" />
+        <di:waypoint x="1034" y="1225" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_confirm_assignment_dia0_di" bpmnElement="task_confirm_assignment_dia0">
+        <di:waypoint x="1034" y="1225" />
+        <di:waypoint x="780" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_inform_mpoo_assignment_dia0_di" bpmnElement="task_inform_mpoo_assignment_dia0">
+        <di:waypoint x="1034" y="1225" />
+        <di:waypoint x="970" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_inform_mspo_assignment_dia0_di" bpmnElement="task_inform_mspo_assignment_dia0">
+        <di:waypoint x="1034" y="1225" />
+        <di:waypoint x="1350" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_inform_sp_assignment_dia0_di" bpmnElement="task_inform_sp_assignment_dia0">
+        <di:waypoint x="1034" y="1225" />
+        <di:waypoint x="1540" y="600" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

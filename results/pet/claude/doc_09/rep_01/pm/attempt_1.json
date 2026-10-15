@@ -1,0 +1,294 @@
+{
+  "name": "Transaction Data Request Process",
+  "resources": [
+    {
+      "name": "INQ",
+      "capacity": 1,
+      "resource_type": "department"
+    },
+    {
+      "name": "IP",
+      "capacity": 1,
+      "resource_type": "department"
+    }
+  ],
+  "events": [
+    {
+      "id": "start_inq",
+      "name": "Start",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "end_send_request",
+      "name": "Anfrage gesendet",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Transaction Data Request"
+    },
+    {
+      "id": "start_ip_receive",
+      "name": "Anfrage empfangen",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Transaction Data Request"
+    },
+    {
+      "id": "end_send_data",
+      "name": "Daten gesendet",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Data Transmission"
+    },
+    {
+      "id": "end_send_rejection",
+      "name": "Ablehnung gesendet",
+      "event_position": "end",
+      "trigger_type": "message",
+      "message_name": "Rejection"
+    },
+    {
+      "id": "start_receive_answer",
+      "name": "Antwort empfangen",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Data Transmission or Rejection"
+    },
+    {
+      "id": "end_inq",
+      "name": "Ende",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_transmit_request",
+      "name": "Transaktionsdatenanfrage übermitteln",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_request"
+      ]
+    },
+    {
+      "id": "task_check_request",
+      "name": "Anfrage prüfen",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_request"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_transmit_data",
+      "name": "Daten übermitteln",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_transaction_data"
+      ]
+    },
+    {
+      "id": "task_reject",
+      "name": "Anfrage ablehnen",
+      "bpmn_type": "bpmn:Task",
+      "resource_name": null,
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_rejection"
+      ]
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gateway_outcome",
+      "name": "Prüfungsergebnis",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_to_transmit",
+          "condition": "Anfrage ok"
+        },
+        {
+          "flow_id": "flow_to_reject",
+          "condition": "Anfrage abgelehnt"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "start_inq",
+      "target_id": "task_transmit_request",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_transmit_request",
+      "target_id": "end_send_request",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "start_ip_receive",
+      "target_id": "task_check_request",
+      "condition_name": null
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_check_request",
+      "target_id": "gateway_outcome",
+      "condition_name": null
+    },
+    {
+      "id": "flow_to_transmit",
+      "source_id": "gateway_outcome",
+      "target_id": "task_transmit_data",
+      "condition_name": "Anfrage ok"
+    },
+    {
+      "id": "flow_to_reject",
+      "source_id": "gateway_outcome",
+      "target_id": "task_reject",
+      "condition_name": "Anfrage abgelehnt"
+    },
+    {
+      "id": "flow_5",
+      "source_id": "task_transmit_data",
+      "target_id": "end_send_data",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "task_reject",
+      "target_id": "end_send_rejection",
+      "condition_name": null
+    },
+    {
+      "id": "flow_7",
+      "source_id": "start_receive_answer",
+      "target_id": "end_inq",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_inq",
+      "name": "INQ",
+      "element_ids": [
+        "start_inq",
+        "task_transmit_request",
+        "end_send_request",
+        "start_receive_answer",
+        "end_inq"
+      ]
+    },
+    {
+      "id": "pool_ip",
+      "name": "IP",
+      "element_ids": [
+        "start_ip_receive",
+        "task_check_request",
+        "gateway_outcome",
+        "task_transmit_data",
+        "task_reject",
+        "end_send_data",
+        "end_send_rejection"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "mf_request",
+      "source_id": "end_send_request",
+      "target_id": "start_ip_receive",
+      "name": "Transaction Data Request"
+    },
+    {
+      "id": "mf_data",
+      "source_id": "end_send_data",
+      "target_id": "start_receive_answer",
+      "name": "Data Transmission"
+    },
+    {
+      "id": "mf_rejection",
+      "source_id": "end_send_rejection",
+      "target_id": "start_receive_answer",
+      "name": "Rejection"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_request",
+      "name": "Transaktionsdatenanfrage"
+    },
+    {
+      "id": "data_transaction_data",
+      "name": "Transaktionsdaten"
+    },
+    {
+      "id": "data_rejection",
+      "name": "Ablehnung"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": null,
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

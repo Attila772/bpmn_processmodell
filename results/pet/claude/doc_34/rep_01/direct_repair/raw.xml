@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <process id="ExpenseReportProcess" name="Expense Report Reimbursement Process" isExecutable="true">
+
+    <startEvent id="StartEvent_1" name="Expense Report Received">
+      <outgoing>Flow_Start_To_HasAccount</outgoing>
+    </startEvent>
+
+    <exclusiveGateway id="Gateway_HasAccount" name="Employee has account?">
+      <incoming>Flow_Start_To_HasAccount</incoming>
+      <outgoing>Flow_NoAccount</outgoing>
+      <outgoing>Flow_HasAccount</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_CreateAccount" name="Create New Account">
+      <incoming>Flow_NoAccount</incoming>
+      <outgoing>Flow_CreateAccount_To_Merge</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_MergeAccount" name="Account Ready">
+      <incoming>Flow_HasAccount</incoming>
+      <incoming>Flow_CreateAccount_To_Merge</incoming>
+      <outgoing>Flow_Merge_To_Review</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_ReviewReport" name="Review Expense Report">
+      <incoming>Flow_Merge_To_Review</incoming>
+      <outgoing>Flow_Review_To_AmountCheck</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_AmountCheck" name="Amount &gt;= $200?">
+      <incoming>Flow_Review_To_AmountCheck</incoming>
+      <outgoing>Flow_UnderLimit</outgoing>
+      <outgoing>Flow_OverLimit</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_AutoApprove" name="Automatic Approval">
+      <incoming>Flow_UnderLimit</incoming>
+      <outgoing>Flow_AutoApprove_To_Deposit</outgoing>
+    </task>
+
+    <task id="Task_SupervisorApproval" name="Supervisor Approval">
+      <incoming>Flow_OverLimit</incoming>
+      <outgoing>Flow_SupervisorApproval_To_ApprovedCheck</outgoing>
+    </task>
+
+    <boundaryEvent id="BoundaryTimer_7Days" name="7 Days Elapsed" attachedToRef="Task_SupervisorApproval" cancelActivity="false">
+      <timerEventDefinition>
+        <timeDuration>P7D</timeDuration>
+      </timerEventDefinition>
+      <outgoing>Flow_7Days_To_InProgressEmail</outgoing>
+    </boundaryEvent>
+
+    <task id="Task_SendInProgressEmail" name="Send Approval In Progress Email">
+      <incoming>Flow_7Days_To_InProgressEmail</incoming>
+      <outgoing>Flow_InProgressEmail_To_End</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_InProgressNotified" name="Notification Sent">
+      <incoming>Flow_InProgressEmail_To_End</incoming>
+    </endEvent>
+
+    <boundaryEvent id="BoundaryTimer_30Days" name="30 Days Elapsed" attachedToRef="Task_SupervisorApproval" cancelActivity="true">
+      <timerEventDefinition>
+        <timeDuration>P30D</timeDuration>
+      </timerEventDefinition>
+      <outgoing>Flow_30Days_To_CancelEmail</outgoing>
+    </boundaryEvent>
+
+    <task id="Task_SendCancellationEmail" name="Send Cancellation Notice Email">
+      <incoming>Flow_30Days_To_CancelEmail</incoming>
+      <outgoing>Flow_CancelEmail_To_Resubmit</outgoing>
+    </task>
+
+    <task id="Task_ResubmitReport" name="Employee Re-submits Expense Report">
+      <incoming>Flow_CancelEmail_To_Resubmit</incoming>
+      <outgoing>Flow_Resubmit_To_End</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Cancelled" name="Process Cancelled">
+      <incoming>Flow_Resubmit_To_End</incoming>
+    </endEvent>
+
+    <exclusiveGateway id="Gateway_ApprovedCheck" name="Approved?">
+      <incoming>Flow_SupervisorApproval_To_ApprovedCheck</incoming>
+      <outgoing>Flow_Approved</outgoing>
+      <outgoing>Flow_Rejected</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_SendRejectionEmail" name="Send Rejection Notice Email">
+      <incoming>Flow_Rejected</incoming>
+      <outgoing>Flow_RejectionEmail_To_End</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Rejected" name="Rejection Notice Sent">
+      <incoming>Flow_RejectionEmail_To_End</incoming>
+    </endEvent>
+
+    <task id="Task_ProcessDeposit" name="Process Direct Deposit to Employee Account">
+      <incoming>Flow_AutoApprove_To_Deposit</incoming>
+      <incoming>Flow_Approved</incoming>
+      <outgoing>Flow_Deposit_To_End</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Approved" name="Reimbursement Completed">
+      <incoming>Flow_Deposit_To_End</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows -->
+    <sequenceFlow id="Flow_Start_To_HasAccount" sourceRef="StartEvent_1" targetRef="Gateway_HasAccount" />
+
+    <sequenceFlow id="Flow_NoAccount" name="No" sourceRef="Gateway_HasAccount" targetRef="Task_CreateAccount" />
+    <sequenceFlow id="Flow_HasAccount" name="Yes" sourceRef="Gateway_HasAccount" targetRef="Gateway_MergeAccount" />
+    <sequenceFlow id="Flow_CreateAccount_To_Merge" sourceRef="Task_CreateAccount" targetRef="Gateway_MergeAccount" />
+
+    <sequenceFlow id="Flow_Merge_To_Review" sourceRef="Gateway_MergeAccount" targetRef="Task_ReviewReport" />
+    <sequenceFlow id="Flow_Review_To_AmountCheck" sourceRef="Task_ReviewReport" targetRef="Gateway_AmountCheck" />
+
+    <sequenceFlow id="Flow_UnderLimit" name="Amount &lt; $200" sourceRef="Gateway_AmountCheck" targetRef="Task_AutoApprove" />
+    <sequenceFlow id="Flow_OverLimit" name="Amount &gt;= $200" sourceRef="Gateway_AmountCheck" targetRef="Task_SupervisorApproval" />
+
+    <sequenceFlow id="Flow_AutoApprove_To_Deposit" sourceRef="Task_AutoApprove" targetRef="Task_ProcessDeposit" />
+
+    <sequenceFlow id="Flow_SupervisorApproval_To_ApprovedCheck" sourceRef="Task_SupervisorApproval" targetRef="Gateway_ApprovedCheck" />
+
+    <sequenceFlow id="Flow_7Days_To_InProgressEmail" sourceRef="BoundaryTimer_7Days" targetRef="Task_SendInProgressEmail" />
+    <sequenceFlow id="Flow_InProgressEmail_To_End" sourceRef="Task_SendInProgressEmail" targetRef="EndEvent_InProgressNotified" />
+
+    <sequenceFlow id="Flow_30Days_To_CancelEmail" sourceRef="BoundaryTimer_30Days" targetRef="Task_SendCancellationEmail" />
+    <sequenceFlow id="Flow_CancelEmail_To_Resubmit" sourceRef="Task_SendCancellationEmail" targetRef="Task_ResubmitReport" />
+    <sequenceFlow id="Flow_Resubmit_To_End" sourceRef="Task_ResubmitReport" targetRef="EndEvent_Cancelled" />
+
+    <sequenceFlow id="Flow_Approved" name="Approved" sourceRef="Gateway_ApprovedCheck" targetRef="Task_ProcessDeposit" />
+    <sequenceFlow id="Flow_Rejected" name="Rejected" sourceRef="Gateway_ApprovedCheck" targetRef="Task_SendRejectionEmail" />
+    <sequenceFlow id="Flow_RejectionEmail_To_End" sourceRef="Task_SendRejectionEmail" targetRef="EndEvent_Rejected" />
+
+    <sequenceFlow id="Flow_Deposit_To_End" sourceRef="Task_ProcessDeposit" targetRef="EndEvent_Approved" />
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ExpenseReportProcess">
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="40" y="200" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_HasAccount_di" bpmnElement="Gateway_HasAccount" isMarkerVisible="true">
+        <omgdc:Bounds x="120" y="195" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CreateAccount_di" bpmnElement="Task_CreateAccount">
+        <omgdc:Bounds x="220" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MergeAccount_di" bpmnElement="Gateway_MergeAccount" isMarkerVisible="true">
+        <omgdc:Bounds x="370" y="195" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ReviewReport_di" bpmnElement="Task_ReviewReport">
+        <omgdc:Bounds x="460" y="180" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_AmountCheck_di" bpmnElement="Gateway_AmountCheck" isMarkerVisible="true">
+        <omgdc:Bounds x="610" y="195" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AutoApprove_di" bpmnElement="Task_AutoApprove">
+        <omgdc:Bounds x="710" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SupervisorApproval_di" bpmnElement="Task_SupervisorApproval">
+        <omgdc:Bounds x="710" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BoundaryTimer_7Days_di" bpmnElement="BoundaryTimer_7Days">
+        <omgdc:Bounds x="742" y="322" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendInProgressEmail_di" bpmnElement="Task_SendInProgressEmail">
+        <omgdc:Bounds x="700" y="400" width="120" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_InProgressNotified_di" bpmnElement="EndEvent_InProgressNotified">
+        <omgdc:Bounds x="740" y="520" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="BoundaryTimer_30Days_di" bpmnElement="BoundaryTimer_30Days">
+        <omgdc:Bounds x="792" y="322" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendCancellationEmail_di" bpmnElement="Task_SendCancellationEmail">
+        <omgdc:Bounds x="900" y="400" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ResubmitReport_di" bpmnElement="Task_ResubmitReport">
+        <omgdc:Bounds x="1070" y="400" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Cancelled_di" bpmnElement="EndEvent_Cancelled">
+        <omgdc:Bounds x="1240" y="422" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ApprovedCheck_di" bpmnElement="Gateway_ApprovedCheck" isMarkerVisible="true">
+        <omgdc:Bounds x="860" y="275" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendRejectionEmail_di" bpmnElement="Task_SendRejectionEmail">
+        <omgdc:Bounds x="950" y="140" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <omgdc:Bounds x="1120" y="162" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProcessDeposit_di" bpmnElement="Task_ProcessDeposit">
+        <omgdc:Bounds x="950" y="280" width="130" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Approved_di" bpmnElement="EndEvent_Approved">
+        <omgdc:Bounds x="1130" y="300" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Flow_Start_To_HasAccount_di" bpmnElement="Flow_Start_To_HasAccount">
+        <omgdi:waypoint x="76" y="218" />
+        <omgdi:waypoint x="120" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NoAccount_di" bpmnElement="Flow_NoAccount">
+        <omgdi:waypoint x="145" y="195" />
+        <omgdi:waypoint x="145" y="140" />
+        <omgdi:waypoint x="220" y="140" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_HasAccount_di" bpmnElement="Flow_HasAccount">
+        <omgdi:waypoint x="170" y="220" />
+        <omgdi:waypoint x="370" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_CreateAccount_To_Merge_di" bpmnElement="Flow_CreateAccount_To_Merge">
+        <omgdi:waypoint x="320" y="140" />
+        <omgdi:waypoint x="395" y="140" />
+        <omgdi:waypoint x="395" y="195" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Merge_To_Review_di" bpmnElement="Flow_Merge_To_Review">
+        <omgdi:waypoint x="420" y="220" />
+        <omgdi:waypoint x="460" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Review_To_AmountCheck_di" bpmnElement="Flow_Review_To_AmountCheck">
+        <omgdi:waypoint x="560" y="220" />
+        <omgdi:waypoint x="610" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_UnderLimit_di" bpmnElement="Flow_UnderLimit">
+        <omgdi:waypoint x="635" y="195" />
+        <omgdi:waypoint x="635" y="120" />
+        <omgdi:waypoint x="710" y="120" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_OverLimit_di" bpmnElement="Flow_OverLimit">
+        <omgdi:waypoint x="635" y="245" />
+        <omgdi:waypoint x="635" y="300" />
+        <omgdi:waypoint x="710" y="300" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_AutoApprove_To_Deposit_di" bpmnElement="Flow_AutoApprove_To_Deposit">
+        <omgdi:waypoint x="810" y="120" />
+        <omgdi:waypoint x="1015" y="120" />
+        <omgdi:waypoint x="1015" y="280" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_SupervisorApproval_To_ApprovedCheck_di" bpmnElement="Flow_SupervisorApproval_To_ApprovedCheck">
+        <omgdi:waypoint x="810" y="300" />
+        <omgdi:waypoint x="860" y="300" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7Days_To_InProgressEmail_di" bpmnElement="Flow_7Days_To_InProgressEmail">
+        <omgdi:waypoint x="760" y="358" />
+        <omgdi:waypoint x="760" y="400" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_InProgressEmail_To_End_di" bpmnElement="Flow_InProgressEmail_To_End">
+        <omgdi:waypoint x="760" y="480" />
+        <omgdi:waypoint x="760" y="520" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_30Days_To_CancelEmail_di" bpmnElement="Flow_30Days_To_CancelEmail">
+        <omgdi:waypoint x="810" y="358" />
+        <omgdi:waypoint x="810" y="440" />
+        <omgdi:waypoint x="900" y="440" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_CancelEmail_To_Resubmit_di" bpmnElement="Flow_CancelEmail_To_Resubmit">
+        <omgdi:waypoint x="1030" y="440" />
+        <omgdi:waypoint x="1070" y="440" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Resubmit_To_End_di" bpmnElement="Flow_Resubmit_To_End">
+        <omgdi:waypoint x="1200" y="440" />
+        <omgdi:waypoint x="1240" y="440" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <omgdi:waypoint x="910" y="300" />
+        <omgdi:waypoint x="930" y="300" />
+        <omgdi:waypoint x="930" y="320" />
+        <omgdi:waypoint x="950" y="320" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <omgdi:waypoint x="885" y="275" />
+        <omgdi:waypoint x="885" y="180" />
+        <omgdi:waypoint x="950" y="180" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_RejectionEmail_To_End_di" bpmnElement="Flow_RejectionEmail_To_End">
+        <omgdi:waypoint x="1080" y="180" />
+        <omgdi:waypoint x="1120" y="180" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Deposit_To_End_di" bpmnElement="Flow_Deposit_To_End">
+        <omgdi:waypoint x="1080" y="320" />
+        <omgdi:waypoint x="1130" y="318" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

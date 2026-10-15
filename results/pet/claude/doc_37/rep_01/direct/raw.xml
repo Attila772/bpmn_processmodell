@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             id="Definitions_1"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <collaboration id="Collaboration_1">
+    <participant id="Participant_MailProcess" name="Incoming Mail Processing" processRef="Process_MailHandling"/>
+  </collaboration>
+
+  <process id="Process_MailHandling" isExecutable="false">
+
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_MailClerk" name="Mail Clerk (Mail Processing Unit)">
+        <flowNodeRef>StartEvent_1</flowNodeRef>
+        <flowNodeRef>Task_SortUnopenedMail</flowNodeRef>
+        <flowNodeRef>Task_DistributeMail</flowNodeRef>
+      </lane>
+
+      <lane id="Lane_AssistantRegistryManager" name="Assistant Registry Manager (Registry)">
+        <flowNodeRef>Task_OpenSortRegister</flowNodeRef>
+        <flowNodeRef>Task_QualityCheck</flowNodeRef>
+        <flowNodeRef>Gateway_Compliant</flowNodeRef>
+        <flowNodeRef>Task_CompileRequisition</flowNodeRef>
+        <flowNodeRef>Task_SendBackToParty</flowNodeRef>
+        <flowNodeRef>EndEvent_Rejected</flowNodeRef>
+        <flowNodeRef>Task_CaptureMatterDetails</flowNodeRef>
+        <flowNodeRef>Task_PutEnvelopePost</flowNodeRef>
+        <flowNodeRef>EndEvent_PostedToParty</flowNodeRef>
+        <flowNodeRef>Gateway_ParallelSplit</flowNodeRef>
+      </lane>
+
+      <lane id="Lane_Cashier" name="Cashier (Registry)">
+        <flowNodeRef>Task_TakeFees</flowNodeRef>
+        <flowNodeRef>Task_CapturePartyDetails</flowNodeRef>
+        <flowNodeRef>Task_PrintCourtFile</flowNodeRef>
+        <flowNodeRef>EndEvent_FilePrinted</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <startEvent id="StartEvent_1" name="Mail collected daily">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+
+    <task id="Task_SortUnopenedMail" name="Sort unopened mail into business areas">
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+    </task>
+
+    <task id="Task_DistributeMail" name="Distribute mail">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+    </task>
+
+    <task id="Task_OpenSortRegister" name="Open mail, sort into groups, register in Mail Register">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+    </task>
+
+    <task id="Task_QualityCheck" name="Perform quality check">
+      <incoming>Flow_4</incoming>
+      <outgoing>Flow_5</outgoing>
+    </task>
+
+    <exclusiveGateway id="Gateway_Compliant" name="Mail compliant?">
+      <incoming>Flow_5</incoming>
+      <outgoing>Flow_NotCompliant</outgoing>
+      <outgoing>Flow_Compliant</outgoing>
+    </exclusiveGateway>
+
+    <task id="Task_CompileRequisition" name="Compile list of requisition explaining reason for rejection">
+      <incoming>Flow_NotCompliant</incoming>
+      <outgoing>Flow_6</outgoing>
+    </task>
+
+    <task id="Task_SendBackToParty" name="Send requisition back to party">
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_7</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_Rejected" name="Mail rejected">
+      <incoming>Flow_7</incoming>
+    </endEvent>
+
+    <task id="Task_CaptureMatterDetails" name="Capture matter details (types of action)">
+      <incoming>Flow_Compliant</incoming>
+      <outgoing>Flow_8</outgoing>
+    </task>
+
+    <task id="Task_TakeFees" name="Take applicable fees attached to mail">
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_9</outgoing>
+    </task>
+
+    <parallelGateway id="Gateway_ParallelSplit" name="Fees taken">
+      <incoming>Flow_9</incoming>
+      <outgoing>Flow_ToEnvelope</outgoing>
+      <outgoing>Flow_ToCapturePartyDetails</outgoing>
+    </parallelGateway>
+
+    <task id="Task_PutEnvelopePost" name="Put receipt and copied documents into envelope and post to party">
+      <incoming>Flow_ToEnvelope</incoming>
+      <outgoing>Flow_10</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_PostedToParty" name="Documents posted to party">
+      <incoming>Flow_10</incoming>
+    </endEvent>
+
+    <task id="Task_CapturePartyDetails" name="Capture Party Details">
+      <incoming>Flow_ToCapturePartyDetails</incoming>
+      <outgoing>Flow_11</outgoing>
+    </task>
+
+    <task id="Task_PrintCourtFile" name="Print Physical Court File">
+      <incoming>Flow_11</incoming>
+      <outgoing>Flow_12</outgoing>
+    </task>
+
+    <endEvent id="EndEvent_FilePrinted" name="Physical Court File printed">
+      <incoming>Flow_12</incoming>
+    </endEvent>
+
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_SortUnopenedMail"/>
+    <sequenceFlow id="Flow_2" sourceRef="Task_SortUnopenedMail" targetRef="Task_DistributeMail"/>
+    <sequenceFlow id="Flow_3" sourceRef="Task_DistributeMail" targetRef="Task_OpenSortRegister"/>
+    <sequenceFlow id="Flow_4" sourceRef="Task_OpenSortRegister" targetRef="Task_QualityCheck"/>
+    <sequenceFlow id="Flow_5" sourceRef="Task_QualityCheck" targetRef="Gateway_Compliant"/>
+    <sequenceFlow id="Flow_NotCompliant" name="No" sourceRef="Gateway_Compliant" targetRef="Task_CompileRequisition"/>
+    <sequenceFlow id="Flow_Compliant" name="Yes" sourceRef="Gateway_Compliant" targetRef="Task_CaptureMatterDetails"/>
+    <sequenceFlow id="Flow_6" sourceRef="Task_CompileRequisition" targetRef="Task_SendBackToParty"/>
+    <sequenceFlow id="Flow_7" sourceRef="Task_SendBackToParty" targetRef="EndEvent_Rejected"/>
+    <sequenceFlow id="Flow_8" sourceRef="Task_CaptureMatterDetails" targetRef="Task_TakeFees"/>
+    <sequenceFlow id="Flow_9" sourceRef="Task_TakeFees" targetRef="Gateway_ParallelSplit"/>
+    <sequenceFlow id="Flow_ToEnvelope" sourceRef="Gateway_ParallelSplit" targetRef="Task_PutEnvelopePost"/>
+    <sequenceFlow id="Flow_ToCapturePartyDetails" sourceRef="Gateway_ParallelSplit" targetRef="Task_CapturePartyDetails"/>
+    <sequenceFlow id="Flow_10" sourceRef="Task_PutEnvelopePost" targetRef="EndEvent_PostedToParty"/>
+    <sequenceFlow id="Flow_11" sourceRef="Task_CapturePartyDetails" targetRef="Task_PrintCourtFile"/>
+    <sequenceFlow id="Flow_12" sourceRef="Task_PrintCourtFile" targetRef="EndEvent_FilePrinted"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+
+      <bpmndi:BPMNShape id="Participant_MailProcess_di" bpmnElement="Participant_MailProcess" isHorizontal="true">
+        <omgdc:Bounds x="100" y="60" width="1500" height="560"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_MailClerk_di" bpmnElement="Lane_MailClerk" isHorizontal="true">
+        <omgdc:Bounds x="130" y="60" width="1470" height="150"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_AssistantRegistryManager_di" bpmnElement="Lane_AssistantRegistryManager" isHorizontal="true">
+        <omgdc:Bounds x="130" y="210" width="1470" height="250"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Cashier_di" bpmnElement="Lane_Cashier" isHorizontal="true">
+        <omgdc:Bounds x="130" y="460" width="1470" height="160"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <omgdc:Bounds x="170" y="112" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SortUnopenedMail_di" bpmnElement="Task_SortUnopenedMail">
+        <omgdc:Bounds x="250" y="90" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_DistributeMail_di" bpmnElement="Task_DistributeMail">
+        <omgdc:Bounds x="420" y="90" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_OpenSortRegister_di" bpmnElement="Task_OpenSortRegister">
+        <omgdc:Bounds x="590" y="240" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_QualityCheck_di" bpmnElement="Task_QualityCheck">
+        <omgdc:Bounds x="760" y="240" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_Compliant_di" bpmnElement="Gateway_Compliant" isMarkerVisible="true">
+        <omgdc:Bounds x="915" y="255" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CompileRequisition_di" bpmnElement="Task_CompileRequisition">
+        <omgdc:Bounds x="1000" y="150" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendBackToParty_di" bpmnElement="Task_SendBackToParty">
+        <omgdc:Bounds x="1180" y="150" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Rejected_di" bpmnElement="EndEvent_Rejected">
+        <omgdc:Bounds x="1350" y="172" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CaptureMatterDetails_di" bpmnElement="Task_CaptureMatterDetails">
+        <omgdc:Bounds x="1000" y="330" width="150" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TakeFees_di" bpmnElement="Task_TakeFees">
+        <omgdc:Bounds x="1190" y="480" width="130" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_ParallelSplit_di" bpmnElement="Gateway_ParallelSplit">
+        <omgdc:Bounds x="1360" y="495" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PutEnvelopePost_di" bpmnElement="Task_PutEnvelopePost">
+        <omgdc:Bounds x="1450" y="330" width="150" height="90"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_PostedToParty_di" bpmnElement="EndEvent_PostedToParty">
+        <omgdc:Bounds x="1640" y="357" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CapturePartyDetails_di" bpmnElement="Task_CapturePartyDetails">
+        <omgdc:Bounds x="1450" y="480" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_PrintCourtFile_di" bpmnElement="Task_PrintCourtFile">
+        <omgdc:Bounds x="1620" y="480" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_FilePrinted_di" bpmnElement="EndEvent_FilePrinted">
+        <omgdc:Bounds x="1790" y="502" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <omgdi:waypoint x="206" y="130"/>
+        <omgdi:waypoint x="250" y="130"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <omgdi:waypoint x="370" y="130"/>
+        <omgdi:waypoint x="420" y="130"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <omgdi:waypoint x="480" y="170"/>
+        <omgdi:waypoint x="480" y="280"/>
+        <omgdi:waypoint x="590" y="280"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <omgdi:waypoint x="720" y="280"/>
+        <omgdi:waypoint x="760" y="280"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <omgdi:waypoint x="880" y="280"/>
+        <omgdi:waypoint x="915" y="280"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NotCompliant_di" bpmnElement="Flow_NotCompliant">
+        <omgdi:waypoint x="940" y="255"/>
+        <omgdi:waypoint x="940" y="190"/>
+        <omgdi:waypoint x="1000" y="190"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_Compliant_di" bpmnElement="Flow_Compliant">
+        <omgdi:waypoint x="940" y="305"/>
+        <omgdi:waypoint x="940" y="370"/>
+        <omgdi:waypoint x="1000" y="370"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <omgdi:waypoint x="1140" y="190"/>
+        <omgdi:waypoint x="1180" y="190"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <omgdi:waypoint x="1310" y="190"/>
+        <omgdi:waypoint x="1350" y="190"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <omgdi:waypoint x="1075" y="410"/>
+        <omgdi:waypoint x="1075" y="520"/>
+        <omgdi:waypoint x="1190" y="520"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <omgdi:waypoint x="1320" y="520"/>
+        <omgdi:waypoint x="1360" y="520"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToEnvelope_di" bpmnElement="Flow_ToEnvelope">
+        <omgdi:waypoint x="1385" y="495"/>
+        <omgdi:waypoint x="1385" y="375"/>
+        <omgdi:waypoint x="1450" y="375"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_ToCapturePartyDetails_di" bpmnElement="Flow_ToCapturePartyDetails">
+        <omgdi:waypoint x="1410" y="520"/>
+        <omgdi:waypoint x="1450" y="520"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <omgdi:waypoint x="1600" y="375"/>
+        <omgdi:waypoint x="1640" y="375"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <omgdi:waypoint x="1590" y="520"/>
+        <omgdi:waypoint x="1620" y="520"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <omgdi:waypoint x="1760" y="520"/>
+        <omgdi:waypoint x="1790" y="520"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+
+</definitions>

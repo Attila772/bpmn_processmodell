@@ -1,0 +1,1124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_customer_part" name="Customer" processRef="pool_customer_proc" />
+    <bpmn:participant id="pool_cs_part" name="Customer Service" processRef="pool_cs_proc" />
+    <bpmn:participant id="pool_sm_part" name="Service Management" processRef="pool_sm_proc" />
+    <bpmn:participant id="pool_rp_part" name="Resource Provisioning" processRef="pool_rp_proc" />
+    <bpmn:participant id="pool_billing_part" name="Billing &amp; Collections" processRef="pool_billing_proc" />
+    <bpmn:messageFlow id="mf1" sourceRef="task_send_problem_list" targetRef="ev_cs_receive_list" name="Problem Parameter List" />
+    <bpmn:messageFlow id="mf2" sourceRef="ev_send_detailed_report" targetRef="ev_sm_receive_detailed" name="Detailed Problem Report" />
+    <bpmn:messageFlow id="mf3" sourceRef="ev_sm_send_to_rp" targetRef="ev_rp_receive_detailed" name="Detailed Problem Report" />
+    <bpmn:messageFlow id="mf4" sourceRef="ev_rp_send_status" targetRef="ev_sm_receive_status" name="Status Report" />
+    <bpmn:messageFlow id="mf5" sourceRef="ev_sm_send_actual_perf" targetRef="ev_cs_receive_outcome" name="Actual Service Performance" />
+    <bpmn:messageFlow id="mf6" sourceRef="ev_sm_send_resolution_cs1" targetRef="ev_cs_receive_outcome" name="Problem Resolution Report" />
+    <bpmn:messageFlow id="mf7" sourceRef="ev_sm_send_resolution_cs2" targetRef="ev_cs_receive_outcome" name="Problem Resolution Report" />
+    <bpmn:messageFlow id="mf8" sourceRef="ev_sm_send_restoration_req" targetRef="ev_rp_wait_restoration" name="Restoration Request" />
+    <bpmn:messageFlow id="mf9" sourceRef="ev_rp_send_troubleshoot" targetRef="ev_sm_receive_troubleshoot" name="Trouble-shooting Report" />
+    <bpmn:messageFlow id="mf10" sourceRef="ev_send_customer_report" targetRef="ev_end_customer_receive" name="Customer Report" />
+    <bpmn:messageFlow id="mf11" sourceRef="task_report_rebate" targetRef="ev_billing_receive_rebate" name="SLA Violation Rebate" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_customer_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_problem_param_list" name="Problem Parameter List" dataObjectRef="do_problem_param_list_do" />
+    <bpmn:dataObject id="do_problem_param_list_do" />
+    <bpmn:startEvent id="ev_start_degrad" name="Customer perceives service degradation">
+      <bpmn:outgoing>sf1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="ev_end_customer_receive" name="Customer receives report">
+      <bpmn:incoming>sf2</bpmn:incoming>
+      <bpmn:incoming>sf20</bpmn:incoming>
+      <bpmn:messageEventDefinition id="ev_end_customer_receive_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:manualTask id="task_send_problem_list" name="Send list of problem parameters">
+      <bpmn:incoming>sf1</bpmn:incoming>
+      <bpmn:outgoing>sf2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_send_problem_list_doa0">
+        <bpmn:targetRef>do_problem_param_list</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:manualTask>
+    <bpmn:parallelGateway id="gw_cs_split" name="Split concurrent CS activities">
+      <bpmn:incoming>sf12</bpmn:incoming>
+      <bpmn:outgoing>sf13</bpmn:outgoing>
+      <bpmn:outgoing>sf14</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="sf1" sourceRef="ev_start_degrad" targetRef="task_send_problem_list" />
+    <bpmn:sequenceFlow id="sf2" sourceRef="task_send_problem_list" targetRef="ev_end_customer_receive" />
+  </bpmn:process>
+  <bpmn:process id="pool_cs_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_problem_param_list_p1" name="Problem Parameter List" dataObjectRef="do_problem_param_list_p1_do" />
+    <bpmn:dataObject id="do_problem_param_list_p1_do" />
+    <bpmn:dataObjectReference id="do_problem_report" name="Problem Report" dataObjectRef="do_problem_report_do" />
+    <bpmn:dataObject id="do_problem_report_do" />
+    <bpmn:dataObjectReference id="do_customer_sla" name="Customer SLA" dataObjectRef="do_customer_sla_do" />
+    <bpmn:dataObject id="do_customer_sla_do" />
+    <bpmn:dataObjectReference id="do_customer_history" name="Customer History Data" dataObjectRef="do_customer_history_do" />
+    <bpmn:dataObject id="do_customer_history_do" />
+    <bpmn:dataObjectReference id="do_detailed_problem_report" name="Detailed Problem Report" dataObjectRef="do_detailed_problem_report_do" />
+    <bpmn:dataObject id="do_detailed_problem_report_do" />
+    <bpmn:dataObjectReference id="do_customer_report" name="Customer Report" dataObjectRef="do_customer_report_do" />
+    <bpmn:dataObject id="do_customer_report_do" />
+    <bpmn:dataObjectReference id="do_rebate_notice" name="SLA Violation Rebate Notice" dataObjectRef="do_rebate_notice_do" />
+    <bpmn:dataObject id="do_rebate_notice_do" />
+    <bpmn:startEvent id="ev_cs_receive_list" name="Problem parameter list received">
+      <bpmn:outgoing>sf3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_cs_receive_list_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="ev_send_detailed_report" name="Detailed problem report sent to Service Management">
+      <bpmn:incoming>sf10</bpmn:incoming>
+      <bpmn:outgoing>sf11</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_send_detailed_report_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="ev_cs_receive_outcome" name="Outcome received from Service Management">
+      <bpmn:incoming>sf11</bpmn:incoming>
+      <bpmn:incoming>sf50</bpmn:incoming>
+      <bpmn:incoming>sf51</bpmn:incoming>
+      <bpmn:incoming>sf52</bpmn:incoming>
+      <bpmn:outgoing>sf12</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_cs_receive_outcome_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="ev_send_customer_report" name="Report sent to customer">
+      <bpmn:incoming>sf15</bpmn:incoming>
+      <bpmn:outgoing>sf16</bpmn:outgoing>
+      <bpmn:outgoing>sf20</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_send_customer_report_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="ev_end_cs" name="Customer Service process ends">
+      <bpmn:incoming>sf18</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_enter_report" name="Enter problem report into system T">
+      <bpmn:incoming>sf3</bpmn:incoming>
+      <bpmn:outgoing>sf4</bpmn:outgoing>
+      <bpmn:property id="task_enter_report_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_enter_report_dia0">
+        <bpmn:sourceRef>do_problem_param_list_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_enter_report_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_enter_report_doa0">
+        <bpmn:targetRef>do_problem_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_compare_sla" name="Compare problem report to customer SLA">
+      <bpmn:incoming>sf4</bpmn:incoming>
+      <bpmn:outgoing>sf5</bpmn:outgoing>
+      <bpmn:property id="task_compare_sla_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_compare_sla_dia0">
+        <bpmn:sourceRef>do_problem_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_compare_sla_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_compare_sla_dia1">
+        <bpmn:sourceRef>do_customer_sla</bpmn:sourceRef>
+        <bpmn:targetRef>task_compare_sla_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_determine_measures" name="Determine counter measures and priorities">
+      <bpmn:incoming>sf5</bpmn:incoming>
+      <bpmn:incoming>sf9</bpmn:incoming>
+      <bpmn:outgoing>sf6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="task_determine_significance" name="Determine customer significance">
+      <bpmn:incoming>sf6</bpmn:incoming>
+      <bpmn:outgoing>sf7</bpmn:outgoing>
+      <bpmn:property id="task_determine_significance_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_determine_significance_dia0">
+        <bpmn:sourceRef>do_customer_history</bpmn:sourceRef>
+        <bpmn:targetRef>task_determine_significance_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:task id="task_premium_link" name="Link to extra problem fix process (premium)">
+      <bpmn:incoming>sf_premium_yes</bpmn:incoming>
+      <bpmn:outgoing>sf8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="task_reprioritize" name="Re-prioritize counter measures">
+      <bpmn:incoming>sf_resig_yes</bpmn:incoming>
+      <bpmn:outgoing>sf9</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_create_detailed_report" name="Create detailed problem report">
+      <bpmn:incoming>sf_resig_no</bpmn:incoming>
+      <bpmn:outgoing>sf10</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_create_detailed_report_doa0">
+        <bpmn:targetRef>do_detailed_problem_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_create_customer_report" name="Create report for customer (service performance &amp; resolution)">
+      <bpmn:incoming>sf13</bpmn:incoming>
+      <bpmn:outgoing>sf15</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_create_customer_report_doa0">
+        <bpmn:targetRef>do_customer_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_report_rebate" name="Report SLA violation rebate to Billing &amp; Collections">
+      <bpmn:incoming>sf14</bpmn:incoming>
+      <bpmn:outgoing>sf17</bpmn:outgoing>
+      <bpmn:outgoing>sf19</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_report_rebate_doa0">
+        <bpmn:targetRef>do_rebate_notice</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_premium" name="Customer premium?" isMarkerVisible="true">
+      <bpmn:incoming>sf7</bpmn:incoming>
+      <bpmn:outgoing>sf_premium_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_premium_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_resig_change" name="Significance affects measures?" isMarkerVisible="true">
+      <bpmn:incoming>sf_premium_no</bpmn:incoming>
+      <bpmn:incoming>sf8</bpmn:incoming>
+      <bpmn:outgoing>sf_resig_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_resig_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="gw_cs_join" name="Join concurrent CS activities">
+      <bpmn:incoming>sf16</bpmn:incoming>
+      <bpmn:incoming>sf17</bpmn:incoming>
+      <bpmn:outgoing>sf18</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="sf3" sourceRef="ev_cs_receive_list" targetRef="task_enter_report" />
+    <bpmn:sequenceFlow id="sf4" sourceRef="task_enter_report" targetRef="task_compare_sla" />
+    <bpmn:sequenceFlow id="sf5" sourceRef="task_compare_sla" targetRef="task_determine_measures" />
+    <bpmn:sequenceFlow id="sf6" sourceRef="task_determine_measures" targetRef="task_determine_significance" />
+    <bpmn:sequenceFlow id="sf7" sourceRef="task_determine_significance" targetRef="gw_premium" />
+    <bpmn:sequenceFlow id="sf_premium_yes" sourceRef="gw_premium" targetRef="task_premium_link" />
+    <bpmn:sequenceFlow id="sf_premium_no" sourceRef="gw_premium" targetRef="gw_resig_change" />
+    <bpmn:sequenceFlow id="sf8" sourceRef="task_premium_link" targetRef="gw_resig_change" />
+    <bpmn:sequenceFlow id="sf_resig_yes" sourceRef="gw_resig_change" targetRef="task_reprioritize" />
+    <bpmn:sequenceFlow id="sf9" sourceRef="task_reprioritize" targetRef="task_determine_measures" />
+    <bpmn:sequenceFlow id="sf_resig_no" sourceRef="gw_resig_change" targetRef="task_create_detailed_report" />
+    <bpmn:sequenceFlow id="sf10" sourceRef="task_create_detailed_report" targetRef="ev_send_detailed_report" />
+    <bpmn:sequenceFlow id="sf11" sourceRef="ev_send_detailed_report" targetRef="ev_cs_receive_outcome" />
+    <bpmn:sequenceFlow id="sf15" sourceRef="task_create_customer_report" targetRef="ev_send_customer_report" />
+    <bpmn:sequenceFlow id="sf16" sourceRef="ev_send_customer_report" targetRef="gw_cs_join" />
+    <bpmn:sequenceFlow id="sf17" sourceRef="task_report_rebate" targetRef="gw_cs_join" />
+    <bpmn:sequenceFlow id="sf18" sourceRef="gw_cs_join" targetRef="ev_end_cs" />
+  </bpmn:process>
+  <bpmn:process id="pool_sm_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_detailed_problem_report_p1" name="Detailed Problem Report" dataObjectRef="do_detailed_problem_report_p1_do" />
+    <bpmn:dataObject id="do_detailed_problem_report_p1_do" />
+    <bpmn:dataObjectReference id="do_trouble_report_sm" name="Trouble Report (Service Management)" dataObjectRef="do_trouble_report_sm_do" />
+    <bpmn:dataObject id="do_trouble_report_sm_do" />
+    <bpmn:dataObjectReference id="do_status_report" name="Status Report" dataObjectRef="do_status_report_do" />
+    <bpmn:dataObject id="do_status_report_do" />
+    <bpmn:dataObjectReference id="do_final_status_report" name="Final Status Report" dataObjectRef="do_final_status_report_do" />
+    <bpmn:dataObject id="do_final_status_report_do" />
+    <bpmn:dataObjectReference id="do_resolution_report" name="Problem Resolution Report" dataObjectRef="do_resolution_report_do" />
+    <bpmn:dataObject id="do_resolution_report_do" />
+    <bpmn:dataObjectReference id="do_restoration_request" name="Restoration Request" dataObjectRef="do_restoration_request_do" />
+    <bpmn:dataObject id="do_restoration_request_do" />
+    <bpmn:dataObjectReference id="do_troubleshoot_report" name="Trouble-shooting Report" dataObjectRef="do_troubleshoot_report_do" />
+    <bpmn:dataObject id="do_troubleshoot_report_do" />
+    <bpmn:startEvent id="ev_sm_receive_detailed" name="Detailed problem report received">
+      <bpmn:outgoing>sf23</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_sm_receive_detailed_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="ev_sm_send_to_rp" name="Detailed problem report sent to Resource Provisioning">
+      <bpmn:incoming>sf_analyzable_no</bpmn:incoming>
+      <bpmn:outgoing>sf26</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_sm_send_to_rp_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="ev_sm_receive_status" name="Status report received from Resource Provisioning">
+      <bpmn:incoming>sf25</bpmn:incoming>
+      <bpmn:incoming>sf32</bpmn:incoming>
+      <bpmn:outgoing>sf33</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_sm_receive_status_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="ev_sm_send_resolution_cs1" name="Problem resolution report sent to Customer Service">
+      <bpmn:incoming>sf37</bpmn:incoming>
+      <bpmn:outgoing>sf38</bpmn:outgoing>
+      <bpmn:outgoing>sf51</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_sm_send_resolution_cs1_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="ev_sm_send_actual_perf" name="Actual service performance sent to Customer Service">
+      <bpmn:incoming>sf_cm_none</bpmn:incoming>
+      <bpmn:outgoing>sf35</bpmn:outgoing>
+      <bpmn:outgoing>sf50</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_sm_send_actual_perf_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="ev_sm_send_restoration_req" name="Restoration request sent to Resource Provisioning">
+      <bpmn:incoming>sf39</bpmn:incoming>
+      <bpmn:outgoing>sf40</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_sm_send_restoration_req_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="ev_sm_receive_troubleshoot" name="Trouble-shooting report received">
+      <bpmn:incoming>sf46</bpmn:incoming>
+      <bpmn:outgoing>sf47</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_sm_receive_troubleshoot_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="ev_sm_send_resolution_cs2" name="Problem resolution report sent to Customer Service">
+      <bpmn:incoming>sf48</bpmn:incoming>
+      <bpmn:outgoing>sf49</bpmn:outgoing>
+      <bpmn:outgoing>sf52</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_sm_send_resolution_cs2_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="ev_end_sm1" name="Service Management process ends (no problem)">
+      <bpmn:incoming>sf35</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="ev_end_sm2" name="Service Management process ends (minor corrective)">
+      <bpmn:incoming>sf38</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="ev_end_sm3" name="Service Management process ends (restoration)">
+      <bpmn:incoming>sf49</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_sm_analysis" name="Perform analysis (Service Management)">
+      <bpmn:incoming>sf_analyzable_yes</bpmn:incoming>
+      <bpmn:outgoing>sf24</bpmn:outgoing>
+      <bpmn:property id="task_sm_analysis_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_sm_analysis_dia0">
+        <bpmn:sourceRef>do_detailed_problem_report_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_sm_analysis_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_sm_create_trouble_report" name="Create trouble report (type of problem)">
+      <bpmn:incoming>sf24</bpmn:incoming>
+      <bpmn:outgoing>sf25</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_sm_create_trouble_report_doa0">
+        <bpmn:targetRef>do_trouble_report_sm</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_prepare_final_status" name="Prepare final status report">
+      <bpmn:incoming>sf33</bpmn:incoming>
+      <bpmn:outgoing>sf34</bpmn:outgoing>
+      <bpmn:property id="task_prepare_final_status_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_prepare_final_status_dia0">
+        <bpmn:sourceRef>do_status_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_prepare_final_status_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_prepare_final_status_doa0">
+        <bpmn:targetRef>do_final_status_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:task id="task_sm_corrective_actions" name="Undertake minor corrective actions">
+      <bpmn:incoming>sf_cm_minor</bpmn:incoming>
+      <bpmn:outgoing>sf36</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="task_sm_create_resolution_report" name="Create problem resolution report">
+      <bpmn:incoming>sf36</bpmn:incoming>
+      <bpmn:outgoing>sf37</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_sm_create_resolution_report_doa0">
+        <bpmn:targetRef>do_resolution_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_create_restoration_request" name="Create request for automatic resource restoration">
+      <bpmn:incoming>sf_cm_restoration</bpmn:incoming>
+      <bpmn:outgoing>sf39</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_create_restoration_request_doa0">
+        <bpmn:targetRef>do_restoration_request</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_sm_create_resolution_report2" name="Create problem resolution report (after trouble-shooting)">
+      <bpmn:incoming>sf47</bpmn:incoming>
+      <bpmn:outgoing>sf48</bpmn:outgoing>
+      <bpmn:property id="task_sm_create_resolution_report2_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_sm_create_resolution_report2_dia0">
+        <bpmn:sourceRef>do_troubleshoot_report</bpmn:sourceRef>
+        <bpmn:targetRef>task_sm_create_resolution_report2_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_sm_create_resolution_report2_doa0">
+        <bpmn:targetRef>do_resolution_report</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_analyzable" name="Analyzable by Service Management?" isMarkerVisible="true">
+      <bpmn:incoming>sf23</bpmn:incoming>
+      <bpmn:outgoing>sf_analyzable_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_analyzable_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_counter_measures" name="Counter measure type?" isMarkerVisible="true">
+      <bpmn:incoming>sf34</bpmn:incoming>
+      <bpmn:outgoing>sf_cm_none</bpmn:outgoing>
+      <bpmn:outgoing>sf_cm_minor</bpmn:outgoing>
+      <bpmn:outgoing>sf_cm_restoration</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf23" sourceRef="ev_sm_receive_detailed" targetRef="gw_analyzable" />
+    <bpmn:sequenceFlow id="sf_analyzable_yes" sourceRef="gw_analyzable" targetRef="task_sm_analysis" />
+    <bpmn:sequenceFlow id="sf24" sourceRef="task_sm_analysis" targetRef="task_sm_create_trouble_report" />
+    <bpmn:sequenceFlow id="sf25" sourceRef="task_sm_create_trouble_report" targetRef="ev_sm_receive_status" />
+    <bpmn:sequenceFlow id="sf_analyzable_no" sourceRef="gw_analyzable" targetRef="ev_sm_send_to_rp" />
+    <bpmn:sequenceFlow id="sf33" sourceRef="ev_sm_receive_status" targetRef="task_prepare_final_status" />
+    <bpmn:sequenceFlow id="sf34" sourceRef="task_prepare_final_status" targetRef="gw_counter_measures" />
+    <bpmn:sequenceFlow id="sf_cm_none" sourceRef="gw_counter_measures" targetRef="ev_sm_send_actual_perf" />
+    <bpmn:sequenceFlow id="sf35" sourceRef="ev_sm_send_actual_perf" targetRef="ev_end_sm1" />
+    <bpmn:sequenceFlow id="sf_cm_minor" sourceRef="gw_counter_measures" targetRef="task_sm_corrective_actions" />
+    <bpmn:sequenceFlow id="sf36" sourceRef="task_sm_corrective_actions" targetRef="task_sm_create_resolution_report" />
+    <bpmn:sequenceFlow id="sf37" sourceRef="task_sm_create_resolution_report" targetRef="ev_sm_send_resolution_cs1" />
+    <bpmn:sequenceFlow id="sf38" sourceRef="ev_sm_send_resolution_cs1" targetRef="ev_end_sm2" />
+    <bpmn:sequenceFlow id="sf_cm_restoration" sourceRef="gw_counter_measures" targetRef="task_create_restoration_request" />
+    <bpmn:sequenceFlow id="sf39" sourceRef="task_create_restoration_request" targetRef="ev_sm_send_restoration_req" />
+    <bpmn:sequenceFlow id="sf47" sourceRef="ev_sm_receive_troubleshoot" targetRef="task_sm_create_resolution_report2" />
+    <bpmn:sequenceFlow id="sf48" sourceRef="task_sm_create_resolution_report2" targetRef="ev_sm_send_resolution_cs2" />
+    <bpmn:sequenceFlow id="sf49" sourceRef="ev_sm_send_resolution_cs2" targetRef="ev_end_sm3" />
+  </bpmn:process>
+  <bpmn:process id="pool_rp_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_normal_notification" name="Normal Service Execution Notification" dataObjectRef="do_normal_notification_do" />
+    <bpmn:dataObject id="do_normal_notification_do" />
+    <bpmn:dataObjectReference id="do_trouble_report_rp" name="Trouble Report (Resource Provisioning)" dataObjectRef="do_trouble_report_rp_do" />
+    <bpmn:dataObject id="do_trouble_report_rp_do" />
+    <bpmn:dataObjectReference id="do_status_report_p1" name="Status Report" dataObjectRef="do_status_report_p1_do" />
+    <bpmn:dataObject id="do_status_report_p1_do" />
+    <bpmn:dataObjectReference id="do_troubleshoot_report_p1" name="Trouble-shooting Report" dataObjectRef="do_troubleshoot_report_p1_do" />
+    <bpmn:dataObject id="do_troubleshoot_report_p1_do" />
+    <bpmn:startEvent id="ev_rp_receive_detailed" name="Detailed problem report received">
+      <bpmn:incoming>sf26</bpmn:incoming>
+      <bpmn:outgoing>sf27</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_rp_receive_detailed_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="ev_rp_send_status" name="Status report sent to Service Management">
+      <bpmn:incoming>sf31</bpmn:incoming>
+      <bpmn:outgoing>sf32</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_rp_send_status_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="ev_rp_wait_restoration" name="Waiting for restoration request">
+      <bpmn:incoming>sf40</bpmn:incoming>
+      <bpmn:outgoing>sf41</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_rp_wait_restoration_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="ev_rp_timeout_end" name="Process terminated (timeout 2 days)">
+      <bpmn:incoming>sf_rp_timeout_expired</bpmn:incoming>
+      <bpmn:timerEventDefinition id="ev_rp_timeout_end_timerdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="ev_rp_send_troubleshoot" name="Trouble-shooting report sent to Service Management">
+      <bpmn:incoming>sf44</bpmn:incoming>
+      <bpmn:outgoing>sf45</bpmn:outgoing>
+      <bpmn:outgoing>sf46</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_rp_send_troubleshoot_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:endEvent id="ev_end_rp" name="Resource Provisioning process ends">
+      <bpmn:incoming>sf45</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_rp_create_normal_notification" name="Create notification of normal service execution">
+      <bpmn:incoming>sf_rp_problem_no</bpmn:incoming>
+      <bpmn:outgoing>sf30</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_rp_create_normal_notification_doa0">
+        <bpmn:targetRef>do_normal_notification</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_rp_analyze_problem" name="Analyze problem (Resource Provisioning)">
+      <bpmn:incoming>sf_rp_problem_yes</bpmn:incoming>
+      <bpmn:outgoing>sf28</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_rp_create_trouble_report" name="Create trouble report (Resource Provisioning)">
+      <bpmn:incoming>sf28</bpmn:incoming>
+      <bpmn:outgoing>sf29</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_rp_create_trouble_report_doa0">
+        <bpmn:targetRef>do_trouble_report_rp</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_rp_create_status_report" name="Create status report">
+      <bpmn:incoming>sf29</bpmn:incoming>
+      <bpmn:incoming>sf30</bpmn:incoming>
+      <bpmn:outgoing>sf31</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_rp_create_status_report_doa0">
+        <bpmn:targetRef>do_status_report_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_rp_track_errors" name="Track all possible errors">
+      <bpmn:incoming>sf_rp_timeout_received</bpmn:incoming>
+      <bpmn:outgoing>sf42</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:task id="task_rp_corrective_actions" name="Undertake necessary corrective actions">
+      <bpmn:incoming>sf42</bpmn:incoming>
+      <bpmn:outgoing>sf43</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="task_rp_create_troubleshoot_report" name="Create trouble-shooting report">
+      <bpmn:incoming>sf43</bpmn:incoming>
+      <bpmn:outgoing>sf44</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_rp_create_troubleshoot_report_doa0">
+        <bpmn:targetRef>do_troubleshoot_report_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gw_rp_problem" name="Problem detected?" isMarkerVisible="true">
+      <bpmn:incoming>sf27</bpmn:incoming>
+      <bpmn:outgoing>sf_rp_problem_no</bpmn:outgoing>
+      <bpmn:outgoing>sf_rp_problem_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gw_rp_timeout" name="Restoration request received within 2 days?" isMarkerVisible="true">
+      <bpmn:incoming>sf41</bpmn:incoming>
+      <bpmn:outgoing>sf_rp_timeout_expired</bpmn:outgoing>
+      <bpmn:outgoing>sf_rp_timeout_received</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf27" sourceRef="ev_rp_receive_detailed" targetRef="gw_rp_problem" />
+    <bpmn:sequenceFlow id="sf_rp_problem_no" sourceRef="gw_rp_problem" targetRef="task_rp_create_normal_notification" />
+    <bpmn:sequenceFlow id="sf_rp_problem_yes" sourceRef="gw_rp_problem" targetRef="task_rp_analyze_problem" />
+    <bpmn:sequenceFlow id="sf28" sourceRef="task_rp_analyze_problem" targetRef="task_rp_create_trouble_report" />
+    <bpmn:sequenceFlow id="sf29" sourceRef="task_rp_create_trouble_report" targetRef="task_rp_create_status_report" />
+    <bpmn:sequenceFlow id="sf30" sourceRef="task_rp_create_normal_notification" targetRef="task_rp_create_status_report" />
+    <bpmn:sequenceFlow id="sf31" sourceRef="task_rp_create_status_report" targetRef="ev_rp_send_status" />
+    <bpmn:sequenceFlow id="sf41" sourceRef="ev_rp_wait_restoration" targetRef="gw_rp_timeout" />
+    <bpmn:sequenceFlow id="sf_rp_timeout_expired" sourceRef="gw_rp_timeout" targetRef="ev_rp_timeout_end" />
+    <bpmn:sequenceFlow id="sf_rp_timeout_received" sourceRef="gw_rp_timeout" targetRef="task_rp_track_errors" />
+    <bpmn:sequenceFlow id="sf42" sourceRef="task_rp_track_errors" targetRef="task_rp_corrective_actions" />
+    <bpmn:sequenceFlow id="sf43" sourceRef="task_rp_corrective_actions" targetRef="task_rp_create_troubleshoot_report" />
+    <bpmn:sequenceFlow id="sf44" sourceRef="task_rp_create_troubleshoot_report" targetRef="ev_rp_send_troubleshoot" />
+    <bpmn:sequenceFlow id="sf45" sourceRef="ev_rp_send_troubleshoot" targetRef="ev_end_rp" />
+  </bpmn:process>
+  <bpmn:process id="pool_billing_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="do_rebate_notice_p1" name="SLA Violation Rebate Notice" dataObjectRef="do_rebate_notice_p1_do" />
+    <bpmn:dataObject id="do_rebate_notice_p1_do" />
+    <bpmn:startEvent id="ev_billing_receive_rebate" name="SLA violation rebate received">
+      <bpmn:incoming>sf19</bpmn:incoming>
+      <bpmn:outgoing>sf21</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ev_billing_receive_rebate_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="ev_end_billing" name="Billing adjustment complete">
+      <bpmn:incoming>sf22</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="task_billing_adjust" name="Adjust the billing">
+      <bpmn:incoming>sf21</bpmn:incoming>
+      <bpmn:outgoing>sf22</bpmn:outgoing>
+      <bpmn:property id="task_billing_adjust_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_billing_adjust_dia0">
+        <bpmn:sourceRef>do_rebate_notice_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_billing_adjust_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="sf21" sourceRef="ev_billing_receive_rebate" targetRef="task_billing_adjust" />
+    <bpmn:sequenceFlow id="sf22" sourceRef="task_billing_adjust" targetRef="ev_end_billing" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_customer_part_di" bpmnElement="pool_customer_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_cs_part_di" bpmnElement="pool_cs_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="2280" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_sm_part_di" bpmnElement="pool_sm_part" isHorizontal="true">
+        <dc:Bounds x="120" y="960" width="2280" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_rp_part_di" bpmnElement="pool_rp_part" isHorizontal="true">
+        <dc:Bounds x="120" y="1545" width="1520" height="650" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_billing_part_di" bpmnElement="pool_billing_part" isHorizontal="true">
+        <dc:Bounds x="120" y="2255" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_billing_receive_rebate_di" bpmnElement="ev_billing_receive_rebate">
+        <dc:Bounds x="160" y="2315" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_cs_receive_list_di" bpmnElement="ev_cs_receive_list">
+        <dc:Bounds x="160" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_cs_receive_outcome_di" bpmnElement="ev_cs_receive_outcome">
+        <dc:Bounds x="2060" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_end_billing_di" bpmnElement="ev_end_billing">
+        <dc:Bounds x="540" y="2315" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_end_cs_di" bpmnElement="ev_end_cs">
+        <dc:Bounds x="730" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_end_customer_receive_di" bpmnElement="ev_end_customer_receive">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_end_rp_di" bpmnElement="ev_end_rp">
+        <dc:Bounds x="1300" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_end_sm1_di" bpmnElement="ev_end_sm1">
+        <dc:Bounds x="1680" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_end_sm2_di" bpmnElement="ev_end_sm2">
+        <dc:Bounds x="2060" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_end_sm3_di" bpmnElement="ev_end_sm3">
+        <dc:Bounds x="730" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_rp_receive_detailed_di" bpmnElement="ev_rp_receive_detailed">
+        <dc:Bounds x="160" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_rp_send_status_di" bpmnElement="ev_rp_send_status">
+        <dc:Bounds x="920" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_rp_send_troubleshoot_di" bpmnElement="ev_rp_send_troubleshoot">
+        <dc:Bounds x="1110" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_rp_timeout_end_di" bpmnElement="ev_rp_timeout_end">
+        <dc:Bounds x="540" y="1605" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_rp_wait_restoration_di" bpmnElement="ev_rp_wait_restoration">
+        <dc:Bounds x="160" y="1730" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_send_customer_report_di" bpmnElement="ev_send_customer_report">
+        <dc:Bounds x="350" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_send_detailed_report_di" bpmnElement="ev_send_detailed_report">
+        <dc:Bounds x="1870" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_sm_receive_detailed_di" bpmnElement="ev_sm_receive_detailed">
+        <dc:Bounds x="160" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_sm_receive_status_di" bpmnElement="ev_sm_receive_status">
+        <dc:Bounds x="920" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_sm_receive_troubleshoot_di" bpmnElement="ev_sm_receive_troubleshoot">
+        <dc:Bounds x="160" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_sm_send_actual_perf_di" bpmnElement="ev_sm_send_actual_perf">
+        <dc:Bounds x="1490" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_sm_send_resolution_cs1_di" bpmnElement="ev_sm_send_resolution_cs1">
+        <dc:Bounds x="1870" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_sm_send_resolution_cs2_di" bpmnElement="ev_sm_send_resolution_cs2">
+        <dc:Bounds x="540" y="1020" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_sm_send_restoration_req_di" bpmnElement="ev_sm_send_restoration_req">
+        <dc:Bounds x="1680" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_sm_send_to_rp_di" bpmnElement="ev_sm_send_to_rp">
+        <dc:Bounds x="540" y="1145" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ev_start_degrad_di" bpmnElement="ev_start_degrad">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_analyzable_di" bpmnElement="gw_analyzable">
+        <dc:Bounds x="350" y="1020" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_counter_measures_di" bpmnElement="gw_counter_measures">
+        <dc:Bounds x="1300" y="1020" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_cs_join_di" bpmnElement="gw_cs_join">
+        <dc:Bounds x="540" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_cs_split_di" bpmnElement="gw_cs_split">
+        <dc:Bounds x="100" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_premium_di" bpmnElement="gw_premium">
+        <dc:Bounds x="1110" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_resig_change_di" bpmnElement="gw_resig_change">
+        <dc:Bounds x="1490" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_rp_problem_di" bpmnElement="gw_rp_problem">
+        <dc:Bounds x="350" y="1605" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_rp_timeout_di" bpmnElement="gw_rp_timeout">
+        <dc:Bounds x="350" y="1730" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_billing_adjust_di" bpmnElement="task_billing_adjust">
+        <dc:Bounds x="350" y="2315" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_compare_sla_di" bpmnElement="task_compare_sla">
+        <dc:Bounds x="540" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_customer_report_di" bpmnElement="task_create_customer_report">
+        <dc:Bounds x="160" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_detailed_report_di" bpmnElement="task_create_detailed_report">
+        <dc:Bounds x="1680" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_create_restoration_request_di" bpmnElement="task_create_restoration_request">
+        <dc:Bounds x="1490" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_determine_measures_di" bpmnElement="task_determine_measures">
+        <dc:Bounds x="1870" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_determine_significance_di" bpmnElement="task_determine_significance">
+        <dc:Bounds x="920" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_enter_report_di" bpmnElement="task_enter_report">
+        <dc:Bounds x="350" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_premium_link_di" bpmnElement="task_premium_link">
+        <dc:Bounds x="1300" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_final_status_di" bpmnElement="task_prepare_final_status">
+        <dc:Bounds x="1110" y="1020" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_report_rebate_di" bpmnElement="task_report_rebate">
+        <dc:Bounds x="160" y="685" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_reprioritize_di" bpmnElement="task_reprioritize">
+        <dc:Bounds x="1680" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_rp_analyze_problem_di" bpmnElement="task_rp_analyze_problem">
+        <dc:Bounds x="540" y="1730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_rp_corrective_actions_di" bpmnElement="task_rp_corrective_actions">
+        <dc:Bounds x="730" y="1605" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_rp_create_normal_notification_di" bpmnElement="task_rp_create_normal_notification">
+        <dc:Bounds x="540" y="1855" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_rp_create_status_report_di" bpmnElement="task_rp_create_status_report">
+        <dc:Bounds x="920" y="1730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_rp_create_trouble_report_di" bpmnElement="task_rp_create_trouble_report">
+        <dc:Bounds x="730" y="1730" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_rp_create_troubleshoot_report_di" bpmnElement="task_rp_create_troubleshoot_report">
+        <dc:Bounds x="920" y="1855" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_rp_track_errors_di" bpmnElement="task_rp_track_errors">
+        <dc:Bounds x="540" y="1980" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_problem_list_di" bpmnElement="task_send_problem_list">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_sm_analysis_di" bpmnElement="task_sm_analysis">
+        <dc:Bounds x="540" y="1270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_sm_corrective_actions_di" bpmnElement="task_sm_corrective_actions">
+        <dc:Bounds x="1490" y="1270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_sm_create_resolution_report_di" bpmnElement="task_sm_create_resolution_report">
+        <dc:Bounds x="1680" y="1270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_sm_create_resolution_report2_di" bpmnElement="task_sm_create_resolution_report2">
+        <dc:Bounds x="350" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_sm_create_trouble_report_di" bpmnElement="task_sm_create_trouble_report">
+        <dc:Bounds x="730" y="1145" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_problem_param_list_di" bpmnElement="do_problem_param_list">
+        <dc:Bounds x="370" y="240" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_problem_param_list_p1_di" bpmnElement="do_problem_param_list_p1">
+        <dc:Bounds x="370" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_problem_report_di" bpmnElement="do_problem_report">
+        <dc:Bounds x="465" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_customer_sla_di" bpmnElement="do_customer_sla">
+        <dc:Bounds x="560" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_customer_history_di" bpmnElement="do_customer_history">
+        <dc:Bounds x="940" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_detailed_problem_report_di" bpmnElement="do_detailed_problem_report">
+        <dc:Bounds x="1700" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_customer_report_di" bpmnElement="do_customer_report">
+        <dc:Bounds x="180" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_rebate_notice_di" bpmnElement="do_rebate_notice">
+        <dc:Bounds x="180" y="825" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_detailed_problem_report_p1_di" bpmnElement="do_detailed_problem_report_p1">
+        <dc:Bounds x="560" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_trouble_report_sm_di" bpmnElement="do_trouble_report_sm">
+        <dc:Bounds x="750" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_status_report_di" bpmnElement="do_status_report">
+        <dc:Bounds x="1130" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_final_status_report_di" bpmnElement="do_final_status_report">
+        <dc:Bounds x="1130" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_resolution_report_di" bpmnElement="do_resolution_report">
+        <dc:Bounds x="1035" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_restoration_request_di" bpmnElement="do_restoration_request">
+        <dc:Bounds x="1510" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_troubleshoot_report_di" bpmnElement="do_troubleshoot_report">
+        <dc:Bounds x="370" y="1410" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_normal_notification_di" bpmnElement="do_normal_notification">
+        <dc:Bounds x="560" y="2120" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_trouble_report_rp_di" bpmnElement="do_trouble_report_rp">
+        <dc:Bounds x="750" y="2120" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_status_report_p1_di" bpmnElement="do_status_report_p1">
+        <dc:Bounds x="940" y="2120" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_troubleshoot_report_p1_di" bpmnElement="do_troubleshoot_report_p1">
+        <dc:Bounds x="940" y="2120" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="do_rebate_notice_p1_di" bpmnElement="do_rebate_notice_p1">
+        <dc:Bounds x="370" y="2455" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf1_di" bpmnElement="sf1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf2_di" bpmnElement="sf2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf3_di" bpmnElement="sf3">
+        <di:waypoint x="178" y="453" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf4_di" bpmnElement="sf4">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="590" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf5_di" bpmnElement="sf5">
+        <di:waypoint x="590" y="600" />
+        <di:waypoint x="1920" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf6_di" bpmnElement="sf6">
+        <di:waypoint x="1920" y="600" />
+        <di:waypoint x="970" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf7_di" bpmnElement="sf7">
+        <di:waypoint x="970" y="475" />
+        <di:waypoint x="1135" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_premium_yes_di" bpmnElement="sf_premium_yes">
+        <di:waypoint x="1135" y="460" />
+        <di:waypoint x="1350" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_premium_no_di" bpmnElement="sf_premium_no">
+        <di:waypoint x="1135" y="460" />
+        <di:waypoint x="1515" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf8_di" bpmnElement="sf8">
+        <di:waypoint x="1350" y="475" />
+        <di:waypoint x="1515" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_resig_yes_di" bpmnElement="sf_resig_yes">
+        <di:waypoint x="1515" y="460" />
+        <di:waypoint x="1730" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf9_di" bpmnElement="sf9">
+        <di:waypoint x="1730" y="600" />
+        <di:waypoint x="1920" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_resig_no_di" bpmnElement="sf_resig_no">
+        <di:waypoint x="1515" y="460" />
+        <di:waypoint x="1730" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf10_di" bpmnElement="sf10">
+        <di:waypoint x="1730" y="475" />
+        <di:waypoint x="1888" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf11_di" bpmnElement="sf11">
+        <di:waypoint x="1888" y="453" />
+        <di:waypoint x="2078" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf12_di" bpmnElement="sf12">
+        <di:waypoint x="2078" y="453" />
+        <di:waypoint x="125" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf13_di" bpmnElement="sf13">
+        <di:waypoint x="125" y="125" />
+        <di:waypoint x="210" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf14_di" bpmnElement="sf14">
+        <di:waypoint x="125" y="125" />
+        <di:waypoint x="210" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf15_di" bpmnElement="sf15">
+        <di:waypoint x="210" y="600" />
+        <di:waypoint x="368" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf16_di" bpmnElement="sf16">
+        <di:waypoint x="368" y="453" />
+        <di:waypoint x="565" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf17_di" bpmnElement="sf17">
+        <di:waypoint x="210" y="725" />
+        <di:waypoint x="565" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf18_di" bpmnElement="sf18">
+        <di:waypoint x="565" y="460" />
+        <di:waypoint x="748" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf19_di" bpmnElement="sf19">
+        <di:waypoint x="210" y="725" />
+        <di:waypoint x="178" y="2333" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf20_di" bpmnElement="sf20">
+        <di:waypoint x="368" y="453" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf21_di" bpmnElement="sf21">
+        <di:waypoint x="178" y="2333" />
+        <di:waypoint x="400" y="2355" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf22_di" bpmnElement="sf22">
+        <di:waypoint x="400" y="2355" />
+        <di:waypoint x="558" y="2333" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf23_di" bpmnElement="sf23">
+        <di:waypoint x="178" y="1038" />
+        <di:waypoint x="375" y="1045" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_analyzable_yes_di" bpmnElement="sf_analyzable_yes">
+        <di:waypoint x="375" y="1045" />
+        <di:waypoint x="590" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf24_di" bpmnElement="sf24">
+        <di:waypoint x="590" y="1310" />
+        <di:waypoint x="780" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf25_di" bpmnElement="sf25">
+        <di:waypoint x="780" y="1185" />
+        <di:waypoint x="938" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_analyzable_no_di" bpmnElement="sf_analyzable_no">
+        <di:waypoint x="375" y="1045" />
+        <di:waypoint x="558" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf26_di" bpmnElement="sf26">
+        <di:waypoint x="558" y="1163" />
+        <di:waypoint x="178" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf27_di" bpmnElement="sf27">
+        <di:waypoint x="178" y="1623" />
+        <di:waypoint x="375" y="1630" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_rp_problem_no_di" bpmnElement="sf_rp_problem_no">
+        <di:waypoint x="375" y="1630" />
+        <di:waypoint x="590" y="1895" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_rp_problem_yes_di" bpmnElement="sf_rp_problem_yes">
+        <di:waypoint x="375" y="1630" />
+        <di:waypoint x="590" y="1770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf28_di" bpmnElement="sf28">
+        <di:waypoint x="590" y="1770" />
+        <di:waypoint x="780" y="1770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf29_di" bpmnElement="sf29">
+        <di:waypoint x="780" y="1770" />
+        <di:waypoint x="970" y="1770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf30_di" bpmnElement="sf30">
+        <di:waypoint x="590" y="1895" />
+        <di:waypoint x="970" y="1770" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf31_di" bpmnElement="sf31">
+        <di:waypoint x="970" y="1770" />
+        <di:waypoint x="938" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf32_di" bpmnElement="sf32">
+        <di:waypoint x="938" y="1623" />
+        <di:waypoint x="938" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf33_di" bpmnElement="sf33">
+        <di:waypoint x="938" y="1038" />
+        <di:waypoint x="1160" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf34_di" bpmnElement="sf34">
+        <di:waypoint x="1160" y="1060" />
+        <di:waypoint x="1325" y="1045" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_cm_none_di" bpmnElement="sf_cm_none">
+        <di:waypoint x="1325" y="1045" />
+        <di:waypoint x="1508" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf35_di" bpmnElement="sf35">
+        <di:waypoint x="1508" y="1038" />
+        <di:waypoint x="1698" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_cm_minor_di" bpmnElement="sf_cm_minor">
+        <di:waypoint x="1325" y="1045" />
+        <di:waypoint x="1540" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf36_di" bpmnElement="sf36">
+        <di:waypoint x="1540" y="1310" />
+        <di:waypoint x="1730" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf37_di" bpmnElement="sf37">
+        <di:waypoint x="1730" y="1310" />
+        <di:waypoint x="1888" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf38_di" bpmnElement="sf38">
+        <di:waypoint x="1888" y="1038" />
+        <di:waypoint x="2078" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_cm_restoration_di" bpmnElement="sf_cm_restoration">
+        <di:waypoint x="1325" y="1045" />
+        <di:waypoint x="1540" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf39_di" bpmnElement="sf39">
+        <di:waypoint x="1540" y="1185" />
+        <di:waypoint x="1698" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf40_di" bpmnElement="sf40">
+        <di:waypoint x="1698" y="1163" />
+        <di:waypoint x="178" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf41_di" bpmnElement="sf41">
+        <di:waypoint x="178" y="1748" />
+        <di:waypoint x="375" y="1755" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_rp_timeout_expired_di" bpmnElement="sf_rp_timeout_expired">
+        <di:waypoint x="375" y="1755" />
+        <di:waypoint x="558" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_rp_timeout_received_di" bpmnElement="sf_rp_timeout_received">
+        <di:waypoint x="375" y="1755" />
+        <di:waypoint x="590" y="2020" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf42_di" bpmnElement="sf42">
+        <di:waypoint x="590" y="2020" />
+        <di:waypoint x="780" y="1645" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf43_di" bpmnElement="sf43">
+        <di:waypoint x="780" y="1645" />
+        <di:waypoint x="970" y="1895" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf44_di" bpmnElement="sf44">
+        <di:waypoint x="970" y="1895" />
+        <di:waypoint x="1128" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf45_di" bpmnElement="sf45">
+        <di:waypoint x="1128" y="1623" />
+        <di:waypoint x="1318" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf46_di" bpmnElement="sf46">
+        <di:waypoint x="1128" y="1623" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf47_di" bpmnElement="sf47">
+        <di:waypoint x="178" y="1163" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf48_di" bpmnElement="sf48">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="558" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf49_di" bpmnElement="sf49">
+        <di:waypoint x="558" y="1038" />
+        <di:waypoint x="748" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf50_di" bpmnElement="sf50">
+        <di:waypoint x="1508" y="1038" />
+        <di:waypoint x="2078" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf51_di" bpmnElement="sf51">
+        <di:waypoint x="1888" y="1038" />
+        <di:waypoint x="2078" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf52_di" bpmnElement="sf52">
+        <di:waypoint x="558" y="1038" />
+        <di:waypoint x="2078" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf1_di" bpmnElement="mf1">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="178" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf2_di" bpmnElement="mf2">
+        <di:waypoint x="1888" y="453" />
+        <di:waypoint x="178" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf3_di" bpmnElement="mf3">
+        <di:waypoint x="558" y="1163" />
+        <di:waypoint x="178" y="1623" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf4_di" bpmnElement="mf4">
+        <di:waypoint x="938" y="1623" />
+        <di:waypoint x="938" y="1038" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf5_di" bpmnElement="mf5">
+        <di:waypoint x="1508" y="1038" />
+        <di:waypoint x="2078" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf6_di" bpmnElement="mf6">
+        <di:waypoint x="1888" y="1038" />
+        <di:waypoint x="2078" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf7_di" bpmnElement="mf7">
+        <di:waypoint x="558" y="1038" />
+        <di:waypoint x="2078" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf8_di" bpmnElement="mf8">
+        <di:waypoint x="1698" y="1163" />
+        <di:waypoint x="178" y="1748" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf9_di" bpmnElement="mf9">
+        <di:waypoint x="1128" y="1623" />
+        <di:waypoint x="178" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf10_di" bpmnElement="mf10">
+        <di:waypoint x="368" y="453" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf11_di" bpmnElement="mf11">
+        <di:waypoint x="210" y="725" />
+        <di:waypoint x="178" y="2333" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_problem_list_doa0_di" bpmnElement="task_send_problem_list_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_enter_report_dia0_di" bpmnElement="task_enter_report_dia0">
+        <di:waypoint x="388" y="850" />
+        <di:waypoint x="400" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_enter_report_doa0_di" bpmnElement="task_enter_report_doa0">
+        <di:waypoint x="400" y="600" />
+        <di:waypoint x="483" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_compare_sla_dia0_di" bpmnElement="task_compare_sla_dia0">
+        <di:waypoint x="483" y="850" />
+        <di:waypoint x="590" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_compare_sla_dia1_di" bpmnElement="task_compare_sla_dia1">
+        <di:waypoint x="578" y="850" />
+        <di:waypoint x="590" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_determine_significance_dia0_di" bpmnElement="task_determine_significance_dia0">
+        <di:waypoint x="958" y="850" />
+        <di:waypoint x="970" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_detailed_report_doa0_di" bpmnElement="task_create_detailed_report_doa0">
+        <di:waypoint x="1730" y="475" />
+        <di:waypoint x="1718" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_customer_report_doa0_di" bpmnElement="task_create_customer_report_doa0">
+        <di:waypoint x="210" y="600" />
+        <di:waypoint x="198" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_report_rebate_doa0_di" bpmnElement="task_report_rebate_doa0">
+        <di:waypoint x="210" y="725" />
+        <di:waypoint x="198" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_sm_analysis_dia0_di" bpmnElement="task_sm_analysis_dia0">
+        <di:waypoint x="578" y="1435" />
+        <di:waypoint x="590" y="1310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_sm_create_trouble_report_doa0_di" bpmnElement="task_sm_create_trouble_report_doa0">
+        <di:waypoint x="780" y="1185" />
+        <di:waypoint x="768" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_final_status_dia0_di" bpmnElement="task_prepare_final_status_dia0">
+        <di:waypoint x="1148" y="1435" />
+        <di:waypoint x="1160" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_final_status_doa0_di" bpmnElement="task_prepare_final_status_doa0">
+        <di:waypoint x="1160" y="1060" />
+        <di:waypoint x="1148" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_sm_create_resolution_report_doa0_di" bpmnElement="task_sm_create_resolution_report_doa0">
+        <di:waypoint x="1730" y="1310" />
+        <di:waypoint x="1053" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_create_restoration_request_doa0_di" bpmnElement="task_create_restoration_request_doa0">
+        <di:waypoint x="1540" y="1185" />
+        <di:waypoint x="1528" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_sm_create_resolution_report2_dia0_di" bpmnElement="task_sm_create_resolution_report2_dia0">
+        <di:waypoint x="388" y="1435" />
+        <di:waypoint x="400" y="1185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_sm_create_resolution_report2_doa0_di" bpmnElement="task_sm_create_resolution_report2_doa0">
+        <di:waypoint x="400" y="1185" />
+        <di:waypoint x="1053" y="1435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_rp_create_normal_notification_doa0_di" bpmnElement="task_rp_create_normal_notification_doa0">
+        <di:waypoint x="590" y="1895" />
+        <di:waypoint x="578" y="2145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_rp_create_trouble_report_doa0_di" bpmnElement="task_rp_create_trouble_report_doa0">
+        <di:waypoint x="780" y="1770" />
+        <di:waypoint x="768" y="2145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_rp_create_status_report_doa0_di" bpmnElement="task_rp_create_status_report_doa0">
+        <di:waypoint x="970" y="1770" />
+        <di:waypoint x="958" y="2145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_rp_create_troubleshoot_report_doa0_di" bpmnElement="task_rp_create_troubleshoot_report_doa0">
+        <di:waypoint x="970" y="1895" />
+        <di:waypoint x="958" y="2145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_billing_adjust_dia0_di" bpmnElement="task_billing_adjust_dia0">
+        <di:waypoint x="388" y="2480" />
+        <di:waypoint x="400" y="2355" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

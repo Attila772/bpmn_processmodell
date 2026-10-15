@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_csr_part" name="Customer Service Representative" processRef="pool_csr_proc" />
+    <bpmn:participant id="pool_customer_part" name="Customer" processRef="pool_customer_proc" />
+    <bpmn:messageFlow id="msg_flow_1" sourceRef="event_offer_sent" targetRef="event_cust_start" name="Mortgage Offer" />
+    <bpmn:messageFlow id="msg_flow_2" sourceRef="event_cust_reply" targetRef="event_response_received" name="Customer Response" />
+    <bpmn:messageFlow id="msg_flow_3" sourceRef="event_request_docs_sent" targetRef="event_cust_request_received" name="Request for Outstanding Documents" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_csr_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_mortgage_offer" name="Mortgage offer" dataObjectRef="data_mortgage_offer_do" />
+    <bpmn:dataObject id="data_mortgage_offer_do" />
+    <bpmn:dataObjectReference id="data_case_details" name="Case details" dataObjectRef="data_case_details_do" />
+    <bpmn:dataObject id="data_case_details_do" />
+    <bpmn:dataStoreReference id="store_archive" name="Archive System" />
+    <bpmn:dataObjectReference id="data_offer_docs" name="Completed offer documents" dataObjectRef="data_offer_docs_do" />
+    <bpmn:dataObject id="data_offer_docs_do" />
+    <bpmn:dataObjectReference id="data_prereq_docs" name="Prerequisite documents" dataObjectRef="data_prereq_docs_do" />
+    <bpmn:dataObject id="data_prereq_docs_do" />
+    <bpmn:startEvent id="event_start" name="Start Process">
+      <bpmn:outgoing>flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="event_offer_sent" name="Mortgage Offer Sent">
+      <bpmn:incoming>flow_2</bpmn:incoming>
+      <bpmn:outgoing>flow_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_offer_sent_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="event_response_received" name="Customer Response Received">
+      <bpmn:messageEventDefinition id="event_response_received_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="event_request_docs_sent" name="Request for Outstanding Docs Sent">
+      <bpmn:incoming>flow_9</bpmn:incoming>
+      <bpmn:outgoing>flow_10</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_request_docs_sent_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="event_end_cancelled" name="Case Cancelled">
+      <bpmn:incoming>flow_6</bpmn:incoming>
+      <bpmn:incoming>flow_12</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_administration" name="Moved to Administration for Completion">
+      <bpmn:incoming>flow_8</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_send_offer" name="Send Mortgage offer">
+      <bpmn:incoming>flow_1</bpmn:incoming>
+      <bpmn:outgoing>flow_2</bpmn:outgoing>
+      <bpmn:property id="task_send_offer_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_send_offer_dia0">
+        <bpmn:sourceRef>data_mortgage_offer</bpmn:sourceRef>
+        <bpmn:targetRef>task_send_offer_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_send_offer_doa0">
+        <bpmn:targetRef>data_mortgage_offer</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_wait_reply" name="Wait for reply">
+      <bpmn:incoming>flow_3</bpmn:incoming>
+      <bpmn:incoming>flow_10</bpmn:incoming>
+      <bpmn:outgoing>flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="task_update_details_decline" name="Update case details">
+      <bpmn:incoming>flow_declined</bpmn:incoming>
+      <bpmn:outgoing>flow_5</bpmn:outgoing>
+      <bpmn:property id="task_update_details_decline_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_update_details_decline_dia0">
+        <bpmn:sourceRef>data_case_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_update_details_decline_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_update_details_decline_doa0">
+        <bpmn:targetRef>data_case_details</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_archive_decline" name="Archive work">
+      <bpmn:incoming>flow_5</bpmn:incoming>
+      <bpmn:outgoing>flow_6</bpmn:outgoing>
+      <bpmn:property id="task_archive_decline_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_archive_decline_dia0">
+        <bpmn:sourceRef>data_case_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_archive_decline_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_archive_decline_doa0">
+        <bpmn:targetRef>store_archive</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_check_documents" name="Check submitted documents">
+      <bpmn:incoming>flow_completed_offer</bpmn:incoming>
+      <bpmn:outgoing>flow_7</bpmn:outgoing>
+      <bpmn:property id="task_check_documents_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_check_documents_dia0">
+        <bpmn:sourceRef>data_offer_docs</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_documents_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="task_check_documents_dia1">
+        <bpmn:sourceRef>data_prereq_docs</bpmn:sourceRef>
+        <bpmn:targetRef>task_check_documents_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_generate_request" name="Generate message requesting outstanding documents">
+      <bpmn:incoming>flow_missing_docs</bpmn:incoming>
+      <bpmn:outgoing>flow_9</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_move_administration" name="Move case to administration for completion">
+      <bpmn:incoming>flow_all_docs_provided</bpmn:incoming>
+      <bpmn:outgoing>flow_8</bpmn:outgoing>
+      <bpmn:property id="task_move_administration_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_move_administration_dia0">
+        <bpmn:sourceRef>data_case_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_move_administration_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_move_administration_doa0">
+        <bpmn:targetRef>data_case_details</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_update_details_timeout" name="Update case details (Timeout)">
+      <bpmn:incoming>flow_no_answer</bpmn:incoming>
+      <bpmn:outgoing>flow_11</bpmn:outgoing>
+      <bpmn:property id="task_update_details_timeout_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_update_details_timeout_dia0">
+        <bpmn:sourceRef>data_case_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_update_details_timeout_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_update_details_timeout_doa0">
+        <bpmn:targetRef>data_case_details</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="task_archive_timeout" name="Archive work (Timeout)">
+      <bpmn:incoming>flow_11</bpmn:incoming>
+      <bpmn:outgoing>flow_12</bpmn:outgoing>
+      <bpmn:property id="task_archive_timeout_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_archive_timeout_dia0">
+        <bpmn:sourceRef>data_case_details</bpmn:sourceRef>
+        <bpmn:targetRef>task_archive_timeout_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_archive_timeout_doa0">
+        <bpmn:targetRef>store_archive</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="gtw_response_type" name="Response Type?" isMarkerVisible="true">
+      <bpmn:incoming>flow_4</bpmn:incoming>
+      <bpmn:outgoing>flow_declined</bpmn:outgoing>
+      <bpmn:outgoing>flow_completed_offer</bpmn:outgoing>
+      <bpmn:outgoing>flow_no_answer</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="gtw_check_prereq" name="All prerequisite documents attached?" isMarkerVisible="true">
+      <bpmn:incoming>flow_7</bpmn:incoming>
+      <bpmn:outgoing>flow_all_docs_provided</bpmn:outgoing>
+      <bpmn:outgoing>flow_missing_docs</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="flow_1" sourceRef="event_start" targetRef="task_send_offer" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="task_send_offer" targetRef="event_offer_sent" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="event_offer_sent" targetRef="task_wait_reply" />
+    <bpmn:sequenceFlow id="flow_4" sourceRef="task_wait_reply" targetRef="gtw_response_type" />
+    <bpmn:sequenceFlow id="flow_declined" sourceRef="gtw_response_type" targetRef="task_update_details_decline" name="Customer declines mortgage" />
+    <bpmn:sequenceFlow id="flow_5" sourceRef="task_update_details_decline" targetRef="task_archive_decline" />
+    <bpmn:sequenceFlow id="flow_6" sourceRef="task_archive_decline" targetRef="event_end_cancelled" />
+    <bpmn:sequenceFlow id="flow_completed_offer" sourceRef="gtw_response_type" targetRef="task_check_documents" name="Customer sends completed offer documents" />
+    <bpmn:sequenceFlow id="flow_7" sourceRef="task_check_documents" targetRef="gtw_check_prereq" />
+    <bpmn:sequenceFlow id="flow_all_docs_provided" sourceRef="gtw_check_prereq" targetRef="task_move_administration" name="All pre-requisite documents provided" />
+    <bpmn:sequenceFlow id="flow_8" sourceRef="task_move_administration" targetRef="event_end_administration" />
+    <bpmn:sequenceFlow id="flow_missing_docs" sourceRef="gtw_check_prereq" targetRef="task_generate_request" name="Pre-requisite documents not provided" />
+    <bpmn:sequenceFlow id="flow_9" sourceRef="task_generate_request" targetRef="event_request_docs_sent" />
+    <bpmn:sequenceFlow id="flow_10" sourceRef="event_request_docs_sent" targetRef="task_wait_reply" />
+    <bpmn:sequenceFlow id="flow_no_answer" sourceRef="gtw_response_type" targetRef="task_update_details_timeout" name="No answer after 2 weeks" />
+    <bpmn:sequenceFlow id="flow_11" sourceRef="task_update_details_timeout" targetRef="task_archive_timeout" />
+    <bpmn:sequenceFlow id="flow_12" sourceRef="task_archive_timeout" targetRef="event_end_cancelled" />
+  </bpmn:process>
+  <bpmn:process id="pool_customer_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_mortgage_offer_p1" name="Mortgage offer" dataObjectRef="data_mortgage_offer_p1_do" />
+    <bpmn:dataObject id="data_mortgage_offer_p1_do" />
+    <bpmn:dataObjectReference id="data_offer_docs_p1" name="Completed offer documents" dataObjectRef="data_offer_docs_p1_do" />
+    <bpmn:dataObject id="data_offer_docs_p1_do" />
+    <bpmn:dataObjectReference id="data_prereq_docs_p1" name="Prerequisite documents" dataObjectRef="data_prereq_docs_p1_do" />
+    <bpmn:dataObject id="data_prereq_docs_p1_do" />
+    <bpmn:startEvent id="event_cust_start" name="Offer Received">
+      <bpmn:outgoing>flow_cust_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_cust_start_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_cust_reply" name="Reply Sent">
+      <bpmn:incoming>flow_cust_2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_cust_reply_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="event_cust_request_received" name="Document Request Received">
+      <bpmn:outgoing>flow_cust_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_cust_request_received_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_cust_end" name="Customer Interaction Ended">
+      <bpmn:incoming>flow_cust_3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_cust_respond" name="Review offer and respond">
+      <bpmn:incoming>flow_cust_1</bpmn:incoming>
+      <bpmn:outgoing>flow_cust_2</bpmn:outgoing>
+      <bpmn:property id="task_cust_respond_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_cust_respond_dia0">
+        <bpmn:sourceRef>data_mortgage_offer_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_cust_respond_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_cust_respond_doa0">
+        <bpmn:targetRef>data_offer_docs_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="task_cust_respond_doa1">
+        <bpmn:targetRef>data_prereq_docs_p1</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="flow_cust_1" sourceRef="event_cust_start" targetRef="task_cust_respond" />
+    <bpmn:sequenceFlow id="flow_cust_2" sourceRef="task_cust_respond" targetRef="event_cust_reply" />
+    <bpmn:sequenceFlow id="flow_cust_3" sourceRef="event_cust_request_received" targetRef="event_cust_end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_csr_part_di" bpmnElement="pool_csr_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="2090" height="525" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_customer_part_di" bpmnElement="pool_customer_part" isHorizontal="true">
+        <dc:Bounds x="120" y="625" width="760" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_cust_end_di" bpmnElement="event_cust_end">
+        <dc:Bounds x="350" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_cust_reply_di" bpmnElement="event_cust_reply">
+        <dc:Bounds x="540" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_cust_request_received_di" bpmnElement="event_cust_request_received">
+        <dc:Bounds x="160" y="685" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_cust_start_di" bpmnElement="event_cust_start">
+        <dc:Bounds x="160" y="810" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_administration_di" bpmnElement="event_end_administration">
+        <dc:Bounds x="1680" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_cancelled_di" bpmnElement="event_end_cancelled">
+        <dc:Bounds x="1490" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_offer_sent_di" bpmnElement="event_offer_sent">
+        <dc:Bounds x="540" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_request_docs_sent_di" bpmnElement="event_request_docs_sent">
+        <dc:Bounds x="1680" y="225" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_response_received_di" bpmnElement="event_response_received">
+        <dc:Bounds x="100" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_di" bpmnElement="event_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gtw_check_prereq_di" bpmnElement="gtw_check_prereq">
+        <dc:Bounds x="1300" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gtw_response_type_di" bpmnElement="gtw_response_type">
+        <dc:Bounds x="920" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_archive_decline_di" bpmnElement="task_archive_decline">
+        <dc:Bounds x="1300" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_archive_timeout_di" bpmnElement="task_archive_timeout">
+        <dc:Bounds x="1300" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_documents_di" bpmnElement="task_check_documents">
+        <dc:Bounds x="1110" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_cust_respond_di" bpmnElement="task_cust_respond">
+        <dc:Bounds x="350" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_generate_request_di" bpmnElement="task_generate_request">
+        <dc:Bounds x="1490" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_move_administration_di" bpmnElement="task_move_administration">
+        <dc:Bounds x="1490" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_send_offer_di" bpmnElement="task_send_offer">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_update_details_decline_di" bpmnElement="task_update_details_decline">
+        <dc:Bounds x="1110" y="225" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_update_details_timeout_di" bpmnElement="task_update_details_timeout">
+        <dc:Bounds x="1110" y="350" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_wait_reply_di" bpmnElement="task_wait_reply">
+        <dc:Bounds x="1870" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_mortgage_offer_di" bpmnElement="data_mortgage_offer">
+        <dc:Bounds x="370" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_case_details_di" bpmnElement="data_case_details">
+        <dc:Bounds x="1282" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="store_archive_di" bpmnElement="store_archive">
+        <dc:Bounds x="1320" y="490" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_offer_docs_di" bpmnElement="data_offer_docs">
+        <dc:Bounds x="1130" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_prereq_docs_di" bpmnElement="data_prereq_docs">
+        <dc:Bounds x="1130" y="490" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_mortgage_offer_p1_di" bpmnElement="data_mortgage_offer_p1">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_offer_docs_p1_di" bpmnElement="data_offer_docs_p1">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_prereq_docs_p1_di" bpmnElement="data_prereq_docs_p1">
+        <dc:Bounds x="370" y="950" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_1_di" bpmnElement="flow_1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_2_di" bpmnElement="flow_2">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="558" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_3_di" bpmnElement="flow_3">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="1920" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_4_di" bpmnElement="flow_4">
+        <di:waypoint x="1920" y="140" />
+        <di:waypoint x="945" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_declined_di" bpmnElement="flow_declined">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_5_di" bpmnElement="flow_5">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_6_di" bpmnElement="flow_6">
+        <di:waypoint x="1350" y="265" />
+        <di:waypoint x="1508" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_completed_offer_di" bpmnElement="flow_completed_offer">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_7_di" bpmnElement="flow_7">
+        <di:waypoint x="1160" y="140" />
+        <di:waypoint x="1325" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_all_docs_provided_di" bpmnElement="flow_all_docs_provided">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1540" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_8_di" bpmnElement="flow_8">
+        <di:waypoint x="1540" y="390" />
+        <di:waypoint x="1698" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_missing_docs_di" bpmnElement="flow_missing_docs">
+        <di:waypoint x="1325" y="125" />
+        <di:waypoint x="1540" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_9_di" bpmnElement="flow_9">
+        <di:waypoint x="1540" y="265" />
+        <di:waypoint x="1698" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_10_di" bpmnElement="flow_10">
+        <di:waypoint x="1698" y="243" />
+        <di:waypoint x="1920" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_no_answer_di" bpmnElement="flow_no_answer">
+        <di:waypoint x="945" y="125" />
+        <di:waypoint x="1160" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_11_di" bpmnElement="flow_11">
+        <di:waypoint x="1160" y="390" />
+        <di:waypoint x="1350" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_12_di" bpmnElement="flow_12">
+        <di:waypoint x="1350" y="390" />
+        <di:waypoint x="1508" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cust_1_di" bpmnElement="flow_cust_1">
+        <di:waypoint x="178" y="828" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cust_2_di" bpmnElement="flow_cust_2">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="558" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_cust_3_di" bpmnElement="flow_cust_3">
+        <di:waypoint x="178" y="703" />
+        <di:waypoint x="368" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_1_di" bpmnElement="msg_flow_1">
+        <di:waypoint x="558" y="118" />
+        <di:waypoint x="178" y="828" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_2_di" bpmnElement="msg_flow_2">
+        <di:waypoint x="558" y="703" />
+        <di:waypoint x="118" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="msg_flow_3_di" bpmnElement="msg_flow_3">
+        <di:waypoint x="1698" y="243" />
+        <di:waypoint x="178" y="703" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_offer_dia0_di" bpmnElement="task_send_offer_dia0">
+        <di:waypoint x="388" y="515" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_send_offer_doa0_di" bpmnElement="task_send_offer_doa0">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="388" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_details_decline_dia0_di" bpmnElement="task_update_details_decline_dia0">
+        <di:waypoint x="1300" y="515" />
+        <di:waypoint x="1160" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_details_decline_doa0_di" bpmnElement="task_update_details_decline_doa0">
+        <di:waypoint x="1160" y="265" />
+        <di:waypoint x="1300" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_archive_decline_dia0_di" bpmnElement="task_archive_decline_dia0">
+        <di:waypoint x="1300" y="515" />
+        <di:waypoint x="1350" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_archive_decline_doa0_di" bpmnElement="task_archive_decline_doa0">
+        <di:waypoint x="1350" y="265" />
+        <di:waypoint x="1345" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_documents_dia0_di" bpmnElement="task_check_documents_dia0">
+        <di:waypoint x="1148" y="515" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_check_documents_dia1_di" bpmnElement="task_check_documents_dia1">
+        <di:waypoint x="1148" y="515" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_move_administration_dia0_di" bpmnElement="task_move_administration_dia0">
+        <di:waypoint x="1300" y="515" />
+        <di:waypoint x="1540" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_move_administration_doa0_di" bpmnElement="task_move_administration_doa0">
+        <di:waypoint x="1540" y="390" />
+        <di:waypoint x="1300" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_details_timeout_dia0_di" bpmnElement="task_update_details_timeout_dia0">
+        <di:waypoint x="1300" y="515" />
+        <di:waypoint x="1160" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_update_details_timeout_doa0_di" bpmnElement="task_update_details_timeout_doa0">
+        <di:waypoint x="1160" y="390" />
+        <di:waypoint x="1300" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_archive_timeout_dia0_di" bpmnElement="task_archive_timeout_dia0">
+        <di:waypoint x="1300" y="515" />
+        <di:waypoint x="1350" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_archive_timeout_doa0_di" bpmnElement="task_archive_timeout_doa0">
+        <di:waypoint x="1350" y="390" />
+        <di:waypoint x="1345" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_cust_respond_dia0_di" bpmnElement="task_cust_respond_dia0">
+        <di:waypoint x="388" y="975" />
+        <di:waypoint x="400" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_cust_respond_doa0_di" bpmnElement="task_cust_respond_doa0">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="388" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_cust_respond_doa1_di" bpmnElement="task_cust_respond_doa1">
+        <di:waypoint x="400" y="850" />
+        <di:waypoint x="388" y="975" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

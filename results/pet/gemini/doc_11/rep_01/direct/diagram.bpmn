@@ -1,0 +1,762 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             id="definitions_teleco_process"
+             targetNamespace="http://www.example.org/bpmn/teleco"
+             exporter="BPMN Expert"
+             exporterVersion="1.0">
+
+  <!-- ==================================================================== -->
+  <!-- COLLABORATION                                                        -->
+  <!-- ==================================================================== -->
+  <collaboration id="collaboration_teleco">
+    <participant id="participant_customer" name="Customer" processRef="process_customer" />
+    <participant id="participant_teleco" name="TELECO" processRef="process_teleco" />
+    <participant id="participant_billing" name="Billing &amp; Collections" processRef="process_billing" />
+
+    <!-- Message Flows -->
+    <messageFlow id="msg_1" name="Problem Parameters" sourceRef="task_cust_send_params" targetRef="start_cs_msg" />
+    <messageFlow id="msg_2" name="Detailed Problem Report" sourceRef="task_cs_send_detailed_report" targetRef="start_sm_msg" />
+    <messageFlow id="msg_3" name="Detailed Problem Report" sourceRef="task_sm_send_rp_report" targetRef="start_rp_msg" />
+    <messageFlow id="msg_4" name="Status Report" sourceRef="task_rp_send_status" targetRef="task_sm_receive_status" />
+    <messageFlow id="msg_5" name="Restoration Request" sourceRef="task_sm_send_restoration_req" targetRef="catch_rp_restoration_req" />
+    <messageFlow id="msg_6" name="Trouble-Shooting Report" sourceRef="task_rp_send_ts_report" targetRef="task_sm_receive_ts_report" />
+    <messageFlow id="msg_7" name="Actual Performance" sourceRef="task_sm_send_perf_cs" targetRef="catch_cs_actual_perf" />
+    <messageFlow id="msg_8" name="Problem Resolution Report" sourceRef="task_sm_send_resolution_cs" targetRef="catch_cs_resolution_rep" />
+    <messageFlow id="msg_9" name="Performance &amp; Resolution Report" sourceRef="task_cs_send_report_cust" targetRef="catch_cust_final_report" />
+    <messageFlow id="msg_10" name="SLA Violation Rebate" sourceRef="task_cs_report_rebate" targetRef="start_billing_rebate" />
+  </collaboration>
+
+  <!-- ==================================================================== -->
+  <!-- PROCESS: CUSTOMER                                                    -->
+  <!-- ==================================================================== -->
+  <process id="process_customer" name="Customer" isExecutable="true">
+    <startEvent id="start_cust" name="Perceive Service Degradation">
+      <outgoing>flow_c1</outgoing>
+    </startEvent>
+
+    <sendTask id="task_cust_send_params" name="Send Problem Parameters to Customer Service">
+      <incoming>flow_c1</incoming>
+      <outgoing>flow_c2</outgoing>
+    </sendTask>
+
+    <receiveTask id="catch_cust_final_report" name="Receive Service Performance &amp; Resolution Report">
+      <incoming>flow_c2</incoming>
+      <outgoing>flow_c3</outgoing>
+    </receiveTask>
+
+    <endEvent id="end_cust" name="Customer Process Ended">
+      <incoming>flow_c3</incoming>
+    </endEvent>
+
+    <sequenceFlow id="flow_c1" sourceRef="start_cust" targetRef="task_cust_send_params" />
+    <sequenceFlow id="flow_c2" sourceRef="task_cust_send_params" targetRef="catch_cust_final_report" />
+    <sequenceFlow id="flow_c3" sourceRef="catch_cust_final_report" targetRef="end_cust" />
+  </process>
+
+  <!-- ==================================================================== -->
+  <!-- PROCESS: BILLING & COLLECTIONS                                       -->
+  <!-- ==================================================================== -->
+  <process id="process_billing" name="Billing &amp; Collections" isExecutable="true">
+    <startEvent id="start_billing_rebate" name="Receive SLA Violation Rebate">
+      <messageEventDefinition id="med_billing_start" />
+      <outgoing>flow_b1</outgoing>
+    </startEvent>
+
+    <userTask id="task_billing_adjust" name="Adjust Billing">
+      <incoming>flow_b1</incoming>
+      <outgoing>flow_b2</outgoing>
+    </userTask>
+
+    <endEvent id="end_billing" name="Billing Adjusted">
+      <incoming>flow_b2</incoming>
+    </endEvent>
+
+    <sequenceFlow id="flow_b1" sourceRef="start_billing_rebate" targetRef="task_billing_adjust" />
+    <sequenceFlow id="flow_b2" sourceRef="task_billing_adjust" targetRef="end_billing" />
+  </process>
+
+  <!-- ==================================================================== -->
+  <!-- PROCESS: TELECO (COLLABORATIVE POOL WITH LANES)                      -->
+  <!-- ==================================================================== -->
+  <process id="process_teleco" name="TELECO" isExecutable="true">
+    <laneSet id="laneSet_teleco">
+      <lane id="lane_cs" name="Customer Service">
+        <flowNodeRef>start_cs_msg</flowNodeRef>
+        <flowNodeRef>task_cs_enter_report</flowNodeRef>
+        <flowNodeRef>task_cs_compare_sla</flowNodeRef>
+        <flowNodeRef>task_cs_determine_countermeasures</flowNodeRef>
+        <flowNodeRef>task_cs_determine_significance</flowNodeRef>
+        <flowNodeRef>gateway_cs_premium</flowNodeRef>
+        <flowNodeRef>call_cs_extra_fix</flowNodeRef>
+        <flowNodeRef>gateway_cs_reprioritize_check</flowNodeRef>
+        <flowNodeRef>task_cs_reprioritize</flowNodeRef>
+        <flowNodeRef>gateway_cs_merge_reprioritize</flowNodeRef>
+        <flowNodeRef>task_cs_create_detailed_report</flowNodeRef>
+        <flowNodeRef>task_cs_send_detailed_report</flowNodeRef>
+        <flowNodeRef>gateway_cs_receive_type</flowNodeRef>
+        <flowNodeRef>catch_cs_actual_perf</flowNodeRef>
+        <flowNodeRef>catch_cs_resolution_rep</flowNodeRef>
+        <flowNodeRef>gateway_cs_merge_received</flowNodeRef>
+        <flowNodeRef>gateway_cs_parallel_split</flowNodeRef>
+        <flowNodeRef>task_cs_create_cust_report</flowNodeRef>
+        <flowNodeRef>task_cs_send_report_cust</flowNodeRef>
+        <flowNodeRef>task_cs_report_rebate</flowNodeRef>
+        <flowNodeRef>gateway_cs_parallel_join</flowNodeRef>
+        <flowNodeRef>end_cs</flowNodeRef>
+      </lane>
+      <lane id="lane_sm" name="Service Management">
+        <flowNodeRef>start_sm_msg</flowNodeRef>
+        <flowNodeRef>task_sm_investigate</flowNodeRef>
+        <flowNodeRef>gateway_sm_analyzable</flowNodeRef>
+        <flowNodeRef>task_sm_send_rp_report</flowNodeRef>
+        <flowNodeRef>task_sm_analyze</flowNodeRef>
+        <flowNodeRef>task_sm_create_trouble_report</flowNodeRef>
+        <flowNodeRef>task_sm_receive_status</flowNodeRef>
+        <flowNodeRef>gateway_sm_merge_status</flowNodeRef>
+        <flowNodeRef>task_sm_prepare_final_status</flowNodeRef>
+        <flowNodeRef>gateway_sm_action_path</flowNodeRef>
+        <flowNodeRef>task_sm_send_perf_cs</flowNodeRef>
+        <flowNodeRef>end_sm_no_prob</flowNodeRef>
+        <flowNodeRef>task_sm_minor_actions</flowNodeRef>
+        <flowNodeRef>task_sm_create_resolution_rep</flowNodeRef>
+        <flowNodeRef>task_sm_send_resolution_cs</flowNodeRef>
+        <flowNodeRef>end_sm_minor</flowNodeRef>
+        <flowNodeRef>task_sm_create_restoration_req</flowNodeRef>
+        <flowNodeRef>task_sm_send_restoration_req</flowNodeRef>
+        <flowNodeRef>task_sm_receive_ts_report</flowNodeRef>
+      </lane>
+      <lane id="lane_rp" name="Resource Provisioning">
+        <flowNodeRef>start_rp_msg</flowNodeRef>
+        <flowNodeRef>task_rp_check_problems</flowNodeRef>
+        <flowNodeRef>gateway_rp_prob_detected</flowNodeRef>
+        <flowNodeRef>task_rp_create_normal_exec</flowNodeRef>
+        <flowNodeRef>task_rp_analyze</flowNodeRef>
+        <flowNodeRef>task_rp_create_trouble_report</flowNodeRef>
+        <flowNodeRef>gateway_rp_merge_rep</flowNodeRef>
+        <flowNodeRef>task_rp_send_status</flowNodeRef>
+        <flowNodeRef>gateway_rp_event_based</flowNodeRef>
+        <flowNodeRef>catch_rp_restoration_req</flowNodeRef>
+        <flowNodeRef>catch_rp_2days_timer</flowNodeRef>
+        <flowNodeRef>end_rp_timeout</flowNodeRef>
+        <flowNodeRef>task_rp_track_errors</flowNodeRef>
+        <flowNodeRef>task_rp_corrective_actions</flowNodeRef>
+        <flowNodeRef>task_rp_create_ts_report</flowNodeRef>
+        <flowNodeRef>task_rp_send_ts_report</flowNodeRef>
+        <flowNodeRef>end_rp_restored</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- ================= Customer Service Lane Elements ================= -->
+    <startEvent id="start_cs_msg" name="Receive Problem Parameters">
+      <messageEventDefinition id="med_cs_start" />
+      <outgoing>flow_cs_1</outgoing>
+    </startEvent>
+
+    <userTask id="task_cs_enter_report" name="Enter Problem Report into System T">
+      <incoming>flow_cs_1</incoming>
+      <outgoing>flow_cs_2</outgoing>
+    </userTask>
+
+    <userTask id="task_cs_compare_sla" name="Compare Report to Customer SLA">
+      <incoming>flow_cs_2</incoming>
+      <outgoing>flow_cs_3</outgoing>
+    </userTask>
+
+    <userTask id="task_cs_determine_countermeasures" name="Determine Counter Measures &amp; Priorities">
+      <incoming>flow_cs_3</incoming>
+      <outgoing>flow_cs_4</outgoing>
+    </userTask>
+
+    <serviceTask id="task_cs_determine_significance" name="Determine Customer Significance">
+      <incoming>flow_cs_4</incoming>
+      <outgoing>flow_cs_5</outgoing>
+    </serviceTask>
+
+    <exclusiveGateway id="gateway_cs_premium" name="Is Premium Customer?">
+      <incoming>flow_cs_5</incoming>
+      <outgoing>flow_cs_prem_yes</outgoing>
+      <outgoing>flow_cs_prem_no</outgoing>
+    </exclusiveGateway>
+
+    <callActivity id="call_cs_extra_fix" name="Link to Extra Problem Fix Process">
+      <incoming>flow_cs_prem_yes</incoming>
+      <outgoing>flow_cs_6</outgoing>
+    </callActivity>
+
+    <exclusiveGateway id="gateway_cs_reprioritize_check" name="Significance Affects Counter Measures?">
+      <incoming>flow_cs_prem_no</incoming>
+      <incoming>flow_cs_6</incoming>
+      <outgoing>flow_cs_reprep_yes</outgoing>
+      <outgoing>flow_cs_reprep_no</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="task_cs_reprioritize" name="Re-prioritize Counter Measures">
+      <incoming>flow_cs_reprep_yes</incoming>
+      <outgoing>flow_cs_7</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gateway_cs_merge_reprioritize">
+      <incoming>flow_cs_reprep_no</incoming>
+      <incoming>flow_cs_7</incoming>
+      <outgoing>flow_cs_8</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="task_cs_create_detailed_report" name="Create Detailed Problem Report">
+      <incoming>flow_cs_8</incoming>
+      <outgoing>flow_cs_9</outgoing>
+    </userTask>
+
+    <sendTask id="task_cs_send_detailed_report" name="Send Detailed Problem Report to Service Management">
+      <incoming>flow_cs_9</incoming>
+      <outgoing>flow_cs_10</outgoing>
+    </sendTask>
+
+    <exclusiveGateway id="gateway_cs_receive_type" name="Wait for Service Management Response">
+      <incoming>flow_cs_10</incoming>
+      <outgoing>flow_cs_to_perf</outgoing>
+      <outgoing>flow_cs_to_res</outgoing>
+    </exclusiveGateway>
+
+    <intermediateCatchEvent id="catch_cs_actual_perf" name="Receive Actual Service Performance">
+      <incoming>flow_cs_to_perf</incoming>
+      <messageEventDefinition id="med_cs_perf" />
+      <outgoing>flow_cs_perf_rcvd</outgoing>
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="catch_cs_resolution_rep" name="Receive Problem Resolution Report">
+      <incoming>flow_cs_to_res</incoming>
+      <messageEventDefinition id="med_cs_res" />
+      <outgoing>flow_cs_res_rcvd</outgoing>
+    </intermediateCatchEvent>
+
+    <exclusiveGateway id="gateway_cs_merge_received">
+      <incoming>flow_cs_perf_rcvd</incoming>
+      <incoming>flow_cs_res_rcvd</incoming>
+      <outgoing>flow_cs_11</outgoing>
+    </exclusiveGateway>
+
+    <parallelGateway id="gateway_cs_parallel_split">
+      <incoming>flow_cs_11</incoming>
+      <outgoing>flow_cs_p1</outgoing>
+      <outgoing>flow_cs_p2</outgoing>
+    </parallelGateway>
+
+    <userTask id="task_cs_create_cust_report" name="Create Customer Performance &amp; Resolution Report">
+      <incoming>flow_cs_p1</incoming>
+      <outgoing>flow_cs_12</outgoing>
+    </userTask>
+
+    <sendTask id="task_cs_send_report_cust" name="Send Report to Customer">
+      <incoming>flow_cs_12</incoming>
+      <outgoing>flow_cs_p1_done</outgoing>
+    </sendTask>
+
+    <sendTask id="task_cs_report_rebate" name="Report SLA Violation Rebate to Billing">
+      <incoming>flow_cs_p2</incoming>
+      <outgoing>flow_cs_p2_done</outgoing>
+    </sendTask>
+
+    <parallelGateway id="gateway_cs_parallel_join">
+      <incoming>flow_cs_p1_done</incoming>
+      <incoming>flow_cs_p2_done</incoming>
+      <outgoing>flow_cs_13</outgoing>
+    </parallelGateway>
+
+    <endEvent id="end_cs" name="Customer Service Process Completed">
+      <incoming>flow_cs_13</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows: CS -->
+    <sequenceFlow id="flow_cs_1" sourceRef="start_cs_msg" targetRef="task_cs_enter_report" />
+    <sequenceFlow id="flow_cs_2" sourceRef="task_cs_enter_report" targetRef="task_cs_compare_sla" />
+    <sequenceFlow id="flow_cs_3" sourceRef="task_cs_compare_sla" targetRef="task_cs_determine_countermeasures" />
+    <sequenceFlow id="flow_cs_4" sourceRef="task_cs_determine_countermeasures" targetRef="task_cs_determine_significance" />
+    <sequenceFlow id="flow_cs_5" sourceRef="task_cs_determine_significance" targetRef="gateway_cs_premium" />
+    <sequenceFlow id="flow_cs_prem_yes" name="Yes" sourceRef="gateway_cs_premium" targetRef="call_cs_extra_fix" />
+    <sequenceFlow id="flow_cs_prem_no" name="No" sourceRef="gateway_cs_premium" targetRef="gateway_cs_reprioritize_check" />
+    <sequenceFlow id="flow_cs_6" sourceRef="call_cs_extra_fix" targetRef="gateway_cs_reprioritize_check" />
+    <sequenceFlow id="flow_cs_reprep_yes" name="Yes" sourceRef="gateway_cs_reprioritize_check" targetRef="task_cs_reprioritize" />
+    <sequenceFlow id="flow_cs_reprep_no" name="No" sourceRef="gateway_cs_reprioritize_check" targetRef="gateway_cs_merge_reprioritize" />
+    <sequenceFlow id="flow_cs_7" sourceRef="task_cs_reprioritize" targetRef="gateway_cs_merge_reprioritize" />
+    <sequenceFlow id="flow_cs_8" sourceRef="gateway_cs_merge_reprioritize" targetRef="task_cs_create_detailed_report" />
+    <sequenceFlow id="flow_cs_9" sourceRef="task_cs_create_detailed_report" targetRef="task_cs_send_detailed_report" />
+    <sequenceFlow id="flow_cs_10" sourceRef="task_cs_send_detailed_report" targetRef="gateway_cs_receive_type" />
+    <sequenceFlow id="flow_cs_to_perf" sourceRef="gateway_cs_receive_type" targetRef="catch_cs_actual_perf" />
+    <sequenceFlow id="flow_cs_to_res" sourceRef="gateway_cs_receive_type" targetRef="catch_cs_resolution_rep" />
+    <sequenceFlow id="flow_cs_perf_rcvd" sourceRef="catch_cs_actual_perf" targetRef="gateway_cs_merge_received" />
+    <sequenceFlow id="flow_cs_res_rcvd" sourceRef="catch_cs_resolution_rep" targetRef="gateway_cs_merge_received" />
+    <sequenceFlow id="flow_cs_11" sourceRef="gateway_cs_merge_received" targetRef="gateway_cs_parallel_split" />
+    <sequenceFlow id="flow_cs_p1" sourceRef="gateway_cs_parallel_split" targetRef="task_cs_create_cust_report" />
+    <sequenceFlow id="flow_cs_12" sourceRef="task_cs_create_cust_report" targetRef="task_cs_send_report_cust" />
+    <sequenceFlow id="flow_cs_p1_done" sourceRef="task_cs_send_report_cust" targetRef="gateway_cs_parallel_join" />
+    <sequenceFlow id="flow_cs_p2" sourceRef="gateway_cs_parallel_split" targetRef="task_cs_report_rebate" />
+    <sequenceFlow id="flow_cs_p2_done" sourceRef="task_cs_report_rebate" targetRef="gateway_cs_parallel_join" />
+    <sequenceFlow id="flow_cs_13" sourceRef="gateway_cs_parallel_join" targetRef="end_cs" />
+
+    <!-- ================= Service Management Lane Elements ================= -->
+    <startEvent id="start_sm_msg" name="Receive Detailed Problem Report">
+      <messageEventDefinition id="med_sm_start" />
+      <outgoing>flow_sm_1</outgoing>
+    </startEvent>
+
+    <userTask id="task_sm_investigate" name="Investigate Problem Location">
+      <incoming>flow_sm_1</incoming>
+      <outgoing>flow_sm_2</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gateway_sm_analyzable" name="Analyzable by Service Management?">
+      <incoming>flow_sm_2</incoming>
+      <outgoing>flow_sm_no</outgoing>
+      <outgoing>flow_sm_yes</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="task_sm_send_rp_report" name="Send Detailed Problem Report to Resource Provisioning">
+      <incoming>flow_sm_no</incoming>
+      <outgoing>flow_sm_3</outgoing>
+    </sendTask>
+
+    <receiveTask id="task_sm_receive_status" name="Receive Status Report from RP">
+      <incoming>flow_sm_3</incoming>
+      <outgoing>flow_sm_4</outgoing>
+    </receiveTask>
+
+    <userTask id="task_sm_analyze" name="Perform Service Analysis">
+      <incoming>flow_sm_yes</incoming>
+      <outgoing>flow_sm_5</outgoing>
+    </userTask>
+
+    <userTask id="task_sm_create_trouble_report" name="Create Trouble Report">
+      <incoming>flow_sm_5</incoming>
+      <outgoing>flow_sm_6</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gateway_sm_merge_status">
+      <incoming>flow_sm_4</incoming>
+      <incoming>flow_sm_6</incoming>
+      <outgoing>flow_sm_7</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="task_sm_prepare_final_status" name="Prepare Final Status Report">
+      <incoming>flow_sm_7</incoming>
+      <outgoing>flow_sm_8</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gateway_sm_action_path" name="Determine Required Action">
+      <incoming>flow_sm_8</incoming>
+      <outgoing>flow_sm_path_noprob</outgoing>
+      <outgoing>flow_sm_path_minor</outgoing>
+      <outgoing>flow_sm_path_auto</outgoing>
+    </exclusiveGateway>
+
+    <!-- Path 1: No problem -->
+    <sendTask id="task_sm_send_perf_cs" name="Send Actual Service Performance to CS">
+      <incoming>flow_sm_path_noprob</incoming>
+      <outgoing>flow_sm_9</outgoing>
+    </sendTask>
+
+    <endEvent id="end_sm_no_prob" name="Ended (No Problem)">
+      <incoming>flow_sm_9</incoming>
+    </endEvent>
+
+    <!-- Path 2: Minor actions -->
+    <userTask id="task_sm_minor_actions" name="Undertake Minor Corrective Actions">
+      <incoming>flow_sm_path_minor</incoming>
+      <outgoing>flow_sm_10</outgoing>
+    </userTask>
+
+    <userTask id="task_sm_create_resolution_rep" name="Create Problem Resolution Report">
+      <incoming>flow_sm_10</incoming>
+      <incoming>flow_sm_14</incoming>
+      <outgoing>flow_sm_11</outgoing>
+    </userTask>
+
+    <sendTask id="task_sm_send_resolution_cs" name="Send Problem Resolution Report to CS">
+      <incoming>flow_sm_11</incoming>
+      <outgoing>flow_sm_12</outgoing>
+    </sendTask>
+
+    <endEvent id="end_sm_minor" name="Ended (Minor Actions)">
+      <incoming>flow_sm_12</incoming>
+    </endEvent>
+
+    <!-- Path 3: Automatic restoration -->
+    <userTask id="task_sm_create_restoration_req" name="Create Automatic Resource Restoration Request">
+      <incoming>flow_sm_path_auto</incoming>
+      <outgoing>flow_sm_13</outgoing>
+    </userTask>
+
+    <sendTask id="task_sm_send_restoration_req" name="Send Restoration Request to Resource Provisioning">
+      <incoming>flow_sm_13</incoming>
+      <outgoing>flow_sm_to_receive_ts</outgoing>
+    </sendTask>
+
+    <receiveTask id="task_sm_receive_ts_report" name="Receive Trouble-Shooting Report from RP">
+      <incoming>flow_sm_to_receive_ts</incoming>
+      <outgoing>flow_sm_14</outgoing>
+    </receiveTask>
+
+    <!-- Sequence Flows: SM -->
+    <sequenceFlow id="flow_sm_1" sourceRef="start_sm_msg" targetRef="task_sm_investigate" />
+    <sequenceFlow id="flow_sm_2" sourceRef="task_sm_investigate" targetRef="gateway_sm_analyzable" />
+    <sequenceFlow id="flow_sm_no" name="No" sourceRef="gateway_sm_analyzable" targetRef="task_sm_send_rp_report" />
+    <sequenceFlow id="flow_sm_yes" name="Yes" sourceRef="gateway_sm_analyzable" targetRef="task_sm_analyze" />
+    <sequenceFlow id="flow_sm_3" sourceRef="task_sm_send_rp_report" targetRef="task_sm_receive_status" />
+    <sequenceFlow id="flow_sm_4" sourceRef="task_sm_receive_status" targetRef="gateway_sm_merge_status" />
+    <sequenceFlow id="flow_sm_5" sourceRef="task_sm_analyze" targetRef="task_sm_create_trouble_report" />
+    <sequenceFlow id="flow_sm_6" sourceRef="task_sm_create_trouble_report" targetRef="gateway_sm_merge_status" />
+    <sequenceFlow id="flow_sm_7" sourceRef="gateway_sm_merge_status" targetRef="task_sm_prepare_final_status" />
+    <sequenceFlow id="flow_sm_8" sourceRef="task_sm_prepare_final_status" targetRef="gateway_sm_action_path" />
+    <sequenceFlow id="flow_sm_path_noprob" name="No Problem" sourceRef="gateway_sm_action_path" targetRef="task_sm_send_perf_cs" />
+    <sequenceFlow id="flow_sm_path_minor" name="Minor Actions" sourceRef="gateway_sm_action_path" targetRef="task_sm_minor_actions" />
+    <sequenceFlow id="flow_sm_path_auto" name="Auto Restoration Needed" sourceRef="gateway_sm_action_path" targetRef="task_sm_create_restoration_req" />
+    <sequenceFlow id="flow_sm_9" sourceRef="task_sm_send_perf_cs" targetRef="end_sm_no_prob" />
+    <sequenceFlow id="flow_sm_10" sourceRef="task_sm_minor_actions" targetRef="task_sm_create_resolution_rep" />
+    <sequenceFlow id="flow_sm_11" sourceRef="task_sm_create_resolution_rep" targetRef="task_sm_send_resolution_cs" />
+    <sequenceFlow id="flow_sm_12" sourceRef="task_sm_send_resolution_cs" targetRef="end_sm_minor" />
+    <sequenceFlow id="flow_sm_13" sourceRef="task_sm_create_restoration_req" targetRef="task_sm_send_restoration_req" />
+    <sequenceFlow id="flow_sm_to_receive_ts" sourceRef="task_sm_send_restoration_req" targetRef="task_sm_receive_ts_report" />
+    <sequenceFlow id="flow_sm_14" sourceRef="task_sm_receive_ts_report" targetRef="task_sm_create_resolution_rep" />
+
+    <!-- ================= Resource Provisioning Lane Elements ================= -->
+    <startEvent id="start_rp_msg" name="Receive Detailed Problem Report in RP">
+      <messageEventDefinition id="med_rp_start" />
+      <outgoing>flow_rp_1</outgoing>
+    </startEvent>
+
+    <userTask id="task_rp_check_problems" name="Check for Possible Problems">
+      <incoming>flow_rp_1</incoming>
+      <outgoing>flow_rp_2</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gateway_rp_prob_detected" name="Problems Detected?">
+      <incoming>flow_rp_2</incoming>
+      <outgoing>flow_rp_no</outgoing>
+      <outgoing>flow_rp_yes</outgoing>
+    </exclusiveGateway>
+
+    <userTask id="task_rp_create_normal_exec" name="Create Normal Service Execution Notification">
+      <incoming>flow_rp_no</incoming>
+      <outgoing>flow_rp_3</outgoing>
+    </userTask>
+
+    <userTask id="task_rp_analyze" name="Analyze Problem">
+      <incoming>flow_rp_yes</incoming>
+      <outgoing>flow_rp_4</outgoing>
+    </userTask>
+
+    <userTask id="task_rp_create_trouble_report" name="Create Trouble Report">
+      <incoming>flow_rp_4</incoming>
+      <outgoing>flow_rp_5</outgoing>
+    </userTask>
+
+    <exclusiveGateway id="gateway_rp_merge_rep">
+      <incoming>flow_rp_3</incoming>
+      <incoming>flow_rp_5</incoming>
+      <outgoing>flow_rp_6</outgoing>
+    </exclusiveGateway>
+
+    <sendTask id="task_rp_send_status" name="Include Report in Status Report &amp; Send to SM">
+      <incoming>flow_rp_6</incoming>
+      <outgoing>flow_rp_7</outgoing>
+    </sendTask>
+
+    <eventBasedGateway id="gateway_rp_event_based" name="Wait for Restoration Request or Timeout">
+      <incoming>flow_rp_7</incoming>
+      <outgoing>flow_rp_to_req</outgoing>
+      <outgoing>flow_rp_to_timer</outgoing>
+    </eventBasedGateway>
+
+    <intermediateCatchEvent id="catch_rp_restoration_req" name="Receive Restoration Request">
+      <incoming>flow_rp_to_req</incoming>
+      <messageEventDefinition id="med_rp_req" />
+      <outgoing>flow_rp_8</outgoing>
+    </intermediateCatchEvent>
+
+    <intermediateCatchEvent id="catch_rp_2days_timer" name="2 Days Timeout">
+      <incoming>flow_rp_to_timer</incoming>
+      <timerEventDefinition id="ted_rp_timer">
+        <timeDuration xsi:type="tFormalExpression">P2D</timeDuration>
+      </timerEventDefinition>
+      <outgoing>flow_rp_9</outgoing>
+    </intermediateCatchEvent>
+
+    <endEvent id="end_rp_timeout" name="Process Terminated (Timeout)">
+      <incoming>flow_rp_9</incoming>
+    </endEvent>
+
+    <userTask id="task_rp_track_errors" name="Track All Possible Errors">
+      <incoming>flow_rp_8</incoming>
+      <outgoing>flow_rp_10</outgoing>
+    </userTask>
+
+    <userTask id="task_rp_corrective_actions" name="Undertake Necessary Corrective Actions">
+      <incoming>flow_rp_10</incoming>
+      <outgoing>flow_rp_11</outgoing>
+    </userTask>
+
+    <userTask id="task_rp_create_ts_report" name="Create Trouble-Shooting Report">
+      <incoming>flow_rp_11</incoming>
+      <outgoing>flow_rp_12</outgoing>
+    </userTask>
+
+    <sendTask id="task_rp_send_ts_report" name="Send Trouble-Shooting Report to SM">
+      <incoming>flow_rp_12</incoming>
+      <outgoing>flow_rp_13</outgoing>
+    </sendTask>
+
+    <endEvent id="end_rp_restored" name="Restoration Completed">
+      <incoming>flow_rp_13</incoming>
+    </endEvent>
+
+    <!-- Sequence Flows: RP -->
+    <sequenceFlow id="flow_rp_1" sourceRef="start_rp_msg" targetRef="task_rp_check_problems" />
+    <sequenceFlow id="flow_rp_2" sourceRef="task_rp_check_problems" targetRef="gateway_rp_prob_detected" />
+    <sequenceFlow id="flow_rp_no" name="No" sourceRef="gateway_rp_prob_detected" targetRef="task_rp_create_normal_exec" />
+    <sequenceFlow id="flow_rp_yes" name="Yes" sourceRef="gateway_rp_prob_detected" targetRef="task_rp_analyze" />
+    <sequenceFlow id="flow_rp_3" sourceRef="task_rp_create_normal_exec" targetRef="gateway_rp_merge_rep" />
+    <sequenceFlow id="flow_rp_4" sourceRef="task_rp_analyze" targetRef="task_rp_create_trouble_report" />
+    <sequenceFlow id="flow_rp_5" sourceRef="task_rp_create_trouble_report" targetRef="gateway_rp_merge_rep" />
+    <sequenceFlow id="flow_rp_6" sourceRef="gateway_rp_merge_rep" targetRef="task_rp_send_status" />
+    <sequenceFlow id="flow_rp_7" sourceRef="task_rp_send_status" targetRef="gateway_rp_event_based" />
+    <sequenceFlow id="flow_rp_to_req" sourceRef="gateway_rp_event_based" targetRef="catch_rp_restoration_req" />
+    <sequenceFlow id="flow_rp_to_timer" sourceRef="gateway_rp_event_based" targetRef="catch_rp_2days_timer" />
+    <sequenceFlow id="flow_rp_8" sourceRef="catch_rp_restoration_req" targetRef="task_rp_track_errors" />
+    <sequenceFlow id="flow_rp_9" sourceRef="catch_rp_2days_timer" targetRef="end_rp_timeout" />
+    <sequenceFlow id="flow_rp_10" sourceRef="task_rp_track_errors" targetRef="task_rp_corrective_actions" />
+    <sequenceFlow id="flow_rp_11" sourceRef="task_rp_corrective_actions" targetRef="task_rp_create_ts_report" />
+    <sequenceFlow id="flow_rp_12" sourceRef="task_rp_create_ts_report" targetRef="task_rp_send_ts_report" />
+    <sequenceFlow id="flow_rp_13" sourceRef="task_rp_send_ts_report" targetRef="end_rp_restored" />
+
+  </process>
+
+  <!-- ==================================================================== -->
+  <!-- BPMN DIAGRAM (VISUAL LAYOUT)                                         -->
+  <!-- ==================================================================== -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_teleco">
+    <bpmndi:BPMNPlane id="BPMNPlane_teleco" bpmnElement="collaboration_teleco">
+
+      <!-- Customer Pool -->
+      <bpmndi:BPMNShape id="shape_participant_customer" bpmnElement="participant_customer" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2800" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_start_cust" bpmnElement="start_cust">
+        <dc:Bounds x="222" y="162" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="200" y="205" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cust_send_params" bpmnElement="task_cust_send_params">
+        <dc:Bounds x="310" y="140" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_catch_cust_final_report" bpmnElement="catch_cust_final_report">
+        <dc:Bounds x="2682" y="162" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2660" y="112" width="80" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_cust" bpmnElement="end_cust">
+        <dc:Bounds x="2782" y="162" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="edge_flow_c1" bpmnElement="flow_c1">
+        <di:waypoint x="258" y="180" />
+        <di:waypoint x="310" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_c2" bpmnElement="flow_c2">
+        <di:waypoint x="410" y="180" />
+        <di:waypoint x="2682" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_c3" bpmnElement="flow_c3">
+        <di:waypoint x="2718" y="180" />
+        <di:waypoint x="2782" y="180" />
+      </bpmndi:BPMNEdge>
+
+      <!-- TELECO Pool -->
+      <bpmndi:BPMNShape id="shape_participant_teleco" bpmnElement="participant_teleco" isHorizontal="true">
+        <dc:Bounds x="160" y="340" width="2800" height="1060" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_cs" bpmnElement="lane_cs" isHorizontal="true">
+        <dc:Bounds x="190" y="340" width="2770" height="360" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_sm" bpmnElement="lane_sm" isHorizontal="true">
+        <dc:Bounds x="190" y="700" width="2770" height="350" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_lane_rp" bpmnElement="lane_rp" isHorizontal="true">
+        <dc:Bounds x="190" y="1050" width="2770" height="350" />
+      </bpmndi:BPMNShape>
+
+      <!-- CS Nodes -->
+      <bpmndi:BPMNShape id="shape_start_cs_msg" bpmnElement="start_cs_msg">
+        <dc:Bounds x="342" y="472" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_enter_report" bpmnElement="task_cs_enter_report">
+        <dc:Bounds x="420" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_compare_sla" bpmnElement="task_cs_compare_sla">
+        <dc:Bounds x="560" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_determine_countermeasures" bpmnElement="task_cs_determine_countermeasures">
+        <dc:Bounds x="700" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_determine_significance" bpmnElement="task_cs_determine_significance">
+        <dc:Bounds x="840" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_cs_premium" bpmnElement="gateway_cs_premium" isMarkerVisible="true">
+        <dc:Bounds x="985" y="465" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_call_cs_extra_fix" bpmnElement="call_cs_extra_fix">
+        <dc:Bounds x="1080" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_cs_reprioritize_check" bpmnElement="gateway_cs_reprioritize_check" isMarkerVisible="true">
+        <dc:Bounds x="1225" y="465" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_reprioritize" bpmnElement="task_cs_reprioritize">
+        <dc:Bounds x="1315" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_cs_merge_reprioritize" bpmnElement="gateway_cs_merge_reprioritize" isMarkerVisible="true">
+        <dc:Bounds x="1455" y="465" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_create_detailed_report" bpmnElement="task_cs_create_detailed_report">
+        <dc:Bounds x="1540" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_send_detailed_report" bpmnElement="task_cs_send_detailed_report">
+        <dc:Bounds x="1680" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_cs_receive_type" bpmnElement="gateway_cs_receive_type" isMarkerVisible="true">
+        <dc:Bounds x="2150" y="465" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_catch_cs_actual_perf" bpmnElement="catch_cs_actual_perf">
+        <dc:Bounds x="2242" y="402" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_catch_cs_resolution_rep" bpmnElement="catch_cs_resolution_rep">
+        <dc:Bounds x="2242" y="522" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_cs_merge_received" bpmnElement="gateway_cs_merge_received" isMarkerVisible="true">
+        <dc:Bounds x="2325" y="465" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_cs_parallel_split" bpmnElement="gateway_cs_parallel_split">
+        <dc:Bounds x="2415" y="465" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_create_cust_report" bpmnElement="task_cs_create_cust_report">
+        <dc:Bounds x="2500" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_send_report_cust" bpmnElement="task_cs_send_report_cust">
+        <dc:Bounds x="2650" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_cs_report_rebate" bpmnElement="task_cs_report_rebate">
+        <dc:Bounds x="2500" y="530" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_cs_parallel_join" bpmnElement="gateway_cs_parallel_join">
+        <dc:Bounds x="2795" y="465" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_cs" bpmnElement="end_cs">
+        <dc:Bounds x="2882" y="472" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <!-- CS Edges -->
+      <bpmndi:BPMNEdge id="edge_flow_cs_1" bpmnElement="flow_cs_1"><di:waypoint x="378" y="490" /><di:waypoint x="420" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_2" bpmnElement="flow_cs_2"><di:waypoint x="520" y="490" /><di:waypoint x="560" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_3" bpmnElement="flow_cs_3"><di:waypoint x="660" y="490" /><di:waypoint x="700" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_4" bpmnElement="flow_cs_4"><di:waypoint x="800" y="490" /><di:waypoint x="840" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_5" bpmnElement="flow_cs_5"><di:waypoint x="940" y="490" /><di:waypoint x="985" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_prem_yes" bpmnElement="flow_cs_prem_yes"><di:waypoint x="1010" y="465" /><di:waypoint x="1010" y="410" /><di:waypoint x="1080" y="410" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_prem_no" bpmnElement="flow_cs_prem_no"><di:waypoint x="1035" y="490" /><di:waypoint x="1225" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_6" bpmnElement="flow_cs_6"><di:waypoint x="1180" y="410" /><di:waypoint x="1250" y="410" /><di:waypoint x="1250" y="465" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_reprep_yes" bpmnElement="flow_cs_reprep_yes"><di:waypoint x="1250" y="465" /><di:waypoint x="1250" y="410" /><di:waypoint x="1315" y="410" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_reprep_no" bpmnElement="flow_cs_reprep_no"><di:waypoint x="1275" y="490" /><di:waypoint x="1455" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_7" bpmnElement="flow_cs_7"><di:waypoint x="1415" y="410" /><di:waypoint x="1480" y="410" /><di:waypoint x="1480" y="465" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_8" bpmnElement="flow_cs_8"><di:waypoint x="1505" y="490" /><di:waypoint x="1540" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_9" bpmnElement="flow_cs_9"><di:waypoint x="1640" y="490" /><di:waypoint x="1680" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_10" bpmnElement="flow_cs_10"><di:waypoint x="1780" y="490" /><di:waypoint x="2150" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_to_perf" bpmnElement="flow_cs_to_perf"><di:waypoint x="2175" y="465" /><di:waypoint x="2175" y="420" /><di:waypoint x="2242" y="420" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_to_res" bpmnElement="flow_cs_to_res"><di:waypoint x="2175" y="515" /><di:waypoint x="2175" y="540" /><di:waypoint x="2242" y="540" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_perf_rcvd" bpmnElement="flow_cs_perf_rcvd"><di:waypoint x="2278" y="420" /><di:waypoint x="2350" y="420" /><di:waypoint x="2350" y="465" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_res_rcvd" bpmnElement="flow_cs_res_rcvd"><di:waypoint x="2278" y="540" /><di:waypoint x="2350" y="540" /><di:waypoint x="2350" y="515" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_11" bpmnElement="flow_cs_11"><di:waypoint x="2375" y="490" /><di:waypoint x="2415" y="490" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_p1" bpmnElement="flow_cs_p1"><di:waypoint x="2440" y="465" /><di:waypoint x="2440" y="420" /><di:waypoint x="2500" y="420" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_12" bpmnElement="flow_cs_12"><di:waypoint x="2600" y="420" /><di:waypoint x="2650" y="420" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_p1_done" bpmnElement="flow_cs_p1_done"><di:waypoint x="2750" y="420" /><di:waypoint x="2820" y="420" /><di:waypoint x="2820" y="465" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_p2" bpmnElement="flow_cs_p2"><di:waypoint x="2440" y="515" /><di:waypoint x="2440" y="570" /><di:waypoint x="2500" y="570" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_p2_done" bpmnElement="flow_cs_p2_done"><di:waypoint x="2600" y="570" /><di:waypoint x="2820" y="570" /><di:waypoint x="2820" y="515" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_cs_13" bpmnElement="flow_cs_13"><di:waypoint x="2845" y="490" /><di:waypoint x="2882" y="490" /></bpmndi:BPMNEdge>
+
+      <!-- SM Nodes -->
+      <bpmndi:BPMNShape id="shape_start_sm_msg" bpmnElement="start_sm_msg">
+        <dc:Bounds x="1712" y="832" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_investigate" bpmnElement="task_sm_investigate">
+        <dc:Bounds x="1790" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_sm_analyzable" bpmnElement="gateway_sm_analyzable" isMarkerVisible="true">
+        <dc:Bounds x="1935" y="825" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_send_rp_report" bpmnElement="task_sm_send_rp_report">
+        <dc:Bounds x="2030" y="740" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_receive_status" bpmnElement="task_sm_receive_status">
+        <dc:Bounds x="2030" y="910" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_analyze" bpmnElement="task_sm_analyze">
+        <dc:Bounds x="1810" y="930" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_create_trouble_report" bpmnElement="task_sm_create_trouble_report">
+        <dc:Bounds x="1940" y="930" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_sm_merge_status" bpmnElement="gateway_sm_merge_status" isMarkerVisible="true">
+        <dc:Bounds x="2175" y="825" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_prepare_final_status" bpmnElement="task_sm_prepare_final_status">
+        <dc:Bounds x="2260" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_gateway_sm_action_path" bpmnElement="gateway_sm_action_path" isMarkerVisible="true">
+        <dc:Bounds x="2405" y="825" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_send_perf_cs" bpmnElement="task_sm_send_perf_cs">
+        <dc:Bounds x="2500" y="720" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_sm_no_prob" bpmnElement="end_sm_no_prob">
+        <dc:Bounds x="2652" y="742" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_minor_actions" bpmnElement="task_sm_minor_actions">
+        <dc:Bounds x="2500" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_create_resolution_rep" bpmnElement="task_sm_create_resolution_rep">
+        <dc:Bounds x="2640" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_send_resolution_cs" bpmnElement="task_sm_send_resolution_cs">
+        <dc:Bounds x="2780" y="810" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_end_sm_minor" bpmnElement="end_sm_minor">
+        <dc:Bounds x="2912" y="832" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_create_restoration_req" bpmnElement="task_sm_create_restoration_req">
+        <dc:Bounds x="2500" y="910" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_send_restoration_req" bpmnElement="task_sm_send_restoration_req">
+        <dc:Bounds x="2640" y="910" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_task_sm_receive_ts_report" bpmnElement="task_sm_receive_ts_report">
+        <dc:Bounds x="2780" y="910" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <!-- SM Edges -->
+      <bpmndi:BPMNEdge id="edge_flow_sm_1" bpmnElement="flow_sm_1"><di:waypoint x="1748" y="850" /><di:waypoint x="1790" y="850" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_2" bpmnElement="flow_sm_2"><di:waypoint x="1890" y="850" /><di:waypoint x="1935" y="850" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_no" bpmnElement="flow_sm_no"><di:waypoint x="1960" y="825" /><di:waypoint x="1960" y="780" /><di:waypoint x="2030" y="780" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_yes" bpmnElement="flow_sm_yes"><di:waypoint x="1960" y="875" /><di:waypoint x="1960" y="900" /><di:waypoint x="1860" y="900" /><di:waypoint x="1860" y="930" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_3" bpmnElement="flow_sm_3"><di:waypoint x="2080" y="820" /><di:waypoint x="2080" y="910" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_4" bpmnElement="flow_sm_4"><di:waypoint x="2130" y="950" /><di:waypoint x="2200" y="950" /><di:waypoint x="2200" y="875" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_5" bpmnElement="flow_sm_5"><di:waypoint x="1910" y="970" /><di:waypoint x="1940" y="970" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_6" bpmnElement="flow_sm_6"><di:waypoint x="2040" y="970" /><di:waypoint x="2200" y="970" /><di:waypoint x="2200" y="875" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_7" bpmnElement="flow_sm_7"><di:waypoint x="2225" y="850" /><di:waypoint x="2260" y="850" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_8" bpmnElement="flow_sm_8"><di:waypoint x="2360" y="850" /><di:waypoint x="2405" y="850" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_path_noprob" bpmnElement="flow_sm_path_noprob"><di:waypoint x="2430" y="825" /><di:waypoint x="2430" y="760" /><di:waypoint x="2500" y="760" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_path_minor" bpmnElement="flow_sm_path_minor"><di:waypoint x="2455" y="850" /><di:waypoint x="2500" y="850" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_path_auto" bpmnElement="flow_sm_path_auto"><di:waypoint x="2430" y="875" /><di:waypoint x="2430" y="950" /><di:waypoint x="2500" y="950" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_9" bpmnElement="flow_sm_9"><di:waypoint x="2600" y="760" /><di:waypoint x="2652" y="760" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_10" bpmnElement="flow_sm_10"><di:waypoint x="2600" y="850" /><di:waypoint x="2640" y="850" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_flow_sm_11" bpmnElement="flow_sm_11"><di:waypoint x="2740" y="

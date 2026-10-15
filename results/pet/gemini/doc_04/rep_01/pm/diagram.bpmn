@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="pool_company_part" name="Company" processRef="pool_company_proc" />
+    <bpmn:participant id="pool_underwriters_part" name="Underwriters" processRef="pool_underwriters_proc" />
+    <bpmn:participant id="pool_sec_part" name="Securities and Exchange Commission (SEC)" processRef="pool_sec_proc" />
+    <bpmn:messageFlow id="mf_select_underwriters" sourceRef="task_select_underwriters" targetRef="task_provide_advice" name="Underwriter Selection" />
+    <bpmn:messageFlow id="mf_reg_statement_submission" sourceRef="event_reg_sent" targetRef="event_sec_received" name="Registration Statement Submission" />
+    <bpmn:messageFlow id="mf_sec_clearance_transmission" sourceRef="event_sec_cleared" targetRef="event_clearance_received" name="SEC Clearance Transmission" />
+  </bpmn:collaboration>
+  <bpmn:process id="pool_company_proc" isExecutable="false">
+    <bpmn:startEvent id="event_start" name="Decision to go public made">
+      <bpmn:outgoing>sf_c1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="task_select_underwriters" name="Select underwriters">
+      <bpmn:incoming>sf_c1</bpmn:incoming>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="sf_c1" sourceRef="event_start" targetRef="task_select_underwriters" />
+  </bpmn:process>
+  <bpmn:process id="pool_underwriters_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_reg_statement" name="Registration Statement" dataObjectRef="data_reg_statement_do" />
+    <bpmn:dataObject id="data_reg_statement_do" />
+    <bpmn:dataObjectReference id="data_sec_clearance_p1" name="SEC Clearance" dataObjectRef="data_sec_clearance_p1_do" />
+    <bpmn:dataObject id="data_sec_clearance_p1_do" />
+    <bpmn:dataObjectReference id="data_issue_price" name="Issue Price Specification" dataObjectRef="data_issue_price_do" />
+    <bpmn:dataObject id="data_issue_price_do" />
+    <bpmn:intermediateThrowEvent id="event_reg_sent" name="Registration statement submitted">
+      <bpmn:incoming>sf_u7</bpmn:incoming>
+      <bpmn:outgoing>sf_u9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_reg_sent_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="event_clearance_received" name="SEC Clearance received">
+      <bpmn:incoming>sf_u9</bpmn:incoming>
+      <bpmn:outgoing>sf_u10</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_clearance_received_msgdef" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="event_end_success" name="Stock offered to the public">
+      <bpmn:incoming>sf_u15</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="event_end_aborted" name="IPO Aborted">
+      <bpmn:incoming>sf_proceed_no</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="task_provide_advice" name="Provide procedural and financial advice">
+      <bpmn:outgoing>sf_u1</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_prepare_reg_statement" name="Prepare registration statement">
+      <bpmn:incoming>sf_u2</bpmn:incoming>
+      <bpmn:outgoing>sf_u4</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="task_prepare_reg_statement_doa0">
+        <bpmn:targetRef>data_reg_statement</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_check_blue_sky_laws" name="Check compliance with blue-sky laws">
+      <bpmn:incoming>sf_u3</bpmn:incoming>
+      <bpmn:outgoing>sf_u5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_arrange_road_show" name="Arrange road show for potential investors">
+      <bpmn:incoming>sf_u8</bpmn:incoming>
+      <bpmn:outgoing>sf_u11</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_fix_issue_price" name="Fix issue price">
+      <bpmn:incoming>sf_u12</bpmn:incoming>
+      <bpmn:outgoing>sf_u13</bpmn:outgoing>
+      <bpmn:property id="task_fix_issue_price_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_fix_issue_price_dia0">
+        <bpmn:sourceRef>data_sec_clearance_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_fix_issue_price_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_fix_issue_price_doa0">
+        <bpmn:targetRef>data_issue_price</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="task_enter_firm_commitment" name="Enter into firm commitment to buy stock">
+      <bpmn:incoming>sf_proceed_yes</bpmn:incoming>
+      <bpmn:outgoing>sf_u14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="task_offer_public" name="Offer stock to the public">
+      <bpmn:incoming>sf_u14</bpmn:incoming>
+      <bpmn:outgoing>sf_u15</bpmn:outgoing>
+      <bpmn:property id="task_offer_public_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_offer_public_dia0">
+        <bpmn:sourceRef>data_issue_price</bpmn:sourceRef>
+        <bpmn:targetRef>task_offer_public_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:parallelGateway id="gw_parallel_prep_start" name="Parallel Prep Start">
+      <bpmn:incoming>sf_u1</bpmn:incoming>
+      <bpmn:outgoing>sf_u2</bpmn:outgoing>
+      <bpmn:outgoing>sf_u3</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_parallel_prep_end" name="Parallel Prep End">
+      <bpmn:incoming>sf_u4</bpmn:incoming>
+      <bpmn:incoming>sf_u5</bpmn:incoming>
+      <bpmn:outgoing>sf_u6</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_parallel_await_start" name="Parallel Await Approval Start">
+      <bpmn:incoming>sf_u6</bpmn:incoming>
+      <bpmn:outgoing>sf_u7</bpmn:outgoing>
+      <bpmn:outgoing>sf_u8</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="gw_parallel_await_end" name="Parallel Await Approval End">
+      <bpmn:incoming>sf_u10</bpmn:incoming>
+      <bpmn:incoming>sf_u11</bpmn:incoming>
+      <bpmn:outgoing>sf_u12</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:exclusiveGateway id="gw_exclusive_proceed" name="Reason found not to proceed?" isMarkerVisible="true">
+      <bpmn:incoming>sf_u13</bpmn:incoming>
+      <bpmn:outgoing>sf_proceed_yes</bpmn:outgoing>
+      <bpmn:outgoing>sf_proceed_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="sf_u1" sourceRef="task_provide_advice" targetRef="gw_parallel_prep_start" />
+    <bpmn:sequenceFlow id="sf_u2" sourceRef="gw_parallel_prep_start" targetRef="task_prepare_reg_statement" />
+    <bpmn:sequenceFlow id="sf_u3" sourceRef="gw_parallel_prep_start" targetRef="task_check_blue_sky_laws" />
+    <bpmn:sequenceFlow id="sf_u4" sourceRef="task_prepare_reg_statement" targetRef="gw_parallel_prep_end" />
+    <bpmn:sequenceFlow id="sf_u5" sourceRef="task_check_blue_sky_laws" targetRef="gw_parallel_prep_end" />
+    <bpmn:sequenceFlow id="sf_u6" sourceRef="gw_parallel_prep_end" targetRef="gw_parallel_await_start" />
+    <bpmn:sequenceFlow id="sf_u7" sourceRef="gw_parallel_await_start" targetRef="event_reg_sent" />
+    <bpmn:sequenceFlow id="sf_u8" sourceRef="gw_parallel_await_start" targetRef="task_arrange_road_show" />
+    <bpmn:sequenceFlow id="sf_u9" sourceRef="event_reg_sent" targetRef="event_clearance_received" />
+    <bpmn:sequenceFlow id="sf_u10" sourceRef="event_clearance_received" targetRef="gw_parallel_await_end" />
+    <bpmn:sequenceFlow id="sf_u11" sourceRef="task_arrange_road_show" targetRef="gw_parallel_await_end" />
+    <bpmn:sequenceFlow id="sf_u12" sourceRef="gw_parallel_await_end" targetRef="task_fix_issue_price" />
+    <bpmn:sequenceFlow id="sf_u13" sourceRef="task_fix_issue_price" targetRef="gw_exclusive_proceed" />
+    <bpmn:sequenceFlow id="sf_proceed_yes" sourceRef="gw_exclusive_proceed" targetRef="task_enter_firm_commitment" name="No reason found not to proceed" />
+    <bpmn:sequenceFlow id="sf_proceed_no" sourceRef="gw_exclusive_proceed" targetRef="event_end_aborted" name="Reason found not to proceed" />
+    <bpmn:sequenceFlow id="sf_u14" sourceRef="task_enter_firm_commitment" targetRef="task_offer_public" />
+    <bpmn:sequenceFlow id="sf_u15" sourceRef="task_offer_public" targetRef="event_end_success" />
+  </bpmn:process>
+  <bpmn:process id="pool_sec_proc" isExecutable="false">
+    <bpmn:dataObjectReference id="data_reg_statement_p1" name="Registration Statement" dataObjectRef="data_reg_statement_p1_do" />
+    <bpmn:dataObject id="data_reg_statement_p1_do" />
+    <bpmn:dataObjectReference id="data_sec_clearance" name="SEC Clearance" dataObjectRef="data_sec_clearance_do" />
+    <bpmn:dataObject id="data_sec_clearance_do" />
+    <bpmn:startEvent id="event_sec_received" name="Registration statement received">
+      <bpmn:outgoing>sf_sec1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="event_sec_received_msgdef" />
+    </bpmn:startEvent>
+    <bpmn:endEvent id="event_sec_cleared" name="Clearance issued">
+      <bpmn:incoming>sf_sec2</bpmn:incoming>
+      <bpmn:messageEventDefinition id="event_sec_cleared_msgdef" />
+    </bpmn:endEvent>
+    <bpmn:task id="task_review_approval" name="Review and approve registration statement">
+      <bpmn:incoming>sf_sec1</bpmn:incoming>
+      <bpmn:outgoing>sf_sec2</bpmn:outgoing>
+      <bpmn:property id="task_review_approval_prop" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="task_review_approval_dia0">
+        <bpmn:sourceRef>data_reg_statement_p1</bpmn:sourceRef>
+        <bpmn:targetRef>task_review_approval_prop</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="task_review_approval_doa0">
+        <bpmn:targetRef>data_sec_clearance</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="sf_sec1" sourceRef="event_sec_received" targetRef="task_review_approval" />
+    <bpmn:sequenceFlow id="sf_sec2" sourceRef="task_review_approval" targetRef="event_sec_cleared" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="pool_company_part_di" bpmnElement="pool_company_part" isHorizontal="true">
+        <dc:Bounds x="120" y="40" width="700" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_underwriters_part_di" bpmnElement="pool_underwriters_part" isHorizontal="true">
+        <dc:Bounds x="120" y="375" width="2660" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="pool_sec_part_di" bpmnElement="pool_sec_part" isHorizontal="true">
+        <dc:Bounds x="120" y="835" width="760" height="275" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_clearance_received_di" bpmnElement="event_clearance_received">
+        <dc:Bounds x="1300" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_aborted_di" bpmnElement="event_end_aborted">
+        <dc:Bounds x="2060" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_end_success_di" bpmnElement="event_end_success">
+        <dc:Bounds x="2440" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_reg_sent_di" bpmnElement="event_reg_sent">
+        <dc:Bounds x="1110" y="435" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_sec_cleared_di" bpmnElement="event_sec_cleared">
+        <dc:Bounds x="540" y="895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_sec_received_di" bpmnElement="event_sec_received">
+        <dc:Bounds x="160" y="895" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="event_start_di" bpmnElement="event_start">
+        <dc:Bounds x="160" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_exclusive_proceed_di" bpmnElement="gw_exclusive_proceed">
+        <dc:Bounds x="1870" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_parallel_await_end_di" bpmnElement="gw_parallel_await_end">
+        <dc:Bounds x="1490" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_parallel_await_start_di" bpmnElement="gw_parallel_await_start">
+        <dc:Bounds x="920" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_parallel_prep_end_di" bpmnElement="gw_parallel_prep_end">
+        <dc:Bounds x="730" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gw_parallel_prep_start_di" bpmnElement="gw_parallel_prep_start">
+        <dc:Bounds x="350" y="435" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_arrange_road_show_di" bpmnElement="task_arrange_road_show">
+        <dc:Bounds x="1110" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_check_blue_sky_laws_di" bpmnElement="task_check_blue_sky_laws">
+        <dc:Bounds x="540" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_enter_firm_commitment_di" bpmnElement="task_enter_firm_commitment">
+        <dc:Bounds x="2060" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_fix_issue_price_di" bpmnElement="task_fix_issue_price">
+        <dc:Bounds x="1680" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_offer_public_di" bpmnElement="task_offer_public">
+        <dc:Bounds x="2250" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_prepare_reg_statement_di" bpmnElement="task_prepare_reg_statement">
+        <dc:Bounds x="540" y="560" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_provide_advice_di" bpmnElement="task_provide_advice">
+        <dc:Bounds x="160" y="435" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_review_approval_di" bpmnElement="task_review_approval">
+        <dc:Bounds x="350" y="895" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_select_underwriters_di" bpmnElement="task_select_underwriters">
+        <dc:Bounds x="350" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_reg_statement_di" bpmnElement="data_reg_statement">
+        <dc:Bounds x="560" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_sec_clearance_p1_di" bpmnElement="data_sec_clearance_p1">
+        <dc:Bounds x="1700" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_issue_price_di" bpmnElement="data_issue_price">
+        <dc:Bounds x="1985" y="700" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_reg_statement_p1_di" bpmnElement="data_reg_statement_p1">
+        <dc:Bounds x="370" y="1035" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="data_sec_clearance_di" bpmnElement="data_sec_clearance">
+        <dc:Bounds x="370" y="1035" width="36" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sf_c1_di" bpmnElement="sf_c1">
+        <di:waypoint x="178" y="118" />
+        <di:waypoint x="400" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u1_di" bpmnElement="sf_u1">
+        <di:waypoint x="210" y="475" />
+        <di:waypoint x="375" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u2_di" bpmnElement="sf_u2">
+        <di:waypoint x="375" y="460" />
+        <di:waypoint x="590" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u3_di" bpmnElement="sf_u3">
+        <di:waypoint x="375" y="460" />
+        <di:waypoint x="590" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u4_di" bpmnElement="sf_u4">
+        <di:waypoint x="590" y="600" />
+        <di:waypoint x="755" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u5_di" bpmnElement="sf_u5">
+        <di:waypoint x="590" y="475" />
+        <di:waypoint x="755" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u6_di" bpmnElement="sf_u6">
+        <di:waypoint x="755" y="460" />
+        <di:waypoint x="945" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u7_di" bpmnElement="sf_u7">
+        <di:waypoint x="945" y="460" />
+        <di:waypoint x="1128" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u8_di" bpmnElement="sf_u8">
+        <di:waypoint x="945" y="460" />
+        <di:waypoint x="1160" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u9_di" bpmnElement="sf_u9">
+        <di:waypoint x="1128" y="453" />
+        <di:waypoint x="1318" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u10_di" bpmnElement="sf_u10">
+        <di:waypoint x="1318" y="453" />
+        <di:waypoint x="1515" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u11_di" bpmnElement="sf_u11">
+        <di:waypoint x="1160" y="600" />
+        <di:waypoint x="1515" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u12_di" bpmnElement="sf_u12">
+        <di:waypoint x="1515" y="460" />
+        <di:waypoint x="1730" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u13_di" bpmnElement="sf_u13">
+        <di:waypoint x="1730" y="475" />
+        <di:waypoint x="1895" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_proceed_yes_di" bpmnElement="sf_proceed_yes">
+        <di:waypoint x="1895" y="460" />
+        <di:waypoint x="2110" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_proceed_no_di" bpmnElement="sf_proceed_no">
+        <di:waypoint x="1895" y="460" />
+        <di:waypoint x="2078" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u14_di" bpmnElement="sf_u14">
+        <di:waypoint x="2110" y="600" />
+        <di:waypoint x="2300" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_u15_di" bpmnElement="sf_u15">
+        <di:waypoint x="2300" y="475" />
+        <di:waypoint x="2458" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sec1_di" bpmnElement="sf_sec1">
+        <di:waypoint x="178" y="913" />
+        <di:waypoint x="400" y="935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="sf_sec2_di" bpmnElement="sf_sec2">
+        <di:waypoint x="400" y="935" />
+        <di:waypoint x="558" y="913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_select_underwriters_di" bpmnElement="mf_select_underwriters">
+        <di:waypoint x="400" y="140" />
+        <di:waypoint x="210" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_reg_statement_submission_di" bpmnElement="mf_reg_statement_submission">
+        <di:waypoint x="1128" y="453" />
+        <di:waypoint x="178" y="913" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="mf_sec_clearance_transmission_di" bpmnElement="mf_sec_clearance_transmission">
+        <di:waypoint x="558" y="913" />
+        <di:waypoint x="1318" y="453" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_prepare_reg_statement_doa0_di" bpmnElement="task_prepare_reg_statement_doa0">
+        <di:waypoint x="590" y="600" />
+        <di:waypoint x="578" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_approval_dia0_di" bpmnElement="task_review_approval_dia0">
+        <di:waypoint x="388" y="1060" />
+        <di:waypoint x="400" y="935" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_review_approval_doa0_di" bpmnElement="task_review_approval_doa0">
+        <di:waypoint x="400" y="935" />
+        <di:waypoint x="388" y="1060" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_fix_issue_price_dia0_di" bpmnElement="task_fix_issue_price_dia0">
+        <di:waypoint x="1718" y="725" />
+        <di:waypoint x="1730" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_fix_issue_price_doa0_di" bpmnElement="task_fix_issue_price_doa0">
+        <di:waypoint x="1730" y="475" />
+        <di:waypoint x="2003" y="725" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="task_offer_public_dia0_di" bpmnElement="task_offer_public_dia0">
+        <di:waypoint x="2003" y="725" />
+        <di:waypoint x="2300" y="475" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

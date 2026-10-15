@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="OrderProcessingProcess" name="Order Processing Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_NewOrder" name="New Order Received">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_DetermineParts" name="Determine Parts, Quantities &amp; Delivery Date">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_EnterPPS" name="Enter Data into Production Planning System (PPS)">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_ManualTransferERP" name="Manually Transfer Data to ERP">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_CheckMissingParts" name="Are Parts Missing?">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoProcurement</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ProcurementNeeded</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ProcureParts" name="Procure Missing Parts">
+      <bpmn:incoming>Flow_ProcurementNeeded</bpmn:incoming>
+      <bpmn:outgoing>Flow_AfterProcurement</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="IntermediateEvent_ProductionStartNotice" name="Production Start Notice">
+      <bpmn:timerEventDefinition/>
+      <bpmn:incoming>Flow_JoinAfterDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Task_ImplementProduction" name="Implement Production">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_QualityCheck" name="Quality Check">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_OrderCompleted" name="Order Completed">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_NewOrder" targetRef="Task_DetermineParts"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_DetermineParts" targetRef="Task_EnterPPS"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_EnterPPS" targetRef="Task_ManualTransferERP"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_ManualTransferERP" targetRef="Gateway_CheckMissingParts"/>
+    <bpmn:sequenceFlow id="Flow_ProcurementNeeded" name="Yes" sourceRef="Gateway_CheckMissingParts" targetRef="Task_ProcureParts">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_NoProcurement" name="No" sourceRef="Gateway_CheckMissingParts" targetRef="IntermediateEvent_ProductionStartNotice">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AfterProcurement" sourceRef="Task_ProcureParts" targetRef="IntermediateEvent_ProductionStartNotice"/>
+    <bpmn:sequenceFlow id="Flow_JoinAfterDecision" sourceRef="IntermediateEvent_ProductionStartNotice" targetRef="IntermediateEvent_ProductionStartNotice"/> <!-- Self-loop logic handled by flow structure above -->
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="IntermediateEvent_ProductionStartNotice" targetRef="Task_ImplementProduction"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_ImplementProduction" targetRef="Task_QualityCheck"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_QualityCheck" targetRef="EndEvent_OrderCompleted"/>
+  </bpmn:process>
+</bpmn:definitions>

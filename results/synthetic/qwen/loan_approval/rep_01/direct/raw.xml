@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_LoanApproval" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="LoanApprovalProcess" name="Loan Approval Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_ReceiveApplication" name="New Application Received">
+      <bpmn:outgoing>Flow_ReceiveToCredit</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_ReceiveApplication" name="Receive Application">
+      <bpmn:incoming>Flow_ReceiveToCredit</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreditCheck</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_ReceiveToCredit" sourceRef="StartEvent_ReceiveApplication" targetRef="Task_ReceiveApplication" />
+    <bpmn:serviceTask id="Task_CreditCheck" name="Credit Check">
+      <bpmn:resourceRole resourceRoleName="Performer">
+        <bpmn:resourceAssignmentExpression>
+          <bpmn:formalExpression>Credit Analyst</bpmn:formalExpression>
+        </bpmn:resourceAssignmentExpression>
+      </bpmn:resourceRole>
+      <bpmn:incoming>Flow_CreditCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToDecisionGateway</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_CreditCheck" sourceRef="Task_ReceiveApplication" targetRef="Task_CreditCheck" />
+    <bpmn:exclusiveGateway id="Gateway_Decision" name="Review Decision">
+      <bpmn:incoming>Flow_ToDecisionGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_ToDecisionGateway" sourceRef="Task_CreditCheck" targetRef="Gateway_Decision" />
+    <bpmn:userTask id="Task_PrepareOffer" name="Prepare Offer">
+      <bpmn:resourceRole resourceRoleName="Performer">
+        <bpmn:resourceAssignmentExpression>
+          <bpmn:formalExpression>Loan Officer</bpmn:formalExpression>
+        </bpmn:resourceAssignmentExpression>
+      </bpmn:resourceRole>
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_OfferToClose</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_Approved" name="Approved (70%)" sourceRef="Gateway_Decision" targetRef="Task_PrepareOffer">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${Math.random() &lt; 0.7}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Task_SendRejection" name="Send Rejection">
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_RejectionToClose</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_Rejected" name="Rejected (30%)" sourceRef="Gateway_Decision" targetRef="Task_SendRejection">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${Math.random() &gt;= 0.7}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="EndEvent_ApplicationClosed" name="Application Closed">
+      <bpmn:incoming>Flow_OfferToClose</bpmn:incoming>
+      <bpmn:incoming>Flow_RejectionToClose</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_OfferToClose" sourceRef="Task_PrepareOffer" targetRef="EndEvent_ApplicationClosed" />
+    <bpmn:sequenceFlow id="Flow_RejectionToClose" sourceRef="Task_SendRejection" targetRef="EndEvent_ApplicationClosed" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_LoanApproval">
+    <bpmndi:BPMNPlane id="BPMNPlane_LoanApproval" bpmnElement="LoanApprovalProcess">
+      <bpmndi:BPMNShape id="Shape_StartEvent" bpmnElement="StartEvent_ReceiveApplication">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="132" y="145" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Receive" bpmnElement="Task_ReceiveApplication">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Credit" bpmnElement="Task_CreditCheck">
+        <dc:Bounds x="390" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_Decision" bpmnElement="Gateway_Decision" isMarkerVisible="true">
+        <dc:Bounds x="545" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="535" y="155" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Offer" bpmnElement="Task_PrepareOffer">
+        <dc:Bounds x="650" y="30" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Rejection" bpmnElement="Task_SendRejection">
+        <dc:Bounds x="650" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent" bpmnElement="EndEvent_ApplicationClosed">
+        <dc:Bounds x="812" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="792" y="145" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_ReceiveToCredit" bpmnElement="Flow_ReceiveToCredit">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_CreditCheck" bpmnElement="Flow_CreditCheck">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="390" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToDecision" bpmnElement="Flow_ToDecisionGateway">
+        <di:waypoint x="490" y="120" />
+        <di:waypoint x="545" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Approved" bpmnElement="Flow_Approved">
+        <di:waypoint x="570" y="120" />
+        <di:waypoint x="570" y="70" />
+        <di:waypoint x="650" y="70" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="575" y="50" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Rejected" bpmnElement="Flow_Rejected">
+        <di:waypoint x="570" y="120" />
+        <di:waypoint x="570" y="190" />
+        <di:waypoint x="650" y="190" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="575" y="170" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_OfferToClose" bpmnElement="Flow_OfferToClose">
+        <di:waypoint x="750" y="70" />
+        <di:waypoint x="830" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_RejectionToClose" bpmnElement="Flow_RejectionToClose">
+        <di:waypoint x="750" y="190" />
+        <di:waypoint x="830" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="CustomerAcquisitionProcess" name="Customer Acquisition Process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="EndEvent_NoInterest" name="No Interest / Low Budget">
+      <bpmn:incoming>Flow_NoInterest</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_End" name="Quotation Created">
+      <bpmn:incoming>Flow_End</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Step 1: Determine Contact Details -->
+    <bpmn:task id="Task_DetermineContactDetails" name="Determine Contact Details">
+      <bpmn:extensionElements>
+        <bpmndi:bpmndi xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI">
+          <bpmndi:BPMNShape>
+            <dc:Bounds x="0" y="0" width="0" height="0" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"/>
+          </bpmndi:BPMNShape>
+        </bpmndi:bpmndi>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Step 2: Call Customer (Call Center) -->
+    <bpmn:task id="Task_CallCustomer" name="Call Customer &amp; Determine Contact Person/Budget">
+      <bpmn:extensionElements>
+        <bpmn:modelerParticipantRef>CallCenterStaff</bpmn:modelerParticipantRef>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Gateway: Is Customer Interested? -->
+    <bpmn:exclusiveGateway id="Gateway_IsInterested" name="Is Customer Generally Interested?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_YesInterested</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoInterested</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Path: Not Interested -->
+    <bpmn:sequenceFlow id="Flow_NoInterested" sourceRef="Gateway_IsInterested" targetRef="Gateway_HugeBudget">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Not Interested</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Gateway: Is Budget Huge? -->
+    <bpmn:exclusiveGateway id="Gateway_HugeBudget" name="Is Project Budget Huge?">
+      <bpmn:incoming>Flow_NoInterested</bpmn:incoming>
+      <bpmn:outgoing>Flow_HugeBudget</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoInterest</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sequenceFlow id="Flow_NoInterest" sourceRef="Gateway_HugeBudget" targetRef="EndEvent_NoInterest">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Normal Budget</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_HugeBudget" sourceRef="Gateway_HugeBudget" targetRef="Task_HeadOfDevAcquire">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Huge Budget</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Task: Head of Development Acquires -->
+    <bpmn:task id="Task_HeadOfDevAcquire" name="Head of Development Personally Acquires Customer">
+      <bpmn:extensionElements>
+        <bpmn:modelerParticipantRef>HeadOfDevelopment</bpmn:modelerParticipantRef>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_HugeBudget</bpmn:incoming>
+      <bpmn:outgoing>Flow_HeadSuccess</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_HeadSuccess" sourceRef="Task_HeadOfDevAcquire" targetRef="Gateway_FinalInterest">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Acquired</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Path: Interested -->
+    <bpmn:sequenceFlow id="Flow_YesInterested" sourceRef="Gateway_IsInterested" targetRef="Gateway_FinalInterest">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Interested</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Gateway: Final Interest Check (Merges paths) -->
+    <bpmn:exclusiveGateway id="Gateway_FinalInterest" name="Is Customer Interested in the End?">
+      <bpmn:incoming>Flow_YesInterested</bpmn:incoming>
+      <bpmn:incoming>Flow_HeadSuccess</bpmn:incoming>
+      <bpmn:outgoing>Flow_Presentation</bpmn:outgoing>
+      <bpmn:outgoing>Flow_FailFinal</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:sequenceFlow id="Flow_FailFinal" sourceRef="Gateway_FinalInterest" targetRef="EndEvent_NoInterest">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Not Interested</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_Presentation" sourceRef="Gateway_FinalInterest" targetRef="Task_OnlinePresentation">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Interested</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Step: Detailed Online Presentation -->
+    <bpmn:task id="Task_OnlinePresentation" name="Detailed Online Presentation">
+      <bpmn:extensionElements>
+        <bpmn:modelerParticipantRef>SalesOrPreSales</bpmn:modelerParticipantRef>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Presentation</bpmn:incoming>
+      <bpmn:outgoing>Flow_Waiting</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Intermediate Event: Wait for Customer -->
+    <bpmn:intermediateCatchEvent id="Event_WaitForCustomer" name="Wait for Customer Response">
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P14D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+      <bpmn:incoming>Flow_Waiting</bpmn:incoming>
+      <bpmn:outgoing>Flow_Timeout</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ResponseReceived</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+
+    <!-- Note: BPMN standard doesn't support multiple outgoing flows from a timer event directly without gateways or specific extensions. 
+         We model the timeout path explicitly. The "Response Received" path is conceptually handled by the process continuing if the timer isn't triggered, 
+         but in strict XML we often use a parallel gateway or just assume the flow continues. 
+         However, to strictly follow "If we are not contacted within 2 weeks", we model the timeout branch.
+         For simplicity in this linear description, we will assume the main flow continues to Quotation if interested, 
+         and the Timer triggers a Call task which then merges back or leads to Quotation.
+         
+         Let's refine: 
+         After Presentation -> Wait.
+         If Timeout -> Call Customer -> Merge to Quotation.
+         If Response -> Go to Quotation.
+         
+         Since BPMN 2.0 XML requires explicit structure, we will use an Exclusive Gateway after the wait if we had a message event, 
+         but with a Timer, it's usually a boundary event or a separate flow. 
+         Given the text "Afterwards we are waiting... If we are not contacted... calling... Last phase is quotation",
+         It implies the Quotation happens regardless, but the call is an intervention.
+         
+         Let's model:
+         Presentation -> Parallel Gateway? No.
+         Presentation -> Intermediate Catch Event (Timer).
+         From Timer Event -> Task Call Customer -> Task Create Quotation.
+         But what if they respond? The text says "Last phase is creation of a quotation". It doesn't say the process ends if they respond early.
+         It implies the Quotation is the final step.
+         
+         To keep it simple and valid:
+         Presentation -> Task Create Quotation.
+         AND
+         Presentation -> Intermediate Catch Event (Timer) -> Task Call Customer -> (Implicitly leads to Quotation or updates status).
+         
+         Actually, the most logical flow based on "If we are not contacted... calling... Last phase is quotation":
+         1. Presentation
+         2. Wait (Timer)
+         3. If Timer fires -> Call Customer
+         4. Then -> Create Quotation.
+         
+         This assumes the Quotation is created *after* the potential follow-up call.
+    -->
+
+    <bpmn:sequenceFlow id="Flow_Waiting" sourceRef="Task_OnlinePresentation" targetRef="Event_WaitForCustomer"/>
+    
+    <bpmn:sequenceFlow id="Flow_Timeout" sourceRef="Event_WaitForCustomer" targetRef="Task_FollowUpCall">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">Timeout</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <!-- Task: Follow Up Call -->
+    <bpmn:task id="Task_FollowUpCall" name="Sales Representative Calls Customer">
+      <bpmn:extensionElements>
+        <bpmn:modelerParticipantRef>SalesRepresentative</bpmn:modelerParticipantRef>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Timeout</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToQuotation</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Task: Create Quotation -->
+    <bpmn:task id="Task_CreateQuotation" name="Create Quotation">
+      <bpmn:incoming>Flow_ToQuotation</bpmn:incoming>
+      <bpmn:outgoing>Flow_End</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_ToQuotation" sourceRef="Task_FollowUpCall" targetRef="Task_CreateQuotation"/>
+    <bpmn:sequenceFlow id="Flow_End" sourceRef="Task_CreateQuotation" targetRef="EndEvent_End"/>
+
+    <!-- Connections for Start -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_DetermineContactDetails"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_DetermineContactDetails" targetRef="Task_CallCustomer"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CallCustomer" targetRef="Gateway_IsInterested"/>
+
+  </bpmn:process>
+  
+  <!-- Participants/Lanes definitions would go here in a full pool definition, 
+       but for a single process XML, we rely on extension elements or implicit assignment. 
+       To be strictly compliant with "Output ONLY XML", we stick to the core process. -->
+</bpmn:definitions>

@@ -1,0 +1,283 @@
+{
+  "name": "Vacations Request Process",
+  "resources": [
+    {
+      "name": "Employee",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Immediate Supervisor",
+      "capacity": 1,
+      "resource_type": "human"
+    },
+    {
+      "name": "Human Resources Representative",
+      "capacity": 1,
+      "resource_type": "human"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_start_request",
+      "name": "Submit Vacation Request",
+      "event_position": "start",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_end_rejected",
+      "name": "Request Rejected",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    },
+    {
+      "id": "evt_msg_send_approval",
+      "name": "Send Approval Notification",
+      "event_position": "intermediate",
+      "trigger_type": "message",
+      "message_name": "Approval Notification"
+    },
+    {
+      "id": "evt_msg_recv_approval",
+      "name": "Receive Approval Notification",
+      "event_position": "start",
+      "trigger_type": "message",
+      "message_name": "Approval Notification"
+    },
+    {
+      "id": "evt_end_hr_complete",
+      "name": "Management Procedures Completed",
+      "event_position": "end",
+      "trigger_type": "none",
+      "message_name": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_submit_request",
+      "name": "Register Vacation Request",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [],
+      "output_data_ids": [
+        "data_vacation_request"
+      ]
+    },
+    {
+      "id": "task_review_rejection",
+      "name": "Review Rejection Reasons",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Employee",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_vacation_request"
+      ],
+      "output_data_ids": []
+    },
+    {
+      "id": "task_supervisor_decision",
+      "name": "Approve or Reject Request",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Immediate Supervisor",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_vacation_request"
+      ],
+      "output_data_ids": [
+        "data_vacation_request"
+      ]
+    },
+    {
+      "id": "task_hr_management",
+      "name": "Complete Management Procedures",
+      "bpmn_type": "bpmn:UserTask",
+      "resource_name": "Human Resources Representative",
+      "duration": {
+        "distribution": "fixed",
+        "value": 1.0,
+        "mean": null,
+        "std": null,
+        "min": null,
+        "max": null,
+        "unit": "minutes",
+        "is_placeholder": true,
+        "source": "default_missing_duration"
+      },
+      "is_loop": false,
+      "input_data_ids": [
+        "data_vacation_request"
+      ],
+      "output_data_ids": []
+    }
+  ],
+  "gateways": [
+    {
+      "id": "gw_decision",
+      "name": "Decision Gateway",
+      "gateway_type": "exclusive",
+      "branch_probabilities": null,
+      "branch_conditions": [
+        {
+          "flow_id": "flow_approved",
+          "condition": "Approved"
+        },
+        {
+          "flow_id": "flow_rejected",
+          "condition": "Rejected"
+        }
+      ]
+    }
+  ],
+  "sequence_flows": [
+    {
+      "id": "flow_1",
+      "source_id": "evt_start_request",
+      "target_id": "task_submit_request",
+      "condition_name": null
+    },
+    {
+      "id": "flow_2",
+      "source_id": "task_submit_request",
+      "target_id": "task_supervisor_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_3",
+      "source_id": "task_supervisor_decision",
+      "target_id": "gw_decision",
+      "condition_name": null
+    },
+    {
+      "id": "flow_approved",
+      "source_id": "gw_decision",
+      "target_id": "evt_msg_send_approval",
+      "condition_name": "Approved"
+    },
+    {
+      "id": "flow_rejected",
+      "source_id": "gw_decision",
+      "target_id": "task_review_rejection",
+      "condition_name": "Rejected"
+    },
+    {
+      "id": "flow_4",
+      "source_id": "task_review_rejection",
+      "target_id": "evt_end_rejected",
+      "condition_name": null
+    },
+    {
+      "id": "flow_5",
+      "source_id": "evt_msg_recv_approval",
+      "target_id": "task_hr_management",
+      "condition_name": null
+    },
+    {
+      "id": "flow_6",
+      "source_id": "task_hr_management",
+      "target_id": "evt_end_hr_complete",
+      "condition_name": null
+    }
+  ],
+  "pools": [
+    {
+      "id": "pool_employee",
+      "name": "Employee",
+      "element_ids": [
+        "evt_start_request",
+        "task_submit_request",
+        "task_review_rejection",
+        "evt_end_rejected",
+        "flow_1",
+        "flow_2",
+        "flow_4"
+      ]
+    },
+    {
+      "id": "pool_supervisor",
+      "name": "Immediate Supervisor",
+      "element_ids": [
+        "task_supervisor_decision",
+        "gw_decision",
+        "evt_msg_send_approval",
+        "flow_3",
+        "flow_approved",
+        "flow_rejected"
+      ]
+    },
+    {
+      "id": "pool_hr",
+      "name": "Human Resources",
+      "element_ids": [
+        "evt_msg_recv_approval",
+        "task_hr_management",
+        "evt_end_hr_complete",
+        "flow_5",
+        "flow_6"
+      ]
+    }
+  ],
+  "message_flows": [
+    {
+      "id": "msg_flow_1",
+      "source_id": "evt_msg_send_approval",
+      "target_id": "evt_msg_recv_approval",
+      "name": "Approval Notification"
+    }
+  ],
+  "data_objects": [
+    {
+      "id": "data_vacation_request",
+      "name": "Vacation Request"
+    }
+  ],
+  "data_stores": [],
+  "inter_arrival_time": {
+    "distribution": "fixed",
+    "value": 1.0,
+    "mean": null,
+    "std": null,
+    "min": null,
+    "max": null,
+    "unit": "minutes",
+    "is_placeholder": true,
+    "source": "default_missing_duration"
+  },
+  "simulation_duration": null,
+  "simulation_duration_unit": "hours"
+}

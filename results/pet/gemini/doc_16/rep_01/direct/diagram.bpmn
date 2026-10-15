@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.org/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_LeadProcessing" name="Lead Processing" processRef="Process_LeadProcessing" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Process_LeadProcessing" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Manager" name="Manager">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CheckOpenLeads</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SelectTopFive</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_TellAssistant</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_ManagerReceivesNote</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ProcessLead</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_LeadProcessed</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_SalesAssistant" name="Sales Assistant">
+        <bpmn:flowNodeRef>Event_AssistantNotified</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CallCustomer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_IsInterested</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendNoteToManager</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_MoreCustomers</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_NoMoreCustomers</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Manager Flow -->
+    <bpmn:startEvent id="StartEvent_1" name="Leads Need Processing">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_CheckOpenLeads" name="Check Open Leads">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_SelectTopFive" name="Select Top Five Leads">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:task id="Task_TellAssistant" name="Instruct Sales Assistant to Call Leads">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Assistant Flow -->
+    <bpmn:intermediateCatchEvent id="Event_AssistantNotified" name="Received Call Instruction">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:userTask id="Task_CallCustomer" name="Call Customer">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:incoming>Flow_NextCustomer</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gateway_IsInterested" name="Is Interested?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_InterestedYes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_InterestedNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_SendNoteToManager" name="Send Note to Manager">
+      <bpmn:incoming>Flow_InterestedYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Manager Processing -->
+    <bpmn:intermediateCatchEvent id="Event_ManagerReceivesNote" name="Note Received">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_2" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:userTask id="Task_ProcessLead" name="Process Lead">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="EndEvent_LeadProcessed" name="Lead Processed">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Assistant Loop/Next Customer -->
+    <bpmn:exclusiveGateway id="Gateway_MoreCustomers" name="More Customers in Top 5?">
+      <bpmn:incoming>Flow_InterestedNo</bpmn:incoming>
+      <bpmn:outgoing>Flow_NextCustomer</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoMoreCustomers</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="EndEvent_NoMoreCustomers" name="Calls Completed">
+      <bpmn:incoming>Flow_NoMoreCustomers</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_CheckOpenLeads" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_CheckOpenLeads" targetRef="Task_SelectTopFive" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_SelectTopFive" targetRef="Task_TellAssistant" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_TellAssistant" targetRef="Event_AssistantNotified" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Event_AssistantNotified" targetRef="Task_CallCustomer" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_CallCustomer" targetRef="Gateway_IsInterested" />
+    <bpmn:sequenceFlow id="Flow_InterestedYes" name="Yes" sourceRef="Gateway_IsInterested" targetRef="Task_SendNoteToManager" />
+    <bpmn:sequenceFlow id="Flow_InterestedNo" name="No" sourceRef="Gateway_IsInterested" targetRef="Gateway_MoreCustomers" />
+    <bpmn:sequenceFlow id="Flow_NextCustomer" name="Yes" sourceRef="Gateway_MoreCustomers" targetRef="Task_CallCustomer" />
+    <bpmn:sequenceFlow id="Flow_NoMoreCustomers" name="No" sourceRef="Gateway_MoreCustomers" targetRef="EndEvent_NoMoreCustomers" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_SendNoteToManager" targetRef="Event_ManagerReceivesNote" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Event_ManagerReceivesNote" targetRef="Task_ProcessLead" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_ProcessLead" targetRef="EndEvent_LeadProcessed" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_LeadProcessing_di" bpmnElement="Participant_LeadProcessing" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1280" height="460" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_Manager_di" bpmnElement="Lane_Manager" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1250" height="230" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Lane_SalesAssistant_di" bpmnElement="Lane_SalesAssistant" isHorizontal="true">
+        <dc:Bounds x="190" y="310" width="1250" height="230" />
+      </bpmndi:BPMNShape>
+
+      <!-- Manager Elements -->
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="242" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="229" y="215" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CheckOpenLeads_di" bpmnElement="Task_CheckOpenLeads">
+        <dc:Bounds x="330" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SelectTopFive_di" bpmnElement="Task_SelectTopFive">
+        <dc:Bounds x="480" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_TellAssistant_di" bpmnElement="Task_TellAssistant">
+        <dc:Bounds x="630" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Event_ManagerReceivesNote_di" bpmnElement="Event_ManagerReceivesNote">
+        <dc:Bounds x="1052" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1034" y="142" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ProcessLead_di" bpmnElement="Task_ProcessLead">
+        <dc:Bounds x="1140" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_LeadProcessed_di" bpmnElement="EndEvent_LeadProcessed">
+        <dc:Bounds x="1292" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1271" y="215" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Assistant Elements -->
+      <bpmndi:BPMNShape id="Event_AssistantNotified_di" bpmnElement="Event_AssistantNotified">
+        <dc:Bounds x="662" y="392" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="646" y="435" width="68" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_CallCustomer_di" bpmnElement="Task_CallCustomer">
+        <dc:Bounds x="750" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_IsInterested_di" bpmnElement="Gateway_IsInterested" isMarkerVisible="true">
+        <dc:Bounds x="895" y="385" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="886" y="361" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SendNoteToManager_di" bpmnElement="Task_SendNoteToManager">
+        <dc:Bounds x="1020" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_MoreCustomers_di" bpmnElement="Gateway_MoreCustomers" isMarkerVisible="true">
+        <dc:Bounds x="895" y="475" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="955" y="486" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_NoMoreCustomers_di" bpmnElement="EndEvent_NoMoreCustomers">
+        <dc:Bounds x="802" y="482" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="780" y="525" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Flows -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="278" y="190" />
+        <di:waypoint x="330" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="430" y="190" />
+        <di:waypoint x="480" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="580" y="190" />
+        <di:waypoint x="630" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="680" y="230" />
+        <di:waypoint x="680" y="392" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="698" y="410" />
+        <di:waypoint x="750" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="850" y="410" />
+        <di:waypoint x="895" y="410" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_InterestedYes_di" bpmnElement="Flow_InterestedYes">
+        <di:waypoint x="945" y="410" />
+        <di:waypoint x="1020" y="410" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="974" y="392" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_InterestedNo_di" bpmnElement="Flow_InterestedNo">
+        <di:waypoint x="920" y="435" />
+        <di:waypoint x="920" y="475" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="928" y="443" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NextCustomer_di" bpmnElement="Flow_NextCustomer">
+        <di:waypoint x="895" y="500" />
+        <di:waypoint x="780" y="500" />
+        <di:waypoint x="780" y="450" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="829" y="482" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_NoMoreCustomers_di" bpmnElement="Flow_NoMoreCustomers">
+        <di:waypoint x="895" y="500" />
+        <di:waypoint x="838" y="500" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="862" y="482" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1070" y="370" />
+        <di:waypoint x="1070" y="208" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1088" y="190" />
+        <di:waypoint x="1140" y="190" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1240" y="190" />
+        <di:waypoint x="1292" y="190" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
